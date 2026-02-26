@@ -59,6 +59,7 @@ static const uint8_t BDD_OP_XOR = 1;
 static const uint8_t BDD_OP_AT0 = 2;
 static const uint8_t BDD_OP_AT1 = 3;
 static const uint8_t BDD_OP_ITE = 4;
+static const uint8_t BDD_OP_IMPLY = 5;
 
 class BDD {
 public:
@@ -114,6 +115,8 @@ bddp bddxnor(bddp f, bddp g);
 bddp bddat0(bddp f, bddvar v);
 bddp bddat1(bddp f, bddvar v);
 bddp bddite(bddp f, bddp g, bddp h);
+
+int bddimply(bddp f, bddp g);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);

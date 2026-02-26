@@ -717,3 +717,56 @@ bddp bddat1(bddp f, bddvar v) {
     bddwcache(BDD_OP_AT1, f, static_cast<bddp>(v), result);
     return result;
 }
+
+int bddimply(bddp f, bddp g) {
+    // Terminal cases: is there an assignment where f=1 and g=0?
+    if (f == bddfalse) return 1;   // f is never true
+    if (g == bddtrue)  return 1;   // g is always true
+    if (f == bddtrue && g == bddfalse) return 0;  // counterexample
+    if (f == g) return 1;          // f implies f
+    if (f == bddnot(g)) return 0;  // f=1 => g=0
+
+    // Cache lookup (store result as bddtrue/bddfalse)
+    bddp cached = bddrcache(BDD_OP_IMPLY, f, g);
+    if (cached != bddnull) return cached == bddtrue ? 1 : 0;
+
+    // Determine top variable and cofactors
+    bool f_is_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_is_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_is_const ? 0 : node_var(f);
+    bddvar g_var = g_is_const ? 0 : node_var(g);
+    bddvar f_level = f_is_const ? 0 : var2level[f_var];
+    bddvar g_level = g_is_const ? 0 : var2level[g_var];
+
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = g;
+        g_hi = g;
+    } else if (g_level > f_level) {
+        f_lo = f;
+        f_hi = f;
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    } else {
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    }
+
+    // Both branches must satisfy the implication
+    int result = bddimply(f_lo, g_lo) && bddimply(f_hi, g_hi);
+
+    bddwcache(BDD_OP_IMPLY, f, g, result ? bddtrue : bddfalse);
+    return result;
+}

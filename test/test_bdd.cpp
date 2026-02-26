@@ -904,6 +904,77 @@ TEST_F(BDDTest, BddIteAllComplemented) {
     EXPECT_EQ(bddite(bddnot(p1), bddnot(p2), bddnot(p3)), expected);
 }
 
+// --- bddimply ---
+
+TEST_F(BDDTest, BddImplyTerminals) {
+    EXPECT_EQ(bddimply(bddfalse, bddfalse), 1);  // false->false = true
+    EXPECT_EQ(bddimply(bddfalse, bddtrue), 1);   // false->true = true
+    EXPECT_EQ(bddimply(bddtrue, bddfalse), 0);   // true->false = false
+    EXPECT_EQ(bddimply(bddtrue, bddtrue), 1);    // true->true = true
+}
+
+TEST_F(BDDTest, BddImplySelf) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddimply(p, p), 1);            // x -> x
+    EXPECT_EQ(bddimply(bddnot(p), bddnot(p)), 1);  // ~x -> ~x
+}
+
+TEST_F(BDDTest, BddImplyComplement) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddimply(p, bddnot(p)), 0);   // x -> ~x fails (x=1)
+    EXPECT_EQ(bddimply(bddnot(p), p), 0);   // ~x -> x fails (x=0)
+}
+
+TEST_F(BDDTest, BddImplyWithTerminal) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddimply(bddfalse, p), 1);    // false -> anything
+    EXPECT_EQ(bddimply(p, bddtrue), 1);     // anything -> true
+    EXPECT_EQ(bddimply(bddtrue, p), 0);     // true -> x fails (x=0)
+    EXPECT_EQ(bddimply(p, bddfalse), 0);    // x -> false fails (x=1)
+}
+
+TEST_F(BDDTest, BddImplyAndImpliesOr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f_and = bddand(p1, p2);
+    bddp f_or  = bddor(p1, p2);
+    // (x1 & x2) -> (x1 | x2) is always true
+    EXPECT_EQ(bddimply(f_and, f_or), 1);
+    // (x1 | x2) -> (x1 & x2) is NOT always true
+    EXPECT_EQ(bddimply(f_or, f_and), 0);
+}
+
+TEST_F(BDDTest, BddImplyVarImpliesOr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // x1 -> (x1 | x2) is always true
+    EXPECT_EQ(bddimply(p1, bddor(p1, p2)), 1);
+    // x2 -> (x1 | x2) is always true
+    EXPECT_EQ(bddimply(p2, bddor(p1, p2)), 1);
+    // (x1 | x2) -> x1 is NOT always true
+    EXPECT_EQ(bddimply(bddor(p1, p2), p1), 0);
+}
+
+TEST_F(BDDTest, BddImplyThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // (x1 & x2 & x3) -> x1 is always true
+    EXPECT_EQ(bddimply(bddand(bddand(p1, p2), p3), p1), 1);
+    // x1 -> (x1 & x2 & x3) is NOT always true
+    EXPECT_EQ(bddimply(p1, bddand(bddand(p1, p2), p3)), 0);
+}
+
 // --- Cross-operation identities ---
 
 TEST_F(BDDTest, DeMorganIdentities) {
