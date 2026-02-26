@@ -422,3 +422,50 @@ TEST_F(BDDTest, BddVarOfLevInvalidRange) {
     EXPECT_THROW(bddvaroflev(0), std::invalid_argument);
     EXPECT_THROW(bddvaroflev(2), std::invalid_argument);
 }
+
+// --- bddtop ---
+
+TEST_F(BDDTest, BddTopTerminals) {
+    EXPECT_EQ(bddtop(bddfalse), 0u);
+    EXPECT_EQ(bddtop(bddtrue), 0u);
+}
+
+TEST_F(BDDTest, BddTopVariable) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddtop(p1), v1);
+    EXPECT_EQ(bddtop(p2), v2);
+}
+
+TEST_F(BDDTest, BddTopComplement) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddtop(bddnot(p)), v);
+}
+
+TEST_F(BDDTest, BddTopAndResult) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp ab = bddand(p1, p2);
+    // v2 has higher level (level 2 > level 1), so it is the top variable
+    EXPECT_EQ(bddtop(ab), v2);
+}
+
+TEST_F(BDDTest, BddTopNull) {
+    EXPECT_THROW(bddtop(bddnull), std::invalid_argument);
+}
+
+// --- bddcopy ---
+
+TEST_F(BDDTest, BddCopy) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddcopy(p), p);
+    EXPECT_EQ(bddcopy(bddnot(p)), bddnot(p));
+    EXPECT_EQ(bddcopy(bddfalse), bddfalse);
+    EXPECT_EQ(bddcopy(bddtrue), bddtrue);
+}

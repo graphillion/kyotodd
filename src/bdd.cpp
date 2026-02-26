@@ -66,16 +66,20 @@ static inline bool bddp_is_reduced(bddp p) {
 
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
+// Complement flag is stripped internally so callers need not worry about it.
 static inline bddvar node_var(bddp node_id) {
+    node_id &= ~BDD_COMP_FLAG;
     return static_cast<bddvar>(bdd_nodes[node_id / 2 - 1].data[0] >> BDD_NODE_VAR_SHIFT);
 }
 
 static inline bddp node_lo(bddp node_id) {
+    node_id &= ~BDD_COMP_FLAG;
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
     return ((n.data[0] & BDD_NODE_LO_HI_MASK) << BDD_NODE_LO_SPLIT) | (n.data[1] >> BDD_NODE_LO_LO_SHIFT);
 }
 
 static inline bddp node_hi(bddp node_id) {
+    node_id &= ~BDD_COMP_FLAG;
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
     return n.data[1] & BDD_NODE_HI_MASK;
 }
@@ -255,6 +259,16 @@ bddvar bddvarused() {
     return bdd_varcount;
 }
 
+bddvar bddtop(bddp f) {
+    if (f == bddnull) {
+        throw std::invalid_argument("bddtop: bddnull");
+    }
+    if (f & BDD_CONST_FLAG) {
+        return 0;
+    }
+    return node_var(f);
+}
+
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);
@@ -335,13 +349,11 @@ bddp bddand(bddp f, bddp g) {
     if (cached != bddnull) return cached;
 
     // Both f and g are non-terminal at this point
-    bddp f_raw = f & ~BDD_COMP_FLAG;
-    bddp g_raw = g & ~BDD_COMP_FLAG;
     bool f_comp = (f & BDD_COMP_FLAG) != 0;
     bool g_comp = (g & BDD_COMP_FLAG) != 0;
 
-    bddvar f_var = node_var(f_raw);
-    bddvar g_var = node_var(g_raw);
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
     bddvar f_level = var2level[f_var];
     bddvar g_level = var2level[g_var];
 
@@ -351,8 +363,8 @@ bddp bddand(bddp f, bddp g) {
 
     if (f_level > g_level) {
         top_var = f_var;
-        f_lo = node_lo(f_raw);
-        f_hi = node_hi(f_raw);
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         g_lo = g;
         g_hi = g;
@@ -360,16 +372,16 @@ bddp bddand(bddp f, bddp g) {
         top_var = g_var;
         f_lo = f;
         f_hi = f;
-        g_lo = node_lo(g_raw);
-        g_hi = node_hi(g_raw);
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
     } else {
         top_var = f_var;
-        f_lo = node_lo(f_raw);
-        f_hi = node_hi(f_raw);
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
-        g_lo = node_lo(g_raw);
-        g_hi = node_hi(g_raw);
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
     }
 
