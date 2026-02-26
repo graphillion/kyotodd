@@ -28,5 +28,6 @@ bddp bddcofactor(bddp f, bddp g);
 
 // ZDD operations
 bddp bddoffset(bddp f, bddvar var);
+bddp bddonset(bddp f, bddvar var);
 
 #endif
