@@ -1,16 +1,7 @@
 #ifndef KYOTODD_BDD_INTERNAL_H
 #define KYOTODD_BDD_INTERNAL_H
 
-#include "bdd_node.h"
-#include <cstdint>
-
-// Forward declarations for types used below
-typedef uint64_t bddp;
-typedef uint32_t bddvar;
-static const bddp BDD_CONST_FLAG = UINT64_C(0x800000000000);
-static const bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);
-
-extern BddNode* bdd_nodes;
+#include "bdd_types.h"
 
 // --- Node write ---
 // Node ID -> array index: node_id/2 - 1
