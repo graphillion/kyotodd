@@ -1,6 +1,7 @@
 #include "bdd.h"
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
@@ -155,6 +156,25 @@ static void unique_table_resize(BddUniqueTable* t) {
 
 // --- Public API ---
 void BDD_Init(uint64_t node_count, uint64_t node_max) {
+    // Free previous allocations if re-initializing
+    std::free(bdd_nodes);
+    std::free(var2level);
+    std::free(level2var);
+    // Free unique tables
+    for (bddvar i = 1; i <= bdd_varcount; i++) {
+        std::free(bdd_unique_tables[i].slots);
+    }
+    std::free(bdd_unique_tables);
+    std::free(bdd_cache);
+
+    // Reset variable state
+    var2level = nullptr;
+    level2var = nullptr;
+    bdd_varcount = 0;
+    var_capacity = 0;
+    bdd_unique_tables = nullptr;
+    bdd_node_used = 0;
+
     bdd_node_count = node_count;
     bdd_node_max = node_max;
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
@@ -187,6 +207,34 @@ bddvar BDD_NewVar() {
     level2var[var] = var;
     unique_table_init(&bdd_unique_tables[var]);
     return var;
+}
+
+bddvar bddnewvaroflev(bddvar lev) {
+    if (lev < 1 || lev > bdd_varcount + 1) {
+        throw std::invalid_argument("bddnewvaroflev: lev out of range");
+    }
+
+    // Create a new variable (allocates arrays, unique table, etc.)
+    bddvar new_var = BDD_NewVar();
+
+    // Shift levels >= lev up by 1 to make room
+    // new_var was assigned level == new_var (== bdd_varcount) by BDD_NewVar
+    // We need to reassign: all vars currently at level >= lev get level + 1
+    for (bddvar v = 1; v < new_var; v++) {
+        if (var2level[v] >= lev) {
+            var2level[v]++;
+        }
+    }
+
+    // The new variable gets the requested level
+    var2level[new_var] = lev;
+
+    // Rebuild level2var from var2level
+    for (bddvar v = 1; v <= bdd_varcount; v++) {
+        level2var[var2level[v]] = v;
+    }
+
+    return new_var;
 }
 
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {

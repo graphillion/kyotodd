@@ -286,3 +286,82 @@ TEST_F(BDDTest, CacheUsedByBddand) {
     EXPECT_EQ(bddand(bddand(p1, p2), p3), abc);
     EXPECT_EQ(bddand(p1, bddand(p2, p3)), abc);  // associativity
 }
+
+// --- bddnewvaroflev ---
+
+TEST_F(BDDTest, NewVarOfLevBasic) {
+    bddvar v1 = BDD_NewVar();  // var=1, level=1
+    bddvar v2 = BDD_NewVar();  // var=2, level=2
+
+    // Insert new var at level 1
+    bddvar v3 = bddnewvaroflev(1);
+    EXPECT_EQ(v3, 3u);
+
+    // v3 should be at level 1
+    EXPECT_EQ(var2level[v3], 1u);
+    // v1 was at level 1, now shifted to level 2
+    EXPECT_EQ(var2level[v1], 2u);
+    // v2 was at level 2, now shifted to level 3
+    EXPECT_EQ(var2level[v2], 3u);
+
+    // Reverse mapping
+    EXPECT_EQ(level2var[1], v3);
+    EXPECT_EQ(level2var[2], v1);
+    EXPECT_EQ(level2var[3], v2);
+}
+
+TEST_F(BDDTest, NewVarOfLevAtEnd) {
+    bddvar v1 = BDD_NewVar();  // var=1, level=1
+    bddvar v2 = BDD_NewVar();  // var=2, level=2
+
+    // Insert at level 3 (one past current max)
+    bddvar v3 = bddnewvaroflev(3);
+    EXPECT_EQ(v3, 3u);
+
+    // No shifting needed
+    EXPECT_EQ(var2level[v1], 1u);
+    EXPECT_EQ(var2level[v2], 2u);
+    EXPECT_EQ(var2level[v3], 3u);
+
+    EXPECT_EQ(level2var[1], v1);
+    EXPECT_EQ(level2var[2], v2);
+    EXPECT_EQ(level2var[3], v3);
+}
+
+TEST_F(BDDTest, NewVarOfLevMiddle) {
+    bddvar v1 = BDD_NewVar();  // var=1, level=1
+    bddvar v2 = BDD_NewVar();  // var=2, level=2
+    bddvar v3 = BDD_NewVar();  // var=3, level=3
+
+    // Insert at level 2
+    bddvar v4 = bddnewvaroflev(2);
+    EXPECT_EQ(v4, 4u);
+
+    EXPECT_EQ(var2level[v1], 1u);  // unchanged
+    EXPECT_EQ(var2level[v4], 2u);  // new var at level 2
+    EXPECT_EQ(var2level[v2], 3u);  // shifted from 2 to 3
+    EXPECT_EQ(var2level[v3], 4u);  // shifted from 3 to 4
+
+    EXPECT_EQ(level2var[1], v1);
+    EXPECT_EQ(level2var[2], v4);
+    EXPECT_EQ(level2var[3], v2);
+    EXPECT_EQ(level2var[4], v3);
+}
+
+TEST_F(BDDTest, NewVarOfLevInvalidRange) {
+    BDD_NewVar();  // var=1
+
+    // lev=0 is invalid (terminal level)
+    EXPECT_THROW(bddnewvaroflev(0), std::invalid_argument);
+
+    // lev=3 is invalid (current varcount=1, max valid lev=2)
+    EXPECT_THROW(bddnewvaroflev(3), std::invalid_argument);
+}
+
+TEST_F(BDDTest, NewVarOfLevNoVarsYet) {
+    // No vars exist yet, lev=1 is the only valid value
+    bddvar v1 = bddnewvaroflev(1);
+    EXPECT_EQ(v1, 1u);
+    EXPECT_EQ(var2level[v1], 1u);
+    EXPECT_EQ(level2var[1], v1);
+}

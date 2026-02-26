@@ -76,6 +76,7 @@ public:
 
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 bddvar BDD_NewVar();
+bddvar bddnewvaroflev(bddvar lev);
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
 bddp getnode(bddvar var, bddp lo, bddp hi);
