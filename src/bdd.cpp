@@ -4,8 +4,11 @@
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
-#include <unordered_set>
+#include <istream>
 #include <ostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
@@ -1261,4 +1264,144 @@ void bddexport(std::ostream& strm, bddp* p, int lim) {
 void bddexport(std::ostream& strm, const std::vector<bddp>& v) {
     std::vector<bddp> tmp(v);
     export_core(strm, tmp.data(), static_cast<int>(tmp.size()));
+}
+
+// --- bddimport / bddimportz ---
+
+typedef bddp (*import_nodefn_t)(bddvar, bddp, bddp);
+
+static bddp import_parse_arc(const char* s,
+                              const std::unordered_map<uint64_t, bddp>& id_map) {
+    if (s[0] == 'F') return bddfalse;
+    if (s[0] == 'T') return bddtrue;
+    uint64_t val = std::strtoull(s, nullptr, 10);
+    bool comp = (val & 1) != 0;
+    uint64_t node_id = comp ? (val - 1) : val;
+    std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(node_id);
+    if (it == id_map.end()) return bddnull;
+    return comp ? bddnot(it->second) : it->second;
+}
+
+static int import_core(FILE* strm, std::vector<bddp>& result,
+                       import_nodefn_t make_node) {
+    unsigned max_level, output_count, node_count;
+    if (std::fscanf(strm, " _i %u", &max_level) != 1) return -1;
+    if (std::fscanf(strm, " _o %u", &output_count) != 1) return -1;
+    if (std::fscanf(strm, " _n %u", &node_count) != 1) return -1;
+
+    while (bddvarused() < max_level) bddnewvar();
+
+    std::unordered_map<uint64_t, bddp> id_map;
+    char buf0[32], buf1[32];
+    for (unsigned i = 0; i < node_count; i++) {
+        uint64_t old_id;
+        unsigned level;
+        if (std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
+                        &old_id, &level, buf0, buf1) != 4) return -1;
+        bddp lo = import_parse_arc(buf0, id_map);
+        bddp hi = import_parse_arc(buf1, id_map);
+        if (lo == bddnull || hi == bddnull) return -1;
+        bddvar var = bddvaroflev(level);
+        bddp new_node = make_node(var, lo, hi);
+        id_map[old_id] = new_node;
+    }
+
+    result.resize(output_count);
+    for (unsigned i = 0; i < output_count; i++) {
+        char ref[32];
+        if (std::fscanf(strm, " %31s", ref) != 1) return -1;
+        bddp r = import_parse_arc(ref, id_map);
+        if (r == bddnull) return -1;
+        result[i] = r;
+    }
+
+    return static_cast<int>(output_count);
+}
+
+static int import_core(std::istream& strm, std::vector<bddp>& result,
+                       import_nodefn_t make_node) {
+    std::string tag;
+    unsigned max_level, output_count, node_count;
+    if (!(strm >> tag >> max_level) || tag != "_i") return -1;
+    if (!(strm >> tag >> output_count) || tag != "_o") return -1;
+    if (!(strm >> tag >> node_count) || tag != "_n") return -1;
+
+    while (bddvarused() < max_level) bddnewvar();
+
+    std::unordered_map<uint64_t, bddp> id_map;
+    for (unsigned i = 0; i < node_count; i++) {
+        uint64_t old_id;
+        unsigned level;
+        std::string s0, s1;
+        if (!(strm >> old_id >> level >> s0 >> s1)) return -1;
+        bddp lo = import_parse_arc(s0.c_str(), id_map);
+        bddp hi = import_parse_arc(s1.c_str(), id_map);
+        if (lo == bddnull || hi == bddnull) return -1;
+        bddvar var = bddvaroflev(level);
+        bddp new_node = make_node(var, lo, hi);
+        id_map[old_id] = new_node;
+    }
+
+    result.resize(output_count);
+    for (unsigned i = 0; i < output_count; i++) {
+        std::string ref;
+        if (!(strm >> ref)) return -1;
+        bddp r = import_parse_arc(ref.c_str(), id_map);
+        if (r == bddnull) return -1;
+        result[i] = r;
+    }
+
+    return static_cast<int>(output_count);
+}
+
+int bddimport(FILE* strm, bddp* p, int lim) {
+    std::vector<bddp> result;
+    int ret = import_core(strm, result, getnode);
+    if (ret < 0) return ret;
+    int count = ret < lim ? ret : lim;
+    for (int i = 0; i < count; i++) p[i] = result[i];
+    return count;
+}
+
+int bddimport(FILE* strm, std::vector<bddp>& v) {
+    return import_core(strm, v, getnode);
+}
+
+int bddimport(std::istream& strm, bddp* p, int lim) {
+    std::vector<bddp> result;
+    int ret = import_core(strm, result, getnode);
+    if (ret < 0) return ret;
+    int count = ret < lim ? ret : lim;
+    for (int i = 0; i < count; i++) p[i] = result[i];
+    return count;
+}
+
+int bddimport(std::istream& strm, std::vector<bddp>& v) {
+    return import_core(strm, v, getnode);
+}
+
+int bddimportz(FILE* strm, bddp* p, int lim) {
+    std::vector<bddp> result;
+    int ret = import_core(strm, result, getznode);
+    if (ret < 0) return ret;
+    int count = ret < lim ? ret : lim;
+    for (int i = 0; i < count; i++) p[i] = result[i];
+    return count;
+}
+
+int bddimportz(FILE* strm, std::vector<bddp>& v) {
+    return import_core(strm, v, getznode);
+}
+
+int bddimportz(std::istream& strm, bddp* p, int lim) {
+    std::vector<bddp> result;
+    int ret = import_core(strm, result, getznode);
+    if (ret < 0) return ret;
+    int count = ret < lim ? ret : lim;
+    for (int i = 0; i < count; i++) p[i] = result[i];
+    return count;
+}
+
+int bddimportz(std::istream& strm, std::vector<bddp>& v) {
+    return import_core(strm, v, getznode);
 }

@@ -2029,3 +2029,307 @@ TEST_F(BDDTest, ExportPostOrder) {
         seen.insert(nid);
     }
 }
+
+// --- bddimport ---
+
+TEST_F(BDDTest, ImportRoundtripTerminals) {
+    bddp p[] = { bddfalse, bddtrue };
+    std::ostringstream oss;
+    bddexport(oss, p, 2);
+    std::istringstream iss(oss.str());
+    bddp q[2];
+    int ret = bddimport(iss, q, 2);
+    EXPECT_EQ(ret, 2);
+    EXPECT_EQ(q[0], bddfalse);
+    EXPECT_EQ(q[1], bddtrue);
+}
+
+TEST_F(BDDTest, ImportRoundtripSingleVar) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportRoundtripNegated) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddnot(bddprime(v1));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportRoundtripAnd) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportRoundtripOr) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddor(bddprime(v1), bddprime(v2));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportRoundtripXor) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddxor(bddprime(v1), bddxor(bddprime(v2), bddprime(v3)));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportRoundtripMultiple) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f1 = bddand(bddprime(v1), bddprime(v2));
+    bddp f2 = bddor(bddprime(v1), bddprime(v2));
+    bddp f3 = bddnot(bddprime(v1));
+    bddp p[] = { f1, f2, f3 };
+    std::ostringstream oss;
+    bddexport(oss, p, 3);
+    std::istringstream iss(oss.str());
+    bddp q[3];
+    int ret = bddimport(iss, q, 3);
+    EXPECT_EQ(ret, 3);
+    EXPECT_EQ(q[0], f1);
+    EXPECT_EQ(q[1], f2);
+    EXPECT_EQ(q[2], f3);
+}
+
+TEST_F(BDDTest, ImportLimSmaller) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f1 = bddprime(v1);
+    bddp f2 = bddprime(v2);
+    bddp p[] = { f1, f2 };
+    std::ostringstream oss;
+    bddexport(oss, p, 2);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f1);
+}
+
+TEST_F(BDDTest, ImportVectorOverload) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    std::vector<bddp> v;
+    int ret = bddimport(iss, v);
+    EXPECT_EQ(ret, 1);
+    ASSERT_EQ(v.size(), 1u);
+    EXPECT_EQ(v[0], f);
+}
+
+TEST_F(BDDTest, ImportFilePtr) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp p[] = { f };
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, p, 1);
+    std::rewind(tmp);
+    bddp q[1];
+    int ret = bddimport(tmp, q, 1);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], f);
+}
+
+TEST_F(BDDTest, ImportFilePtrVector) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddor(bddprime(v1), bddprime(v2));
+    std::vector<bddp> orig = { f };
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, orig);
+    std::rewind(tmp);
+    std::vector<bddp> v;
+    int ret = bddimport(tmp, v);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    ASSERT_EQ(v.size(), 1u);
+    EXPECT_EQ(v[0], f);
+}
+
+TEST_F(BDDTest, ImportCreatesVariables) {
+    // Import into a fresh instance should auto-create variables
+    bddp f = bddand(bddprime(bddnewvar()), bddprime(bddnewvar()));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::string data = oss.str();
+
+    // Reinitialize (destroys all variables)
+    bddinit(1024, UINT64_MAX);
+    EXPECT_EQ(bddvarused(), 0u);
+
+    std::istringstream iss(data);
+    bddp q[1];
+    int ret = bddimport(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_GE(bddvarused(), 2u);
+    // Verify the imported BDD is x1 AND x2
+    EXPECT_EQ(q[0], bddand(bddprime(1), bddprime(2)));
+}
+
+// --- bddimportz ---
+
+TEST_F(BDDTest, ImportzRoundtripSingleton) {
+    // ZDD {{v1}} = getznode(v1, bddempty, bddsingle)
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp p[] = { z };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimportz(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], z);
+}
+
+TEST_F(BDDTest, ImportzRoundtripWithComplement) {
+    // ZDD {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddsingle, bddsingle);
+    bddp p[] = { z };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimportz(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], z);
+}
+
+TEST_F(BDDTest, ImportzRoundtripTwoVars) {
+    // ZDD {{v1}, {v2}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z = getznode(v2, z_v1, bddsingle);
+    bddp p[] = { z };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    bddp q[1];
+    int ret = bddimportz(iss, q, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], z);
+}
+
+TEST_F(BDDTest, ImportzDiffersFromImport) {
+    // Same file imported as BDD vs ZDD may yield different results
+    // because getnode and getznode have different reduction rules
+    bddvar v1 = bddnewvar();
+    // Create a node where lo == hi (BDD would reduce, ZDD would not if hi != empty)
+    bddp node = getznode(v1, bddsingle, bddsingle);
+    bddp p[] = { node };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+
+    // Import as BDD
+    std::istringstream iss_bdd(oss.str());
+    bddp q_bdd[1];
+    bddimport(iss_bdd, q_bdd, 1);
+
+    // Import as ZDD
+    std::istringstream iss_zdd(oss.str());
+    bddp q_zdd[1];
+    bddimportz(iss_zdd, q_zdd, 1);
+
+    EXPECT_EQ(q_zdd[0], node);
+    // BDD import may reduce differently
+}
+
+TEST_F(BDDTest, ImportzFilePtr) {
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp p[] = { z };
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, p, 1);
+    std::rewind(tmp);
+    bddp q[1];
+    int ret = bddimportz(tmp, q, 1);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(q[0], z);
+}
+
+TEST_F(BDDTest, ImportzVectorOverload) {
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    std::vector<bddp> orig = { z };
+    std::ostringstream oss;
+    bddexport(oss, orig);
+    std::istringstream iss(oss.str());
+    std::vector<bddp> v;
+    int ret = bddimportz(iss, v);
+    EXPECT_EQ(ret, 1);
+    ASSERT_EQ(v.size(), 1u);
+    EXPECT_EQ(v[0], z);
+}
+
+TEST_F(BDDTest, ImportzFilePtrVector) {
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    std::vector<bddp> orig = { z };
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, orig);
+    std::rewind(tmp);
+    std::vector<bddp> v;
+    int ret = bddimportz(tmp, v);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    ASSERT_EQ(v.size(), 1u);
+    EXPECT_EQ(v[0], z);
+}
