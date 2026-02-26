@@ -159,3 +159,7 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     BDD_UniqueTableInsert(var, lo, hi, node_id);
     return node_id;
 }
+
+bddp bddprime(bddvar v) {
+    return getnode(v, bddfalse, bddtrue);
+}
