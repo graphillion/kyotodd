@@ -760,3 +760,39 @@ bddp bddonset0(bddp f, bddvar var) {
     bddwcache(BDD_OP_ONSET0, f, static_cast<bddp>(var), result);
     return result;
 }
+
+bddp bddchange(bddp f, bddvar var) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return getznode(var, bddempty, bddsingle);  // {{}} → {{var}}
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar f_level = var2level[f_var];
+    bddvar v_level = var2level[var];
+
+    // var is above f's top: all sets lack var, so add var to each
+    if (f_level < v_level) return getznode(var, bddempty, f);
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_CHANGE, f, static_cast<bddp>(var));
+    if (cached != bddnull) return cached;
+
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }  // ZDD: only lo is complemented
+
+    bddp result;
+    if (f_var == var) {
+        // Swap: sets without var get var, sets with var lose var
+        result = getznode(var, f_hi, f_lo);
+    } else {
+        // f_level > v_level: var is below, recurse into both branches
+        bddp lo = bddchange(f_lo, var);
+        bddp hi = bddchange(f_hi, var);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_CHANGE, f, static_cast<bddp>(var), result);
+    return result;
+}

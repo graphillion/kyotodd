@@ -68,6 +68,7 @@ static const uint8_t BDD_OP_COFACTOR = 10;
 static const uint8_t BDD_OP_OFFSET = 11;
 static const uint8_t BDD_OP_ONSET = 12;
 static const uint8_t BDD_OP_ONSET0 = 13;
+static const uint8_t BDD_OP_CHANGE = 14;
 
 class BDD {
 public:

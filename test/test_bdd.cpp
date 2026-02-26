@@ -2542,6 +2542,76 @@ TEST_F(BDDTest, Bddonset0VarNotInFamily) {
     EXPECT_EQ(bddonset0(z, v3), bddempty);
 }
 
+// --- bddchange ---
+
+TEST_F(BDDTest, BddchangeTerminal) {
+    bddvar v1 = bddnewvar();
+    // change(empty, v1) = empty
+    EXPECT_EQ(bddchange(bddempty, v1), bddempty);
+    // change({{}}, v1) = {{v1}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddchange(bddsingle, v1), z_v1);
+}
+
+TEST_F(BDDTest, BddchangeSingletonToggle) {
+    bddvar v1 = bddnewvar();
+    // {{v1}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    // change({{v1}}, v1) = {{}} (remove v1)
+    EXPECT_EQ(bddchange(z_v1, v1), bddsingle);
+}
+
+TEST_F(BDDTest, BddchangeDoubleToggle) {
+    bddvar v1 = bddnewvar();
+    // change twice should restore original
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddchange(bddchange(z_v1, v1), v1), z_v1);
+    EXPECT_EQ(bddchange(bddchange(bddsingle, v1), v1), bddsingle);
+}
+
+TEST_F(BDDTest, BddchangeVarNotPresent) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1}}: change with v2 → add v2 to each set → {{v1, v2}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
+    EXPECT_EQ(bddchange(z_v1, v2), z_v1v2);
+}
+
+TEST_F(BDDTest, BddchangeFamilyWithAndWithout) {
+    bddvar v1 = bddnewvar();
+    // {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
+    bddp z = getznode(v1, bddsingle, bddsingle);
+    // change(z, v1): sets without v1 ({{}}) get v1 → {{v1}}
+    //                sets with v1 ({v1}) lose v1 → {{}}
+    //                result = {{}, {v1}} = z (same family, swapped roles)
+    EXPECT_EQ(bddchange(z, v1), z);
+}
+
+TEST_F(BDDTest, BddchangeMixedFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1}, {v2}}: at v2 (top), lo={{v1}}, hi={{}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z = getznode(v2, z_v1, bddsingle);
+    // change(z, v1): toggle v1 in each set
+    //   {v1} → {} (remove v1), {v2} → {v1, v2} (add v1)
+    //   result = {{}, {v1, v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
+    bddp expected = getznode(v2, bddsingle, z_v1);  // {{}, {v1, v2}}
+    EXPECT_EQ(bddchange(z, v1), expected);
+}
+
+TEST_F(BDDTest, BddchangeVarAboveTop) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // {{v1}}: change with v3 (higher level) → add v3 → {{v1, v3}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp expected = getznode(v3, bddempty, z_v1);  // {{v1, v3}}
+    EXPECT_EQ(bddchange(z_v1, v3), expected);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
