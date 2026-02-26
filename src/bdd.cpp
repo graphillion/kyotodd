@@ -155,7 +155,7 @@ static void unique_table_resize(BddUniqueTable* t) {
 }
 
 // --- Public API ---
-void BDD_Init(uint64_t node_count, uint64_t node_max) {
+void bddinit(uint64_t node_count, uint64_t node_max) {
     // Free previous allocations if re-initializing
     std::free(bdd_nodes);
     std::free(var2level);
@@ -190,7 +190,7 @@ void BDD_Init(uint64_t node_count, uint64_t node_max) {
     }
 }
 
-bddvar BDD_NewVar() {
+bddvar bddnewvar() {
     bdd_varcount++;
     bddvar var = bdd_varcount;
     if (var >= var_capacity) {
@@ -215,10 +215,10 @@ bddvar bddnewvaroflev(bddvar lev) {
     }
 
     // Create a new variable (allocates arrays, unique table, etc.)
-    bddvar new_var = BDD_NewVar();
+    bddvar new_var = bddnewvar();
 
     // Shift levels >= lev up by 1 to make room
-    // new_var was assigned level == new_var (== bdd_varcount) by BDD_NewVar
+    // new_var was assigned level == new_var (== bdd_varcount) by bddnewvar
     // We need to reassign: all vars currently at level >= lev get level + 1
     for (bddvar v = 1; v < new_var; v++) {
         if (var2level[v] >= lev) {

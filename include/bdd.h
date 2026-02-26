@@ -74,8 +74,10 @@ public:
     static const ZDD Null;
 };
 
-void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
-bddvar BDD_NewVar();
+void bddinit(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
+inline void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) { bddinit(node_count, node_max); }
+bddvar bddnewvar();
+inline bddvar BDD_NewVar() { return bddnewvar(); }
 bddvar bddnewvaroflev(bddvar lev);
 bddvar bddlevofvar(bddvar var);
 bddvar bddvaroflev(bddvar lev);
