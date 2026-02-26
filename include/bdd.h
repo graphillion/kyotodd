@@ -15,5 +15,6 @@ extern uint32_t* level2var;  // level2var[level] = var
 extern uint32_t bdd_varcount;
 
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
+uint32_t BDD_NewVar();
 
 #endif
