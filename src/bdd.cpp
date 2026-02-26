@@ -17,6 +17,9 @@ static bddvar var_capacity = 0;
 
 BddUniqueTable* bdd_unique_tables = nullptr;
 
+BddCacheEntry* bdd_cache = nullptr;
+uint64_t bdd_cache_size = 0;
+
 const BDD BDD::False(0);
 const BDD BDD::True(1);
 const BDD BDD::Null(-1);
@@ -73,6 +76,37 @@ static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
     k *= UINT64_C(0x94D049BB133111EB);
     k ^= k >> 31;
     return k & (capacity - 1);
+}
+
+// --- Cache hash function (splitmix64 style) ---
+static inline uint64_t cache_hash(uint8_t op, bddp f, bddp g) {
+    uint64_t k = f ^ (g * UINT64_C(0x9E3779B97F4A7C15));
+    k ^= static_cast<uint64_t>(op) * UINT64_C(0x517CC1B727220A95);
+    k ^= k >> 30;
+    k *= UINT64_C(0xBF58476D1CE4E5B9);
+    k ^= k >> 27;
+    k *= UINT64_C(0x94D049BB133111EB);
+    k ^= k >> 31;
+    return k & (bdd_cache_size - 1);
+}
+
+// --- Cache API ---
+bddp bddrcache(uint8_t op, bddp f, bddp g) {
+    uint64_t idx = cache_hash(op, f, g);
+    BddCacheEntry& e = bdd_cache[idx];
+    uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
+    if (e.fop == fop && e.g == g) {
+        return e.result;
+    }
+    return bddnull;
+}
+
+void bddwcache(uint8_t op, bddp f, bddp g, bddp result) {
+    uint64_t idx = cache_hash(op, f, g);
+    BddCacheEntry& e = bdd_cache[idx];
+    e.fop = (static_cast<uint64_t>(op) << 48) | f;
+    e.g = g;
+    e.result = result;
 }
 
 // --- Unique table helpers ---
