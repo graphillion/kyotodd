@@ -18,18 +18,18 @@ BddUniqueTable* bdd_unique_tables = nullptr;
 
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
-static inline uint64_t node_lo(uint64_t node_id) {
+static inline bddp node_lo(bddp node_id) {
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
     return ((n.data[0] & UINT64_C(0xFFFFFFFF)) << 16) | (n.data[1] >> 48);
 }
 
-static inline uint64_t node_hi(uint64_t node_id) {
+static inline bddp node_hi(bddp node_id) {
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
     return n.data[1] & UINT64_C(0x0000FFFFFFFFFFFF);
 }
 
 // --- Hash function (splitmix64 style) ---
-static inline uint64_t unique_table_hash(uint64_t lo, uint64_t hi, uint64_t capacity) {
+static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
     uint64_t k = lo ^ (hi * UINT64_C(0x9E3779B97F4A7C15));
     k ^= k >> 30;
     k *= UINT64_C(0xBF58476D1CE4E5B9);
@@ -43,11 +43,11 @@ static inline uint64_t unique_table_hash(uint64_t lo, uint64_t hi, uint64_t capa
 static void unique_table_init(BddUniqueTable* t) {
     t->capacity = UNIQUE_TABLE_INITIAL_CAPACITY;
     t->count = 0;
-    t->slots = static_cast<uint64_t*>(std::calloc(t->capacity, sizeof(uint64_t)));
+    t->slots = static_cast<bddp*>(std::calloc(t->capacity, sizeof(bddp)));
 }
 
-static void unique_table_insert_raw(uint64_t* slots, uint64_t capacity,
-                                    uint64_t lo, uint64_t hi, uint64_t node_id) {
+static void unique_table_insert_raw(bddp* slots, uint64_t capacity,
+                                    bddp lo, bddp hi, bddp node_id) {
     uint64_t idx = unique_table_hash(lo, hi, capacity);
     while (slots[idx] != 0) {
         idx = (idx + 1) & (capacity - 1);
@@ -57,12 +57,12 @@ static void unique_table_insert_raw(uint64_t* slots, uint64_t capacity,
 
 static void unique_table_resize(BddUniqueTable* t) {
     uint64_t old_capacity = t->capacity;
-    uint64_t* old_slots = t->slots;
+    bddp* old_slots = t->slots;
     uint64_t new_capacity = old_capacity * 2;
-    uint64_t* new_slots = static_cast<uint64_t*>(std::calloc(new_capacity, sizeof(uint64_t)));
+    bddp* new_slots = static_cast<bddp*>(std::calloc(new_capacity, sizeof(bddp)));
     for (uint64_t i = 0; i < old_capacity; i++) {
         if (old_slots[i] != 0) {
-            uint64_t nid = old_slots[i];
+            bddp nid = old_slots[i];
             unique_table_insert_raw(new_slots, new_capacity, node_lo(nid), node_hi(nid), nid);
         }
     }
@@ -97,11 +97,11 @@ uint32_t BDD_NewVar() {
     return var;
 }
 
-uint64_t BDD_UniqueTableLookup(uint32_t var, uint64_t lo, uint64_t hi) {
+bddp BDD_UniqueTableLookup(uint32_t var, bddp lo, bddp hi) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);
     while (t->slots[idx] != 0) {
-        uint64_t nid = t->slots[idx];
+        bddp nid = t->slots[idx];
         if (node_lo(nid) == lo && node_hi(nid) == hi) {
             return nid;
         }
@@ -110,7 +110,7 @@ uint64_t BDD_UniqueTableLookup(uint32_t var, uint64_t lo, uint64_t hi) {
     return 0;
 }
 
-void BDD_UniqueTableInsert(uint32_t var, uint64_t lo, uint64_t hi, uint64_t node_id) {
+void BDD_UniqueTableInsert(uint32_t var, bddp lo, bddp hi, bddp node_id) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     if ((t->count + 1) * 4 >= t->capacity * 3) {
         unique_table_resize(t);
