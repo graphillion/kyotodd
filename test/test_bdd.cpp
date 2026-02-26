@@ -991,6 +991,53 @@ TEST_F(BDDTest, BddSupportSkippedVar) {
     EXPECT_EQ(bddat0(s1, v1), bddfalse);
 }
 
+// --- bddsupport_vec ---
+
+TEST_F(BDDTest, BddSupportVecTerminals) {
+    EXPECT_TRUE(bddsupport_vec(bddfalse).empty());
+    EXPECT_TRUE(bddsupport_vec(bddtrue).empty());
+}
+
+TEST_F(BDDTest, BddSupportVecSingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    std::vector<bddvar> sup = bddsupport_vec(p);
+    ASSERT_EQ(sup.size(), 1u);
+    EXPECT_EQ(sup[0], v);
+    // Complement doesn't change support
+    EXPECT_EQ(bddsupport_vec(bddnot(p)).size(), 1u);
+    EXPECT_EQ(bddsupport_vec(bddnot(p))[0], v);
+}
+
+TEST_F(BDDTest, BddSupportVecOrderDescLevel) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddand(bddand(p1, p2), p3);
+    std::vector<bddvar> sup = bddsupport_vec(f);
+    ASSERT_EQ(sup.size(), 3u);
+    // Descending level order: v3 (level 3), v2 (level 2), v1 (level 1)
+    EXPECT_EQ(sup[0], v3);
+    EXPECT_EQ(sup[1], v2);
+    EXPECT_EQ(sup[2], v1);
+}
+
+TEST_F(BDDTest, BddSupportVecSkippedVar) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    BDD_NewVar();               // level 2 (unused)
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddp p1 = bddprime(v1);
+    bddp p3 = bddprime(v3);
+    bddp f = bddxor(p1, p3);
+    std::vector<bddvar> sup = bddsupport_vec(f);
+    ASSERT_EQ(sup.size(), 2u);
+    EXPECT_EQ(sup[0], v3);
+    EXPECT_EQ(sup[1], v1);
+}
+
 // --- bddexist ---
 
 TEST_F(BDDTest, BddExistNoCube) {

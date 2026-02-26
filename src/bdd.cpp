@@ -804,6 +804,21 @@ bddp bddsupport(bddp f) {
     return result;
 }
 
+std::vector<bddvar> bddsupport_vec(bddp f) {
+    std::vector<bddvar> vars;
+    if (f & BDD_CONST_FLAG) return vars;
+
+    std::unordered_set<bddvar> var_set;
+    std::unordered_set<bddp> visited;
+    bddsupport_collect(f, var_set, visited);
+
+    vars.assign(var_set.begin(), var_set.end());
+    std::sort(vars.begin(), vars.end(), [](bddvar a, bddvar b) {
+        return var2level[a] > var2level[b];
+    });
+    return vars;
+}
+
 bddp bddexist(bddp f, bddp g) {
     // Terminal cases
     if (g == bddfalse) return f;    // no variables to quantify
