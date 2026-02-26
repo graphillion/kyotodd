@@ -108,12 +108,24 @@ static inline uint64_t cache_hash(uint8_t op, bddp f, bddp g) {
     return k & (bdd_cache_size - 1);
 }
 
-// --- Cache API ---
+static inline uint64_t cache_hash3(uint8_t op, bddp f, bddp g, bddp h) {
+    uint64_t k = f ^ (g * UINT64_C(0x9E3779B97F4A7C15));
+    k ^= h * UINT64_C(0x517CC1B727220A95);
+    k ^= static_cast<uint64_t>(op) * UINT64_C(0x9E3779B97F4A7C55);
+    k ^= k >> 30;
+    k *= UINT64_C(0xBF58476D1CE4E5B9);
+    k ^= k >> 27;
+    k *= UINT64_C(0x94D049BB133111EB);
+    k ^= k >> 31;
+    return k & (bdd_cache_size - 1);
+}
+
+// --- Cache API (2-operand) ---
 bddp bddrcache(uint8_t op, bddp f, bddp g) {
     uint64_t idx = cache_hash(op, f, g);
     BddCacheEntry& e = bdd_cache[idx];
     uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
-    if (e.fop == fop && e.g == g) {
+    if (e.fop == fop && e.g == g && e.h == 0) {
         return e.result;
     }
     return bddnull;
@@ -124,6 +136,27 @@ void bddwcache(uint8_t op, bddp f, bddp g, bddp result) {
     BddCacheEntry& e = bdd_cache[idx];
     e.fop = (static_cast<uint64_t>(op) << 48) | f;
     e.g = g;
+    e.h = 0;
+    e.result = result;
+}
+
+// --- Cache API (3-operand) ---
+bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h) {
+    uint64_t idx = cache_hash3(op, f, g, h);
+    BddCacheEntry& e = bdd_cache[idx];
+    uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
+    if (e.fop == fop && e.g == g && e.h == h) {
+        return e.result;
+    }
+    return bddnull;
+}
+
+void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result) {
+    uint64_t idx = cache_hash3(op, f, g, h);
+    BddCacheEntry& e = bdd_cache[idx];
+    e.fop = (static_cast<uint64_t>(op) << 48) | f;
+    e.g = g;
+    e.h = h;
     e.result = result;
 }
 
@@ -191,6 +224,7 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     for (uint64_t i = 0; i < bdd_cache_size; i++) {
         bdd_cache[i].fop = 0;
         bdd_cache[i].g = 0;
+        bdd_cache[i].h = 0;
         bdd_cache[i].result = bddnull;
     }
 }
@@ -522,6 +556,94 @@ bddp bddxor(bddp f, bddp g) {
 
 bddp bddxnor(bddp f, bddp g) {
     return bddnot(bddxor(f, g));
+}
+
+bddp bddite(bddp f, bddp g, bddp h) {
+    // Terminal cases for f
+    if (f == bddtrue) return g;
+    if (f == bddfalse) return h;
+
+    // g == h
+    if (g == h) return g;
+
+    // Reduction to 2-operand when g or h is terminal
+    if (g == bddtrue) return bddor(f, h);
+    if (g == bddfalse) return bddand(bddnot(f), h);
+    if (h == bddfalse) return bddand(f, g);
+    if (h == bddtrue) return bddor(bddnot(f), g);
+
+    // All three are non-terminal at this point
+
+    // Normalize: f must not be complemented
+    if (f & BDD_COMP_FLAG) {
+        f = bddnot(f);
+        bddp tmp = g; g = h; h = tmp;
+    }
+
+    // Normalize: g must not be complemented
+    bool comp = false;
+    if (g & BDD_COMP_FLAG) {
+        g = bddnot(g);
+        h = bddnot(h);
+        comp = true;
+    }
+
+    // Cache lookup
+    bddp cached = bddrcache3(BDD_OP_ITE, f, g, h);
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    // Determine top variable (highest level among f, g, h)
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    bddvar top_var = (f_level >= g_level) ? f_var : g_var;
+    bddvar top_level = (f_level >= g_level) ? f_level : g_level;
+
+    bool h_comp = (h & BDD_COMP_FLAG) != 0;
+    bddvar h_var = node_var(h);
+    bddvar h_level = var2level[h_var];
+    if (h_level > top_level) { top_var = h_var; top_level = h_level; }
+
+    // Cofactors for f (non-complemented)
+    bddp f_lo, f_hi;
+    if (f_level == top_level) {
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+    } else {
+        f_lo = f; f_hi = f;
+    }
+
+    // Cofactors for g (non-complemented)
+    bddp g_lo, g_hi;
+    if (g_level == top_level) {
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+    } else {
+        g_lo = g; g_hi = g;
+    }
+
+    // Cofactors for h (may be complemented)
+    bddp h_lo, h_hi;
+    if (h_level == top_level) {
+        h_lo = node_lo(h);
+        h_hi = node_hi(h);
+        if (h_comp) { h_lo = bddnot(h_lo); h_hi = bddnot(h_hi); }
+    } else {
+        h_lo = h; h_hi = h;
+    }
+
+    // Recurse
+    bddp lo = bddite(f_lo, g_lo, h_lo);
+    bddp hi = bddite(f_hi, g_hi, h_hi);
+
+    bddp result = getnode(top_var, lo, hi);
+
+    // Cache write
+    bddwcache3(BDD_OP_ITE, f, g, h, result);
+
+    return comp ? bddnot(result) : result;
 }
 
 bddp bddat0(bddp f, bddvar v) {

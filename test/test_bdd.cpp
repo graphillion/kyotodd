@@ -810,6 +810,100 @@ TEST_F(BDDTest, BddAt0ThreeVars) {
     EXPECT_EQ(bddat0(f, v3), bddand(p1, p2));
 }
 
+// --- bddite ---
+
+TEST_F(BDDTest, BddIteTerminalF) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // ITE(1, g, h) = g
+    EXPECT_EQ(bddite(bddtrue, p, bddfalse), p);
+    EXPECT_EQ(bddite(bddtrue, bddfalse, p), bddfalse);
+    // ITE(0, g, h) = h
+    EXPECT_EQ(bddite(bddfalse, p, bddtrue), bddtrue);
+    EXPECT_EQ(bddite(bddfalse, bddfalse, p), p);
+}
+
+TEST_F(BDDTest, BddIteIdentity) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // ITE(f, 1, 0) = f
+    EXPECT_EQ(bddite(p, bddtrue, bddfalse), p);
+    // ITE(f, 0, 1) = ~f
+    EXPECT_EQ(bddite(p, bddfalse, bddtrue), bddnot(p));
+    // ITE(f, g, g) = g
+    EXPECT_EQ(bddite(p, bddtrue, bddtrue), bddtrue);
+    EXPECT_EQ(bddite(p, bddfalse, bddfalse), bddfalse);
+}
+
+TEST_F(BDDTest, BddIteReducesToAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // ITE(f, g, 0) = f & g
+    EXPECT_EQ(bddite(p1, p2, bddfalse), bddand(p1, p2));
+}
+
+TEST_F(BDDTest, BddIteReducesToOr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // ITE(f, 1, h) = f | h
+    EXPECT_EQ(bddite(p1, bddtrue, p2), bddor(p1, p2));
+}
+
+TEST_F(BDDTest, BddIteThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // ITE(v1, v2, v3) = (v1 & v2) | (~v1 & v3)
+    bddp expected = bddor(bddand(p1, p2), bddand(bddnot(p1), p3));
+    EXPECT_EQ(bddite(p1, p2, p3), expected);
+}
+
+TEST_F(BDDTest, BddIteWithComplement) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // ITE(~v1, v2, v1) = (~v1 & v2) | (v1 & v1) = (~v1 & v2) | v1 = v1 | v2
+    EXPECT_EQ(bddite(bddnot(p1), p2, p1), bddor(p1, p2));
+    // ITE(v1, ~v2, v2) = (v1 & ~v2) | (~v1 & v2) = v1 ^ v2
+    EXPECT_EQ(bddite(p1, bddnot(p2), p2), bddxor(p1, p2));
+}
+
+TEST_F(BDDTest, BddIteMux) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // ITE as multiplexer: verify consistency with cofactor
+    bddp mux = bddite(p1, p2, p3);
+    // mux at v1=1 -> v2
+    EXPECT_EQ(bddat1(mux, v1), p2);
+    // mux at v1=0 -> v3
+    EXPECT_EQ(bddat0(mux, v1), p3);
+}
+
+TEST_F(BDDTest, BddIteAllComplemented) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // ITE(~v1, ~v2, ~v3) = (~v1 & ~v2) | (v1 & ~v3)
+    bddp expected = bddor(bddand(bddnot(p1), bddnot(p2)),
+                          bddand(p1, bddnot(p3)));
+    EXPECT_EQ(bddite(bddnot(p1), bddnot(p2), bddnot(p3)), expected);
+}
+
 // --- Cross-operation identities ---
 
 TEST_F(BDDTest, DeMorganIdentities) {

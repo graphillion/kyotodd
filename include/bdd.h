@@ -46,6 +46,7 @@ extern BddUniqueTable* bdd_unique_tables;  // indexed by var (1-based)
 struct BddCacheEntry {
     uint64_t fop;     // bits [55:48] = op, bits [47:0] = f
     uint64_t g;       // bits [47:0] = g
+    uint64_t h;       // bits [47:0] = h (0 for 2-operand ops)
     uint64_t result;  // cached result (bddnull = empty)
 };
 
@@ -57,6 +58,7 @@ static const uint8_t BDD_OP_AND = 0;
 static const uint8_t BDD_OP_XOR = 1;
 static const uint8_t BDD_OP_AT0 = 2;
 static const uint8_t BDD_OP_AT1 = 3;
+static const uint8_t BDD_OP_ITE = 4;
 
 class BDD {
 public:
@@ -111,9 +113,12 @@ bddp bddxnor(bddp f, bddp g);
 
 bddp bddat0(bddp f, bddvar v);
 bddp bddat1(bddp f, bddvar v);
+bddp bddite(bddp f, bddp g, bddp h);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
+bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);
+void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result);
 
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
