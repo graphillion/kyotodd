@@ -27,25 +27,22 @@ const ZDD ZDD::Null(-1);
 
 // --- Node write ---
 // Node ID -> array index: node_id/2 - 1
-// Bit layout:
-//   data[0] = (var << 33) | (lo >> 16)
-//   data[1] = ((lo & 0xFFFF) << 48) | hi
 static inline void node_write(bddp node_id, bddvar var, bddp lo, bddp hi) {
     BddNode& n = bdd_nodes[node_id / 2 - 1];
-    n.data[0] = (static_cast<uint64_t>(var) << 33) | (lo >> 16);
-    n.data[1] = ((lo & UINT64_C(0xFFFF)) << 48) | hi;
+    n.data[0] = (static_cast<uint64_t>(var) << BDD_NODE_VAR_SHIFT) | (lo >> BDD_NODE_LO_SPLIT);
+    n.data[1] = ((lo & BDD_NODE_LO_LO_MASK) << BDD_NODE_LO_LO_SHIFT) | hi;
 }
 
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
 static inline bddp node_lo(bddp node_id) {
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
-    return ((n.data[0] & UINT64_C(0xFFFFFFFF)) << 16) | (n.data[1] >> 48);
+    return ((n.data[0] & BDD_NODE_LO_HI_MASK) << BDD_NODE_LO_SPLIT) | (n.data[1] >> BDD_NODE_LO_LO_SHIFT);
 }
 
 static inline bddp node_hi(bddp node_id) {
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
-    return n.data[1] & UINT64_C(0x0000FFFFFFFFFFFF);
+    return n.data[1] & BDD_NODE_HI_MASK;
 }
 
 // --- Hash function (splitmix64 style) ---

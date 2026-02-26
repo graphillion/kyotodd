@@ -10,11 +10,15 @@ typedef uint64_t bddp;
 // Variable number type (31-bit value stored in uint32_t)
 typedef uint32_t bddvar;
 
+// Node ID encoding constants
+static const bddp BDD_CONST_FLAG = UINT64_C(0x800000000000);  // bit 47: constant flag
+static const bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);  // bit 0: complement flag
+
 // Terminal node constants (bit 47 = 1, remaining bits = constant value)
-static const bddp bddfalse  = UINT64_C(0x800000000000);  // 0-terminal
-static const bddp bddempty  = UINT64_C(0x800000000000);  // 0-terminal (ZDD alias)
-static const bddp bddtrue   = UINT64_C(0x800000000001);  // 1-terminal
-static const bddp bddsingle = UINT64_C(0x800000000001);  // 1-terminal (ZDD alias)
+static const bddp bddfalse  = BDD_CONST_FLAG | 0;  // 0-terminal
+static const bddp bddempty  = BDD_CONST_FLAG | 0;  // 0-terminal (ZDD alias)
+static const bddp bddtrue   = BDD_CONST_FLAG | 1;  // 1-terminal
+static const bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
 static const bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
 extern BddNode* bdd_nodes;

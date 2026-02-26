@@ -15,6 +15,15 @@
 // 0-arc = (lo_hi << 16) | lo_lo   (48 bits, even: 2, 4, 6, ...)
 // 1-arc = hi                      (48 bits, even: 2, 4, 6, ...)
 // Node IDs are even natural numbers: 2, 4, 6, ...
+
+// Bit layout constants
+static const int      BDD_NODE_VAR_SHIFT   = 33;
+static const uint64_t BDD_NODE_LO_HI_MASK  = UINT64_C(0xFFFFFFFF);   // data[0] bits [31:0]
+static const int      BDD_NODE_LO_LO_SHIFT = 48;                     // lo_lo position in data[1]
+static const uint64_t BDD_NODE_LO_LO_MASK  = UINT64_C(0xFFFF);       // 16-bit mask
+static const int      BDD_NODE_LO_SPLIT    = 16;                     // lo split point
+static const uint64_t BDD_NODE_HI_MASK     = UINT64_C(0x0000FFFFFFFFFFFF); // 48-bit mask
+
 struct BddNode {
     uint64_t data[2];
 };
