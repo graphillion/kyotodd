@@ -469,3 +469,148 @@ TEST_F(BDDTest, BddCopy) {
     EXPECT_EQ(bddcopy(bddfalse), bddfalse);
     EXPECT_EQ(bddcopy(bddtrue), bddtrue);
 }
+
+// --- bddor ---
+
+TEST_F(BDDTest, BddOrTerminals) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddor(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bddor(bddfalse, bddtrue), bddtrue);
+    EXPECT_EQ(bddor(bddtrue, bddfalse), bddtrue);
+    EXPECT_EQ(bddor(bddtrue, bddtrue), bddtrue);
+    EXPECT_EQ(bddor(p, bddfalse), p);
+    EXPECT_EQ(bddor(p, bddtrue), bddtrue);
+}
+
+TEST_F(BDDTest, BddOrSelfAndComplement) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddor(p, p), p);
+    EXPECT_EQ(bddor(p, bddnot(p)), bddtrue);
+}
+
+TEST_F(BDDTest, BddOrTwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp result = bddor(p1, p2);
+    // OR(a,b) = ~(~a & ~b) = ~AND(~a,~b)
+    EXPECT_EQ(result, bddnot(bddand(bddnot(p1), bddnot(p2))));
+    // Commutativity
+    EXPECT_EQ(bddor(p1, p2), bddor(p2, p1));
+}
+
+// --- bddxor ---
+
+TEST_F(BDDTest, BddXorTerminals) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddxor(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bddxor(bddfalse, bddtrue), bddtrue);
+    EXPECT_EQ(bddxor(bddtrue, bddfalse), bddtrue);
+    EXPECT_EQ(bddxor(bddtrue, bddtrue), bddfalse);
+    EXPECT_EQ(bddxor(p, bddfalse), p);
+    EXPECT_EQ(bddxor(p, bddtrue), bddnot(p));
+}
+
+TEST_F(BDDTest, BddXorSelfAndComplement) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddxor(p, p), bddfalse);
+    EXPECT_EQ(bddxor(p, bddnot(p)), bddtrue);
+}
+
+TEST_F(BDDTest, BddXorCommutativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddxor(p1, p2), bddxor(p2, p1));
+}
+
+TEST_F(BDDTest, BddXorAssociativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    EXPECT_EQ(bddxor(bddxor(p1, p2), p3), bddxor(p1, bddxor(p2, p3)));
+}
+
+TEST_F(BDDTest, BddXorWithNot) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // XOR(~a, b) = ~XOR(a, b)
+    EXPECT_EQ(bddxor(bddnot(p1), p2), bddnot(bddxor(p1, p2)));
+    // XOR(a, ~b) = ~XOR(a, b)
+    EXPECT_EQ(bddxor(p1, bddnot(p2)), bddnot(bddxor(p1, p2)));
+    // XOR(~a, ~b) = XOR(a, b)
+    EXPECT_EQ(bddxor(bddnot(p1), bddnot(p2)), bddxor(p1, p2));
+}
+
+// --- bddnand ---
+
+TEST_F(BDDTest, BddNand) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddnand(p1, p2), bddnot(bddand(p1, p2)));
+    EXPECT_EQ(bddnand(bddfalse, p1), bddtrue);
+    EXPECT_EQ(bddnand(bddtrue, p1), bddnot(p1));
+}
+
+// --- bddnor ---
+
+TEST_F(BDDTest, BddNor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddnor(p1, p2), bddnot(bddor(p1, p2)));
+    EXPECT_EQ(bddnor(bddtrue, p1), bddfalse);
+    EXPECT_EQ(bddnor(bddfalse, bddfalse), bddtrue);
+}
+
+// --- bddxnor ---
+
+TEST_F(BDDTest, BddXnor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddxnor(p1, p2), bddnot(bddxor(p1, p2)));
+    EXPECT_EQ(bddxnor(p1, p1), bddtrue);
+    EXPECT_EQ(bddxnor(p1, bddnot(p1)), bddfalse);
+}
+
+// --- Cross-operation identities ---
+
+TEST_F(BDDTest, DeMorganIdentities) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp a = bddprime(v1);
+    bddp b = bddprime(v2);
+    // ~(a & b) = ~a | ~b
+    EXPECT_EQ(bddnot(bddand(a, b)), bddor(bddnot(a), bddnot(b)));
+    // ~(a | b) = ~a & ~b
+    EXPECT_EQ(bddnot(bddor(a, b)), bddand(bddnot(a), bddnot(b)));
+    // a | b = ~(~a & ~b)
+    EXPECT_EQ(bddor(a, b), bddnot(bddand(bddnot(a), bddnot(b))));
+}
+
+TEST_F(BDDTest, XorOrAndRelation) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp a = bddprime(v1);
+    bddp b = bddprime(v2);
+    // a ^ b = (a | b) & ~(a & b)
+    EXPECT_EQ(bddxor(a, b), bddand(bddor(a, b), bddnot(bddand(a, b))));
+    // a ^ b = (a & ~b) | (~a & b)
+    EXPECT_EQ(bddxor(a, b), bddor(bddand(a, bddnot(b)), bddand(bddnot(a), b)));
+}

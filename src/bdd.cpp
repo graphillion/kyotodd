@@ -302,9 +302,18 @@ static void node_array_grow() {
 
 bddp getnode(bddvar var, bddp lo, bddp hi) {
     if (lo == hi) return lo;  // reduction rule
+
+    // Complement edge normalization: lo must not be complemented.
+    // If lo is complemented, negate both edges and complement the result.
+    bool comp = (lo & BDD_COMP_FLAG) != 0;
+    if (comp) {
+        lo = bddnot(lo);
+        hi = bddnot(hi);
+    }
+
     bddp found = BDD_UniqueTableLookup(var, lo, hi);
     if (found != 0) {
-        return found;
+        return comp ? bddnot(found) : found;
     }
     if (bdd_node_used >= bdd_node_count) {
         node_array_grow();
@@ -316,7 +325,7 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
         node_set_reduced(node_id);
     }
     BDD_UniqueTableInsert(var, lo, hi, node_id);
-    return node_id;
+    return comp ? bddnot(node_id) : node_id;
 }
 
 bddp bddprime(bddvar v) {
@@ -395,4 +404,83 @@ bddp bddand(bddp f, bddp g) {
     bddwcache(BDD_OP_AND, f, g, result);
 
     return result;
+}
+
+bddp bddor(bddp f, bddp g) {
+    return bddnot(bddand(bddnot(f), bddnot(g)));
+}
+
+bddp bddnand(bddp f, bddp g) {
+    return bddnot(bddand(f, g));
+}
+
+bddp bddnor(bddp f, bddp g) {
+    return bddand(bddnot(f), bddnot(g));
+}
+
+bddp bddxor(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddfalse) return g;
+    if (f == bddtrue) return bddnot(g);
+    if (g == bddfalse) return f;
+    if (g == bddtrue) return bddnot(f);
+    if (f == g) return bddfalse;
+    if (f == bddnot(g)) return bddtrue;
+
+    // Normalize: XOR(~a, b) = ~XOR(a, b), so strip complements and track parity
+    bool comp = false;
+    if (f & BDD_COMP_FLAG) { f ^= BDD_COMP_FLAG; comp = !comp; }
+    if (g & BDD_COMP_FLAG) { g ^= BDD_COMP_FLAG; comp = !comp; }
+
+    // Commutative: normalize order
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_XOR, f, g);
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    // Both f and g are non-complement, non-terminal at this point
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    // Determine top variable (highest level) and cofactors
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+        g_lo = g;
+        g_hi = g;
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f;
+        f_hi = f;
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+    }
+
+    // Recurse
+    bddp lo = bddxor(f_lo, g_lo);
+    bddp hi = bddxor(f_hi, g_hi);
+
+    bddp result = getnode(top_var, lo, hi);
+
+    // Cache insert (store result for normalized operands, without comp adjustment)
+    bddwcache(BDD_OP_XOR, f, g, result);
+
+    return comp ? bddnot(result) : result;
+}
+
+bddp bddxnor(bddp f, bddp g) {
+    return bddnot(bddxor(f, g));
 }
