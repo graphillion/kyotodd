@@ -87,6 +87,9 @@ bddvar bddvaroflev(bddvar lev);
 bddvar bddvarused();
 bddvar bddtop(bddp f);
 inline bddp bddcopy(bddp f) { return f; }
+void bddfree(bddp f);
+uint64_t bddused();
+
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
 bddp getnode(bddvar var, bddp lo, bddp hi);

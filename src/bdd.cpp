@@ -269,6 +269,14 @@ bddvar bddtop(bddp f) {
     return node_var(f);
 }
 
+void bddfree(bddp) {
+    // Currently a no-op; reserved for future garbage collection
+}
+
+uint64_t bddused() {
+    return bdd_node_used;
+}
+
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);

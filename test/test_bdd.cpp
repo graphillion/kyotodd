@@ -589,6 +589,33 @@ TEST_F(BDDTest, BddXnor) {
     EXPECT_EQ(bddxnor(p1, bddnot(p1)), bddfalse);
 }
 
+// --- bddfree ---
+
+TEST_F(BDDTest, BddFreeNoOp) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    bddfree(p);
+    // p should still be valid after bddfree (no-op)
+    EXPECT_EQ(bddtop(p), v);
+}
+
+// --- bddused ---
+
+TEST_F(BDDTest, BddUsedEmpty) {
+    EXPECT_EQ(bddused(), 0u);
+}
+
+TEST_F(BDDTest, BddUsedAfterNodes) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);  // 1 node
+    EXPECT_EQ(bddused(), 1u);
+    bddp p2 = bddprime(v2);  // 2 nodes
+    EXPECT_EQ(bddused(), 2u);
+    bddp ab = bddand(p1, p2);  // 3 nodes
+    EXPECT_EQ(bddused(), 3u);
+}
+
 // --- bddat0 / bddat1 ---
 
 TEST_F(BDDTest, BddAt0Terminals) {
