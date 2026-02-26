@@ -33,11 +33,13 @@ extern BddUniqueTable* bdd_unique_tables;  // indexed by var (1-based)
 class BDD {
 public:
     uint64_t root;
+    BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
 };
 
 class ZDD {
 public:
     uint64_t root;
+    ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
 };
 
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
