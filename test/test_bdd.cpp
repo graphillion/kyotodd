@@ -904,6 +904,93 @@ TEST_F(BDDTest, BddIteAllComplemented) {
     EXPECT_EQ(bddite(bddnot(p1), bddnot(p2), bddnot(p3)), expected);
 }
 
+// --- bddsupport ---
+
+TEST_F(BDDTest, BddSupportTerminals) {
+    EXPECT_EQ(bddsupport(bddfalse), bddfalse);
+    EXPECT_EQ(bddsupport(bddtrue), bddfalse);
+}
+
+TEST_F(BDDTest, BddSupportSingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // support of x is just x itself
+    EXPECT_EQ(bddsupport(p), p);
+    // support of ~x is also x
+    EXPECT_EQ(bddsupport(bddnot(p)), p);
+}
+
+TEST_F(BDDTest, BddSupportAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // support of (x1 & x2) = {x1, x2}, represented as x1 | x2
+    bddp sup = bddsupport(f);
+    EXPECT_EQ(sup, bddor(p1, p2));
+}
+
+TEST_F(BDDTest, BddSupportThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddor(bddand(p1, p2), p3);
+    // support = {v1, v2, v3}
+    bddp sup = bddsupport(f);
+    EXPECT_EQ(sup, bddor(bddor(p1, p2), p3));
+}
+
+TEST_F(BDDTest, BddSupportZeroBranchChain) {
+    // Verify the 0-branch chain structure: top -> ... -> lowest -> bddfalse
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddand(bddand(p1, p2), p3);
+    bddp sup = bddsupport(f);
+
+    // Top variable is v3 (highest level)
+    EXPECT_EQ(bddtop(sup), v3);
+    // Follow 0-branch: v3 -> v2
+    bddp s1 = bddat0(sup, v3);
+    EXPECT_EQ(bddtop(s1), v2);
+    // Follow 0-branch: v2 -> v1
+    bddp s2 = bddat0(s1, v2);
+    EXPECT_EQ(bddtop(s2), v1);
+    // Follow 0-branch: v1 -> bddfalse
+    bddp s3 = bddat0(s2, v1);
+    EXPECT_EQ(s3, bddfalse);
+
+    // All 1-branches lead to bddtrue
+    EXPECT_EQ(bddat1(sup, v3), bddtrue);
+    EXPECT_EQ(bddat1(s1, v2), bddtrue);
+    EXPECT_EQ(bddat1(s2, v1), bddtrue);
+}
+
+TEST_F(BDDTest, BddSupportSkippedVar) {
+    // f depends on v1 and v3 but not v2
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p3 = bddprime(v3);
+    bddp f = bddxor(p1, p3);  // depends on v1, v3 only
+    bddp sup = bddsupport(f);
+    EXPECT_EQ(sup, bddor(p1, p3));
+
+    // Chain: v3 -> v1 -> bddfalse (v2 is absent)
+    EXPECT_EQ(bddtop(sup), v3);
+    bddp s1 = bddat0(sup, v3);
+    EXPECT_EQ(bddtop(s1), v1);
+    EXPECT_EQ(bddat0(s1, v1), bddfalse);
+}
+
 // --- bddimply ---
 
 TEST_F(BDDTest, BddImplyTerminals) {

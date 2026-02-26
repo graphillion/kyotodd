@@ -117,6 +117,7 @@ bddp bddat1(bddp f, bddvar v);
 bddp bddite(bddp f, bddp g, bddp h);
 
 int bddimply(bddp f, bddp g);
+bddp bddsupport(bddp f);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);

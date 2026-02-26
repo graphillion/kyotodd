@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <algorithm>
 #include <unordered_set>
 
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
@@ -768,5 +769,37 @@ int bddimply(bddp f, bddp g) {
     int result = bddimply(f_lo, g_lo) && bddimply(f_hi, g_hi);
 
     bddwcache(BDD_OP_IMPLY, f, g, result ? bddtrue : bddfalse);
+    return result;
+}
+
+static void bddsupport_collect(bddp f, std::unordered_set<bddvar>& vars,
+                               std::unordered_set<bddp>& visited) {
+    if (f & BDD_CONST_FLAG) return;
+    bddp node = f & ~BDD_COMP_FLAG;
+    if (!visited.insert(node).second) return;
+    vars.insert(node_var(node));
+    bddsupport_collect(node_lo(node), vars, visited);
+    bddsupport_collect(node_hi(node), vars, visited);
+}
+
+bddp bddsupport(bddp f) {
+    if (f & BDD_CONST_FLAG) return bddfalse;
+
+    // Collect all variables appearing in f
+    std::unordered_set<bddvar> var_set;
+    std::unordered_set<bddp> visited;
+    bddsupport_collect(f, var_set, visited);
+
+    // Sort by level ascending (lowest level first)
+    std::vector<bddvar> vars(var_set.begin(), var_set.end());
+    std::sort(vars.begin(), vars.end(), [](bddvar a, bddvar b) {
+        return var2level[a] < var2level[b];
+    });
+
+    // Build chain bottom-up: each node has lo=chain, hi=bddtrue
+    bddp result = bddfalse;
+    for (size_t i = 0; i < vars.size(); i++) {
+        result = getnode(vars[i], result, bddtrue);
+    }
     return result;
 }
