@@ -40,13 +40,6 @@ BddUniqueTable* bdd_unique_tables = nullptr;
 BddCacheEntry* bdd_cache = nullptr;
 uint64_t bdd_cache_size = 0;
 
-const BDD BDD::False(0);
-const BDD BDD::True(1);
-const BDD BDD::Null(-1);
-
-const ZDD ZDD::Empty(0);
-const ZDD ZDD::Single(1);
-const ZDD ZDD::Null(-1);
 
 // --- Node write ---
 // Node ID -> array index: node_id/2 - 1
