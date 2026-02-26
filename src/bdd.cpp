@@ -1,9 +1,11 @@
 #include "bdd.h"
+#include <cinttypes>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
 #include <unordered_set>
+#include <ostream>
 
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
@@ -1064,4 +1066,172 @@ bddp bddcofactor(bddp f, bddp g) {
 
     bddwcache(BDD_OP_COFACTOR, f, g, result);
     return result;
+}
+
+// --- bddexport ---
+
+// Post-order traversal: collect nodes in the order they should be written.
+// 0-arc subtree first, then 1-arc subtree, then self.
+static void export_collect(bddp f, std::unordered_set<bddp>& visited,
+                           std::vector<bddp>& order) {
+    if (f & BDD_CONST_FLAG) return;
+    bddp node = f & ~BDD_COMP_FLAG;
+    if (!visited.insert(node).second) return;
+    export_collect(node_lo(node), visited, order);
+    export_collect(node_hi(node), visited, order);
+    order.push_back(node);
+}
+
+// Format an arc value as a string for the export file.
+// Terminal: "F" or "T". Non-terminal: node ID (even) or node ID | 1 (odd=negated).
+static void export_arc_str(bddp arc, char* buf, size_t bufsize) {
+    if (arc == bddfalse) {
+        buf[0] = 'F'; buf[1] = '\0';
+    } else if (arc == bddtrue) {
+        buf[0] = 'T'; buf[1] = '\0';
+    } else {
+        // Non-terminal: strip the KyotoDD constant flag is not set here.
+        // complement bit (bit 0) maps directly to odd/even in the output.
+        bddp node = arc & ~BDD_COMP_FLAG;
+        bool comp = (arc & BDD_COMP_FLAG) != 0;
+        uint64_t id = comp ? (node | 1) : node;
+        std::snprintf(buf, bufsize, "%" PRIu64, id);
+    }
+}
+
+// Core export logic writing to FILE*.
+static void export_core(FILE* strm, bddp* p, int lim) {
+    // Collect all nodes in post-order
+    std::unordered_set<bddp> visited;
+    std::vector<bddp> order;
+    bddvar max_level = 0;
+    for (int i = 0; i < lim; i++) {
+        export_collect(p[i], visited, order);
+        // Track max level
+        if (!(p[i] & BDD_CONST_FLAG)) {
+            bddvar v = node_var(p[i]);  // strips complement internally
+            bddvar lev = var2level[v];
+            if (lev > max_level) max_level = lev;
+        }
+    }
+
+    // Also check max level among all collected nodes
+    for (size_t i = 0; i < order.size(); i++) {
+        bddvar v = node_var(order[i]);
+        bddvar lev = var2level[v];
+        if (lev > max_level) max_level = lev;
+    }
+
+    // Header
+    std::fprintf(strm, "_i %u\n", static_cast<unsigned>(max_level));
+    std::fprintf(strm, "_o %d\n", lim);
+    std::fprintf(strm, "_n %u\n", static_cast<unsigned>(order.size()));
+
+    // Node section
+    char buf0[32], buf1[32];
+    for (size_t i = 0; i < order.size(); i++) {
+        bddp node = order[i];
+        bddvar v = node_var(node);
+        bddvar lev = var2level[v];
+        bddp lo = node_lo(node);
+        bddp hi = node_hi(node);
+        export_arc_str(lo, buf0, sizeof(buf0));
+        export_arc_str(hi, buf1, sizeof(buf1));
+        std::fprintf(strm, "%" PRIu64 " %u %s %s\n",
+                     static_cast<uint64_t>(node),
+                     static_cast<unsigned>(lev), buf0, buf1);
+    }
+
+    // Root section
+    for (int i = 0; i < lim; i++) {
+        if (p[i] == bddfalse) {
+            std::fprintf(strm, "F\n");
+        } else if (p[i] == bddtrue) {
+            std::fprintf(strm, "T\n");
+        } else {
+            bddp node = p[i] & ~BDD_COMP_FLAG;
+            bool comp = (p[i] & BDD_COMP_FLAG) != 0;
+            uint64_t id = comp ? (node | 1) : node;
+            std::fprintf(strm, "%" PRIu64 "\n", id);
+        }
+    }
+}
+
+// Core export logic writing to std::ostream.
+static void export_core(std::ostream& strm, bddp* p, int lim) {
+    std::unordered_set<bddp> visited;
+    std::vector<bddp> order;
+    bddvar max_level = 0;
+    for (int i = 0; i < lim; i++) {
+        export_collect(p[i], visited, order);
+        if (!(p[i] & BDD_CONST_FLAG)) {
+            bddvar v = node_var(p[i]);
+            bddvar lev = var2level[v];
+            if (lev > max_level) max_level = lev;
+        }
+    }
+    for (size_t i = 0; i < order.size(); i++) {
+        bddvar v = node_var(order[i]);
+        bddvar lev = var2level[v];
+        if (lev > max_level) max_level = lev;
+    }
+
+    // Header
+    strm << "_i " << max_level << "\n";
+    strm << "_o " << lim << "\n";
+    strm << "_n " << order.size() << "\n";
+
+    // Node section
+    for (size_t i = 0; i < order.size(); i++) {
+        bddp node = order[i];
+        bddvar v = node_var(node);
+        bddvar lev = var2level[v];
+        bddp lo = node_lo(node);
+        bddp hi = node_hi(node);
+
+        strm << node << " " << lev << " ";
+        if (lo == bddfalse) strm << "F";
+        else if (lo == bddtrue) strm << "T";
+        else strm << static_cast<uint64_t>(lo);  // lo is always non-complemented
+        strm << " ";
+        if (hi == bddfalse) strm << "F";
+        else if (hi == bddtrue) strm << "T";
+        else {
+            bddp hn = hi & ~BDD_COMP_FLAG;
+            bool hc = (hi & BDD_COMP_FLAG) != 0;
+            strm << static_cast<uint64_t>(hc ? (hn | 1) : hn);
+        }
+        strm << "\n";
+    }
+
+    // Root section
+    for (int i = 0; i < lim; i++) {
+        if (p[i] == bddfalse) {
+            strm << "F\n";
+        } else if (p[i] == bddtrue) {
+            strm << "T\n";
+        } else {
+            bddp node = p[i] & ~BDD_COMP_FLAG;
+            bool comp = (p[i] & BDD_COMP_FLAG) != 0;
+            strm << static_cast<uint64_t>(comp ? (node | 1) : node) << "\n";
+        }
+    }
+}
+
+void bddexport(FILE* strm, bddp* p, int lim) {
+    export_core(strm, p, lim);
+}
+
+void bddexport(FILE* strm, const std::vector<bddp>& v) {
+    std::vector<bddp> tmp(v);
+    export_core(strm, tmp.data(), static_cast<int>(tmp.size()));
+}
+
+void bddexport(std::ostream& strm, bddp* p, int lim) {
+    export_core(strm, p, lim);
+}
+
+void bddexport(std::ostream& strm, const std::vector<bddp>& v) {
+    std::vector<bddp> tmp(v);
+    export_core(strm, tmp.data(), static_cast<int>(tmp.size()));
 }

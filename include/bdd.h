@@ -2,6 +2,8 @@
 #define KYOTODD_BDD_H
 
 #include <cstdint>
+#include <cstdio>
+#include <iosfwd>
 #include <vector>
 #include "bdd_node.h"
 
@@ -131,6 +133,11 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
 bddp bddlshift(bddp f, bddvar shift);
 bddp bddrshift(bddp f, bddvar shift);
 bddp bddcofactor(bddp f, bddp g);
+
+void bddexport(FILE* strm, bddp* p, int lim);
+void bddexport(FILE* strm, const std::vector<bddp>& v);
+void bddexport(std::ostream& strm, bddp* p, int lim);
+void bddexport(std::ostream& strm, const std::vector<bddp>& v);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);

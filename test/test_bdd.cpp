@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include <sstream>
+#include <unordered_set>
 
 class BDDTest : public ::testing::Test {
 protected:
@@ -1710,4 +1712,234 @@ TEST_F(BDDTest, XorOrAndRelation) {
     EXPECT_EQ(bddxor(a, b), bddand(bddor(a, b), bddnot(bddand(a, b))));
     // a ^ b = (a & ~b) | (~a & b)
     EXPECT_EQ(bddxor(a, b), bddor(bddand(a, bddnot(b)), bddand(bddnot(a), b)));
+}
+
+// --- bddexport ---
+
+// Helper: split a string into lines
+static std::vector<std::string> split_lines(const std::string& s) {
+    std::vector<std::string> lines;
+    std::istringstream iss(s);
+    std::string line;
+    while (std::getline(iss, line)) {
+        lines.push_back(line);
+    }
+    return lines;
+}
+
+TEST_F(BDDTest, ExportTerminalFalse) {
+    bddp p[] = { bddfalse };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+    ASSERT_EQ(lines.size(), 4u);
+    EXPECT_EQ(lines[0], "_i 0");
+    EXPECT_EQ(lines[1], "_o 1");
+    EXPECT_EQ(lines[2], "_n 0");
+    EXPECT_EQ(lines[3], "F");
+}
+
+TEST_F(BDDTest, ExportTerminalTrue) {
+    bddp p[] = { bddtrue };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+    ASSERT_EQ(lines.size(), 4u);
+    EXPECT_EQ(lines[0], "_i 0");
+    EXPECT_EQ(lines[1], "_o 1");
+    EXPECT_EQ(lines[2], "_n 0");
+    EXPECT_EQ(lines[3], "T");
+}
+
+TEST_F(BDDTest, ExportSingleVariable) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);  // x1
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+    // Header: _i 1, _o 1, _n 1
+    EXPECT_EQ(lines[0], "_i 1");
+    EXPECT_EQ(lines[1], "_o 1");
+    EXPECT_EQ(lines[2], "_n 1");
+    // 1 node + 1 root = 2 lines after header
+    ASSERT_EQ(lines.size(), 5u);
+    // Node line: <node_id> 1 F T
+    bddp node = f & ~BDD_COMP_FLAG;
+    std::ostringstream expected;
+    expected << node << " 1 F T";
+    EXPECT_EQ(lines[3], expected.str());
+    // Root: non-negated node id
+    std::ostringstream root_expected;
+    root_expected << node;
+    EXPECT_EQ(lines[4], root_expected.str());
+}
+
+TEST_F(BDDTest, ExportNegatedVariable) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddnot(bddprime(v1));  // NOT x1
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+    ASSERT_EQ(lines.size(), 5u);
+    EXPECT_EQ(lines[2], "_n 1");
+    // Root should be odd (negated)
+    bddp node = f & ~BDD_COMP_FLAG;
+    std::ostringstream root_expected;
+    root_expected << (node | 1);
+    EXPECT_EQ(lines[4], root_expected.str());
+}
+
+TEST_F(BDDTest, ExportAndOfTwoVars) {
+    // x1 AND x2: should produce 2 internal nodes
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+    // Header
+    EXPECT_EQ(lines[0], "_i 2");
+    EXPECT_EQ(lines[1], "_o 1");
+    EXPECT_EQ(lines[2], "_n 2");
+    // 3 header + 2 nodes + 1 root = 6 lines
+    ASSERT_EQ(lines.size(), 6u);
+}
+
+TEST_F(BDDTest, ExportMultipleBDDs) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f1 = bddprime(v1);
+    bddp f2 = bddprime(v2);
+    bddp p[] = { f1, f2 };
+    std::ostringstream oss;
+    bddexport(oss, p, 2);
+    std::vector<std::string> lines = split_lines(oss.str());
+    EXPECT_EQ(lines[0], "_i 2");
+    EXPECT_EQ(lines[1], "_o 2");
+    EXPECT_EQ(lines[2], "_n 2");
+    // 3 header + 2 nodes + 2 roots = 7 lines
+    ASSERT_EQ(lines.size(), 7u);
+}
+
+TEST_F(BDDTest, ExportSharedNodes) {
+    // f1 = x1 AND x2, f2 = x1 OR x2 share the same internal nodes
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp a = bddprime(v1);
+    bddp b = bddprime(v2);
+    bddp f1 = bddand(a, b);
+    bddp f2 = bddor(a, b);
+    bddp p[] = { f1, f2 };
+    std::ostringstream oss;
+    bddexport(oss, p, 2);
+    std::vector<std::string> lines = split_lines(oss.str());
+    // Shared node count should match bddvsize
+    uint64_t vsize = bddvsize(p, 2);
+    std::ostringstream node_count_str;
+    node_count_str << "_n " << vsize;
+    EXPECT_EQ(lines[2], node_count_str.str());
+}
+
+TEST_F(BDDTest, ExportVectorOverload) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);
+    std::vector<bddp> v = { f };
+    std::ostringstream oss;
+    bddexport(oss, v);
+    std::vector<std::string> lines = split_lines(oss.str());
+    EXPECT_EQ(lines[0], "_i 1");
+    EXPECT_EQ(lines[1], "_o 1");
+    EXPECT_EQ(lines[2], "_n 1");
+}
+
+TEST_F(BDDTest, ExportFilePtr) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);
+    bddp p[] = { f };
+    // Write to a temp file, then read back and compare with ostream version
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::string expected = oss.str();
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, p, 1);
+    std::rewind(tmp);
+    std::string actual;
+    char buf[256];
+    while (std::fgets(buf, sizeof(buf), tmp)) {
+        actual += buf;
+    }
+    std::fclose(tmp);
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_F(BDDTest, ExportFilePtrVector) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);
+    std::vector<bddp> v = { f };
+    std::ostringstream oss;
+    bddexport(oss, v);
+    std::string expected = oss.str();
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, v);
+    std::rewind(tmp);
+    std::string actual;
+    char buf[256];
+    while (std::fgets(buf, sizeof(buf), tmp)) {
+        actual += buf;
+    }
+    std::fclose(tmp);
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_F(BDDTest, ExportPostOrder) {
+    // Verify nodes appear in post-order:
+    // each node's children must appear before it.
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddand(bddprime(v2), bddprime(v3)));
+    bddp p[] = { f };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::vector<std::string> lines = split_lines(oss.str());
+
+    // Parse node IDs from node section
+    int node_count = 0;
+    std::istringstream nc(lines[2].substr(3));
+    nc >> node_count;
+
+    std::unordered_set<std::string> seen;
+    seen.insert("F");
+    seen.insert("T");
+    for (int i = 0; i < node_count; i++) {
+        std::istringstream iss(lines[3 + i]);
+        std::string nid, lev, arc0, arc1;
+        iss >> nid >> lev >> arc0 >> arc1;
+        // arc0 and arc1 (stripped of negation) must already be seen
+        // For odd arc1, the node_id is arc1-1
+        uint64_t a1_val = 0;
+        bool a1_is_terminal = (arc1 == "F" || arc1 == "T");
+        if (!a1_is_terminal) {
+            std::istringstream(arc1) >> a1_val;
+            if (a1_val % 2 == 1) {
+                std::ostringstream even;
+                even << (a1_val - 1);
+                EXPECT_TRUE(seen.count(even.str()) > 0)
+                    << "arc1 node " << (a1_val - 1) << " not yet seen for node " << nid;
+            } else {
+                EXPECT_TRUE(seen.count(arc1) > 0)
+                    << "arc1 " << arc1 << " not yet seen for node " << nid;
+            }
+        }
+        EXPECT_TRUE(seen.count(arc0) > 0)
+            << "arc0 " << arc0 << " not yet seen for node " << nid;
+        seen.insert(nid);
+    }
 }
