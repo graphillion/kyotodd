@@ -1234,6 +1234,111 @@ TEST_F(BDDTest, BddUnivVecMatchesCube) {
     EXPECT_EQ(bdduniv(f, vars), bdduniv(f, cube));
 }
 
+// --- bddcofactor ---
+
+TEST_F(BDDTest, BddCofactorTerminalF) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // f is constant -> return f
+    EXPECT_EQ(bddcofactor(bddfalse, p), bddfalse);
+    EXPECT_EQ(bddcofactor(bddtrue, p), bddtrue);
+}
+
+TEST_F(BDDTest, BddCofactorGFalse) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // g = false -> care region empty -> false
+    EXPECT_EQ(bddcofactor(p, bddfalse), bddfalse);
+}
+
+TEST_F(BDDTest, BddCofactorGTrue) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // g = true -> no don't care -> return f
+    EXPECT_EQ(bddcofactor(p, bddtrue), p);
+}
+
+TEST_F(BDDTest, BddCofactorFEqG) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // f = g -> care region always 1 -> true
+    EXPECT_EQ(bddcofactor(p, p), bddtrue);
+}
+
+TEST_F(BDDTest, BddCofactorFEqNotG) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // f = ~g -> care region always 0 -> false
+    EXPECT_EQ(bddcofactor(bddnot(p), p), bddfalse);
+    EXPECT_EQ(bddcofactor(p, bddnot(p)), bddfalse);
+}
+
+TEST_F(BDDTest, BddCofactorPreservesOnCare) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // g = p2: care where v2=1. On care region, f = v1 & 1 = v1
+    // Cofactor should return something equivalent to v1 on care region
+    bddp result = bddcofactor(f, p2);
+    // Verify: on care region (v2=1), result must equal f
+    EXPECT_EQ(bddand(result, p2), bddand(f, p2));
+}
+
+TEST_F(BDDTest, BddCofactorReducesNodes) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);  // 2 nodes
+    // g = p2: v2=0 is don't care, so v2 branch can be eliminated
+    bddp result = bddcofactor(f, p2);
+    EXPECT_LE(bddsize(result), bddsize(f));
+}
+
+TEST_F(BDDTest, BddCofactorDontCareOnLow) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // f = v1 ^ v2, g = v2 (care only when v2=1)
+    bddp f = bddxor(p1, p2);
+    bddp result = bddcofactor(f, p2);
+    // On care region (v2=1): f = v1 ^ 1 = ~v1
+    // Result must agree with f where g=1
+    EXPECT_EQ(bddand(result, p2), bddand(f, p2));
+}
+
+TEST_F(BDDTest, BddCofactorThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // f = (v1 & v2) | v3, g = v3 (care only when v3=1)
+    // On care region (v3=1): f = 1 always, so cofactor = true
+    bddp f = bddor(bddand(p1, p2), p3);
+    EXPECT_EQ(bddcofactor(f, p3), bddtrue);
+}
+
+TEST_F(BDDTest, BddCofactorComplex) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddor(bddand(p1, p2), bddand(bddnot(p1), p3));
+    bddp g = bddor(p2, p3);
+    bddp result = bddcofactor(f, g);
+    // Correctness: on care region (g=1), result must agree with f
+    EXPECT_EQ(bddand(result, g), bddand(f, g));
+    // Simplification: result should not be larger than f
+    EXPECT_LE(bddsize(result), bddsize(f));
+}
+
 // --- bddlshift ---
 
 TEST_F(BDDTest, BddLshiftTerminals) {

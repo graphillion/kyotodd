@@ -1006,3 +1006,62 @@ bddp bddrshift(bddp f, bddvar shift) {
 
     return bddrshift_rec(f, shift);
 }
+
+bddp bddcofactor(bddp f, bddp g) {
+    // Terminal cases
+    if (f & BDD_CONST_FLAG) return f;   // f is constant
+    if (g == bddfalse) return bddfalse; // care region is empty
+    if (f == bddnot(g)) return bddfalse; // f=0 wherever g=1
+    if (f == g) return bddtrue;          // f=1 wherever g=1
+    if (g == bddtrue) return f;          // no don't care region
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_COFACTOR, f, g);
+    if (cached != bddnull) return cached;
+
+    // Determine top variable
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = g; g_hi = g;
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f; f_hi = f;
+        g_lo = node_lo(g); g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = node_lo(g); g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    }
+
+    bddp result;
+
+    if (g_lo == bddfalse && g_hi != bddfalse) {
+        // Low branch is entirely don't care
+        result = bddcofactor(f_hi, g_hi);
+    } else if (g_hi == bddfalse && g_lo != bddfalse) {
+        // High branch is entirely don't care
+        result = bddcofactor(f_lo, g_lo);
+    } else {
+        bddp lo = bddcofactor(f_lo, g_lo);
+        bddp hi = bddcofactor(f_hi, g_hi);
+        result = getnode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_COFACTOR, f, g, result);
+    return result;
+}

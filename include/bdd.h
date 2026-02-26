@@ -64,6 +64,7 @@ static const uint8_t BDD_OP_EXIST = 6;
 static const uint8_t BDD_OP_UNIV = 7;
 static const uint8_t BDD_OP_LSHIFT = 8;
 static const uint8_t BDD_OP_RSHIFT = 9;
+static const uint8_t BDD_OP_COFACTOR = 10;
 
 class BDD {
 public:
@@ -129,6 +130,7 @@ bddp bdduniv(bddp f, bddp g);
 bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
 bddp bddlshift(bddp f, bddvar shift);
 bddp bddrshift(bddp f, bddvar shift);
+bddp bddcofactor(bddp f, bddp g);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
