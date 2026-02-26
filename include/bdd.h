@@ -4,6 +4,13 @@
 #include <cstdint>
 #include "bdd_node.h"
 
+// Terminal node constants (bit 47 = 1, remaining bits = constant value)
+static const uint64_t bddfalse  = UINT64_C(0x800000000000);  // 0-terminal
+static const uint64_t bddempty  = UINT64_C(0x800000000000);  // 0-terminal (ZDD alias)
+static const uint64_t bddtrue   = UINT64_C(0x800000000001);  // 1-terminal
+static const uint64_t bddsingle = UINT64_C(0x800000000001);  // 1-terminal (ZDD alias)
+static const uint64_t bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
+
 extern BddNode* bdd_nodes;
 extern uint64_t bdd_node_count;
 extern uint64_t bdd_node_max;
