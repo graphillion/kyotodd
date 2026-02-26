@@ -69,5 +69,6 @@ BDD BDD_ID(bddp p);
 BDD BDDvar(bddvar v);
 
 inline bddp bddnot(bddp p) { return p ^ BDD_COMP_FLAG; }
+bddp bddand(bddp f, bddp g);
 
 #endif

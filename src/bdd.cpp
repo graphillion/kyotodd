@@ -50,6 +50,10 @@ static inline bool bddp_is_reduced(bddp p) {
 
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
+static inline bddvar node_var(bddp node_id) {
+    return static_cast<bddvar>(bdd_nodes[node_id / 2 - 1].data[0] >> BDD_NODE_VAR_SHIFT);
+}
+
 static inline bddp node_lo(bddp node_id) {
     const BddNode& n = bdd_nodes[node_id / 2 - 1];
     return ((n.data[0] & BDD_NODE_LO_HI_MASK) << BDD_NODE_LO_SPLIT) | (n.data[1] >> BDD_NODE_LO_LO_SHIFT);
@@ -190,4 +194,61 @@ BDD BDD_ID(bddp p) {
 
 BDD BDDvar(bddvar v) {
     return BDD_ID(bddprime(v));
+}
+
+bddp bddand(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddfalse || g == bddfalse) return bddfalse;
+    if (f == bddtrue) return g;
+    if (g == bddtrue) return f;
+    if (f == g) return f;
+    if (f == bddnot(g)) return bddfalse;
+
+    // Both f and g are non-terminal at this point
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddp g_raw = g & ~BDD_COMP_FLAG;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = node_var(f_raw);
+    bddvar g_var = node_var(g_raw);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    // Determine top variable (highest level) and cofactors
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f_raw);
+        f_hi = node_hi(f_raw);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = g;
+        g_hi = g;
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f;
+        f_hi = f;
+        g_lo = node_lo(g_raw);
+        g_hi = node_hi(g_raw);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f_raw);
+        f_hi = node_hi(f_raw);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        g_lo = node_lo(g_raw);
+        g_hi = node_hi(g_raw);
+        if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    }
+
+    // Recurse
+    bddp lo = bddand(f_lo, g_lo);
+    bddp hi = bddand(f_hi, g_hi);
+
+    // Reduction rule
+    if (lo == hi) return lo;
+
+    return getnode(top_var, lo, hi);
 }
