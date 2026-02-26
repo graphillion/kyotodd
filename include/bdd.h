@@ -23,6 +23,11 @@ struct BddUniqueTable {
 
 extern BddUniqueTable* bdd_unique_tables;  // indexed by var (1-based)
 
+class BDD {
+public:
+    uint64_t root;
+};
+
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 uint32_t BDD_NewVar();
 uint64_t BDD_UniqueTableLookup(uint32_t var, uint64_t lo, uint64_t hi);
