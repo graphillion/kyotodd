@@ -7,6 +7,9 @@
 // DD node ID type (48-bit value stored in uint64_t)
 typedef uint64_t bddp;
 
+// Variable number type (31-bit value stored in uint32_t)
+typedef uint32_t bddvar;
+
 // Terminal node constants (bit 47 = 1, remaining bits = constant value)
 static const bddp bddfalse  = UINT64_C(0x800000000000);  // 0-terminal
 static const bddp bddempty  = UINT64_C(0x800000000000);  // 0-terminal (ZDD alias)
@@ -20,9 +23,9 @@ extern uint64_t bdd_node_max;
 
 // Variable-level mapping
 // Level 0 = terminal, level i = var i (initial ordering: var i <-> level i)
-extern uint32_t* var2level;  // var2level[var] = level
-extern uint32_t* level2var;  // level2var[level] = var
-extern uint32_t bdd_varcount;
+extern bddvar* var2level;  // var2level[var] = level
+extern bddvar* level2var;  // level2var[level] = var
+extern bddvar bdd_varcount;
 
 // Per-variable unique table (open addressing, linear probing)
 struct BddUniqueTable {
@@ -52,8 +55,8 @@ public:
 };
 
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
-uint32_t BDD_NewVar();
-bddp BDD_UniqueTableLookup(uint32_t var, bddp lo, bddp hi);
-void BDD_UniqueTableInsert(uint32_t var, bddp lo, bddp hi, bddp node_id);
+bddvar BDD_NewVar();
+bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
+void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
 
 #endif

@@ -2,17 +2,17 @@
 #include <cstdlib>
 #include <cstring>
 
-static const uint32_t VAR_INITIAL_CAPACITY = 8192;
+static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
 
 BddNode* bdd_nodes = nullptr;
 uint64_t bdd_node_count = 0;
 uint64_t bdd_node_max = 0;
 
-uint32_t* var2level = nullptr;
-uint32_t* level2var = nullptr;
-uint32_t bdd_varcount = 0;
-static uint32_t var_capacity = 0;
+bddvar* var2level = nullptr;
+bddvar* level2var = nullptr;
+bddvar bdd_varcount = 0;
+static bddvar var_capacity = 0;
 
 BddUniqueTable* bdd_unique_tables = nullptr;
 
@@ -86,14 +86,14 @@ void BDD_Init(uint64_t node_count, uint64_t node_max) {
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
 }
 
-uint32_t BDD_NewVar() {
+bddvar BDD_NewVar() {
     bdd_varcount++;
-    uint32_t var = bdd_varcount;
+    bddvar var = bdd_varcount;
     if (var >= var_capacity) {
-        uint32_t old_capacity = var_capacity;
+        bddvar old_capacity = var_capacity;
         var_capacity = (var_capacity == 0) ? VAR_INITIAL_CAPACITY : var_capacity * 2;
-        var2level = static_cast<uint32_t*>(std::realloc(var2level, sizeof(uint32_t) * var_capacity));
-        level2var = static_cast<uint32_t*>(std::realloc(level2var, sizeof(uint32_t) * var_capacity));
+        var2level = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * var_capacity));
+        level2var = static_cast<bddvar*>(std::realloc(level2var, sizeof(bddvar) * var_capacity));
         bdd_unique_tables = static_cast<BddUniqueTable*>(
             std::realloc(bdd_unique_tables, sizeof(BddUniqueTable) * var_capacity));
         std::memset(bdd_unique_tables + old_capacity, 0,
@@ -105,7 +105,7 @@ uint32_t BDD_NewVar() {
     return var;
 }
 
-bddp BDD_UniqueTableLookup(uint32_t var, bddp lo, bddp hi) {
+bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);
     while (t->slots[idx] != 0) {
@@ -118,7 +118,7 @@ bddp BDD_UniqueTableLookup(uint32_t var, bddp lo, bddp hi) {
     return 0;
 }
 
-void BDD_UniqueTableInsert(uint32_t var, bddp lo, bddp hi, bddp node_id) {
+void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     if ((t->count + 1) * 4 >= t->capacity * 3) {
         unique_table_resize(t);
