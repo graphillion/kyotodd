@@ -165,6 +165,7 @@ static void node_array_grow() {
 }
 
 bddp getnode(bddvar var, bddp lo, bddp hi) {
+    if (lo == hi) return lo;  // reduction rule
     bddp found = BDD_UniqueTableLookup(var, lo, hi);
     if (found != 0) {
         return found;
@@ -246,9 +247,6 @@ bddp bddand(bddp f, bddp g) {
     // Recurse
     bddp lo = bddand(f_lo, g_lo);
     bddp hi = bddand(f_hi, g_hi);
-
-    // Reduction rule
-    if (lo == hi) return lo;
 
     return getnode(top_var, lo, hi);
 }
