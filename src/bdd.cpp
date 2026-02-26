@@ -16,6 +16,14 @@ static uint32_t var_capacity = 0;
 
 BddUniqueTable* bdd_unique_tables = nullptr;
 
+const BDD BDD::False(0);
+const BDD BDD::True(1);
+const BDD BDD::Null(-1);
+
+const ZDD ZDD::Empty(0);
+const ZDD ZDD::Single(1);
+const ZDD ZDD::Null(-1);
+
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
 static inline bddp node_lo(bddp node_id) {

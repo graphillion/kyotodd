@@ -37,12 +37,18 @@ class BDD {
 public:
     bddp root;
     BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
+    static const BDD False;
+    static const BDD True;
+    static const BDD Null;
 };
 
 class ZDD {
 public:
     bddp root;
     ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
+    static const ZDD Empty;
+    static const ZDD Single;
+    static const ZDD Null;
 };
 
 void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
