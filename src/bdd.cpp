@@ -404,6 +404,33 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
+bddp getznode(bddvar var, bddp lo, bddp hi) {
+    if (hi == bddempty) return lo;  // ZDD zero-suppression rule
+
+    // Complement edge normalization: lo must not be complemented.
+    // For ZDD: ~(x, lo, hi) = (x, ~lo, hi) -- only lo is toggled.
+    bool comp = (lo & BDD_COMP_FLAG) != 0;
+    if (comp) {
+        lo = bddnot(lo);
+    }
+
+    bddp found = BDD_UniqueTableLookup(var, lo, hi);
+    if (found != 0) {
+        return comp ? bddnot(found) : found;
+    }
+    if (bdd_node_used >= bdd_node_count) {
+        node_array_grow();
+    }
+    bdd_node_used++;
+    bddp node_id = bdd_node_used * 2;
+    node_write(node_id, var, lo, hi);
+    if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
+        node_set_reduced(node_id);
+    }
+    BDD_UniqueTableInsert(var, lo, hi, node_id);
+    return comp ? bddnot(node_id) : node_id;
+}
+
 bddp bddprime(bddvar v) {
     return getnode(v, bddfalse, bddtrue);
 }

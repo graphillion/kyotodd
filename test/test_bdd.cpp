@@ -1714,6 +1714,92 @@ TEST_F(BDDTest, XorOrAndRelation) {
     EXPECT_EQ(bddxor(a, b), bddor(bddand(a, bddnot(b)), bddand(bddnot(a), b)));
 }
 
+// --- getznode ---
+
+TEST_F(BDDTest, GetznodeZeroSuppression) {
+    // ZDD reduction: if hi == bddempty, return lo
+    bddvar v1 = bddnewvar();
+    EXPECT_EQ(getznode(v1, bddempty, bddempty), bddempty);
+    EXPECT_EQ(getznode(v1, bddsingle, bddempty), bddsingle);
+
+    bddvar v2 = bddnewvar();
+    bddp node = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(getznode(v1, node, bddempty), node);
+}
+
+TEST_F(BDDTest, GetznodeNoReductionWhenLoEqualsHi) {
+    // Unlike BDD, getznode does NOT reduce when lo == hi
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddsingle, bddsingle);
+    // This should create a node, not return bddsingle
+    EXPECT_NE(z, bddsingle);
+    EXPECT_FALSE(z & BDD_CONST_FLAG);
+}
+
+TEST_F(BDDTest, GetznodeSingleton) {
+    // {{v1}} = getznode(v1, bddempty, bddsingle)
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    EXPECT_FALSE(z & BDD_CONST_FLAG);
+    // lo should be bddempty, hi should be bddsingle
+    bddp node = z & ~BDD_COMP_FLAG;
+    EXPECT_EQ(z, node);  // no complement on result
+}
+
+TEST_F(BDDTest, GetznodeComplementNormalization) {
+    // lo is complemented: strip it, complement the result
+    // hi is NOT negated (unlike BDD getnode)
+    bddvar v1 = bddnewvar();
+    bddp z1 = getznode(v1, bddempty, bddsingle);   // {{v1}}
+    bddp z2 = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    // z2 should be complement of z1, since:
+    //   lo=bddsingle → comp=true, lo normalized to bddempty
+    //   stored node is (v1, bddempty, bddsingle) = z1
+    //   result = ~z1
+    EXPECT_EQ(z2, bddnot(z1));
+}
+
+TEST_F(BDDTest, GetznodeComplementHiUnchanged) {
+    // Verify hi is not negated during complement normalization
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp inner = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // getznode(v2, bddsingle, inner)
+    // lo=bddsingle is complemented → comp=true, lo=bddempty
+    // hi=inner stays unchanged (ZDD rule)
+    bddp z = getznode(v2, bddsingle, inner);
+
+    // Compare with BDD getnode which would negate hi too
+    bddp b = getnode(v2, bddsingle, inner);
+
+    // They should differ because BDD negates hi but ZDD doesn't
+    // getznode stores (v2, bddempty, inner), getnode stores (v2, bddempty, ~inner)
+    EXPECT_NE(z & ~BDD_COMP_FLAG, b & ~BDD_COMP_FLAG);
+}
+
+TEST_F(BDDTest, GetznodeUniqueTableSharing) {
+    // Same (var, lo, hi) returns same node
+    bddvar v1 = bddnewvar();
+    bddp z1 = getznode(v1, bddempty, bddsingle);
+    bddp z2 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(z1, z2);
+}
+
+TEST_F(BDDTest, GetznodeTwoElementFamily) {
+    // {{v1}, {v2}} using ZDD
+    bddvar v1 = bddnewvar();  // level 1
+    bddvar v2 = bddnewvar();  // level 2
+    // Build bottom-up: v2 is lower level, v1 is higher level
+    // Node for v1: lo = getznode(v1, bddempty, bddsingle) would be wrong ordering
+    // ZDD for {{v1}, {v2}}: at v2 (level 2, top), lo = {{v1}}, hi = {{}}
+    //   at v1 (level 1), lo = {}, hi = {{}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}} at level 1
+    bddp z = getznode(v2, z_v1, bddsingle);          // at level 2: lo={{v1}}, hi={{}}
+    // The family = {{v1}} ∪ {{v2 ∪ s} | s ∈ {{}}} = {{v1}} ∪ {{v2}} = {{v1}, {v2}}
+    EXPECT_FALSE(z & BDD_CONST_FLAG);
+}
+
 // --- bddexport ---
 
 // Helper: split a string into lines
