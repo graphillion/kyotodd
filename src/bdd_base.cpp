@@ -1,4 +1,5 @@
 #include "bdd.h"
+#include "bdd_internal.h"
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -33,50 +34,6 @@ BddUniqueTable* bdd_unique_tables = nullptr;
 
 BddCacheEntry* bdd_cache = nullptr;
 uint64_t bdd_cache_size = 0;
-
-
-// --- Node write ---
-// Node ID -> array index: node_id/2 - 1
-static inline void node_write(bddp node_id, bddvar var, bddp lo, bddp hi) {
-    BddNode& n = bdd_nodes[node_id / 2 - 1];
-    n.data[0] = (static_cast<uint64_t>(var) << BDD_NODE_VAR_SHIFT) | (lo >> BDD_NODE_LO_SPLIT);
-    n.data[1] = ((lo & BDD_NODE_LO_LO_MASK) << BDD_NODE_LO_LO_SHIFT) | hi;
-}
-
-// --- Node reduced flag ---
-static inline void node_set_reduced(bddp node_id) {
-    bdd_nodes[node_id / 2 - 1].data[0] |= BDD_NODE_REDUCED_FLAG;
-}
-
-static inline bool node_is_reduced(bddp node_id) {
-    return (bdd_nodes[node_id / 2 - 1].data[0] & BDD_NODE_REDUCED_FLAG) != 0;
-}
-
-// Check if a bddp (node ID or terminal) is reduced
-static inline bool bddp_is_reduced(bddp p) {
-    if (p & BDD_CONST_FLAG) return true;          // terminals are always reduced
-    return node_is_reduced(p & ~BDD_COMP_FLAG);    // strip complement flag
-}
-
-// --- Node field extraction ---
-// Node ID -> array index: node_id/2 - 1
-// Complement flag is stripped internally so callers need not worry about it.
-static inline bddvar node_var(bddp node_id) {
-    node_id &= ~BDD_COMP_FLAG;
-    return static_cast<bddvar>(bdd_nodes[node_id / 2 - 1].data[0] >> BDD_NODE_VAR_SHIFT);
-}
-
-static inline bddp node_lo(bddp node_id) {
-    node_id &= ~BDD_COMP_FLAG;
-    const BddNode& n = bdd_nodes[node_id / 2 - 1];
-    return ((n.data[0] & BDD_NODE_LO_HI_MASK) << BDD_NODE_LO_SPLIT) | (n.data[1] >> BDD_NODE_LO_LO_SHIFT);
-}
-
-static inline bddp node_hi(bddp node_id) {
-    node_id &= ~BDD_COMP_FLAG;
-    const BddNode& n = bdd_nodes[node_id / 2 - 1];
-    return n.data[1] & BDD_NODE_HI_MASK;
-}
 
 // --- Hash function (splitmix64 style) ---
 static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
@@ -434,8 +391,6 @@ BDD BDD_ID(bddp p) {
 BDD BDDvar(bddvar v) {
     return BDD_ID(bddprime(v));
 }
-
-// (Operations moved to bdd_ops.cpp)
 
 int bddisbdd(bddp f) {
     (void)f;
