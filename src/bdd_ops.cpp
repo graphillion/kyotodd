@@ -796,3 +796,56 @@ bddp bddchange(bddp f, bddvar var) {
     bddwcache(BDD_OP_CHANGE, f, static_cast<bddp>(var), result);
     return result;
 }
+
+bddp bddunion(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return g;
+    if (g == bddempty) return f;
+    if (f == g) return f;
+
+    // Normalize order (union is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_UNION, f, g);
+    if (cached != bddnull) return cached;
+
+    // Determine top variable and cofactors
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        g_lo = g; g_hi = bddempty;
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f; f_hi = bddempty;
+        g_lo = node_lo(g); g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        g_lo = node_lo(g); g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+    }
+
+    bddp lo = bddunion(f_lo, g_lo);
+    bddp hi = bddunion(f_hi, g_hi);
+    bddp result = getznode(top_var, lo, hi);
+
+    bddwcache(BDD_OP_UNION, f, g, result);
+    return result;
+}

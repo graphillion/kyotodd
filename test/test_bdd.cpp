@@ -2612,6 +2612,89 @@ TEST_F(BDDTest, BddchangeVarAboveTop) {
     EXPECT_EQ(bddchange(z_v1, v3), expected);
 }
 
+// --- bddunion ---
+
+TEST_F(BDDTest, BddunionTerminals) {
+    // empty ∪ empty = empty
+    EXPECT_EQ(bddunion(bddempty, bddempty), bddempty);
+    // empty ∪ {{}} = {{}}
+    EXPECT_EQ(bddunion(bddempty, bddsingle), bddsingle);
+    EXPECT_EQ(bddunion(bddsingle, bddempty), bddsingle);
+    // {{}} ∪ {{}} = {{}}
+    EXPECT_EQ(bddunion(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddunionWithEmpty) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    EXPECT_EQ(bddunion(z_v1, bddempty), z_v1);
+    EXPECT_EQ(bddunion(bddempty, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddunionSelf) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    EXPECT_EQ(bddunion(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddunionDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    // {{v1}} ∪ {{v2}} = {{v1}, {v2}}
+    bddp expected = getznode(v2, z_v1, bddsingle);
+    EXPECT_EQ(bddunion(z_v1, z_v2), expected);
+    // Commutative
+    EXPECT_EQ(bddunion(z_v2, z_v1), expected);
+}
+
+TEST_F(BDDTest, BddunionAddEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    // {{v1}} ∪ {{}} = {{}, {v1}}
+    bddp expected = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    EXPECT_EQ(bddunion(z_v1, bddsingle), expected);
+}
+
+TEST_F(BDDTest, BddunionOverlapping) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);     // {{v2}}
+    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);         // {{v1, v2}}
+    // {{v1}, {v2}} ∪ {{v1, v2}} = {{v1}, {v2}, {v1, v2}}
+    bddp result = bddunion(z_v1_v2, z_v1v2);
+    // Expected: at v2, lo={{v1}} (sets without v2), hi=union({{},{}}, {{v1}})
+    // hi = {{}, {v1}}
+    bddp hi_expected = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    bddp expected = getznode(v2, z_v1, hi_expected);
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, BddunionThreeVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);     // {{v3}}
+    // {{v1}} ∪ {{v3}} = at v3, lo={{v1}}, hi={{}}
+    bddp expected = getznode(v3, z_v1, bddsingle);
+    EXPECT_EQ(bddunion(z_v1, z_v3), expected);
+}
+
+TEST_F(BDDTest, BddunionIdempotent) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp u = bddunion(z_v1, z_v2);
+    // union(u, z_v1) == u (z_v1 already in u)
+    EXPECT_EQ(bddunion(u, z_v1), u);
+    EXPECT_EQ(bddunion(u, z_v2), u);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
