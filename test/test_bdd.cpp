@@ -2334,6 +2334,80 @@ TEST_F(BDDTest, ImportzFilePtrVector) {
     EXPECT_EQ(v[0], z);
 }
 
+// --- bddoffset ---
+
+TEST_F(BDDTest, BddoffsetTerminal) {
+    bddvar v1 = bddnewvar();
+    // offset of empty family is empty
+    EXPECT_EQ(bddoffset(bddempty, v1), bddempty);
+    // offset of {{}} is {{}} (no item to remove)
+    EXPECT_EQ(bddoffset(bddsingle, v1), bddsingle);
+}
+
+TEST_F(BDDTest, BddoffsetSingletonContaining) {
+    bddvar v1 = bddnewvar();
+    // {{v1}} = getznode(v1, bddempty, bddsingle)
+    bddp z = getznode(v1, bddempty, bddsingle);
+    // offset({{v1}}, v1) = sets not containing v1 = {} (empty family)
+    EXPECT_EQ(bddoffset(z, v1), bddempty);
+}
+
+TEST_F(BDDTest, BddoffsetSingletonNotContaining) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1}} — does not contain v2
+    bddp z = getznode(v1, bddempty, bddsingle);
+    // offset({{v1}}, v2) = {{v1}} (v2 not in any set)
+    EXPECT_EQ(bddoffset(z, v2), z);
+}
+
+TEST_F(BDDTest, BddoffsetFamilyWithAndWithout) {
+    bddvar v1 = bddnewvar();
+    // {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
+    // lo = {{}} (sets without v1), hi = {{}} (sets with v1, v1 removed)
+    bddp z = getznode(v1, bddsingle, bddsingle);
+    // offset(z, v1) = sets not containing v1 = lo = {{}}
+    EXPECT_EQ(bddoffset(z, v1), bddsingle);
+}
+
+TEST_F(BDDTest, BddoffsetTwoVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Build {{v1, v2}}: at v1 (level 1), hi=bddsingle, lo=bddempty → {{v1}}
+    // Then at v2 (level 2), lo=bddempty, hi={{v1}} → sets containing v2 AND v1
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);        // {{v1, v2}}
+    // offset({{v1,v2}}, v2) = sets not containing v2 = empty
+    EXPECT_EQ(bddoffset(z_v1v2, v2), bddempty);
+    // offset({{v1,v2}}, v1) should recurse: at v2, lo=empty→offset=empty, hi={{v1}}→offset({{v1}},v1)=empty
+    // result = getznode(v2, empty, empty) = empty
+    EXPECT_EQ(bddoffset(z_v1v2, v1), bddempty);
+}
+
+TEST_F(BDDTest, BddoffsetMixedFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Build {{v1}, {v2}}: at v2 (level 2, top), lo={{v1}}, hi={{}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z = getznode(v2, z_v1, bddsingle);             // {{v1}, {v2}}
+    // offset(z, v2) = sets not containing v2 = lo = {{v1}}
+    EXPECT_EQ(bddoffset(z, v2), z_v1);
+    // offset(z, v1): at v2, lo=offset({{v1}},v1)=empty, hi=offset({{}},v1)={{}}
+    // = getznode(v2, empty, single) = {{v2}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);     // {{v2}}
+    EXPECT_EQ(bddoffset(z, v1), z_v2);
+}
+
+TEST_F(BDDTest, BddoffsetVarNotInFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // {{v1}} — only involves v1, ask about v3 (higher level)
+    bddp z = getznode(v1, bddempty, bddsingle);
+    // v3 has higher level than v1 → var above top, return f
+    EXPECT_EQ(bddoffset(z, v3), z);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

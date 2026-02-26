@@ -26,4 +26,7 @@ bddp bddlshift(bddp f, bddvar shift);
 bddp bddrshift(bddp f, bddvar shift);
 bddp bddcofactor(bddp f, bddp g);
 
+// ZDD operations
+bddp bddoffset(bddp f, bddvar var);
+
 #endif
