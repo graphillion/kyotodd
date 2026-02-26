@@ -2478,6 +2478,70 @@ TEST_F(BDDTest, BddonsetVarNotInFamily) {
     EXPECT_EQ(bddonset(z, v3), bddempty);
 }
 
+// --- bddonset0 ---
+
+TEST_F(BDDTest, Bddonset0Terminal) {
+    bddvar v1 = bddnewvar();
+    EXPECT_EQ(bddonset0(bddempty, v1), bddempty);
+    EXPECT_EQ(bddonset0(bddsingle, v1), bddempty);
+}
+
+TEST_F(BDDTest, Bddonset0SingletonContaining) {
+    bddvar v1 = bddnewvar();
+    // {{v1}}
+    bddp z = getznode(v1, bddempty, bddsingle);
+    // onset0({{v1}}, v1) = {{}} (var removed)
+    EXPECT_EQ(bddonset0(z, v1), bddsingle);
+}
+
+TEST_F(BDDTest, Bddonset0SingletonNotContaining) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddonset0(z, v2), bddempty);
+}
+
+TEST_F(BDDTest, Bddonset0FamilyWithAndWithout) {
+    bddvar v1 = bddnewvar();
+    // {{}, {v1}}
+    bddp z = getznode(v1, bddsingle, bddsingle);
+    // onset0(z, v1) = {{}} (sets containing v1 with v1 removed)
+    EXPECT_EQ(bddonset0(z, v1), bddsingle);
+}
+
+TEST_F(BDDTest, Bddonset0TwoVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1, v2}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);        // {{v1, v2}}
+    // onset0({{v1,v2}}, v2) = {{v1}} (v2 removed)
+    EXPECT_EQ(bddonset0(z_v1v2, v2), z_v1);
+    // onset0({{v1,v2}}, v1) = {{v2}} (v1 removed)
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(bddonset0(z_v1v2, v1), z_v2);
+}
+
+TEST_F(BDDTest, Bddonset0MixedFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1}, {v2}}: at v2 (top), lo={{v1}}, hi={{}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z = getznode(v2, z_v1, bddsingle);
+    // onset0(z, v2) = {{}} (v2 removed from {v2})
+    EXPECT_EQ(bddonset0(z, v2), bddsingle);
+    // onset0(z, v1) = {{}} (v1 removed from {v1})
+    EXPECT_EQ(bddonset0(z, v1), bddsingle);
+}
+
+TEST_F(BDDTest, Bddonset0VarNotInFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddonset0(z, v3), bddempty);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

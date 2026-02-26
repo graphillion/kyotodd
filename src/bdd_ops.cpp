@@ -725,3 +725,38 @@ bddp bddonset(bddp f, bddvar var) {
     bddwcache(BDD_OP_ONSET, f, static_cast<bddp>(var), result);
     return result;
 }
+
+bddp bddonset0(bddp f, bddvar var) {
+    // Terminal cases: no sets contain any variable
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar f_level = var2level[f_var];
+    bddvar v_level = var2level[var];
+
+    // var is above f's top: var doesn't appear in f (ZDD suppression)
+    if (f_level < v_level) return bddempty;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_ONSET0, f, static_cast<bddp>(var));
+    if (cached != bddnull) return cached;
+
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }  // ZDD: only lo is complemented
+
+    bddp result;
+    if (f_var == var) {
+        // hi branch = sets containing var, with var already removed
+        result = f_hi;
+    } else {
+        // f_level > v_level: var is below, recurse into both branches
+        bddp lo = bddonset0(f_lo, var);
+        bddp hi = bddonset0(f_hi, var);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_ONSET0, f, static_cast<bddp>(var), result);
+    return result;
+}
