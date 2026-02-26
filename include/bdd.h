@@ -41,6 +41,19 @@ struct BddUniqueTable {
 
 extern BddUniqueTable* bdd_unique_tables;  // indexed by var (1-based)
 
+// Operation cache (computed table) -- fixed-size, lossy
+struct BddCacheEntry {
+    uint64_t fop;     // bits [55:48] = op, bits [47:0] = f
+    uint64_t g;       // bits [47:0] = g
+    uint64_t result;  // cached result (bddnull = empty)
+};
+
+extern BddCacheEntry* bdd_cache;
+extern uint64_t bdd_cache_size;  // number of entries (power of 2)
+
+// Operation type constants
+static const uint8_t BDD_OP_AND = 0;
+
 class BDD {
 public:
     bddp root;
@@ -72,6 +85,9 @@ BDD BDDvar(bddvar v);
 
 inline bddp bddnot(bddp p) { return p ^ BDD_COMP_FLAG; }
 bddp bddand(bddp f, bddp g);
+
+bddp bddrcache(uint8_t op, bddp f, bddp g);
+void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
