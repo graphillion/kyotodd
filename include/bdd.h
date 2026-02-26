@@ -149,6 +149,9 @@ int bddimportz(FILE* strm, std::vector<bddp>& v);
 int bddimportz(std::istream& strm, bddp* p, int lim);
 int bddimportz(std::istream& strm, std::vector<bddp>& v);
 
+int bddisbdd(bddp f);
+int bddiszbdd(bddp f);
+
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);

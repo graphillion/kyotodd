@@ -1405,3 +1405,13 @@ int bddimportz(std::istream& strm, bddp* p, int lim) {
 int bddimportz(std::istream& strm, std::vector<bddp>& v) {
     return import_core(strm, v, getznode);
 }
+
+int bddisbdd(bddp f) {
+    (void)f;
+    throw std::logic_error("bddisbdd: not supported");
+}
+
+int bddiszbdd(bddp f) {
+    (void)f;
+    throw std::logic_error("bddiszbdd: not supported");
+}

@@ -2333,3 +2333,15 @@ TEST_F(BDDTest, ImportzFilePtrVector) {
     ASSERT_EQ(v.size(), 1u);
     EXPECT_EQ(v[0], z);
 }
+
+// --- bddisbdd / bddiszbdd ---
+
+TEST_F(BDDTest, BddIsBddNotSupported) {
+    EXPECT_THROW(bddisbdd(bddfalse), std::logic_error);
+    EXPECT_THROW(bddisbdd(bddtrue), std::logic_error);
+}
+
+TEST_F(BDDTest, BddIsZbddNotSupported) {
+    EXPECT_THROW(bddiszbdd(bddfalse), std::logic_error);
+    EXPECT_THROW(bddiszbdd(bddtrue), std::logic_error);
+}
