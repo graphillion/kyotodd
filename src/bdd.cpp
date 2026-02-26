@@ -5,6 +5,18 @@
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
 
+static uint64_t next_power_of_2(uint64_t n) {
+    if (n == 0) return 1;
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
+    return n + 1;
+}
+
 BddNode* bdd_nodes = nullptr;
 uint64_t bdd_node_count = 0;
 uint64_t bdd_node_used = 0;
@@ -146,6 +158,16 @@ void BDD_Init(uint64_t node_count, uint64_t node_max) {
     bdd_node_count = node_count;
     bdd_node_max = node_max;
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
+
+    // Initialize operation cache
+    bdd_cache_size = next_power_of_2(node_count);
+    bdd_cache = static_cast<BddCacheEntry*>(
+        std::malloc(sizeof(BddCacheEntry) * bdd_cache_size));
+    for (uint64_t i = 0; i < bdd_cache_size; i++) {
+        bdd_cache[i].fop = 0;
+        bdd_cache[i].g = 0;
+        bdd_cache[i].result = bddnull;
+    }
 }
 
 bddvar BDD_NewVar() {
