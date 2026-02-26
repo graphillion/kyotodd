@@ -1098,6 +1098,96 @@ TEST_F(BDDTest, BddExistAlwaysFalse) {
     EXPECT_EQ(bddexist(f, bddprime(v1)), bddfalse);
 }
 
+// --- bddlshift ---
+
+TEST_F(BDDTest, BddLshiftTerminals) {
+    EXPECT_EQ(bddlshift(bddfalse, 1), bddfalse);
+    EXPECT_EQ(bddlshift(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddlshift(bddfalse, 5), bddfalse);
+}
+
+TEST_F(BDDTest, BddLshiftZero) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddlshift(p, 0), p);
+}
+
+TEST_F(BDDTest, BddLshiftSingleVar) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // level 1 + 1 = level 2 -> v2
+    EXPECT_EQ(bddlshift(p1, 1), p2);
+}
+
+TEST_F(BDDTest, BddLshiftComplement) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddlshift(bddnot(p1), 1), bddnot(p2));
+}
+
+TEST_F(BDDTest, BddLshiftTwoVars) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // v1 & v2, shift 1: level 1->2(v2), level 2->3(v3) => v2 & v3
+    EXPECT_EQ(bddlshift(bddand(p1, p2), 1), bddand(p2, p3));
+}
+
+TEST_F(BDDTest, BddLshiftAutoNewVar) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddvarused(), 2u);
+    // Shift v2 (level 2) by 1 -> level 3, doesn't exist yet
+    bddp result = bddlshift(p2, 1);
+    EXPECT_EQ(bddvarused(), 3u);
+    bddvar v3 = bddvaroflev(3);
+    EXPECT_EQ(result, bddprime(v3));
+}
+
+TEST_F(BDDTest, BddLshiftAutoNewVarMultiple) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddvarused(), 1u);
+    // Shift v1 (level 1) by 3 -> level 4, need vars at levels 2,3,4
+    bddp result = bddlshift(p1, 3);
+    EXPECT_EQ(bddvarused(), 4u);
+    bddvar v4 = bddvaroflev(4);
+    EXPECT_EQ(result, bddprime(v4));
+}
+
+TEST_F(BDDTest, BddLshiftPreservesOr) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddvar v4 = BDD_NewVar();  // level 4
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp p4 = bddprime(v4);
+    // v1 | v2, shift 2: level 1->3(v3), level 2->4(v4) => v3 | v4
+    EXPECT_EQ(bddlshift(bddor(p1, p2), 2), bddor(p3, p4));
+}
+
+TEST_F(BDDTest, BddLshiftPreservesXor) {
+    bddvar v1 = BDD_NewVar();  // level 1
+    bddvar v2 = BDD_NewVar();  // level 2
+    bddvar v3 = BDD_NewVar();  // level 3
+    bddvar v4 = BDD_NewVar();  // level 4
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp p4 = bddprime(v4);
+    EXPECT_EQ(bddlshift(bddxor(p1, p2), 2), bddxor(p3, p4));
+}
+
 // --- bdduniv ---
 
 TEST_F(BDDTest, BddUnivNoCube) {

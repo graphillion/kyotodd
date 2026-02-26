@@ -895,3 +895,39 @@ bddp bdduniv(bddp f, bddp g) {
     bddwcache(BDD_OP_UNIV, f, g, result);
     return result;
 }
+
+static bddp bddlshift_rec(bddp f, bddvar shift) {
+    if (f & BDD_CONST_FLAG) return f;
+
+    // Normalize complement for better cache hit rate
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_LSHIFT, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    bddvar target_var = level2var[var2level[v] + shift];
+
+    bddp lo = bddlshift_rec(node_lo(fn), shift);
+    bddp hi = bddlshift_rec(node_hi(fn), shift);
+
+    bddp result = getnode(target_var, lo, hi);
+
+    bddwcache(BDD_OP_LSHIFT, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
+bddp bddlshift(bddp f, bddvar shift) {
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    // Ensure variables exist up to the required level
+    bddvar max_level = var2level[bddtop(f)] + shift;
+    while (bdd_varcount < max_level) {
+        bddnewvar();
+    }
+
+    return bddlshift_rec(f, shift);
+}
