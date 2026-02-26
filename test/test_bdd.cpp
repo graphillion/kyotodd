@@ -589,6 +589,96 @@ TEST_F(BDDTest, BddXnor) {
     EXPECT_EQ(bddxnor(p1, bddnot(p1)), bddfalse);
 }
 
+// --- bddsize ---
+
+TEST_F(BDDTest, BddSizeTerminals) {
+    EXPECT_EQ(bddsize(bddfalse), 0u);
+    EXPECT_EQ(bddsize(bddtrue), 0u);
+}
+
+TEST_F(BDDTest, BddSizeSingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddsize(p), 1u);
+    EXPECT_EQ(bddsize(bddnot(p)), 1u);
+}
+
+TEST_F(BDDTest, BddSizeAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);  // v2 -> (v1 -> 1, 0), 0
+    EXPECT_EQ(bddsize(f), 2u);
+}
+
+TEST_F(BDDTest, BddSizeOr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);  // complement of AND(~v1,~v2), shares structure
+    EXPECT_EQ(bddsize(f), 2u);
+}
+
+TEST_F(BDDTest, BddSizeThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddand(bddand(p1, p2), p3);
+    EXPECT_EQ(bddsize(f), 3u);
+}
+
+// --- bddvsize ---
+
+TEST_F(BDDTest, BddVsizeEmpty) {
+    bddp arr[1] = {bddfalse};
+    EXPECT_EQ(bddvsize(arr, 0), 0u);
+}
+
+TEST_F(BDDTest, BddVsizeSingle) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    bddp arr[1] = {p};
+    EXPECT_EQ(bddvsize(arr, 1), 1u);
+}
+
+TEST_F(BDDTest, BddVsizeSharedNodes) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);   // 2 nodes (v2, v1)
+    bddp g = bddor(p1, p2);    // shares the v1 node with f
+
+    // Individually
+    EXPECT_EQ(bddsize(f), 2u);
+    EXPECT_EQ(bddsize(g), 2u);
+
+    // Together: v1 node is shared, so total is 3 not 4
+    bddp arr[2] = {f, g};
+    EXPECT_EQ(bddvsize(arr, 2), 3u);
+}
+
+TEST_F(BDDTest, BddVsizeVector) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    bddp g = bddor(p1, p2);
+
+    std::vector<bddp> vec = {f, g};
+    EXPECT_EQ(bddvsize(vec), 3u);
+
+    // Empty vector
+    std::vector<bddp> empty_vec;
+    EXPECT_EQ(bddvsize(empty_vec), 0u);
+}
+
 // --- bddfree ---
 
 TEST_F(BDDTest, BddFreeNoOp) {

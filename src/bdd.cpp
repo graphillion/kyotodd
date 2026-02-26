@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <unordered_set>
 
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
@@ -275,6 +276,36 @@ void bddfree(bddp) {
 
 uint64_t bddused() {
     return bdd_node_used;
+}
+
+static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
+    if (f & BDD_CONST_FLAG) return;
+    bddp node = f & ~BDD_COMP_FLAG;
+    if (!visited.insert(node).second) return;
+    bddsize_traverse(node_lo(node), visited);
+    bddsize_traverse(node_hi(node), visited);
+}
+
+uint64_t bddsize(bddp f) {
+    std::unordered_set<bddp> visited;
+    bddsize_traverse(f, visited);
+    return visited.size();
+}
+
+uint64_t bddvsize(bddp* p, int lim) {
+    std::unordered_set<bddp> visited;
+    for (int i = 0; i < lim; i++) {
+        bddsize_traverse(p[i], visited);
+    }
+    return visited.size();
+}
+
+uint64_t bddvsize(const std::vector<bddp>& v) {
+    std::unordered_set<bddp> visited;
+    for (size_t i = 0; i < v.size(); i++) {
+        bddsize_traverse(v[i], visited);
+    }
+    return visited.size();
 }
 
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {

@@ -2,6 +2,7 @@
 #define KYOTODD_BDD_H
 
 #include <cstdint>
+#include <vector>
 #include "bdd_node.h"
 
 // DD node ID type (48-bit value stored in uint64_t)
@@ -89,6 +90,9 @@ bddvar bddtop(bddp f);
 inline bddp bddcopy(bddp f) { return f; }
 void bddfree(bddp f);
 uint64_t bddused();
+uint64_t bddsize(bddp f);
+uint64_t bddvsize(bddp* p, int lim);
+uint64_t bddvsize(const std::vector<bddp>& v);
 
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
