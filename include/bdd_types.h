@@ -79,6 +79,11 @@ public:
     BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
     BDD operator&(const BDD& other) const;
     BDD& operator&=(const BDD& other);
+    BDD operator|(const BDD& other) const;
+    BDD& operator|=(const BDD& other);
+    BDD operator^(const BDD& other) const;
+    BDD& operator^=(const BDD& other);
+    BDD operator~() const;
     static const BDD False;
     static const BDD True;
     static const BDD Null;

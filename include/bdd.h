@@ -17,6 +17,34 @@ inline BDD& BDD::operator&=(const BDD& other) {
     return *this;
 }
 
+inline BDD BDD::operator|(const BDD& other) const {
+    BDD b(0);
+    b.root = bddor(root, other.root);
+    return b;
+}
+
+inline BDD& BDD::operator|=(const BDD& other) {
+    root = bddor(root, other.root);
+    return *this;
+}
+
+inline BDD BDD::operator^(const BDD& other) const {
+    BDD b(0);
+    b.root = bddxor(root, other.root);
+    return b;
+}
+
+inline BDD& BDD::operator^=(const BDD& other) {
+    root = bddxor(root, other.root);
+    return *this;
+}
+
+inline BDD BDD::operator~() const {
+    BDD b(0);
+    b.root = bddnot(root);
+    return b;
+}
+
 // ZDD member functions
 
 inline ZDD ZDD::Change(bddvar var) const {
