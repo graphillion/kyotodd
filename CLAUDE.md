@@ -53,3 +53,12 @@ A node ID is a 48-bit value. The MSB (bit 47) and LSB (bit 0) have special meani
 
 - `conversation/` directory stores conversation logs and is gitignored.
 - `build/` directory is gitignored.
+
+### File structure
+
+- `CMakeLists.txt` — ビルド設定
+- `include/bdd.h` — 公開 API（型定義、関数宣言、クラス定義）
+- `include/bdd_node.h` — BddNode 構造体の定義
+- `src/bdd.cpp` — 関数の実装
+- `src/main.cpp` — メインエントリポイント
+- `test/test_bdd.cpp` — Google Test によるテスト
