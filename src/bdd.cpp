@@ -7,6 +7,7 @@ static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
 
 BddNode* bdd_nodes = nullptr;
 uint64_t bdd_node_count = 0;
+uint64_t bdd_node_used = 0;
 uint64_t bdd_node_max = 0;
 
 bddvar* var2level = nullptr;
@@ -23,6 +24,17 @@ const BDD BDD::Null(-1);
 const ZDD ZDD::Empty(0);
 const ZDD ZDD::Single(1);
 const ZDD ZDD::Null(-1);
+
+// --- Node write ---
+// Node ID -> array index: node_id/2 - 1
+// Bit layout:
+//   data[0] = (var << 33) | (lo >> 16)
+//   data[1] = ((lo & 0xFFFF) << 48) | hi
+static inline void node_write(bddp node_id, bddvar var, bddp lo, bddp hi) {
+    BddNode& n = bdd_nodes[node_id / 2 - 1];
+    n.data[0] = (static_cast<uint64_t>(var) << 33) | (lo >> 16);
+    n.data[1] = ((lo & UINT64_C(0xFFFF)) << 48) | hi;
+}
 
 // --- Node field extraction ---
 // Node ID -> array index: node_id/2 - 1
@@ -125,4 +137,28 @@ void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id) {
     }
     unique_table_insert_raw(t->slots, t->capacity, lo, hi, node_id);
     t->count++;
+}
+
+static void node_array_grow() {
+    uint64_t new_count = bdd_node_count * 2;
+    if (new_count > bdd_node_max) {
+        new_count = bdd_node_max;
+    }
+    bdd_nodes = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
+    bdd_node_count = new_count;
+}
+
+bddp getnode(bddvar var, bddp lo, bddp hi) {
+    bddp found = BDD_UniqueTableLookup(var, lo, hi);
+    if (found != 0) {
+        return found;
+    }
+    if (bdd_node_used >= bdd_node_count) {
+        node_array_grow();
+    }
+    bdd_node_used++;
+    bddp node_id = bdd_node_used * 2;  // index = node_id/2 - 1 = bdd_node_used - 1
+    node_write(node_id, var, lo, hi);
+    BDD_UniqueTableInsert(var, lo, hi, node_id);
+    return node_id;
 }

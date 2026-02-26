@@ -18,7 +18,8 @@ static const bddp bddsingle = UINT64_C(0x800000000001);  // 1-terminal (ZDD alia
 static const bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
 extern BddNode* bdd_nodes;
-extern uint64_t bdd_node_count;
+extern uint64_t bdd_node_count;  // allocated capacity
+extern uint64_t bdd_node_used;   // number of nodes in use
 extern uint64_t bdd_node_max;
 
 // Variable-level mapping
@@ -58,5 +59,6 @@ void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 bddvar BDD_NewVar();
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
+bddp getnode(bddvar var, bddp lo, bddp hi);
 
 #endif
