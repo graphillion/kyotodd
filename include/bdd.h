@@ -45,6 +45,8 @@ class BDD {
 public:
     bddp root;
     BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
+    BDD operator&(const BDD& other) const;
+    BDD& operator&=(const BDD& other);
     static const BDD False;
     static const BDD True;
     static const BDD Null;
@@ -70,5 +72,16 @@ BDD BDDvar(bddvar v);
 
 inline bddp bddnot(bddp p) { return p ^ BDD_COMP_FLAG; }
 bddp bddand(bddp f, bddp g);
+
+inline BDD BDD::operator&(const BDD& other) const {
+    BDD b(0);
+    b.root = bddand(root, other.root);
+    return b;
+}
+
+inline BDD& BDD::operator&=(const BDD& other) {
+    root = bddand(root, other.root);
+    return *this;
+}
 
 #endif
