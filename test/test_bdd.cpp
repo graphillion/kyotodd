@@ -1098,6 +1098,102 @@ TEST_F(BDDTest, BddExistAlwaysFalse) {
     EXPECT_EQ(bddexist(f, bddprime(v1)), bddfalse);
 }
 
+// --- bdduniv ---
+
+TEST_F(BDDTest, BddUnivNoCube) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bdduniv(p, bddfalse), p);
+    EXPECT_EQ(bdduniv(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bdduniv(bddtrue, bddfalse), bddtrue);
+}
+
+TEST_F(BDDTest, BddUnivTerminalF) {
+    bddvar v = BDD_NewVar();
+    bddp cube = bddprime(v);
+    EXPECT_EQ(bdduniv(bddfalse, cube), bddfalse);
+    EXPECT_EQ(bdduniv(bddtrue, cube), bddtrue);
+}
+
+TEST_F(BDDTest, BddUnivSingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // forall v. v = (v|_{v=0}) & (v|_{v=1}) = 0 & 1 = 0
+    EXPECT_EQ(bdduniv(p, bddprime(v)), bddfalse);
+    // forall v. ~v = 1 & 0 = 0
+    EXPECT_EQ(bdduniv(bddnot(p), bddprime(v)), bddfalse);
+}
+
+TEST_F(BDDTest, BddUnivAndOneVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // forall v1. (v1 & v2) = (0 & v2) & (1 & v2) = 0 & v2 = 0
+    EXPECT_EQ(bdduniv(f, bddprime(v1)), bddfalse);
+    // forall v2. (v1 & v2) = (v1 & 0) & (v1 & 1) = 0 & v1 = 0
+    EXPECT_EQ(bdduniv(f, bddprime(v2)), bddfalse);
+}
+
+TEST_F(BDDTest, BddUnivOrOneVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);
+    // forall v1. (v1 | v2) = (0 | v2) & (1 | v2) = v2 & 1 = v2
+    EXPECT_EQ(bdduniv(f, bddprime(v1)), p2);
+    // forall v2. (v1 | v2) = (v1 | 0) & (v1 | 1) = v1 & 1 = v1
+    EXPECT_EQ(bdduniv(f, bddprime(v2)), p1);
+}
+
+TEST_F(BDDTest, BddUnivNotInF) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // v2 does not appear in p1
+    EXPECT_EQ(bdduniv(p1, bddprime(v2)), p1);
+}
+
+TEST_F(BDDTest, BddUnivThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // f = v1 | v2 | v3
+    bddp f = bddor(bddor(p1, p2), p3);
+    // forall v1. (v1|v2|v3) = (v2|v3) & (1) = v2|v3
+    EXPECT_EQ(bdduniv(f, bddprime(v1)), bddor(p2, p3));
+    // forall v1,v2. (v1|v2|v3) = forall v2. (v2|v3) = v3 & 1 = v3
+    bddp cube12 = getnode(v2, bddprime(v1), bddtrue);
+    EXPECT_EQ(bdduniv(f, cube12), p3);
+    // forall v1,v2,v3. (v1|v2|v3) = false (e.g. all 0)
+    EXPECT_EQ(bdduniv(f, bddsupport(f)), bddfalse);
+}
+
+TEST_F(BDDTest, BddUnivTautology) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // forall v. (v | ~v) = forall v. true = true
+    bddp f = bddor(p, bddnot(p));
+    EXPECT_EQ(f, bddtrue);
+    EXPECT_EQ(bdduniv(f, bddprime(v)), bddtrue);
+}
+
+TEST_F(BDDTest, BddUnivDualOfExist) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddxor(p1, p2);
+    bddp cube = bddprime(v1);
+    // forall v. f = ~(exist v. ~f)
+    EXPECT_EQ(bdduniv(f, cube), bddnot(bddexist(bddnot(f), cube)));
+}
+
 // --- bddimply ---
 
 TEST_F(BDDTest, BddImplyTerminals) {
