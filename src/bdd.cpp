@@ -237,6 +237,24 @@ bddvar bddnewvaroflev(bddvar lev) {
     return new_var;
 }
 
+bddvar bddlevofvar(bddvar var) {
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddlevofvar: var out of range");
+    }
+    return var2level[var];
+}
+
+bddvar bddvaroflev(bddvar lev) {
+    if (lev < 1 || lev > bdd_varcount) {
+        throw std::invalid_argument("bddvaroflev: lev out of range");
+    }
+    return level2var[lev];
+}
+
+bddvar bddvarused() {
+    return bdd_varcount;
+}
+
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);

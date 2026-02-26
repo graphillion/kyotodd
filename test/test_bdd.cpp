@@ -365,3 +365,60 @@ TEST_F(BDDTest, NewVarOfLevNoVarsYet) {
     EXPECT_EQ(var2level[v1], 1u);
     EXPECT_EQ(level2var[1], v1);
 }
+
+// --- bddlevofvar / bddvaroflev / bddvarused ---
+
+TEST_F(BDDTest, BddVarUsedEmpty) {
+    EXPECT_EQ(bddvarused(), 0u);
+}
+
+TEST_F(BDDTest, BddVarUsedAfterNewVar) {
+    BDD_NewVar();
+    EXPECT_EQ(bddvarused(), 1u);
+    BDD_NewVar();
+    BDD_NewVar();
+    EXPECT_EQ(bddvarused(), 3u);
+}
+
+TEST_F(BDDTest, BddLevOfVarDefault) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    // Default mapping: var i <-> level i
+    EXPECT_EQ(bddlevofvar(v1), 1u);
+    EXPECT_EQ(bddlevofvar(v2), 2u);
+    EXPECT_EQ(bddlevofvar(v3), 3u);
+}
+
+TEST_F(BDDTest, BddVarOfLevDefault) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    EXPECT_EQ(bddvaroflev(1), v1);
+    EXPECT_EQ(bddvaroflev(2), v2);
+    EXPECT_EQ(bddvaroflev(3), v3);
+}
+
+TEST_F(BDDTest, BddLevOfVarAfterNewVarOfLev) {
+    bddvar v1 = BDD_NewVar();  // var=1, level=1
+    bddvar v2 = BDD_NewVar();  // var=2, level=2
+    bddvar v3 = bddnewvaroflev(1);  // var=3, level=1; v1->2, v2->3
+    EXPECT_EQ(bddlevofvar(v3), 1u);
+    EXPECT_EQ(bddlevofvar(v1), 2u);
+    EXPECT_EQ(bddlevofvar(v2), 3u);
+    EXPECT_EQ(bddvaroflev(1), v3);
+    EXPECT_EQ(bddvaroflev(2), v1);
+    EXPECT_EQ(bddvaroflev(3), v2);
+}
+
+TEST_F(BDDTest, BddLevOfVarInvalidRange) {
+    BDD_NewVar();
+    EXPECT_THROW(bddlevofvar(0), std::invalid_argument);
+    EXPECT_THROW(bddlevofvar(2), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddVarOfLevInvalidRange) {
+    BDD_NewVar();
+    EXPECT_THROW(bddvaroflev(0), std::invalid_argument);
+    EXPECT_THROW(bddvaroflev(2), std::invalid_argument);
+}
