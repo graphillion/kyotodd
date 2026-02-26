@@ -88,6 +88,19 @@ class ZDD {
 public:
     bddp root;
     ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
+
+    ZDD Change(bddvar var) const;
+    ZDD Offset(bddvar var) const;
+    ZDD OnSet(bddvar var) const;
+    ZDD OnSet0(bddvar var) const;
+
+    ZDD operator+(const ZDD& other) const;
+    ZDD& operator+=(const ZDD& other);
+    ZDD operator-(const ZDD& other) const;
+    ZDD& operator-=(const ZDD& other);
+    ZDD operator&(const ZDD& other) const;
+    ZDD& operator&=(const ZDD& other);
+
     static const ZDD Empty;
     static const ZDD Single;
     static const ZDD Null;

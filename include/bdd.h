@@ -17,4 +17,63 @@ inline BDD& BDD::operator&=(const BDD& other) {
     return *this;
 }
 
+// ZDD member functions
+
+inline ZDD ZDD::Change(bddvar var) const {
+    ZDD z(0);
+    z.root = bddchange(root, var);
+    return z;
+}
+
+inline ZDD ZDD::Offset(bddvar var) const {
+    ZDD z(0);
+    z.root = bddoffset(root, var);
+    return z;
+}
+
+inline ZDD ZDD::OnSet(bddvar var) const {
+    ZDD z(0);
+    z.root = bddonset(root, var);
+    return z;
+}
+
+inline ZDD ZDD::OnSet0(bddvar var) const {
+    ZDD z(0);
+    z.root = bddonset0(root, var);
+    return z;
+}
+
+inline ZDD ZDD::operator+(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddunion(root, other.root);
+    return z;
+}
+
+inline ZDD& ZDD::operator+=(const ZDD& other) {
+    root = bddunion(root, other.root);
+    return *this;
+}
+
+inline ZDD ZDD::operator-(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddsubtract(root, other.root);
+    return z;
+}
+
+inline ZDD& ZDD::operator-=(const ZDD& other) {
+    root = bddsubtract(root, other.root);
+    return *this;
+}
+
+inline ZDD ZDD::operator&(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddintersec(root, other.root);
+    return z;
+}
+
+inline ZDD& ZDD::operator&=(const ZDD& other) {
+    root = bddintersec(root, other.root);
+    return *this;
+}
+
 #endif
