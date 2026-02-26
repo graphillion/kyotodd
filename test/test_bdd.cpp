@@ -245,3 +245,44 @@ TEST_F(BDDTest, OperatorAndWithTrue) {
     BDD result = a & t;
     EXPECT_EQ(result.root, a.root);
 }
+
+// --- Operation cache (bddrcache / bddwcache) ---
+
+TEST_F(BDDTest, CacheMissReturnsNull) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // No prior write: should miss
+    EXPECT_EQ(bddrcache(BDD_OP_AND, p1, p1), bddnull);
+}
+
+TEST_F(BDDTest, CacheWriteAndRead) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp result = bddand(p1, p2);
+
+    // Write to cache and read back
+    bddwcache(42, p1, p2, result);
+    EXPECT_EQ(bddrcache(42, p1, p2), result);
+
+    // Different op should miss
+    EXPECT_EQ(bddrcache(43, p1, p2), bddnull);
+}
+
+TEST_F(BDDTest, CacheUsedByBddand) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+
+    // Compute a complex expression that reuses subexpressions
+    bddp ab = bddand(p1, p2);
+    bddp abc = bddand(ab, p3);
+
+    // Recompute: should give same result (cache or unique table)
+    EXPECT_EQ(bddand(bddand(p1, p2), p3), abc);
+    EXPECT_EQ(bddand(p1, bddand(p2, p3)), abc);  // associativity
+}
