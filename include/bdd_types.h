@@ -71,6 +71,7 @@ static const uint8_t BDD_OP_ONSET0 = 13;
 static const uint8_t BDD_OP_CHANGE = 14;
 static const uint8_t BDD_OP_UNION = 15;
 static const uint8_t BDD_OP_INTERSEC = 16;
+static const uint8_t BDD_OP_SUBTRACT = 17;
 
 class BDD {
 public:

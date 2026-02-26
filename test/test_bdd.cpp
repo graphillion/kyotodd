@@ -2770,6 +2770,79 @@ TEST_F(BDDTest, BddintersecUnionIdentity) {
     EXPECT_EQ(bddintersec(u, z_v2), z_v2);
 }
 
+// --- bddsubtract ---
+
+TEST_F(BDDTest, BddsubtractTerminals) {
+    EXPECT_EQ(bddsubtract(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddsubtract(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddsubtract(bddsingle, bddempty), bddsingle);
+    EXPECT_EQ(bddsubtract(bddsingle, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, BddsubtractWithEmpty) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddsubtract(z_v1, bddempty), z_v1);
+    EXPECT_EQ(bddsubtract(bddempty, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, BddsubtractSelf) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddsubtract(z_v1, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, BddsubtractDisjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    // {{v1}} \ {{v2}} = {{v1}}
+    EXPECT_EQ(bddsubtract(z_v1, z_v2), z_v1);
+    // {{v2}} \ {{v1}} = {{v2}}
+    EXPECT_EQ(bddsubtract(z_v2, z_v1), z_v2);
+}
+
+TEST_F(BDDTest, BddsubtractSubset) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp u = bddunion(z_v1, z_v2);  // {{v1}, {v2}}
+    // {{v1}, {v2}} \ {{v1}} = {{v2}}
+    EXPECT_EQ(bddsubtract(u, z_v1), z_v2);
+    // {{v1}, {v2}} \ {{v2}} = {{v1}}
+    EXPECT_EQ(bddsubtract(u, z_v2), z_v1);
+    // {{v1}} \ {{v1}, {v2}} = {}
+    EXPECT_EQ(bddsubtract(z_v1, u), bddempty);
+}
+
+TEST_F(BDDTest, BddsubtractEmptySetMember) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_both = getznode(v1, bddsingle, bddsingle);   // {{}, {v1}}
+    // {{}, {v1}} \ {{v1}} = {{}}
+    EXPECT_EQ(bddsubtract(z_both, z_v1), bddsingle);
+    // {{}, {v1}} \ {{}} = {{v1}}
+    EXPECT_EQ(bddsubtract(z_both, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, BddsubtractUnionIdentity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    // union(a, b) \ b == subtract(a, b) when a ∩ b = empty
+    bddp u = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddsubtract(u, z_v2), z_v1);
+    // a == union(intersec(a,b), subtract(a,b))
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
+    bddp big = bddunion(u, z_v1v2);  // {{v1}, {v2}, {v1,v2}}
+    bddp common = bddintersec(big, u);
+    bddp diff = bddsubtract(big, u);
+    EXPECT_EQ(bddunion(common, diff), big);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

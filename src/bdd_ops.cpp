@@ -897,3 +897,50 @@ bddp bddintersec(bddp f, bddp g) {
     bddwcache(BDD_OP_INTERSEC, f, g, result);
     return result;
 }
+
+bddp bddsubtract(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;
+    if (f == g) return bddempty;
+
+    // Cache lookup (not commutative, no order normalization)
+    bddp cached = bddrcache(BDD_OP_SUBTRACT, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // g has no sets containing f_var; hi branch of f is untouched
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddsubtract(f_lo, g);
+        result = getznode(f_var, lo, f_hi);
+    } else if (g_level > f_level) {
+        // f has no sets containing g_var; subtract from g's lo branch
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddsubtract(f, g_lo);
+    } else {
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bddsubtract(f_lo, g_lo);
+        bddp hi = bddsubtract(f_hi, g_hi);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_SUBTRACT, f, g, result);
+    return result;
+}
