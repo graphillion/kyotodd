@@ -261,6 +261,13 @@ bddp bddand(bddp f, bddp g) {
     if (f == g) return f;
     if (f == bddnot(g)) return bddfalse;
 
+    // Normalize operand order (AND is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_AND, f, g);
+    if (cached != bddnull) return cached;
+
     // Both f and g are non-terminal at this point
     bddp f_raw = f & ~BDD_COMP_FLAG;
     bddp g_raw = g & ~BDD_COMP_FLAG;
@@ -304,5 +311,10 @@ bddp bddand(bddp f, bddp g) {
     bddp lo = bddand(f_lo, g_lo);
     bddp hi = bddand(f_hi, g_hi);
 
-    return getnode(top_var, lo, hi);
+    bddp result = getnode(top_var, lo, hi);
+
+    // Cache insert
+    bddwcache(BDD_OP_AND, f, g, result);
+
+    return result;
 }
