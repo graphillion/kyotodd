@@ -45,6 +45,28 @@ inline BDD BDD::operator~() const {
     return b;
 }
 
+inline BDD BDD::operator<<(bddvar shift) const {
+    BDD b(0);
+    b.root = bddlshift(root, shift);
+    return b;
+}
+
+inline BDD& BDD::operator<<=(bddvar shift) {
+    root = bddlshift(root, shift);
+    return *this;
+}
+
+inline BDD BDD::operator>>(bddvar shift) const {
+    BDD b(0);
+    b.root = bddrshift(root, shift);
+    return b;
+}
+
+inline BDD& BDD::operator>>=(bddvar shift) {
+    root = bddrshift(root, shift);
+    return *this;
+}
+
 // ZDD member functions
 
 inline ZDD ZDD::Change(bddvar var) const {

@@ -86,6 +86,10 @@ public:
     BDD operator~() const;
     bool operator==(const BDD& other) const { return root == other.root; }
     bool operator!=(const BDD& other) const { return root != other.root; }
+    BDD operator<<(bddvar shift) const;
+    BDD& operator<<=(bddvar shift);
+    BDD operator>>(bddvar shift) const;
+    BDD& operator>>=(bddvar shift);
     static const BDD False;
     static const BDD True;
     static const BDD Null;
