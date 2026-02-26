@@ -931,3 +931,42 @@ bddp bddlshift(bddp f, bddvar shift) {
 
     return bddlshift_rec(f, shift);
 }
+
+static bddp bddrshift_rec(bddp f, bddvar shift) {
+    if (f & BDD_CONST_FLAG) return f;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(BDD_OP_RSHIFT, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    bddvar target_var = level2var[var2level[v] - shift];
+
+    bddp lo = bddrshift_rec(node_lo(fn), shift);
+    bddp hi = bddrshift_rec(node_hi(fn), shift);
+
+    bddp result = getnode(target_var, lo, hi);
+
+    bddwcache(BDD_OP_RSHIFT, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
+bddp bddrshift(bddp f, bddvar shift) {
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    // Pre-check: all variable levels must be greater than shift
+    std::unordered_set<bddvar> var_set;
+    std::unordered_set<bddp> visited;
+    bddsupport_collect(f, var_set, visited);
+    for (std::unordered_set<bddvar>::iterator it = var_set.begin();
+         it != var_set.end(); ++it) {
+        if (var2level[*it] <= shift) {
+            throw std::invalid_argument("bddrshift: shift exceeds minimum variable level");
+        }
+    }
+
+    return bddrshift_rec(f, shift);
+}

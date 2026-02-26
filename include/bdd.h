@@ -63,6 +63,7 @@ static const uint8_t BDD_OP_IMPLY = 5;
 static const uint8_t BDD_OP_EXIST = 6;
 static const uint8_t BDD_OP_UNIV = 7;
 static const uint8_t BDD_OP_LSHIFT = 8;
+static const uint8_t BDD_OP_RSHIFT = 9;
 
 class BDD {
 public:
@@ -124,6 +125,7 @@ bddp bddsupport(bddp f);
 bddp bddexist(bddp f, bddp g);
 bddp bdduniv(bddp f, bddp g);
 bddp bddlshift(bddp f, bddvar shift);
+bddp bddrshift(bddp f, bddvar shift);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
