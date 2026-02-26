@@ -589,6 +589,110 @@ TEST_F(BDDTest, BddXnor) {
     EXPECT_EQ(bddxnor(p1, bddnot(p1)), bddfalse);
 }
 
+// --- bddat0 / bddat1 ---
+
+TEST_F(BDDTest, BddAt0Terminals) {
+    bddvar v = BDD_NewVar();
+    EXPECT_EQ(bddat0(bddfalse, v), bddfalse);
+    EXPECT_EQ(bddat0(bddtrue, v), bddtrue);
+    EXPECT_EQ(bddat1(bddfalse, v), bddfalse);
+    EXPECT_EQ(bddat1(bddtrue, v), bddtrue);
+}
+
+TEST_F(BDDTest, BddAt0SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);  // v ? 1 : 0
+    // Substitute 0: take low branch -> bddfalse
+    EXPECT_EQ(bddat0(p, v), bddfalse);
+    // Substitute 1: take high branch -> bddtrue
+    EXPECT_EQ(bddat1(p, v), bddtrue);
+}
+
+TEST_F(BDDTest, BddAt0NotVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddnot(bddprime(v));  // ~v
+    // ~v at v=0 -> ~(false) = true
+    EXPECT_EQ(bddat0(p, v), bddtrue);
+    // ~v at v=1 -> ~(true) = false
+    EXPECT_EQ(bddat1(p, v), bddfalse);
+}
+
+TEST_F(BDDTest, BddAt0VarNotInF) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // v2 does not appear in p1, so restriction is identity
+    EXPECT_EQ(bddat0(p1, v2), p1);
+    EXPECT_EQ(bddat1(p1, v2), p1);
+}
+
+TEST_F(BDDTest, BddAt0And) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);  // v1 & v2
+
+    // (v1 & v2) at v1=0 -> 0 & v2 = 0
+    EXPECT_EQ(bddat0(f, v1), bddfalse);
+    // (v1 & v2) at v1=1 -> 1 & v2 = v2
+    EXPECT_EQ(bddat1(f, v1), p2);
+    // (v1 & v2) at v2=0 -> v1 & 0 = 0
+    EXPECT_EQ(bddat0(f, v2), bddfalse);
+    // (v1 & v2) at v2=1 -> v1 & 1 = v1
+    EXPECT_EQ(bddat1(f, v2), p1);
+}
+
+TEST_F(BDDTest, BddAt0Or) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);  // v1 | v2
+
+    // (v1 | v2) at v1=0 -> v2
+    EXPECT_EQ(bddat0(f, v1), p2);
+    // (v1 | v2) at v1=1 -> true
+    EXPECT_EQ(bddat1(f, v1), bddtrue);
+    // (v1 | v2) at v2=0 -> v1
+    EXPECT_EQ(bddat0(f, v2), p1);
+    // (v1 | v2) at v2=1 -> true
+    EXPECT_EQ(bddat1(f, v2), bddtrue);
+}
+
+TEST_F(BDDTest, BddAt0Xor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddxor(p1, p2);  // v1 ^ v2
+
+    // (v1 ^ v2) at v1=0 -> v2
+    EXPECT_EQ(bddat0(f, v1), p2);
+    // (v1 ^ v2) at v1=1 -> ~v2
+    EXPECT_EQ(bddat1(f, v1), bddnot(p2));
+}
+
+TEST_F(BDDTest, BddAt0ThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // f = (v1 & v2) | v3
+    bddp f = bddor(bddand(p1, p2), p3);
+
+    // f at v2=1 -> (v1 & 1) | v3 = v1 | v3
+    EXPECT_EQ(bddat1(f, v2), bddor(p1, p3));
+    // f at v2=0 -> (v1 & 0) | v3 = v3
+    EXPECT_EQ(bddat0(f, v2), p3);
+    // f at v3=1 -> true
+    EXPECT_EQ(bddat1(f, v3), bddtrue);
+    // f at v3=0 -> v1 & v2
+    EXPECT_EQ(bddat0(f, v3), bddand(p1, p2));
+}
+
 // --- Cross-operation identities ---
 
 TEST_F(BDDTest, DeMorganIdentities) {

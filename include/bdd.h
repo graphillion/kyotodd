@@ -54,6 +54,8 @@ extern uint64_t bdd_cache_size;  // number of entries (power of 2)
 // Operation type constants
 static const uint8_t BDD_OP_AND = 0;
 static const uint8_t BDD_OP_XOR = 1;
+static const uint8_t BDD_OP_AT0 = 2;
+static const uint8_t BDD_OP_AT1 = 3;
 
 class BDD {
 public:
@@ -99,6 +101,9 @@ bddp bddxor(bddp f, bddp g);
 bddp bddnand(bddp f, bddp g);
 bddp bddnor(bddp f, bddp g);
 bddp bddxnor(bddp f, bddp g);
+
+bddp bddat0(bddp f, bddvar v);
+bddp bddat1(bddp f, bddvar v);
 
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);

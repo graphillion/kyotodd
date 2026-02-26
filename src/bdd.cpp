@@ -484,3 +484,75 @@ bddp bddxor(bddp f, bddp g) {
 bddp bddxnor(bddp f, bddp g) {
     return bddnot(bddxor(f, g));
 }
+
+bddp bddat0(bddp f, bddvar v) {
+    // Terminal case
+    if (f & BDD_CONST_FLAG) return f;
+
+    // Handle complement edge
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar f_level = var2level[f_var];
+    bddvar v_level = var2level[v];
+
+    // f's top variable is below v: v does not appear in f
+    if (f_level < v_level) return f;
+
+    // Cache lookup (use v as second operand)
+    bddp cached = bddrcache(BDD_OP_AT0, f, static_cast<bddp>(v));
+    if (cached != bddnull) return cached;
+
+    bddp result;
+    if (f_var == v) {
+        // Substitute 0: take the low branch
+        result = node_lo(f);
+        if (f_comp) result = bddnot(result);
+    } else {
+        // f_level > v_level: recurse into both branches
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        bddp lo = bddat0(f_lo, v);
+        bddp hi = bddat0(f_hi, v);
+        result = getnode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_AT0, f, static_cast<bddp>(v), result);
+    return result;
+}
+
+bddp bddat1(bddp f, bddvar v) {
+    // Terminal case
+    if (f & BDD_CONST_FLAG) return f;
+
+    // Handle complement edge
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar f_level = var2level[f_var];
+    bddvar v_level = var2level[v];
+
+    // f's top variable is below v: v does not appear in f
+    if (f_level < v_level) return f;
+
+    // Cache lookup (use v as second operand)
+    bddp cached = bddrcache(BDD_OP_AT1, f, static_cast<bddp>(v));
+    if (cached != bddnull) return cached;
+
+    bddp result;
+    if (f_var == v) {
+        // Substitute 1: take the high branch
+        result = node_hi(f);
+        if (f_comp) result = bddnot(result);
+    } else {
+        // f_level > v_level: recurse into both branches
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        bddp lo = bddat1(f_lo, v);
+        bddp hi = bddat1(f_hi, v);
+        result = getnode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_AT1, f, static_cast<bddp>(v), result);
+    return result;
+}
