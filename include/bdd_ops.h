@@ -34,5 +34,6 @@ bddp bddchange(bddp f, bddvar var);
 bddp bddunion(bddp f, bddp g);
 bddp bddintersec(bddp f, bddp g);
 bddp bddsubtract(bddp f, bddp g);
+bddp bdddiv(bddp f, bddp g);
 
 #endif

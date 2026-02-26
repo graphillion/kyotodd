@@ -944,3 +944,55 @@ bddp bddsubtract(bddp f, bddp g) {
     bddwcache(BDD_OP_SUBTRACT, f, g, result);
     return result;
 }
+
+bddp bdddiv(bddp f, bddp g) {
+    // Base cases
+    if (g == bddsingle) return f;     // F / {∅} = F
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddempty;  // G contains non-empty sets
+
+    // Cache lookup (not commutative)
+    bddp cached = bddrcache(BDD_OP_DIV, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    bddp result;
+
+    if (g_level > f_level) {
+        // G contains sets with g_var but F doesn't
+        result = bddempty;
+    } else if (f_level > g_level) {
+        // F has f_var, G doesn't
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bdddiv(f_lo, g);
+        bddp hi = bdddiv(f_hi, g);
+        result = getznode(f_var, lo, hi);
+    } else {
+        // Same top variable
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g);
+        bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp q1 = bdddiv(f_hi, g_hi);
+        if (g_lo == bddempty) {
+            result = q1;
+        } else {
+            bddp q0 = bdddiv(f_lo, g_lo);
+            result = bddintersec(q0, q1);
+        }
+    }
+
+    bddwcache(BDD_OP_DIV, f, g, result);
+    return result;
+}

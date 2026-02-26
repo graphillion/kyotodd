@@ -72,6 +72,7 @@ static const uint8_t BDD_OP_CHANGE = 14;
 static const uint8_t BDD_OP_UNION = 15;
 static const uint8_t BDD_OP_INTERSEC = 16;
 static const uint8_t BDD_OP_SUBTRACT = 17;
+static const uint8_t BDD_OP_DIV = 18;
 
 class BDD {
 public:
@@ -111,6 +112,8 @@ public:
     ZDD& operator-=(const ZDD& other);
     ZDD operator&(const ZDD& other) const;
     ZDD& operator&=(const ZDD& other);
+    ZDD operator/(const ZDD& other) const;
+    ZDD& operator/=(const ZDD& other);
     bool operator==(const ZDD& other) const { return root == other.root; }
     bool operator!=(const ZDD& other) const { return root != other.root; }
 
