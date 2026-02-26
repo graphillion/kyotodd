@@ -40,6 +40,11 @@ A node ID is a 48-bit value. The MSB (bit 47) and LSB (bit 0) have special meani
 - `BDD_UniqueTableLookup(var, lo, hi)`: returns node ID or 0 if not found.
 - `BDD_UniqueTableInsert(var, lo, hi, node_id)`: inserts node, resizes if needed.
 
+## DD node creation
+
+- BDD: `getnode(var, lo, hi)` — BDD の削減規則を適用して新しいノードを作成する。
+- ZDD: `getznode(var, lo, hi)` — ZDD の削減規則を適用して新しいノードを作成する。
+
 ## BDD class
 
 - `BDD` class has a single member `root` (uint64_t): the root node ID.
