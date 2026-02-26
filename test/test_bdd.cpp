@@ -991,6 +991,113 @@ TEST_F(BDDTest, BddSupportSkippedVar) {
     EXPECT_EQ(bddat0(s1, v1), bddfalse);
 }
 
+// --- bddexist ---
+
+TEST_F(BDDTest, BddExistNoCube) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // No variables to quantify -> return f as-is
+    EXPECT_EQ(bddexist(p, bddfalse), p);
+    EXPECT_EQ(bddexist(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bddexist(bddtrue, bddfalse), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistTerminalF) {
+    bddvar v = BDD_NewVar();
+    bddp cube = bddprime(v);
+    EXPECT_EQ(bddexist(bddfalse, cube), bddfalse);
+    EXPECT_EQ(bddexist(bddtrue, cube), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistSingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // exist v. v = (v|_{v=0}) | (v|_{v=1}) = 0 | 1 = 1
+    EXPECT_EQ(bddexist(p, bddprime(v)), bddtrue);
+    // exist v. ~v = (~v|_{v=0}) | (~v|_{v=1}) = 1 | 0 = 1
+    EXPECT_EQ(bddexist(bddnot(p), bddprime(v)), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistAndOneVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);  // v1 & v2
+    // exist v1. (v1 & v2) = (0 & v2) | (1 & v2) = 0 | v2 = v2
+    EXPECT_EQ(bddexist(f, bddprime(v1)), p2);
+    // exist v2. (v1 & v2) = (v1 & 0) | (v1 & 1) = 0 | v1 = v1
+    EXPECT_EQ(bddexist(f, bddprime(v2)), p1);
+}
+
+TEST_F(BDDTest, BddExistAndAllVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    bddp cube = bddsupport(f);  // {v1, v2}
+    // exist v1,v2. (v1 & v2) = true (v1=1,v2=1 makes it true)
+    EXPECT_EQ(bddexist(f, cube), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistOrOneVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);  // v1 | v2
+    // exist v1. (v1 | v2) = (0 | v2) | (1 | v2) = v2 | 1 = 1
+    EXPECT_EQ(bddexist(f, bddprime(v1)), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistNotInF) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // v2 does not appear in p1, so quantifying v2 changes nothing
+    EXPECT_EQ(bddexist(p1, bddprime(v2)), p1);
+}
+
+TEST_F(BDDTest, BddExistThreeVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    // f = v1 & v2 & v3
+    bddp f = bddand(bddand(p1, p2), p3);
+    // exist v1. (v1 & v2 & v3) = v2 & v3
+    EXPECT_EQ(bddexist(f, bddprime(v1)), bddand(p2, p3));
+    // exist v1,v3. (v1 & v2 & v3) = v2
+    bddp cube13 = getnode(v3, bddprime(v1), bddtrue);  // {v1, v3}
+    EXPECT_EQ(bddexist(f, cube13), p2);
+    // exist v1,v2,v3. (v1 & v2 & v3) = true
+    EXPECT_EQ(bddexist(f, bddsupport(f)), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistXor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddxor(p1, p2);  // v1 ^ v2
+    // exist v1. (v1 ^ v2) = (0 ^ v2) | (1 ^ v2) = v2 | ~v2 = true
+    EXPECT_EQ(bddexist(f, bddprime(v1)), bddtrue);
+}
+
+TEST_F(BDDTest, BddExistAlwaysFalse) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // f = v1 & ~v1 = bddfalse; exist over anything is still false
+    bddp f = bddand(p1, bddnot(p1));
+    EXPECT_EQ(f, bddfalse);
+    EXPECT_EQ(bddexist(f, bddprime(v1)), bddfalse);
+}
+
 // --- bddimply ---
 
 TEST_F(BDDTest, BddImplyTerminals) {

@@ -803,3 +803,49 @@ bddp bddsupport(bddp f) {
     }
     return result;
 }
+
+bddp bddexist(bddp f, bddp g) {
+    // Terminal cases
+    if (g == bddfalse) return f;    // no variables to quantify
+    if (f == bddfalse) return bddfalse;
+    if (f == bddtrue) return bddtrue;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_EXIST, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddvar f_level = var2level[f_var];
+
+    bddvar g_var = node_var(g);
+    bddvar g_level = var2level[g_var];
+
+    bddp result;
+
+    if (g_level > f_level) {
+        // g's top variable does not appear in f, skip it
+        result = bddexist(f, node_lo(g));
+    } else if (f_level > g_level) {
+        // f's top variable is not being quantified, keep it
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        bddp lo = bddexist(f_lo, g);
+        bddp hi = bddexist(f_hi, g);
+        result = getnode(f_var, lo, hi);
+    } else {
+        // Same variable: quantify it out
+        // exist v. f = f|_{v=0} OR f|_{v=1}
+        bddp f_lo = node_lo(f);
+        bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+        bddp g_rest = node_lo(g);
+        bddp lo_r = bddexist(f_lo, g_rest);
+        bddp hi_r = bddexist(f_hi, g_rest);
+        result = bddor(lo_r, hi_r);
+    }
+
+    bddwcache(BDD_OP_EXIST, f, g, result);
+    return result;
+}
