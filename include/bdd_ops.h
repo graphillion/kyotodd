@@ -32,5 +32,6 @@ bddp bddonset(bddp f, bddvar var);
 bddp bddonset0(bddp f, bddvar var);
 bddp bddchange(bddp f, bddvar var);
 bddp bddunion(bddp f, bddp g);
+bddp bddintersec(bddp f, bddp g);
 
 #endif

@@ -849,3 +849,51 @@ bddp bddunion(bddp f, bddp g) {
     bddwcache(BDD_OP_UNION, f, g, result);
     return result;
 }
+
+bddp bddintersec(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (f == g) return f;
+
+    // Normalize order (intersection is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_INTERSEC, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // g has no sets containing f_var; only f's lo branch can match
+        bddp f_lo = node_lo(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        result = bddintersec(f_lo, g);
+    } else if (g_level > f_level) {
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddintersec(f, g_lo);
+    } else {
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bddintersec(f_lo, g_lo);
+        bddp hi = bddintersec(f_hi, g_hi);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_INTERSEC, f, g, result);
+    return result;
+}

@@ -2695,6 +2695,81 @@ TEST_F(BDDTest, BddunionIdempotent) {
     EXPECT_EQ(bddunion(u, z_v2), u);
 }
 
+// --- bddintersec ---
+
+TEST_F(BDDTest, BddintersecTerminals) {
+    EXPECT_EQ(bddintersec(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddintersec(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddintersec(bddsingle, bddempty), bddempty);
+    EXPECT_EQ(bddintersec(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddintersecWithEmpty) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddintersec(z_v1, bddempty), bddempty);
+    EXPECT_EQ(bddintersec(bddempty, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, BddintersecSelf) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddintersec(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddintersecDisjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    // {{v1}} ∩ {{v2}} = {} (no common sets)
+    EXPECT_EQ(bddintersec(z_v1, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, BddintersecOverlapping) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
+    // {{v1}, {v2}} ∩ {{v1}} = {{v1}}
+    EXPECT_EQ(bddintersec(z_v1_v2, z_v1), z_v1);
+    EXPECT_EQ(bddintersec(z_v1, z_v1_v2), z_v1);
+}
+
+TEST_F(BDDTest, BddintersecWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    // {{v1}} ∩ {{}} = {} (no common sets)
+    EXPECT_EQ(bddintersec(z_v1, bddsingle), bddempty);
+    // {{}, {v1}} ∩ {{}} = {{}}
+    bddp z_both = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    EXPECT_EQ(bddintersec(z_both, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddintersecComplex) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);      // {{v1}}
+    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);       // {{v1}, {v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);          // {{v1, v2}}
+    bddp z_v2_v1v2 = bddunion(
+        getznode(v2, bddempty, bddsingle), z_v1v2);       // {{v2}, {v1, v2}}
+    // {{v1}, {v2}} ∩ {{v2}, {v1, v2}} = {{v2}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(bddintersec(z_v1_v2, z_v2_v1v2), z_v2);
+}
+
+TEST_F(BDDTest, BddintersecUnionIdentity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp u = bddunion(z_v1, z_v2);  // {{v1}, {v2}}
+    // intersec(union(a,b), a) == a
+    EXPECT_EQ(bddintersec(u, z_v1), z_v1);
+    EXPECT_EQ(bddintersec(u, z_v2), z_v2);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
