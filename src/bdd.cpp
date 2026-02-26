@@ -163,3 +163,13 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
 bddp bddprime(bddvar v) {
     return getnode(v, bddfalse, bddtrue);
 }
+
+BDD BDD_ID(bddp p) {
+    BDD b(0);
+    b.root = p;
+    return b;
+}
+
+BDD BDDvar(bddvar v) {
+    return BDD_ID(bddprime(v));
+}

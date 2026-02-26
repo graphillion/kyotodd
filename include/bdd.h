@@ -65,5 +65,7 @@ bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
 bddp getnode(bddvar var, bddp lo, bddp hi);
 bddp bddprime(bddvar v);
+BDD BDD_ID(bddp p);
+BDD BDDvar(bddvar v);
 
 #endif
