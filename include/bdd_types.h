@@ -84,6 +84,8 @@ public:
     BDD operator^(const BDD& other) const;
     BDD& operator^=(const BDD& other);
     BDD operator~() const;
+    bool operator==(const BDD& other) const { return root == other.root; }
+    bool operator!=(const BDD& other) const { return root != other.root; }
     static const BDD False;
     static const BDD True;
     static const BDD Null;
@@ -105,6 +107,8 @@ public:
     ZDD& operator-=(const ZDD& other);
     ZDD operator&(const ZDD& other) const;
     ZDD& operator&=(const ZDD& other);
+    bool operator==(const ZDD& other) const { return root == other.root; }
+    bool operator!=(const ZDD& other) const { return root != other.root; }
 
     static const ZDD Empty;
     static const ZDD Single;
