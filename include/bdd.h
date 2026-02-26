@@ -124,7 +124,9 @@ int bddimply(bddp f, bddp g);
 bddp bddsupport(bddp f);
 std::vector<bddvar> bddsupport_vec(bddp f);
 bddp bddexist(bddp f, bddp g);
+bddp bddexist(bddp f, const std::vector<bddvar>& vars);
 bddp bdduniv(bddp f, bddp g);
+bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
 bddp bddlshift(bddp f, bddvar shift);
 bddp bddrshift(bddp f, bddvar shift);
 

@@ -1145,6 +1145,95 @@ TEST_F(BDDTest, BddExistAlwaysFalse) {
     EXPECT_EQ(bddexist(f, bddprime(v1)), bddfalse);
 }
 
+// --- bddexist / bdduniv (vector overload) ---
+
+TEST_F(BDDTest, BddExistVecEmpty) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    std::vector<bddvar> empty;
+    EXPECT_EQ(bddexist(p, empty), p);
+}
+
+TEST_F(BDDTest, BddExistVecSingle) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    std::vector<bddvar> vars = {v1};
+    EXPECT_EQ(bddexist(f, vars), p2);
+}
+
+TEST_F(BDDTest, BddExistVecMultiple) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddand(bddand(p1, p2), p3);
+    // exist v1,v3. (v1 & v2 & v3) = v2
+    std::vector<bddvar> vars = {v1, v3};
+    EXPECT_EQ(bddexist(f, vars), p2);
+}
+
+TEST_F(BDDTest, BddExistVecMatchesCube) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddor(bddand(p1, p2), p3);
+    std::vector<bddvar> vars = {v2, v3};
+    bddp cube = getnode(v3, bddprime(v2), bddtrue);
+    EXPECT_EQ(bddexist(f, vars), bddexist(f, cube));
+}
+
+TEST_F(BDDTest, BddUnivVecEmpty) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    std::vector<bddvar> empty;
+    EXPECT_EQ(bdduniv(p, empty), p);
+}
+
+TEST_F(BDDTest, BddUnivVecSingle) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);
+    // forall v1. (v1 | v2) = v2
+    std::vector<bddvar> vars = {v1};
+    EXPECT_EQ(bdduniv(f, vars), p2);
+}
+
+TEST_F(BDDTest, BddUnivVecMultiple) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddor(bddor(p1, p2), p3);
+    // forall v1,v3. (v1 | v2 | v3) = v2
+    std::vector<bddvar> vars = {v1, v3};
+    EXPECT_EQ(bdduniv(f, vars), p2);
+}
+
+TEST_F(BDDTest, BddUnivVecMatchesCube) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddor(bddand(p1, p2), p3);
+    std::vector<bddvar> vars = {v2, v3};
+    bddp cube = getnode(v3, bddprime(v2), bddtrue);
+    EXPECT_EQ(bdduniv(f, vars), bdduniv(f, cube));
+}
+
 // --- bddlshift ---
 
 TEST_F(BDDTest, BddLshiftTerminals) {

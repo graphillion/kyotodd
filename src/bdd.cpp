@@ -865,6 +865,23 @@ bddp bddexist(bddp f, bddp g) {
     return result;
 }
 
+static bddp vars_to_cube(const std::vector<bddvar>& vars) {
+    // Build cube BDD: sort by level ascending, chain with hi=bddtrue
+    std::vector<bddvar> sorted(vars);
+    std::sort(sorted.begin(), sorted.end(), [](bddvar a, bddvar b) {
+        return var2level[a] < var2level[b];
+    });
+    bddp cube = bddfalse;
+    for (size_t i = 0; i < sorted.size(); i++) {
+        cube = getnode(sorted[i], cube, bddtrue);
+    }
+    return cube;
+}
+
+bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
+    return bddexist(f, vars_to_cube(vars));
+}
+
 bddp bdduniv(bddp f, bddp g) {
     // Terminal cases
     if (g == bddfalse) return f;
@@ -909,6 +926,10 @@ bddp bdduniv(bddp f, bddp g) {
 
     bddwcache(BDD_OP_UNIV, f, g, result);
     return result;
+}
+
+bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
+    return bdduniv(f, vars_to_cube(vars));
 }
 
 static bddp bddlshift_rec(bddp f, bddvar shift) {
