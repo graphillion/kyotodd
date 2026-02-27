@@ -3404,6 +3404,102 @@ TEST_F(BDDTest, ZDDDeltaThreeVars) {
     EXPECT_EQ(bdddelta(F, G), z_v1v3);
 }
 
+// --- bddremainder ---
+
+TEST_F(BDDTest, ZDDRemainderTerminalCases) {
+    // F % G = F \ (G ⊔ (F / G))
+    EXPECT_EQ(bddremainder(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddremainder(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddremainder(bddsingle, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRemainderNoDivisor) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // {{v1}} / {{v2}} = {} (no quotient), so remainder = {{v1}} \ ({v2} ⊔ {}) = {{v1}}
+    EXPECT_EQ(bddremainder(z_v1, z_v2), z_v1);
+}
+
+TEST_F(BDDTest, ZDDRemainderExactDivision) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // F = {{v1,v2}}, G = {{v2}}
+    // F / G = {{v1}}, G ⊔ (F/G) = {{v2}} ⊔ {{v1}} = {{v1,v2}}
+    // F % G = {{v1,v2}} \ {{v1,v2}} = {}
+    EXPECT_EQ(bddremainder(z_v1v2, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRemainderPartialDivision) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1,v2}, {v1,v3}}, G = {{v2}}
+    bddp F = bddunion(z_v1v2, z_v1v3);
+
+    // F / G = {{v1}} (only {v1,v2} is divisible by {v2})
+    // G ⊔ (F/G) = {{v2}} ⊔ {{v1}} = {{v1,v2}}
+    // F % G = {{v1,v2},{v1,v3}} \ {{v1,v2}} = {{v1,v3}}
+    EXPECT_EQ(bddremainder(F, z_v2), z_v1v3);
+}
+
+TEST_F(BDDTest, ZDDRemainderDefinition) {
+    // Verify F % G = F \ (G ⊔ (F / G)) with a complex example
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+
+    // F = {{v1,v2}, {v2,v3}, {v1}}, G = {{v2}}
+    bddp F = bddunion(bddunion(z_v1v2, z_v2v3), z_v1);
+    bddp G = z_v2;
+
+    bddp result = bddremainder(F, G);
+    bddp expected = bddsubtract(F, bddjoin(G, bdddiv(F, G)));
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, ZDDOperatorRemainder) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    // {{v1}} % {{v2}} = {{v1}} (no divisor)
+    ZDD result = z_v1 % z_v2;
+    EXPECT_EQ(result, z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    ZDD F(0); F.root = z_v1v2;  // {{v1,v2}}
+    ZDD G(0); G.root = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // {{v1,v2}} % {{v2}} = {} (exact division)
+    F %= G;
+    EXPECT_EQ(F, ZDD::Empty);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

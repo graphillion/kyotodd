@@ -1230,3 +1230,8 @@ bddp bdddelta(bddp f, bddp g) {
     bddwcache(BDD_OP_DELTA, f, g, result);
     return result;
 }
+
+bddp bddremainder(bddp f, bddp g) {
+    // F % G = F \ (G ⊔ (F / G))
+    return bddsubtract(f, bddjoin(g, bdddiv(f, g)));
+}

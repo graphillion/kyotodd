@@ -122,6 +122,8 @@ public:
     ZDD& operator^=(const ZDD& other);
     ZDD operator*(const ZDD& other) const;
     ZDD& operator*=(const ZDD& other);
+    ZDD operator%(const ZDD& other) const;
+    ZDD& operator%=(const ZDD& other);
     bool operator==(const ZDD& other) const { return root == other.root; }
     bool operator!=(const ZDD& other) const { return root != other.root; }
 
