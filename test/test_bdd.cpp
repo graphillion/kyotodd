@@ -3014,6 +3014,124 @@ TEST_F(BDDTest, ZDDOperatorDivAssign) {
     EXPECT_EQ(z_v1v2, z_v1);
 }
 
+// --- bddsymdiff ---
+
+TEST_F(BDDTest, ZDDSymdiffTerminalCases) {
+    EXPECT_EQ(bddsymdiff(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddsymdiff(bddempty, bddsingle), bddsingle);
+    EXPECT_EQ(bddsymdiff(bddsingle, bddempty), bddsingle);
+    EXPECT_EQ(bddsymdiff(bddsingle, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, ZDDSymdiffWithSingleVar) {
+    bddvar v1 = bddnewvar();
+    // z_v1 = {{v1}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    // {{v1}} ^ {} = {{v1}}
+    EXPECT_EQ(bddsymdiff(z_v1, bddempty), z_v1);
+    EXPECT_EQ(bddsymdiff(bddempty, z_v1), z_v1);
+
+    // {{v1}} ^ {{v1}} = {}
+    EXPECT_EQ(bddsymdiff(z_v1, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, ZDDSymdiffDisjointFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // z_v1 = {{v1}}, z_v2 = {{v2}}
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // {{v1}} ^ {{v2}} = {{v1}, {v2}} = union
+    bddp result = bddsymdiff(z_v1, z_v2);
+    bddp expected = bddunion(z_v1, z_v2);
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, ZDDSymdiffOverlappingFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {v2}}, G = {{v2}}
+    bddp F = bddunion(z_v1, z_v2);
+    bddp G = z_v2;
+
+    // F ^ G = {{v1}}
+    EXPECT_EQ(bddsymdiff(F, G), z_v1);
+}
+
+TEST_F(BDDTest, ZDDSymdiffEqualsSubtractUnion) {
+    // Verify F ^ G = (F \ G) ∪ (G \ F)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+
+    // F = {{v1}, {v2}}, G = {{v2}, {v3}}
+    bddp F = bddunion(z_v1, z_v2);
+    bddp G = bddunion(z_v2, z_v3);
+
+    bddp result = bddsymdiff(F, G);
+    bddp expected = bddunion(bddsubtract(F, G), bddsubtract(G, F));
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, ZDDSymdiffCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
+    bddp G = z_v2;                         // {{v2}}
+
+    EXPECT_EQ(bddsymdiff(F, G), bddsymdiff(G, F));
+}
+
+TEST_F(BDDTest, ZDDSymdiffWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    // F = {{v1}, {}}, G = {{}}
+    bddp F = bddunion(z_v1, bddsingle);
+    bddp G = bddsingle;
+
+    // F ^ G = {{v1}}
+    EXPECT_EQ(bddsymdiff(F, G), z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorSymdiff) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD G = z_v2;
+
+    // F ^ G = {{v1}}
+    ZDD result = F ^ G;
+    EXPECT_EQ(result, z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorSymdiffAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    F ^= z_v2;
+    EXPECT_EQ(F, z_v1);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
