@@ -1563,3 +1563,124 @@ bddp bddnonsub(bddp f, bddp g) {
     bddwcache(BDD_OP_NONSUB, f, g, result);
     return result;
 }
+
+bddp bddmaximal(bddp f) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    // Cache lookup (unary: g=0)
+    bddp cached = bddrcache(BDD_OP_MAXIMAL, f, 0);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }
+
+    // hi: S∪{v} is maximal in F iff S is maximal in F₁
+    bddp hi = bddmaximal(f_hi);
+    // lo: S∈F₀ is maximal in F iff S is maximal in F₀ AND S is not ⊆ any T∈F₁
+    bddp lo = bddnonsub(bddmaximal(f_lo), f_hi);
+    bddp result = getznode(f_var, lo, hi);
+
+    bddwcache(BDD_OP_MAXIMAL, f, 0, result);
+    return result;
+}
+
+bddp bddminimal(bddp f) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    // Cache lookup (unary: g=0)
+    bddp cached = bddrcache(BDD_OP_MINIMAL, f, 0);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }
+
+    // lo: S∈F₀ is minimal in F iff S is minimal in F₀
+    // (no T∪{v} from F₁ can be ⊊ S since v∉S)
+    bddp lo = bddminimal(f_lo);
+    // hi: S∪{v} is minimal in F iff S is minimal in F₁ AND no S'∈F₀ with S'⊆S
+    bddp hi = bddnonsup(bddminimal(f_hi), f_lo);
+    bddp result = getznode(f_var, lo, hi);
+
+    bddwcache(BDD_OP_MINIMAL, f, 0, result);
+    return result;
+}
+
+// Helper: check if ∅ ∈ F (the empty set is a member of the ZDD family)
+static bool zdd_has_empty(bddp f) {
+    while (true) {
+        if (f == bddempty) return false;
+        if (f == bddsingle) return true;
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        f = node_lo(f);
+        if (comp) f = bddnot(f);
+    }
+}
+
+bddp bddminhit(bddp f) {
+    // Terminal cases
+    if (f == bddempty) return bddsingle;  // no constraints → {∅}
+    if (f == bddsingle) return bddempty;  // ∅ ∈ F → impossible to hit
+
+    // Early termination: if ∅ ∈ F, impossible to hit
+    if (zdd_has_empty(f)) return bddempty;
+
+    // Cache lookup (unary: g=0)
+    bddp cached = bddrcache(BDD_OP_MINHIT, f, 0);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }
+
+    // F₀ = offset(F, v) = f_lo, F₁ = onset0(F, v) = f_hi
+    // P = minhit(F₁ ∪ F₀): hitting sets not using v
+    bddp P = bddminhit(bddunion(f_hi, f_lo));
+    // Q = minhit(F₀): hitting sets of F₀ (will add v)
+    bddp Q = bddminhit(f_lo);
+    // Filter: keep T∈Q only if no S∈P with S⊆T
+    bddp Q_filt = bddnonsup(Q, P);
+    bddp result = getznode(f_var, P, Q_filt);
+
+    bddwcache(BDD_OP_MINHIT, f, 0, result);
+    return result;
+}
+
+bddp bddclosure(bddp f) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    // Cache lookup (unary: g=0)
+    bddp cached = bddrcache(BDD_OP_CLOSURE, f, 0);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar f_var = node_var(f);
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); }
+
+    // F₀ = offset(F, v), F₁ = onset0(F, v)
+    bddp C0 = bddclosure(f_lo);
+    bddp C1 = bddclosure(f_hi);
+    // lo: closure(F₀) ∪ meet(closure(F₀), closure(F₁))
+    bddp lo = bddunion(C0, bddmeet(C0, C1));
+    // hi: closure(F₁)
+    bddp hi = C1;
+    bddp result = getznode(f_var, lo, hi);
+
+    bddwcache(BDD_OP_CLOSURE, f, 0, result);
+    return result;
+}

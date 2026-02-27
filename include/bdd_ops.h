@@ -47,4 +47,10 @@ bddp bddpermit(bddp f, bddp g);
 bddp bddnonsup(bddp f, bddp g);
 bddp bddnonsub(bddp f, bddp g);
 
+// Unary ZDD operations
+bddp bddmaximal(bddp f);
+bddp bddminimal(bddp f);
+bddp bddminhit(bddp f);
+bddp bddclosure(bddp f);
+
 #endif

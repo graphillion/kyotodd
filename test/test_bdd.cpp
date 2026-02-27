@@ -4110,6 +4110,327 @@ TEST_F(BDDTest, ZDDNonsubWithEmptySet) {
     EXPECT_EQ(bddnonsub(F, z_v2), z_v1);
 }
 
+// --- bddmaximal ---
+
+TEST_F(BDDTest, BddMaximalEmpty) {
+    EXPECT_EQ(bddmaximal(bddempty), bddempty);
+}
+
+TEST_F(BDDTest, BddMaximalSingle) {
+    EXPECT_EQ(bddmaximal(bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddMaximalSingleton) {
+    // {{v1}} → maximal = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddmaximal(z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddMaximalSubsetRemoved) {
+    // F = {{v1}, {v1,v2}} → {v1} ⊊ {v1,v2}, so maximal = {{v1,v2}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddmaximal(F), z_v1v2);
+}
+
+TEST_F(BDDTest, BddMaximalNoSubsets) {
+    // F = {{v1}, {v2}} → neither is subset of other → maximal = F
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddmaximal(F), F);
+}
+
+TEST_F(BDDTest, BddMaximalChain) {
+    // F = {{v1}, {v1,v2}, {v1,v2,v3}} → maximal = {{v1,v2,v3}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2v3 = getznode(v3, bddempty,
+        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp F = bddunion(bddunion(z_v1, z_v1v2), z_v1v2v3);
+    EXPECT_EQ(bddmaximal(F), z_v1v2v3);
+}
+
+TEST_F(BDDTest, BddMaximalWithEmptySet) {
+    // F = {∅, {v1}} → ∅ ⊊ {v1}, so maximal = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp F = bddunion(bddsingle, z_v1);
+    EXPECT_EQ(bddmaximal(F), z_v1);
+}
+
+TEST_F(BDDTest, BddMaximalMixed) {
+    // F = {{v1}, {v2}, {v1,v2}} → maximal = {{v1,v2}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
+    EXPECT_EQ(bddmaximal(F), z_v1v2);
+}
+
+// --- bddminimal ---
+
+TEST_F(BDDTest, BddMinimalEmpty) {
+    EXPECT_EQ(bddminimal(bddempty), bddempty);
+}
+
+TEST_F(BDDTest, BddMinimalSingle) {
+    EXPECT_EQ(bddminimal(bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddMinimalSingleton) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddminimal(z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddMinimalSupersetRemoved) {
+    // F = {{v1}, {v1,v2}} → {v1} ⊊ {v1,v2}, so minimal = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddminimal(F), z_v1);
+}
+
+TEST_F(BDDTest, BddMinimalNoSubsets) {
+    // F = {{v1}, {v2}} → minimal = F
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddminimal(F), F);
+}
+
+TEST_F(BDDTest, BddMinimalChain) {
+    // F = {{v1}, {v1,v2}, {v1,v2,v3}} → minimal = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2v3 = getznode(v3, bddempty,
+        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp F = bddunion(bddunion(z_v1, z_v1v2), z_v1v2v3);
+    EXPECT_EQ(bddminimal(F), z_v1);
+}
+
+TEST_F(BDDTest, BddMinimalWithEmptySet) {
+    // F = {∅, {v1}} → minimal = {∅}
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp F = bddunion(bddsingle, z_v1);
+    EXPECT_EQ(bddminimal(F), bddsingle);
+}
+
+TEST_F(BDDTest, BddMinimalMixed) {
+    // F = {{v1}, {v2}, {v1,v2}} → minimal = {{v1}, {v2}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
+    bddp expected = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddminimal(F), expected);
+}
+
+TEST_F(BDDTest, BddMaximalMinimalInverse) {
+    // For any F: minimal(maximal(F)) = maximal(F) and maximal(minimal(F)) = minimal(F)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v2v3));
+    bddp maxF = bddmaximal(F);
+    bddp minF = bddminimal(F);
+    EXPECT_EQ(bddminimal(maxF), maxF);
+    EXPECT_EQ(bddmaximal(minF), minF);
+}
+
+// --- bddminhit ---
+
+TEST_F(BDDTest, BddMinhitEmpty) {
+    // minhit(∅) = {∅} (no constraints → empty set hits everything vacuously)
+    EXPECT_EQ(bddminhit(bddempty), bddsingle);
+}
+
+TEST_F(BDDTest, BddMinhitSingle) {
+    // minhit({∅}) = ∅ (impossible to hit ∅)
+    EXPECT_EQ(bddminhit(bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, BddMinhitSingleton) {
+    // minhit({{v1}}) = {{v1}} (must contain v1)
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddminhit(z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddMinhitTwoDisjoint) {
+    // minhit({{v1}, {v2}}) = {{v1,v2}} (must hit both)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bddminhit(F), z_v1v2);
+}
+
+TEST_F(BDDTest, BddMinhitTwoOverlapping) {
+    // minhit({{v1,v2}, {v2,v3}}) = {{v2}, {v1,v3}}
+    // {v2} hits both, {v1,v3} also hits both ({v1}∩{v1,v2}≠∅, {v3}∩{v2,v3}≠∅)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp F = bddunion(z_v1v2, z_v2v3);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp expected = bddunion(z_v2, z_v1v3);
+    EXPECT_EQ(bddminhit(F), expected);
+}
+
+TEST_F(BDDTest, BddMinhitMultipleSolutions) {
+    // minhit({{v1}, {v2}}) = {{v1,v2}}
+    // But minhit({{v1,v2}}) = {{v1}, {v2}} (pick either element)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp expected = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddminhit(z_v1v2), expected);
+}
+
+TEST_F(BDDTest, BddMinhitWithEmptySet) {
+    // minhit({∅, {v1}}) = ∅ (∅ ∈ F, impossible to hit)
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp F = bddunion(bddsingle, z_v1);
+    EXPECT_EQ(bddminhit(F), bddempty);
+}
+
+TEST_F(BDDTest, BddMinhitDoubleApplication) {
+    // minhit(minhit(F)) relates back to F in specific ways
+    // For F = {{v1}, {v2}}: minhit = {{v1,v2}}, minhit(minhit) = {{v1},{v2}} = F
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddminhit(bddminhit(F)), F);
+}
+
+TEST_F(BDDTest, BddMinhitThreeWay) {
+    // minhit({{v1}, {v2}, {v3}}) = {{v1,v2,v3}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v3);
+    bddp z_v1v2v3 = getznode(v3, bddempty,
+        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(bddminhit(F), z_v1v2v3);
+}
+
+// --- bddclosure ---
+
+TEST_F(BDDTest, BddClosureEmpty) {
+    EXPECT_EQ(bddclosure(bddempty), bddempty);
+}
+
+TEST_F(BDDTest, BddClosureSingle) {
+    EXPECT_EQ(bddclosure(bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, BddClosureSingleton) {
+    // closure({{v1}}) = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddclosure(z_v1), z_v1);
+}
+
+TEST_F(BDDTest, BddClosureTwoSets) {
+    // closure({{v1}, {v2}}) = {{v1}, {v2}, ∅} ({v1}∩{v2} = ∅)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    bddp expected = bddunion(bddunion(z_v1, z_v2), bddsingle);
+    EXPECT_EQ(bddclosure(F), expected);
+}
+
+TEST_F(BDDTest, BddClosureSubsets) {
+    // closure({{v1}, {v1,v2}}) = {{v1}, {v1,v2}}
+    // ({v1} ∩ {v1,v2} = {v1} already in F)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddclosure(F), F);
+}
+
+TEST_F(BDDTest, BddClosureThreeSets) {
+    // closure({{v1,v2}, {v2,v3}}) = {{v1,v2}, {v2,v3}, {v2}}
+    // ({v1,v2} ∩ {v2,v3} = {v2})
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1v2, z_v2v3);
+    bddp expected = bddunion(bddunion(z_v1v2, z_v2v3), z_v2);
+    EXPECT_EQ(bddclosure(F), expected);
+}
+
+TEST_F(BDDTest, BddClosureIdempotent) {
+    // closure(closure(F)) = closure(F)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp F = bddunion(z_v1, z_v2);
+    bddp C = bddclosure(F);
+    EXPECT_EQ(bddclosure(C), C);
+}
+
+TEST_F(BDDTest, BddClosureContainsOriginal) {
+    // closure(F) ⊇ F always
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp F = bddunion(bddunion(z_v1v2, z_v2v3), z_v1v3);
+    bddp C = bddclosure(F);
+    EXPECT_EQ(bddunion(C, F), C);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

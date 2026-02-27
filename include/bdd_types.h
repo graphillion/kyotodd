@@ -83,6 +83,10 @@ static const uint8_t BDD_OP_RESTRICT = 25;
 static const uint8_t BDD_OP_PERMIT = 26;
 static const uint8_t BDD_OP_NONSUP = 27;
 static const uint8_t BDD_OP_NONSUB = 28;
+static const uint8_t BDD_OP_MAXIMAL = 29;
+static const uint8_t BDD_OP_MINIMAL = 30;
+static const uint8_t BDD_OP_MINHIT = 31;
+static const uint8_t BDD_OP_CLOSURE = 32;
 
 class BDD {
 public:
