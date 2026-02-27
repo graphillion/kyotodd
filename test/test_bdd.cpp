@@ -4700,3 +4700,110 @@ TEST_F(BDDTest, BddIsZbddNotSupported) {
     EXPECT_THROW(bddiszbdd(bddfalse), std::logic_error);
     EXPECT_THROW(bddiszbdd(bddtrue), std::logic_error);
 }
+
+// --- bddcard tests ---
+
+TEST_F(BDDTest, BddCardTerminals) {
+    // Empty family has 0 elements
+    EXPECT_EQ(bddcard(bddempty), 0u);
+    // Single family {{}} has 1 element
+    EXPECT_EQ(bddcard(bddsingle), 1u);
+}
+
+TEST_F(BDDTest, BddCardSingleVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // {{v1}} -> 1 element
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddcard(x1), 1u);
+
+    // {{v2}} -> 1 element
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(bddcard(x2), 1u);
+}
+
+TEST_F(BDDTest, BddCardUnion) {
+    bddvar v1 = bddnewvar();
+
+    // {{}, {v1}} -> 2 elements
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp f = bddunion(x1, bddsingle);  // {{v1}} ∪ {{}} = {{}, {v1}}
+    EXPECT_EQ(bddcard(f), 2u);
+}
+
+TEST_F(BDDTest, BddCardMultipleVariables) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // {{v1}, {v2}, {v3}} -> 3 elements
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x3 = getznode(v3, bddempty, bddsingle);
+    bddp f = bddunion(bddunion(x1, x2), x3);
+    EXPECT_EQ(bddcard(f), 3u);
+}
+
+TEST_F(BDDTest, BddCardPowerSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Power set of {v1,v2} = {{}, {v1}, {v2}, {v1,v2}} -> 4 elements
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
+    EXPECT_EQ(bddcard(f), 4u);
+}
+
+TEST_F(BDDTest, BddCardComplement) {
+    bddvar v1 = bddnewvar();
+
+    // bddnot on ZDD toggles empty set membership
+    // {{v1}} -> complement -> {{}, {v1}} if ∅ was not in the family
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddcard(x1), 1u);
+    EXPECT_EQ(bddcard(bddnot(x1)), 2u);
+
+    // {{}} -> complement -> {} (empty family)
+    EXPECT_EQ(bddcard(bddsingle), 1u);
+    EXPECT_EQ(bddcard(bddnot(bddsingle)), 0u);
+
+    // {} -> complement -> {{}}
+    EXPECT_EQ(bddcard(bddempty), 0u);
+    EXPECT_EQ(bddcard(bddnot(bddempty)), 1u);
+}
+
+TEST_F(BDDTest, BddCardComplementWithEmptySet) {
+    bddvar v1 = bddnewvar();
+
+    // Family {{}, {v1}} contains ∅ -> complement removes ∅ -> {{v1}}
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
+    EXPECT_EQ(bddcard(f), 2u);
+    EXPECT_EQ(bddcard(bddnot(f)), 1u);
+}
+
+TEST_F(BDDTest, BddCardLargerFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Build {{v1}, {v2}, {v3}, {v1,v2}, {v1,v3}, {v2,v3}, {v1,v2,v3}} = 7 elements
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x3 = getznode(v3, bddempty, bddsingle);
+    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp x13 = getznode(v1, bddempty, getznode(v3, bddempty, bddsingle));
+    bddp x23 = getznode(v2, bddempty, getznode(v3, bddempty, bddsingle));
+    bddp x123 = getznode(v1, bddempty, getznode(v2, bddempty, getznode(v3, bddempty, bddsingle)));
+
+    bddp f = bddunion(bddunion(bddunion(x1, x2), bddunion(x3, x12)),
+                       bddunion(bddunion(x13, x23), x123));
+    EXPECT_EQ(bddcard(f), 7u);
+
+    // Add empty set -> full power set: 8 elements
+    bddp g = bddunion(f, bddsingle);
+    EXPECT_EQ(bddcard(g), 8u);
+}

@@ -53,4 +53,7 @@ bddp bddminimal(bddp f);
 bddp bddminhit(bddp f);
 bddp bddclosure(bddp f);
 
+// ZDD counting
+uint64_t bddcard(bddp f);
+
 #endif

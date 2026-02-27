@@ -87,6 +87,7 @@ static const uint8_t BDD_OP_MAXIMAL = 29;
 static const uint8_t BDD_OP_MINIMAL = 30;
 static const uint8_t BDD_OP_MINHIT = 31;
 static const uint8_t BDD_OP_CLOSURE = 32;
+static const uint8_t BDD_OP_CARD = 33;
 
 class BDD {
 public:

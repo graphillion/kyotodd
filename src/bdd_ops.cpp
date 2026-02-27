@@ -1684,3 +1684,66 @@ bddp bddclosure(bddp f) {
     bddwcache(BDD_OP_CLOSURE, f, 0, result);
     return result;
 }
+
+static const uint64_t BDDCARD_MAX = (UINT64_C(1) << 39) - 1;
+
+uint64_t bddcard(bddp f) {
+    // Terminal cases
+    if (f == bddempty) return 0;
+    if (f == bddsingle) return 1;
+
+    // Handle complement edge (ZDD: complement toggles empty set membership)
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    // Cache lookup: use result field to store the count
+    // bddnull (0x7FFFFFFFFFFF) > BDDCARD_MAX (2^39-1), so no collision
+    bddp cached = bddrcache(BDD_OP_CARD, f_raw, 0);
+    uint64_t count;
+    if (cached != bddnull) {
+        count = cached;
+    } else {
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        uint64_t c0 = bddcard(lo);
+        uint64_t c1 = bddcard(hi);
+
+        if (c0 > BDDCARD_MAX - c1) {
+            count = BDDCARD_MAX;
+        } else {
+            count = c0 + c1;
+        }
+
+        bddwcache(BDD_OP_CARD, f_raw, 0, count);
+    }
+
+    // Complement edge toggles empty set: if ∅ was in the family, remove it; if not, add it.
+    if (comp) {
+        // Check if ∅ is in the family of f_raw by following the lo-chain to terminal
+        // Instead, use the relationship: card(~f) = card(f) ± 1
+        // ∅ ∈ family(f_raw) iff the lo-only path reaches bddsingle
+        // We can determine this: complement flips ∅ membership
+        // If ∅ ∈ family(f_raw): card(~f_raw) = count - 1
+        // If ∅ ∉ family(f_raw): card(~f_raw) = count + 1
+        // To check ∅ membership: follow lo edges to terminal
+        bddp p = f_raw;
+        while (!(p & BDD_CONST_FLAG)) {
+            p = node_lo(p);
+        }
+        // p is now a terminal: bddsingle means ∅ is in the family
+        if (p == bddsingle) {
+            // ∅ was in the family, complement removes it
+            count = count - 1;
+        } else {
+            // ∅ was not in the family, complement adds it
+            if (count >= BDDCARD_MAX) {
+                count = BDDCARD_MAX;
+            } else {
+                count = count + 1;
+            }
+        }
+    }
+
+    return count;
+}
