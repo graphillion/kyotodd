@@ -1235,3 +1235,122 @@ bddp bddremainder(bddp f, bddp g) {
     // F % G = F \ (G ⊔ (F / G))
     return bddsubtract(f, bddjoin(g, bdddiv(f, g)));
 }
+
+bddp bdddisjoin(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+
+    // Normalize order (disjoint join is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_DISJOIN, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bdddisjoin(f_lo, g);
+        bddp hi = bdddisjoin(f_hi, g);
+        result = getznode(top_var, lo, hi);
+    } else if (g_level > f_level) {
+        bddvar top_var = g_var;
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bdddisjoin(f, g_lo);
+        bddp hi = bdddisjoin(f, g_hi);
+        result = getznode(top_var, lo, hi);
+    } else {
+        // Same top variable v
+        // Both A and B having v means A ∩ B ⊇ {v} ≠ ∅, so that pair is excluded
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bdddisjoin(f_lo, g_lo);
+        bddp hi_a = bdddisjoin(f_lo, g_hi);
+        bddp hi_b = bdddisjoin(f_hi, g_lo);
+        bddp hi = bddunion(hi_a, hi_b);
+        result = getznode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_DISJOIN, f, g, result);
+    return result;
+}
+
+bddp bddjointjoin(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddempty;  // ∅ ∩ B = ∅ for all B
+    if (g == bddsingle) return bddempty;
+
+    // Normalize order (joint join is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_JOINTJOIN, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddjointjoin(f_lo, g);
+        bddp hi = bddjointjoin(f_hi, g);
+        result = getznode(top_var, lo, hi);
+    } else if (g_level > f_level) {
+        bddvar top_var = g_var;
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bddjointjoin(f, g_lo);
+        bddp hi = bddjointjoin(f, g_hi);
+        result = getznode(top_var, lo, hi);
+    } else {
+        // Same top variable v
+        // Both having v: A ∩ B ⊇ {v} ≠ ∅, always qualifies → regular join
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddjointjoin(f_lo, g_lo);
+        bddp hi_a = bddjointjoin(f_lo, g_hi);
+        bddp hi_b = bddjointjoin(f_hi, g_lo);
+        bddp hi_c = bddjoin(f_hi, g_hi);  // always qualifies
+        bddp hi = bddunion(bddunion(hi_a, hi_b), hi_c);
+        result = getznode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_JOINTJOIN, f, g, result);
+    return result;
+}

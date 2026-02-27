@@ -3500,6 +3500,228 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
     EXPECT_EQ(F, ZDD::Empty);
 }
 
+// --- bdddisjoin ---
+
+TEST_F(BDDTest, ZDDDisjoinTerminalCases) {
+    EXPECT_EQ(bdddisjoin(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bdddisjoin(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bdddisjoin(bddsingle, bddempty), bddempty);
+    EXPECT_EQ(bdddisjoin(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDDisjoinIdentity) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {∅} ▷◁˙ F = F
+    EXPECT_EQ(bdddisjoin(bddsingle, z_v1), z_v1);
+    EXPECT_EQ(bdddisjoin(z_v1, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, ZDDDisjoinDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // {{v1}} ▷◁˙ {{v2}} = {{v1,v2}} (disjoint, same as join)
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bdddisjoin(z_v1, z_v2), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDDisjoinSameVar) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {{v1}} ▷◁˙ {{v1}} = {} (v1 ∩ v1 = {v1} ≠ ∅, excluded)
+    EXPECT_EQ(bdddisjoin(z_v1, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, ZDDDisjoinOverlappingFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {v2}}, G = {{v1}}
+    // Pairs: ({v1},{v1}): {v1}∩{v1}≠∅ excluded; ({v2},{v1}): disjoint → {v1,v2}
+    bddp F = bddunion(z_v1, z_v2);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bdddisjoin(F, z_v1), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDDisjoinCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    bddp F = bddunion(z_v1, bddsingle);
+    bddp G = bddunion(z_v2, z_v1);
+
+    EXPECT_EQ(bdddisjoin(F, G), bdddisjoin(G, F));
+}
+
+TEST_F(BDDTest, ZDDDisjoinJoinDecomposition) {
+    // Join = Disjoint join ∪ Joint join
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    bddp F = bddunion(z_v1, z_v1v2);   // {{v1}, {v1,v2}}
+    bddp G = bddunion(z_v2, z_v3);      // {{v2}, {v3}}
+
+    bddp join = bddjoin(F, G);
+    bddp disjoin = bdddisjoin(F, G);
+    bddp jointjoin = bddjointjoin(F, G);
+    EXPECT_EQ(bddunion(disjoin, jointjoin), join);
+}
+
+TEST_F(BDDTest, ZDDDisjoinThreeVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1,v2}}, G = {{v2}, {v3}}
+    bddp F = z_v1v2;
+    bddp G = bddunion(z_v2, z_v3);
+
+    // ({v1,v2},{v2}): {v1,v2}∩{v2}={v2}≠∅ → excluded
+    // ({v1,v2},{v3}): disjoint → {v1,v2,v3}
+    bddp z_v1v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(bdddisjoin(F, G), z_v1v2v3);
+}
+
+// --- bddjointjoin ---
+
+TEST_F(BDDTest, ZDDJointjoinTerminalCases) {
+    EXPECT_EQ(bddjointjoin(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddjointjoin(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddjointjoin(bddsingle, bddempty), bddempty);
+    // {∅} ▷◁ˆ {∅}: ∅ ∩ ∅ = ∅, not ≠ ∅ → excluded
+    EXPECT_EQ(bddjointjoin(bddsingle, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, ZDDJointjoinWithSingle) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    // {∅} ▷◁ˆ {{v1}}: ∅ ∩ {v1} = ∅ → excluded
+    EXPECT_EQ(bddjointjoin(bddsingle, z_v1), bddempty);
+    EXPECT_EQ(bddjointjoin(z_v1, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, ZDDJointjoinSameVar) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    // {{v1}} ▷◁ˆ {{v1}} = {{v1}} ({v1}∩{v1}={v1}≠∅, {v1}∪{v1}={v1})
+    EXPECT_EQ(bddjointjoin(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDJointjoinDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // {{v1}} ▷◁ˆ {{v2}}: {v1}∩{v2}=∅ → excluded
+    EXPECT_EQ(bddjointjoin(z_v1, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, ZDDJointjoinOverlappingFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {v2}}, G = {{v1}}
+    // ({v1},{v1}): {v1}∩{v1}≠∅ → {v1}
+    // ({v2},{v1}): {v2}∩{v1}=∅ → excluded
+    bddp F = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddjointjoin(F, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDJointjoinCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    bddp F = bddunion(z_v1, bddsingle);
+    bddp G = bddunion(z_v2, z_v1);
+
+    EXPECT_EQ(bddjointjoin(F, G), bddjointjoin(G, F));
+}
+
+TEST_F(BDDTest, ZDDJointjoinComplex) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1,v2}}, G = {{v2}, {v3}}
+    bddp F = z_v1v2;
+    bddp G = bddunion(z_v2, z_v3);
+
+    // ({v1,v2},{v2}): {v1,v2}∩{v2}={v2}≠∅ → {v1,v2}
+    // ({v1,v2},{v3}): {v1,v2}∩{v3}=∅ → excluded
+    EXPECT_EQ(bddjointjoin(F, G), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDJointjoinSubsetOfJoin) {
+    // Joint join ⊆ Join (every joint join result is also a join result)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    bddp F = bddunion(z_v1, z_v1v2);
+    bddp G = bddunion(z_v2, z_v3);
+
+    bddp join = bddjoin(F, G);
+    bddp jointjoin = bddjointjoin(F, G);
+    // jointjoin ⊆ join means jointjoin \ join = ∅
+    EXPECT_EQ(bddsubtract(jointjoin, join), bddempty);
+}
+
+TEST_F(BDDTest, ZDDDisjoinJointjoinCoverJoin) {
+    // Join = Disjoin ∪ Jointjoin (with different families to avoid overlap)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+
+    // F = {{v1}}, G = {{v2}, {v2,v3}}
+    bddp F = z_v1;
+    bddp G = bddunion(z_v2, z_v2v3);
+
+    // All pairs are disjoint (v1 doesn't appear in G)
+    bddp join = bddjoin(F, G);
+    bddp disjoin = bdddisjoin(F, G);
+    bddp jointjoin = bddjointjoin(F, G);
+    EXPECT_EQ(bddunion(disjoin, jointjoin), join);
+    EXPECT_EQ(disjoin, join);
+    EXPECT_EQ(jointjoin, bddempty);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

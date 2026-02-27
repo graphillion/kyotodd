@@ -40,5 +40,7 @@ bddp bddjoin(bddp f, bddp g);
 bddp bddmeet(bddp f, bddp g);
 bddp bdddelta(bddp f, bddp g);
 bddp bddremainder(bddp f, bddp g);
+bddp bdddisjoin(bddp f, bddp g);
+bddp bddjointjoin(bddp f, bddp g);
 
 #endif

@@ -77,6 +77,8 @@ static const uint8_t BDD_OP_SYMDIFF = 19;
 static const uint8_t BDD_OP_JOIN = 20;
 static const uint8_t BDD_OP_MEET = 21;
 static const uint8_t BDD_OP_DELTA = 22;
+static const uint8_t BDD_OP_DISJOIN = 23;
+static const uint8_t BDD_OP_JOINTJOIN = 24;
 
 class BDD {
 public:
