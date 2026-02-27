@@ -81,6 +81,8 @@ static const uint8_t BDD_OP_DISJOIN = 23;
 static const uint8_t BDD_OP_JOINTJOIN = 24;
 static const uint8_t BDD_OP_RESTRICT = 25;
 static const uint8_t BDD_OP_PERMIT = 26;
+static const uint8_t BDD_OP_NONSUP = 27;
+static const uint8_t BDD_OP_NONSUB = 28;
 
 class BDD {
 public:

@@ -1458,3 +1458,108 @@ bddp bddpermit(bddp f, bddp g) {
     bddwcache(BDD_OP_PERMIT, f, g, result);
     return result;
 }
+
+bddp bddnonsup(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;           // no B exists → all A qualify
+    if (g == bddsingle) return bddempty;   // ∅ ⊆ every A → none qualify
+    if (f == g) return bddempty;           // A ⊆ A → none qualify
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_NONSUP, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // G has no f_var: B⊄A check is same for both branches
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddnonsup(f_lo, g);
+        bddp hi = bddnonsup(f_hi, g);
+        result = getznode(f_var, lo, hi);
+    } else if (g_level > f_level) {
+        // F has no g_var: B with g_var can't be ⊆ A, skip to G_lo
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddnonsup(f, g_lo);
+    } else {
+        // Same top variable v
+        // F_lo: only B∈G_lo can be ⊆ A (B with v can't be ⊆ A without v)
+        // F_hi: B∈G_lo or T∈G_hi can be ⊆ S (same logic as restrict)
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddnonsup(f_lo, g_lo);
+        bddp hi = bddnonsup(f_hi, bddunion(g_lo, g_hi));
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_NONSUP, f, g, result);
+    return result;
+}
+
+bddp bddnonsub(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;           // no B exists → all A qualify
+    if (f == bddsingle) return bddempty;   // ∅ ⊆ every B → condition fails
+    if (f == g) return bddempty;           // A ⊆ A → condition fails
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_NONSUB, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // G has no f_var: A with f_var can't be ⊆ any B → F_hi all qualify
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddnonsub(f_lo, g);
+        result = getznode(f_var, lo, f_hi);
+    } else if (g_level > f_level) {
+        // F has no g_var: A⊆(T∪{g_var}) iff A⊆T → union G branches
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddnonsub(f, bddunion(g_lo, g_hi));
+    } else {
+        // Same top variable v
+        // F_lo: A⊆B for B∈G_lo or A⊆T for T∈G_hi → check both
+        // F_hi: S∪{v}⊆B requires v∈B → only T∈G_hi matters
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddnonsub(f_lo, bddunion(g_lo, g_hi));
+        bddp hi = bddnonsub(f_hi, g_hi);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_NONSUB, f, g, result);
+    return result;
+}

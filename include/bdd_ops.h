@@ -44,5 +44,7 @@ bddp bdddisjoin(bddp f, bddp g);
 bddp bddjointjoin(bddp f, bddp g);
 bddp bddrestrict(bddp f, bddp g);
 bddp bddpermit(bddp f, bddp g);
+bddp bddnonsup(bddp f, bddp g);
+bddp bddnonsub(bddp f, bddp g);
 
 #endif
