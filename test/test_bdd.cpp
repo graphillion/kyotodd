@@ -248,6 +248,126 @@ TEST_F(BDDTest, OperatorAndWithTrue) {
     EXPECT_EQ(result.root, a.root);
 }
 
+// --- BDD operator| ---
+
+TEST_F(BDDTest, OperatorOr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = a | b;
+    EXPECT_EQ(c.root, bddor(a.root, b.root));
+}
+
+TEST_F(BDDTest, OperatorOrAssign) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    bddp expected = bddor(a.root, b.root);
+    a |= b;
+    EXPECT_EQ(a.root, expected);
+}
+
+// --- BDD operator^ ---
+
+TEST_F(BDDTest, OperatorXor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = a ^ b;
+    EXPECT_EQ(c.root, bddxor(a.root, b.root));
+}
+
+TEST_F(BDDTest, OperatorXorAssign) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    bddp expected = bddxor(a.root, b.root);
+    a ^= b;
+    EXPECT_EQ(a.root, expected);
+}
+
+// --- BDD operator~ ---
+
+TEST_F(BDDTest, OperatorNot) {
+    bddvar v = BDD_NewVar();
+    BDD a = BDDvar(v);
+    BDD c = ~a;
+    EXPECT_EQ(c.root, bddnot(a.root));
+}
+
+TEST_F(BDDTest, OperatorDoubleNot) {
+    bddvar v = BDD_NewVar();
+    BDD a = BDDvar(v);
+    BDD c = ~(~a);
+    EXPECT_EQ(c.root, a.root);
+}
+
+// --- BDD operator== / operator!= ---
+
+TEST_F(BDDTest, BDDOperatorEqual) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v1);
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a != b);
+}
+
+TEST_F(BDDTest, BDDOperatorNotEqual) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    EXPECT_FALSE(a == b);
+    EXPECT_TRUE(a != b);
+}
+
+TEST_F(BDDTest, BDDOperatorEqualConstants) {
+    EXPECT_TRUE(BDD::False == BDD::False);
+    EXPECT_TRUE(BDD::True == BDD::True);
+    EXPECT_FALSE(BDD::False == BDD::True);
+    EXPECT_TRUE(BDD::False != BDD::True);
+}
+
+// --- BDD operator<< / operator>> ---
+
+TEST_F(BDDTest, OperatorLshift) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD c = a << 1;
+    EXPECT_EQ(c.root, bddlshift(a.root, 1));
+}
+
+TEST_F(BDDTest, OperatorLshiftAssign) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    bddp expected = bddlshift(a.root, 1);
+    a <<= 1;
+    EXPECT_EQ(a.root, expected);
+}
+
+TEST_F(BDDTest, OperatorRshift) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v2);
+    BDD c = a >> 1;
+    EXPECT_EQ(c.root, bddrshift(a.root, 1));
+}
+
+TEST_F(BDDTest, OperatorRshiftAssign) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v2);
+    bddp expected = bddrshift(a.root, 1);
+    a >>= 1;
+    EXPECT_EQ(a.root, expected);
+}
+
 // --- Operation cache (bddrcache / bddwcache) ---
 
 TEST_F(BDDTest, CacheMissReturnsNull) {
@@ -3498,6 +3618,144 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
     // {{v1,v2}} % {{v2}} = {} (exact division)
     F %= G;
     EXPECT_EQ(F, ZDD::Empty);
+}
+
+// --- ZDD operator+ / operator+= ---
+
+TEST_F(BDDTest, ZDDOperatorPlus) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD result = z_v1 + z_v2;
+    EXPECT_EQ(result.root, bddunion(z_v1.root, z_v2.root));
+}
+
+TEST_F(BDDTest, ZDDOperatorPlusAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    bddp expected = bddunion(z_v1.root, z_v2.root);
+    z_v1 += z_v2;
+    EXPECT_EQ(z_v1.root, expected);
+}
+
+// --- ZDD operator- / operator-= ---
+
+TEST_F(BDDTest, ZDDOperatorMinus) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD result = F - z_v2;
+    EXPECT_EQ(result, z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorMinusAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    F -= z_v2;
+    EXPECT_EQ(F, z_v1);
+}
+
+// --- ZDD operator& / operator&= ---
+
+TEST_F(BDDTest, ZDDOperatorIntersec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD result = F & z_v1;
+    EXPECT_EQ(result, z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorIntersecAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    F &= z_v1;
+    EXPECT_EQ(F, z_v1);
+}
+
+// --- ZDD operator== / operator!= ---
+
+TEST_F(BDDTest, ZDDOperatorEqual) {
+    bddvar v1 = bddnewvar();
+    ZDD a(0); a.root = getznode(v1, bddempty, bddsingle);
+    ZDD b(0); b.root = getznode(v1, bddempty, bddsingle);
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a != b);
+}
+
+TEST_F(BDDTest, ZDDOperatorNotEqual) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a(0); a.root = getznode(v1, bddempty, bddsingle);
+    ZDD b(0); b.root = getznode(v2, bddempty, bddsingle);
+    EXPECT_FALSE(a == b);
+    EXPECT_TRUE(a != b);
+}
+
+TEST_F(BDDTest, ZDDOperatorEqualConstants) {
+    EXPECT_TRUE(ZDD::Empty == ZDD::Empty);
+    EXPECT_TRUE(ZDD::Single == ZDD::Single);
+    EXPECT_FALSE(ZDD::Empty == ZDD::Single);
+    EXPECT_TRUE(ZDD::Empty != ZDD::Single);
+}
+
+// --- ZDD::Change ---
+
+TEST_F(BDDTest, ZDDChangeMethod) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD result = z_v1.Change(v2);
+    EXPECT_EQ(result.root, bddchange(z_v1.root, v2));
+}
+
+// --- ZDD::Offset ---
+
+TEST_F(BDDTest, ZDDOffsetMethod) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    ZDD result = F.Offset(v2);
+    EXPECT_EQ(result, z_v1);
+}
+
+// --- ZDD::OnSet ---
+
+TEST_F(BDDTest, ZDDOnSetMethod) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    ZDD result = F.OnSet(v2);
+    EXPECT_EQ(result, z_v1v2);
+}
+
+// --- ZDD::OnSet0 ---
+
+TEST_F(BDDTest, ZDDOnSet0Method) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    // OnSet0(v2) returns sets containing v2 with v2 removed = {{v1}}
+    ZDD result = F.OnSet0(v2);
+    EXPECT_EQ(result, z_v1);
 }
 
 // --- bdddisjoin ---
