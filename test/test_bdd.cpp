@@ -2843,6 +2843,177 @@ TEST_F(BDDTest, BddsubtractUnionIdentity) {
     EXPECT_EQ(bddunion(common, diff), big);
 }
 
+// --- bdddiv ---
+
+TEST_F(BDDTest, BdddivTerminals) {
+    // F / {∅} = F
+    EXPECT_EQ(bdddiv(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bdddiv(bddsingle, bddsingle), bddsingle);
+    // ∅ / G = ∅
+    EXPECT_EQ(bdddiv(bddempty, bddempty), bddempty);
+    // F / ∅ = ∅
+    EXPECT_EQ(bdddiv(bddsingle, bddempty), bddempty);
+    // {∅} / non-trivial = ∅ (G contains non-empty sets)
+}
+
+TEST_F(BDDTest, BdddivByEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    // {{v1}} / {∅} = {{v1}}
+    EXPECT_EQ(bdddiv(z_v1, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, BdddivSelf) {
+    // F / F always contains {∅}
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    // {{v1}} / {{v1}}: x such that x ∪ {v1} ∈ {{v1}} and x ∩ {v1} = ∅
+    // x = ∅: ∅ ∪ {v1} = {v1} ∈ F ✓ → {∅}
+    EXPECT_EQ(bdddiv(z_v1, z_v1), bddsingle);
+}
+
+TEST_F(BDDTest, BdddivEmptySetInFNotG) {
+    // {∅} / {{v1}} = ∅ (∅ ∪ {v1} = {v1} ∉ {∅})
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bdddiv(bddsingle, z_v1), bddempty);
+}
+
+TEST_F(BDDTest, BdddivGVarAboveF) {
+    // G has variable not in F → ∅
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    // {{v1}} / {{v2}}: x ∪ {v2} ∈ {{v1}}, but no set in {{v1}} contains v2
+    EXPECT_EQ(bdddiv(z_v1, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, BdddivSimple) {
+    // F = {{v1, v2}}, G = {{v2}} → F/G = {{v1}}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);        // {{v1}}
+    bddp z_v1v2 = getznode(v2, bddempty, z_v1);           // {{v1, v2}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);        // {{v2}}
+    EXPECT_EQ(bdddiv(z_v1v2, z_v2), z_v1);
+}
+
+TEST_F(BDDTest, BdddivMultipleSets) {
+    // F = {{a,c}, {a,d}, {c}, {d}}, G = {{c}, {d}}
+    // F/G = {{a}, {∅}}:
+    //   x={a}: {a}∪{c}={a,c}∈F, {a}∪{d}={a,d}∈F ✓
+    //   x={∅}: {c}∈F, {d}∈F ✓
+    bddvar a = bddnewvar();  // level 1
+    bddvar c = bddnewvar();  // level 2
+    bddvar d = bddnewvar();  // level 3
+
+    bddp z_a = getznode(a, bddempty, bddsingle);   // {{a}}
+    bddp z_ac = getznode(c, bddempty, z_a);        // {{a,c}}
+    bddp z_ad = getznode(d, bddempty, z_a);        // {{a,d}}
+    bddp z_c = getznode(c, bddempty, bddsingle);   // {{c}}
+    bddp z_d = getznode(d, bddempty, bddsingle);   // {{d}}
+
+    bddp F = bddunion(bddunion(z_ac, z_ad), bddunion(z_c, z_d));
+    bddp G = bddunion(z_c, z_d);
+
+    // Expected: {{∅}, {a}}
+    bddp expected = getznode(a, bddsingle, bddsingle);
+    EXPECT_EQ(bdddiv(F, G), expected);
+}
+
+TEST_F(BDDTest, BdddivPartialMatch) {
+    // F = {{a,c}, {c}}, G = {{c}}
+    // F/G: x ∪ {c} ∈ F and c ∉ x
+    //   x={a}: {a,c} ∈ F ✓
+    //   x={∅}: {c} ∈ F ✓
+    // F/G = {{∅}, {a}}
+    bddvar a = bddnewvar();
+    bddvar c = bddnewvar();
+    bddp z_a = getznode(a, bddempty, bddsingle);
+    bddp z_ac = getznode(c, bddempty, z_a);         // {{a,c}}
+    bddp z_c = getznode(c, bddempty, bddsingle);    // {{c}}
+    bddp F = bddunion(z_ac, z_c);                  // {{a,c}, {c}}
+
+    bddp expected = getznode(a, bddsingle, bddsingle);  // {{∅}, {a}}
+    EXPECT_EQ(bdddiv(F, z_c), expected);
+}
+
+TEST_F(BDDTest, BdddivNoMatch) {
+    // F = {{a}}, G = {{b}} where level(b) > level(a) → ∅
+    bddvar a = bddnewvar();
+    bddvar b = bddnewvar();
+    bddp z_a = getznode(a, bddempty, bddsingle);
+    bddp z_b = getznode(b, bddempty, bddsingle);
+    EXPECT_EQ(bdddiv(z_a, z_b), bddempty);
+}
+
+TEST_F(BDDTest, BdddivQuotientTimesG) {
+    // Verify: (F/G) · G ⊆ F  (via union/intersec identity)
+    // F = {{a,b}, {a,c}, {b}, {c}}, G = {{b}, {c}}
+    // F/G = {{a}, {∅}}
+    // (F/G)·G = {{a,b}, {a,c}, {b}, {c}} = F
+    // So F \ ((F/G)·G) should be ∅ (remainder = ∅)
+    bddvar a = bddnewvar();
+    bddvar b = bddnewvar();
+    bddvar c = bddnewvar();
+    bddp z_a = getznode(a, bddempty, bddsingle);
+    bddp z_ab = getznode(b, bddempty, z_a);
+    bddp z_ac = getznode(c, bddempty, z_a);
+    bddp z_b = getznode(b, bddempty, bddsingle);
+    bddp z_c = getznode(c, bddempty, bddsingle);
+
+    bddp F = bddunion(bddunion(z_ab, z_ac), bddunion(z_b, z_c));
+    bddp G = bddunion(z_b, z_c);
+    bddp Q = bdddiv(F, G);
+
+    bddp expected_q = getznode(a, bddsingle, bddsingle);  // {{∅}, {a}}
+    EXPECT_EQ(Q, expected_q);
+}
+
+TEST_F(BDDTest, BdddivWithRemainder) {
+    // F = {{a,b}, {c}}, G = {{b}}
+    // F/G: x ∪ {b} ∈ F and b ∉ x
+    //   x={a}: {a,b} ∈ F ✓
+    //   x={c}: {b,c} ∉ F ✗
+    // F/G = {{a}}
+    bddvar a = bddnewvar();
+    bddvar b = bddnewvar();
+    bddvar c = bddnewvar();
+    bddp z_a = getznode(a, bddempty, bddsingle);
+    bddp z_ab = getznode(b, bddempty, z_a);
+    bddp z_c = getznode(c, bddempty, bddsingle);
+    bddp F = bddunion(z_ab, z_c);
+    bddp G = getznode(b, bddempty, bddsingle);
+
+    EXPECT_EQ(bdddiv(F, G), z_a);
+}
+
+TEST_F(BDDTest, ZDDOperatorDiv) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, z_v1.root);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    // {{v1, v2}} / {{v2}} = {{v1}}
+    ZDD result = z_v1v2 / z_v2;
+    EXPECT_EQ(result, z_v1);
+}
+
+TEST_F(BDDTest, ZDDOperatorDivAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, z_v1.root);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    z_v1v2 /= z_v2;
+    EXPECT_EQ(z_v1v2, z_v1);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
