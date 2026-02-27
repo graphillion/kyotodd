@@ -3132,6 +3132,278 @@ TEST_F(BDDTest, ZDDOperatorSymdiffAssign) {
     EXPECT_EQ(F, z_v1);
 }
 
+// --- bddjoin ---
+
+TEST_F(BDDTest, ZDDJoinTerminalCases) {
+    EXPECT_EQ(bddjoin(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddjoin(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddjoin(bddsingle, bddempty), bddempty);
+    EXPECT_EQ(bddjoin(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDJoinIdentity) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {∅} ⊔ F = F
+    EXPECT_EQ(bddjoin(bddsingle, z_v1), z_v1);
+    EXPECT_EQ(bddjoin(z_v1, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, ZDDJoinDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // {{v1}} ⊔ {{v2}} = {{v1, v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bddjoin(z_v1, z_v2), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDJoinSameVar) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {{v1}} ⊔ {{v1}} = {{v1}} (union is idempotent)
+    EXPECT_EQ(bddjoin(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDJoinFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // F = {{v1}, {v2}}, G = {{v1}}
+    bddp F = bddunion(z_v1, z_v2);
+    bddp G = z_v1;
+
+    // F ⊔ G = { A∪B | A∈F, B∈G }
+    //   = {v1}∪{v1}, {v2}∪{v1} = {{v1}, {v1,v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp expected = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddjoin(F, G), expected);
+}
+
+TEST_F(BDDTest, ZDDJoinCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
+    bddp G = z_v2;                         // {{v2}}
+
+    EXPECT_EQ(bddjoin(F, G), bddjoin(G, F));
+}
+
+TEST_F(BDDTest, ZDDJoinWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {}}, G = {{v2}}
+    // F ⊔ G = {{v1,v2}, {v2}} ({}∪{v2}={v2}, {v1}∪{v2}={v1,v2})
+    bddp F = bddunion(z_v1, bddsingle);
+    bddp G = z_v2;
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp expected = bddunion(z_v2, z_v1v2);
+    EXPECT_EQ(bddjoin(F, G), expected);
+}
+
+TEST_F(BDDTest, ZDDOperatorJoin) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    // {{v1}} * {{v2}} = {{v1, v2}}
+    ZDD result = z_v1 * z_v2;
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(result.root, z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDOperatorJoinAssign) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    z_v1 *= z_v2;
+    EXPECT_EQ(z_v1.root, z_v1v2);
+}
+
+// --- bddmeet ---
+
+TEST_F(BDDTest, ZDDMeetTerminalCases) {
+    EXPECT_EQ(bddmeet(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddmeet(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddmeet(bddsingle, bddempty), bddempty);
+    // {∅} ⊓ {∅} = {∅∩∅} = {∅}
+    EXPECT_EQ(bddmeet(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDMeetWithSingle) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {∅} ⊓ {{v1}} = {∅∩{v1}} = {∅}
+    EXPECT_EQ(bddmeet(bddsingle, z_v1), bddsingle);
+    EXPECT_EQ(bddmeet(z_v1, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDMeetSameFamily) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {{v1}} ⊓ {{v1}} = {{v1}∩{v1}} = {{v1}}
+    EXPECT_EQ(bddmeet(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDMeetDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // {{v1}} ⊓ {{v2}} = {{v1}∩{v2}} = {∅}
+    EXPECT_EQ(bddmeet(z_v1, z_v2), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDMeetOverlapping) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
+
+    // {{v1,v2}} ⊓ {{v1}} = {{v1,v2}∩{v1}} = {{v1}}
+    EXPECT_EQ(bddmeet(z_v1v2, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDMeetFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1}, {v1,v2}}, G = {{v2}, {v1,v2}}
+    bddp F = bddunion(z_v1, z_v1v2);
+    bddp G = bddunion(z_v2, z_v1v2);
+
+    // F ⊓ G = { A∩B | A∈F, B∈G }
+    //   {v1}∩{v2}=∅, {v1}∩{v1,v2}={v1},
+    //   {v1,v2}∩{v2}={v2}, {v1,v2}∩{v1,v2}={v1,v2}
+    //   = {∅, {v1}, {v2}, {v1,v2}}
+    bddp expected = bddunion(bddunion(bddsingle, z_v1), bddunion(z_v2, z_v1v2));
+    EXPECT_EQ(bddmeet(F, G), expected);
+}
+
+TEST_F(BDDTest, ZDDMeetCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    bddp F = bddunion(z_v1, z_v1v2);
+    bddp G = z_v2;
+
+    EXPECT_EQ(bddmeet(F, G), bddmeet(G, F));
+}
+
+// --- bdddelta ---
+
+TEST_F(BDDTest, ZDDDeltaTerminalCases) {
+    EXPECT_EQ(bdddelta(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bdddelta(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bdddelta(bddsingle, bddempty), bddempty);
+    // {∅} ⊞ {∅} = {∅⊕∅} = {∅}
+    EXPECT_EQ(bdddelta(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDDeltaIdentity) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {∅} ⊞ F = F (∅⊕A = A)
+    EXPECT_EQ(bdddelta(bddsingle, z_v1), z_v1);
+    EXPECT_EQ(bdddelta(z_v1, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, ZDDDeltaSameSet) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // {{v1}} ⊞ {{v1}} = {{v1}⊕{v1}} = {∅}
+    EXPECT_EQ(bdddelta(z_v1, z_v1), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDDeltaDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // {{v1}} ⊞ {{v2}} = {{v1}⊕{v2}} = {{v1,v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bdddelta(z_v1, z_v2), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDDDeltaFamilies) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {v2}}, G = {{v1}}
+    bddp F = bddunion(z_v1, z_v2);
+    bddp G = z_v1;
+
+    // F ⊞ G = { A⊕B | A∈F, B∈G }
+    //   {v1}⊕{v1}=∅, {v2}⊕{v1}={v1,v2}
+    //   = {∅, {v1,v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp expected = bddunion(bddsingle, z_v1v2);
+    EXPECT_EQ(bdddelta(F, G), expected);
+}
+
+TEST_F(BDDTest, ZDDDeltaCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
+    bddp G = z_v2;                         // {{v2}}
+
+    EXPECT_EQ(bdddelta(F, G), bdddelta(G, F));
+}
+
+TEST_F(BDDTest, ZDDDeltaThreeVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1,v2}}, G = {{v2,v3}}
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp F = z_v1v2;
+    bddp G = z_v2v3;
+
+    // {v1,v2}⊕{v2,v3} = {v1,v3}
+    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(bdddelta(F, G), z_v1v3);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {

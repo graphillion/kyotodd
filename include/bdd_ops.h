@@ -36,5 +36,8 @@ bddp bddintersec(bddp f, bddp g);
 bddp bddsubtract(bddp f, bddp g);
 bddp bdddiv(bddp f, bddp g);
 bddp bddsymdiff(bddp f, bddp g);
+bddp bddjoin(bddp f, bddp g);
+bddp bddmeet(bddp f, bddp g);
+bddp bdddelta(bddp f, bddp g);
 
 #endif

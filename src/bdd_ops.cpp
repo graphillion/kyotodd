@@ -1048,3 +1048,185 @@ bddp bddsymdiff(bddp f, bddp g) {
     bddwcache(BDD_OP_SYMDIFF, f, g, result);
     return result;
 }
+
+bddp bddjoin(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;  // {∅} ⊔ G = G
+    if (g == bddsingle) return f;  // F ⊔ {∅} = F
+
+    // Normalize order (join is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_JOIN, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        // G has no sets with top_var, so A∪B keeps top_var iff A had it
+        bddp lo = bddjoin(f_lo, g);
+        bddp hi = bddjoin(f_hi, g);
+        result = getznode(top_var, lo, hi);
+    } else if (g_level > f_level) {
+        bddvar top_var = g_var;
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bddjoin(f, g_lo);
+        bddp hi = bddjoin(f, g_hi);
+        result = getznode(top_var, lo, hi);
+    } else {
+        // Same top variable v
+        // lo: A∈F_lo, B∈G_lo (neither has v)
+        // hi: (F_lo ⊔ G_hi) ∪ (F_hi ⊔ G_lo) ∪ (F_hi ⊔ G_hi)
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddjoin(f_lo, g_lo);
+        bddp hi_a = bddjoin(f_lo, g_hi);
+        bddp hi_b = bddjoin(f_hi, g_lo);
+        bddp hi_c = bddjoin(f_hi, g_hi);
+        bddp hi = bddunion(bddunion(hi_a, hi_b), hi_c);
+        result = getznode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_JOIN, f, g, result);
+    return result;
+}
+
+bddp bddmeet(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;  // ∅ ∩ B = ∅ for all B
+    if (g == bddsingle) return bddsingle;
+
+    // Normalize order (meet is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_MEET, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // G has no sets with f_var; intersection removes f_var
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        result = bddunion(bddmeet(f_lo, g), bddmeet(f_hi, g));
+    } else if (g_level > f_level) {
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddunion(bddmeet(f, g_lo), bddmeet(f, g_hi));
+    } else {
+        // Same top variable v
+        // lo: (F_lo ⊓ G_lo) ∪ (F_lo ⊓ G_hi) ∪ (F_hi ⊓ G_lo)
+        // hi: F_hi ⊓ G_hi
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo_a = bddmeet(f_lo, g_lo);
+        bddp lo_b = bddmeet(f_lo, g_hi);
+        bddp lo_c = bddmeet(f_hi, g_lo);
+        bddp lo = bddunion(bddunion(lo_a, lo_b), lo_c);
+        bddp hi = bddmeet(f_hi, g_hi);
+        result = getznode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_MEET, f, g, result);
+    return result;
+}
+
+bddp bdddelta(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;  // ∅ ⊕ B = B for all B
+    if (g == bddsingle) return f;
+
+    // Normalize order (delta is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_DELTA, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        // G has no sets with f_var; A⊕B keeps f_var iff A had it
+        bddp lo = bdddelta(f_lo, g);
+        bddp hi = bdddelta(f_hi, g);
+        result = getznode(top_var, lo, hi);
+    } else if (g_level > f_level) {
+        bddvar top_var = g_var;
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bdddelta(f, g_lo);
+        bddp hi = bdddelta(f, g_hi);
+        result = getznode(top_var, lo, hi);
+    } else {
+        // Same top variable v
+        // v in A⊕B iff exactly one of A,B contains v
+        // lo: (F_lo ⊞ G_lo) ∪ (F_hi ⊞ G_hi)  — v cancels or absent
+        // hi: (F_lo ⊞ G_hi) ∪ (F_hi ⊞ G_lo)  — v in exactly one
+        bddvar top_var = f_var;
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo_a = bdddelta(f_lo, g_lo);
+        bddp lo_b = bdddelta(f_hi, g_hi);
+        bddp lo = bddunion(lo_a, lo_b);
+        bddp hi_a = bdddelta(f_lo, g_hi);
+        bddp hi_b = bdddelta(f_hi, g_lo);
+        bddp hi = bddunion(hi_a, hi_b);
+        result = getznode(top_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_DELTA, f, g, result);
+    return result;
+}

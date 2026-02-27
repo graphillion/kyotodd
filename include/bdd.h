@@ -148,4 +148,15 @@ inline ZDD& ZDD::operator^=(const ZDD& other) {
     return *this;
 }
 
+inline ZDD ZDD::operator*(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddjoin(root, other.root);
+    return z;
+}
+
+inline ZDD& ZDD::operator*=(const ZDD& other) {
+    root = bddjoin(root, other.root);
+    return *this;
+}
+
 #endif
