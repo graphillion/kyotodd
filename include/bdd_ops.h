@@ -42,5 +42,7 @@ bddp bdddelta(bddp f, bddp g);
 bddp bddremainder(bddp f, bddp g);
 bddp bdddisjoin(bddp f, bddp g);
 bddp bddjointjoin(bddp f, bddp g);
+bddp bddrestrict(bddp f, bddp g);
+bddp bddpermit(bddp f, bddp g);
 
 #endif

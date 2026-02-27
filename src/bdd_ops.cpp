@@ -1354,3 +1354,107 @@ bddp bddjointjoin(bddp f, bddp g) {
     bddwcache(BDD_OP_JOINTJOIN, f, g, result);
     return result;
 }
+
+bddp bddrestrict(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (g == bddsingle) return f;  // ∅ ⊆ every set A
+    if (f == g) return f;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_RESTRICT, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // G has no f_var: B⊆A works for both branches of F
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddrestrict(f_lo, g);
+        bddp hi = bddrestrict(f_hi, g);
+        result = getznode(f_var, lo, hi);
+    } else if (g_level > f_level) {
+        // F has no g_var: B with g_var can't be ⊆ A, skip to G_lo
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddrestrict(f, g_lo);
+    } else {
+        // Same top variable v
+        // F_lo: only B from G_lo can be ⊆ A (since A has no v)
+        // F_hi: B from G_lo (no v, B⊆S) or B from G_hi (with v, T⊆S)
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddrestrict(f_lo, g_lo);
+        bddp hi = bddrestrict(f_hi, bddunion(g_lo, g_hi));
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_RESTRICT, f, g, result);
+    return result;
+}
+
+bddp bddpermit(bddp f, bddp g) {
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;  // ∅ ⊆ any B in G
+    if (f == g) return f;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_PERMIT, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // G has no f_var: A with f_var can't be ⊆ any B
+        bddp f_lo = node_lo(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        result = bddpermit(f_lo, g);
+    } else if (g_level > f_level) {
+        // F has no g_var: A⊆(T∪{g_var}) iff A⊆T (since g_var∉A)
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddpermit(f, bddunion(g_lo, g_hi));
+    } else {
+        // Same top variable v
+        // F_lo (no v): A⊆B for B∈G_lo or A⊆T for T∈G_hi (v irrelevant)
+        // F_hi (had v): S∪{v}⊆B requires v∈B, so only B=T∪{v}, T∈G_hi
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+
+        bddp lo = bddpermit(f_lo, bddunion(g_lo, g_hi));
+        bddp hi = bddpermit(f_hi, g_hi);
+        result = getznode(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_PERMIT, f, g, result);
+    return result;
+}

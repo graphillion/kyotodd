@@ -3722,6 +3722,208 @@ TEST_F(BDDTest, ZDDDisjoinJointjoinCoverJoin) {
     EXPECT_EQ(jointjoin, bddempty);
 }
 
+// --- bddrestrict ---
+
+TEST_F(BDDTest, ZDDRestrictTerminalCases) {
+    EXPECT_EQ(bddrestrict(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddrestrict(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddrestrict(bddsingle, bddempty), bddempty);
+    // {∅} △ {∅}: ∃B∈{∅}: B⊆∅ → yes → {∅}
+    EXPECT_EQ(bddrestrict(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDRestrictEmptySetFilter) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // G = {∅}: ∅ ⊆ every A → return F
+    EXPECT_EQ(bddrestrict(z_v1, bddsingle), z_v1);
+}
+
+TEST_F(BDDTest, ZDDRestrictSelf) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    EXPECT_EQ(bddrestrict(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDRestrictSubsetFilter) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
+
+    // F = {{v1}, {v2}, {v1,v2}}, G = {{v1}}
+    // {v1}⊆{v1}? yes. {v1}⊆{v2}? no. {v1}⊆{v1,v2}? yes.
+    // result = {{v1}, {v1,v2}}
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
+    bddp expected = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddrestrict(F, z_v1), expected);
+}
+
+TEST_F(BDDTest, ZDDRestrictNoMatch) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+
+    // F = {{v1}}, G = {{v2}}: {v2}⊆{v1}? no → {}
+    EXPECT_EQ(bddrestrict(z_v1, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRestrictMultipleFilters) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+
+    // F = {{v1,v2}, {v2,v3}, {v1,v2,v3}}, G = {{v1}, {v3}}
+    // {v1}⊆{v1,v2}? yes. {v1}⊆{v2,v3}? no. {v3}⊆{v2,v3}? yes.
+    // {v1}⊆{v1,v2,v3}? yes.
+    // result = {{v1,v2}, {v2,v3}, {v1,v2,v3}}
+    bddp F = bddunion(bddunion(z_v1v2, z_v2v3), z_v1v2v3);
+    bddp G = bddunion(z_v1, z_v3);
+    EXPECT_EQ(bddrestrict(F, G), F);
+}
+
+TEST_F(BDDTest, ZDDRestrictEmptySetInG) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}}, G = {{v2}} → {v2}⊄{v1} → {}
+    EXPECT_EQ(bddrestrict(z_v1, z_v2), bddempty);
+
+    // G = {{v2}, {}} → ∅⊆{v1} → {{v1}}
+    bddp G2 = bddunion(z_v2, bddsingle);
+    EXPECT_EQ(bddrestrict(z_v1, G2), z_v1);
+}
+
+TEST_F(BDDTest, ZDDRestrictContainsEmptyCheck) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // F = {∅}, G = {{v1}}: need B⊆∅, so B=∅. ∅∉G → {}
+    EXPECT_EQ(bddrestrict(bddsingle, z_v1), bddempty);
+
+    // G = {{v1}, {∅}}: ∅∈G → {∅}
+    bddp G2 = bddunion(z_v1, bddsingle);
+    EXPECT_EQ(bddrestrict(bddsingle, G2), bddsingle);
+}
+
+// --- bddpermit ---
+
+TEST_F(BDDTest, ZDDPermitTerminalCases) {
+    EXPECT_EQ(bddpermit(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddpermit(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddpermit(bddsingle, bddempty), bddempty);
+    // {∅} ⊘ {∅}: ∅⊆∅ → {∅}
+    EXPECT_EQ(bddpermit(bddsingle, bddsingle), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDPermitEmptySetAlwaysPermitted) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+
+    // F = {∅}: ∅ ⊆ any B → {∅}
+    EXPECT_EQ(bddpermit(bddsingle, z_v1), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDPermitSelf) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+
+    EXPECT_EQ(bddpermit(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDPermitSupersetFilter) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1}, {v2}, {v1,v2}}, G = {{v1,v2}}
+    // {v1}⊆{v1,v2}? yes. {v2}⊆{v1,v2}? yes. {v1,v2}⊆{v1,v2}? yes.
+    // result = {{v1}, {v2}, {v1,v2}}
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
+    EXPECT_EQ(bddpermit(F, z_v1v2), F);
+}
+
+TEST_F(BDDTest, ZDDPermitStrictFilter) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1}, {v2}, {v1,v2}}, G = {{v1}}
+    // {v1}⊆{v1}? yes. {v2}⊆{v1}? no. {v1,v2}⊆{v1}? no.
+    // result = {{v1}}
+    bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
+    EXPECT_EQ(bddpermit(F, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDDPermitNoMatch) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}}, G = {{v2}}: {v1}⊆{v2}? no → {}
+    EXPECT_EQ(bddpermit(z_v1, z_v2), bddempty);
+}
+
+TEST_F(BDDTest, ZDDPermitWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+
+    // F = {{v1}, {∅}}, G = {{v2}}
+    // {v1}⊆{v2}? no. ∅⊆{v2}? yes.
+    // result = {{∅}}
+    bddp F = bddunion(z_v1, bddsingle);
+    EXPECT_EQ(bddpermit(F, z_v2), bddsingle);
+}
+
+TEST_F(BDDTest, ZDDPermitMultipleOptions) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1}, {v3}}, G = {{v1,v2}, {v3}}
+    // {v1}⊆{v1,v2}? yes. {v3}⊆{v3}? yes.
+    // result = {{v1}, {v3}}
+    bddp F = bddunion(z_v1, z_v3);
+    bddp G = bddunion(z_v1v2, z_v3);
+    EXPECT_EQ(bddpermit(F, G), F);
+}
+
+TEST_F(BDDTest, ZDDPermitGSingletonOnly) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+
+    // F = {{v1}, {v1,v2}}, G = {∅}
+    // A ⊆ ∅ only when A = ∅. Neither {v1} nor {v1,v2} is ∅ → {}
+    bddp F = bddunion(z_v1, z_v1v2);
+    EXPECT_EQ(bddpermit(F, bddsingle), bddempty);
+}
+
 // --- bddisbdd / bddiszbdd ---
 
 TEST_F(BDDTest, BddIsBddNotSupported) {
