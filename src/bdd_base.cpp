@@ -10,6 +10,7 @@ static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
 
 static uint64_t next_power_of_2(uint64_t n) {
     if (n == 0) return 1;
+    if (n > (UINT64_C(1) << 63)) return UINT64_C(1) << 63;
     n--;
     n |= n >> 1;
     n |= n >> 2;
@@ -165,6 +166,7 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
 
     if (node_count == 0) node_count = 1;
     if (node_max == 0) node_max = 1;
+    if (node_count > node_max) node_count = node_max;
     bdd_node_count = node_count;
     bdd_node_max = node_max;
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
@@ -317,9 +319,15 @@ void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id) {
 }
 
 static void node_array_grow() {
-    uint64_t new_count = bdd_node_count * 2;
-    if (new_count > bdd_node_max) {
+    if (bdd_node_count >= bdd_node_max) return;
+    uint64_t new_count;
+    if (bdd_node_count > UINT64_MAX / 2) {
         new_count = bdd_node_max;
+    } else {
+        new_count = bdd_node_count * 2;
+        if (new_count > bdd_node_max) {
+            new_count = bdd_node_max;
+        }
     }
     bdd_nodes = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
     bdd_node_count = new_count;

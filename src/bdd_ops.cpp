@@ -553,10 +553,11 @@ static bddp bddlshift_rec(bddp f, bddvar shift) {
     if (cached != bddnull) return comp ? bddnot(cached) : cached;
 
     bddvar v = node_var(fn);
-    bddvar new_level = var2level[v] + shift;
-    if (new_level > bdd_varcount) {
+    uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
+    if (new_level64 > bdd_varcount) {
         throw std::invalid_argument("bddlshift: shifted level exceeds variable count");
     }
+    bddvar new_level = static_cast<bddvar>(new_level64);
     bddvar target_var = level2var[new_level];
 
     bddp lo = bddlshift_rec(node_lo(fn), shift);
@@ -577,12 +578,13 @@ bddp bddlshift(bddp f, bddvar shift) {
     std::unordered_set<bddvar> var_set;
     std::unordered_set<bddp> visited;
     bddsupport_collect(f, var_set, visited);
-    bddvar max_level = 0;
+    uint64_t max_level64 = 0;
     for (std::unordered_set<bddvar>::iterator it = var_set.begin();
          it != var_set.end(); ++it) {
-        bddvar lev = var2level[*it] + shift;
-        if (lev > max_level) max_level = lev;
+        uint64_t lev = static_cast<uint64_t>(var2level[*it]) + shift;
+        if (lev > max_level64) max_level64 = lev;
     }
+    bddvar max_level = static_cast<bddvar>(max_level64);
     while (bdd_varcount < max_level) {
         bddnewvar();
     }
