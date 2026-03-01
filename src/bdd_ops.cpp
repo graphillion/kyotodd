@@ -553,7 +553,11 @@ static bddp bddlshift_rec(bddp f, bddvar shift) {
     if (cached != bddnull) return comp ? bddnot(cached) : cached;
 
     bddvar v = node_var(fn);
-    bddvar target_var = level2var[var2level[v] + shift];
+    bddvar new_level = var2level[v] + shift;
+    if (new_level > bdd_varcount) {
+        throw std::invalid_argument("bddlshift: shifted level exceeds variable count");
+    }
+    bddvar target_var = level2var[new_level];
 
     bddp lo = bddlshift_rec(node_lo(fn), shift);
     bddp hi = bddlshift_rec(node_hi(fn), shift);
@@ -569,8 +573,16 @@ bddp bddlshift(bddp f, bddvar shift) {
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
-    // Ensure variables exist up to the required level
-    bddvar max_level = var2level[bddtop(f)] + shift;
+    // Ensure variables exist up to the required level for all variables in f
+    std::unordered_set<bddvar> var_set;
+    std::unordered_set<bddp> visited;
+    bddsupport_collect(f, var_set, visited);
+    bddvar max_level = 0;
+    for (std::unordered_set<bddvar>::iterator it = var_set.begin();
+         it != var_set.end(); ++it) {
+        bddvar lev = var2level[*it] + shift;
+        if (lev > max_level) max_level = lev;
+    }
     while (bdd_varcount < max_level) {
         bddnewvar();
     }
@@ -588,7 +600,11 @@ static bddp bddrshift_rec(bddp f, bddvar shift) {
     if (cached != bddnull) return comp ? bddnot(cached) : cached;
 
     bddvar v = node_var(fn);
-    bddvar target_var = level2var[var2level[v] - shift];
+    bddvar lev = var2level[v];
+    if (lev <= shift) {
+        throw std::invalid_argument("bddrshift: shifted level underflows");
+    }
+    bddvar target_var = level2var[lev - shift];
 
     bddp lo = bddrshift_rec(node_lo(fn), shift);
     bddp hi = bddrshift_rec(node_hi(fn), shift);

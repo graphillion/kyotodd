@@ -163,6 +163,8 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     bdd_unique_tables = nullptr;
     bdd_node_used = 0;
 
+    if (node_count == 0) node_count = 1;
+    if (node_max == 0) node_max = 1;
     bdd_node_count = node_count;
     bdd_node_max = node_max;
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
