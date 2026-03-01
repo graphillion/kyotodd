@@ -340,6 +340,9 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     }
     if (bdd_node_used >= bdd_node_count) {
         node_array_grow();
+        if (bdd_node_used >= bdd_node_count) {
+            return bddnull;
+        }
     }
     bdd_node_used++;
     bddp node_id = bdd_node_used * 2;  // index = node_id/2 - 1 = bdd_node_used - 1
@@ -367,6 +370,9 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     }
     if (bdd_node_used >= bdd_node_count) {
         node_array_grow();
+        if (bdd_node_used >= bdd_node_count) {
+            return bddnull;
+        }
     }
     bdd_node_used++;
     bddp node_id = bdd_node_used * 2;

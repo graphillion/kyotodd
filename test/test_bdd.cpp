@@ -4807,3 +4807,27 @@ TEST_F(BDDTest, BddCardLargerFamily) {
     bddp g = bddunion(f, bddsingle);
     EXPECT_EQ(bddcard(g), 8u);
 }
+
+// --- Issue #1: node_max exhaustion returns bddnull instead of OOB write ---
+
+TEST_F(BDDTest, GetNodeReturnsNullWhenNodeMaxExhausted) {
+    bddinit(1, 1);  // capacity=1, max=1
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // First prime uses 1 node — should succeed
+    bddp p1 = bddprime(v1);
+    EXPECT_NE(p1, bddnull);
+    // Second prime needs another node but max is reached — should return bddnull
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(p2, bddnull);
+}
+
+TEST_F(BDDTest, GetZNodeReturnsNullWhenNodeMaxExhausted) {
+    bddinit(1, 1);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_NE(z1, bddnull);
+    bddp z2 = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(z2, bddnull);
+}
