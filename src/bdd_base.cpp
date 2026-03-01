@@ -206,7 +206,15 @@ bddvar bddnewvar() {
     bddvar var = bdd_varcount;
     if (var >= var_capacity) {
         bddvar old_capacity = var_capacity;
-        bddvar new_capacity = (var_capacity == 0) ? VAR_INITIAL_CAPACITY : var_capacity * 2;
+        bddvar new_capacity;
+        if (var_capacity == 0) {
+            new_capacity = VAR_INITIAL_CAPACITY;
+        } else if (var_capacity > UINT32_MAX / 2) {
+            // Prevent uint32_t overflow in capacity doubling
+            throw std::overflow_error("bddnewvar: variable capacity overflow");
+        } else {
+            new_capacity = var_capacity * 2;
+        }
         bddvar* new_v2l = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * new_capacity));
         if (!new_v2l) { bdd_varcount--; throw std::bad_alloc(); }
         var2level = new_v2l;

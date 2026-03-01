@@ -38,6 +38,7 @@ static void export_arc_str(bddp arc, char* buf, size_t bufsize) {
 
 // Core export logic writing to FILE*.
 static void export_core(FILE* strm, bddp* p, int lim) {
+    if (lim <= 0 || !p || !strm) return;
     // Collect all nodes in post-order
     std::unordered_set<bddp> visited;
     std::vector<bddp> order;
@@ -98,6 +99,7 @@ static void export_core(FILE* strm, bddp* p, int lim) {
 
 // Core export logic writing to std::ostream.
 static void export_core(std::ostream& strm, bddp* p, int lim) {
+    if (lim <= 0 || !p) return;
     std::unordered_set<bddp> visited;
     std::vector<bddp> order;
     bddvar max_level = 0;
@@ -267,6 +269,7 @@ static int import_core(std::istream& strm, std::vector<bddp>& result,
 }
 
 int bddimport(FILE* strm, bddp* p, int lim) {
+    if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
     int ret = import_core(strm, result, getnode);
     if (ret < 0) return ret;
@@ -280,6 +283,7 @@ int bddimport(FILE* strm, std::vector<bddp>& v) {
 }
 
 int bddimport(std::istream& strm, bddp* p, int lim) {
+    if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
     int ret = import_core(strm, result, getnode);
     if (ret < 0) return ret;
@@ -293,6 +297,7 @@ int bddimport(std::istream& strm, std::vector<bddp>& v) {
 }
 
 int bddimportz(FILE* strm, bddp* p, int lim) {
+    if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
     int ret = import_core(strm, result, getznode);
     if (ret < 0) return ret;
@@ -306,6 +311,7 @@ int bddimportz(FILE* strm, std::vector<bddp>& v) {
 }
 
 int bddimportz(std::istream& strm, bddp* p, int lim) {
+    if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
     int ret = import_core(strm, result, getznode);
     if (ret < 0) return ret;
