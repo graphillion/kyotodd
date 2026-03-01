@@ -197,6 +197,8 @@ static bddp import_parse_arc(const char* s,
 }
 
 static const unsigned IMPORT_MAX_LEVEL_LIMIT = 1000000;
+static const unsigned IMPORT_MAX_NODE_COUNT = 10000000;
+static const unsigned IMPORT_MAX_OUTPUT_COUNT = 1000000;
 
 static int import_core(FILE* strm, std::vector<bddp>& result,
                        import_nodefn_t make_node) {
@@ -206,6 +208,8 @@ static int import_core(FILE* strm, std::vector<bddp>& result,
     if (std::fscanf(strm, " _n %u", &node_count) != 1) return -1;
 
     if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
+    if (node_count > IMPORT_MAX_NODE_COUNT) return -1;
+    if (output_count > IMPORT_MAX_OUTPUT_COUNT) return -1;
 
     while (bddvarused() < max_level) bddnewvar();
 
@@ -216,6 +220,7 @@ static int import_core(FILE* strm, std::vector<bddp>& result,
         unsigned level;
         if (std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
                         &old_id, &level, buf0, buf1) != 4) return -1;
+        if (level < 1 || level > max_level) return -1;
         bddp lo = import_parse_arc(buf0, id_map);
         bddp hi = import_parse_arc(buf1, id_map);
         if (lo == bddnull || hi == bddnull) return -1;
@@ -245,6 +250,8 @@ static int import_core(std::istream& strm, std::vector<bddp>& result,
     if (!(strm >> tag >> node_count) || tag != "_n") return -1;
 
     if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
+    if (node_count > IMPORT_MAX_NODE_COUNT) return -1;
+    if (output_count > IMPORT_MAX_OUTPUT_COUNT) return -1;
 
     while (bddvarused() < max_level) bddnewvar();
 
@@ -254,6 +261,7 @@ static int import_core(std::istream& strm, std::vector<bddp>& result,
         unsigned level;
         std::string s0, s1;
         if (!(strm >> old_id >> level >> s0 >> s1)) return -1;
+        if (level < 1 || level > max_level) return -1;
         bddp lo = import_parse_arc(s0.c_str(), id_map);
         bddp hi = import_parse_arc(s1.c_str(), id_map);
         if (lo == bddnull || hi == bddnull) return -1;

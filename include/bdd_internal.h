@@ -45,7 +45,11 @@ inline bool bddp_is_reduced(bddp p) {
 // Node ID -> array index: node_id/2 - 1
 // Complement flag is stripped internally so callers need not worry about it.
 inline bddvar node_var(bddp node_id) {
-    return static_cast<bddvar>(bdd_nodes[node_index(node_id)].data[0] >> BDD_NODE_VAR_SHIFT);
+    bddvar v = static_cast<bddvar>(bdd_nodes[node_index(node_id)].data[0] >> BDD_NODE_VAR_SHIFT);
+    if (v < 1 || v > bdd_varcount) {
+        throw std::out_of_range("node_var: stored variable number out of range");
+    }
+    return v;
 }
 
 inline bddp node_lo(bddp node_id) {
