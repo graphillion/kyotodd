@@ -4831,3 +4831,96 @@ TEST_F(BDDTest, GetZNodeReturnsNullWhenNodeMaxExhausted) {
     bddp z2 = getznode(v2, bddempty, bddsingle);
     EXPECT_EQ(z2, bddnull);
 }
+
+// --- Issue #2: bddnull propagation through all operations ---
+
+TEST_F(BDDTest, BddNullPropagatesThroughBddOps) {
+    bddvar v = bddnewvar();
+    bddp f = bddprime(v);
+
+    // bddnot
+    EXPECT_EQ(bddnot(bddnull), bddnull);
+
+    // BDD binary ops with bddnull as first arg
+    EXPECT_EQ(bddand(bddnull, f), bddnull);
+    EXPECT_EQ(bddor(bddnull, f), bddnull);
+    EXPECT_EQ(bddxor(bddnull, f), bddnull);
+    EXPECT_EQ(bddnand(bddnull, f), bddnull);
+    EXPECT_EQ(bddnor(bddnull, f), bddnull);
+    EXPECT_EQ(bddxnor(bddnull, f), bddnull);
+
+    // BDD binary ops with bddnull as second arg
+    EXPECT_EQ(bddand(f, bddnull), bddnull);
+    EXPECT_EQ(bddor(f, bddnull), bddnull);
+    EXPECT_EQ(bddxor(f, bddnull), bddnull);
+
+    // bddite
+    EXPECT_EQ(bddite(bddnull, f, bddfalse), bddnull);
+    EXPECT_EQ(bddite(f, bddnull, bddfalse), bddnull);
+    EXPECT_EQ(bddite(f, bddtrue, bddnull), bddnull);
+
+    // bddimply
+    EXPECT_EQ(bddimply(bddnull, f), -1);
+    EXPECT_EQ(bddimply(f, bddnull), -1);
+
+    // cofactor
+    EXPECT_EQ(bddat0(bddnull, v), bddnull);
+    EXPECT_EQ(bddat1(bddnull, v), bddnull);
+    EXPECT_EQ(bddcofactor(bddnull, f), bddnull);
+    EXPECT_EQ(bddcofactor(f, bddnull), bddnull);
+
+    // quantification
+    EXPECT_EQ(bddexist(bddnull, f), bddnull);
+    EXPECT_EQ(bdduniv(bddnull, f), bddnull);
+
+    // shift
+    EXPECT_EQ(bddlshift(bddnull, 1), bddnull);
+    EXPECT_EQ(bddrshift(bddnull, 1), bddnull);
+
+    // support
+    EXPECT_EQ(bddsupport(bddnull), bddnull);
+    EXPECT_TRUE(bddsupport_vec(bddnull).empty());
+}
+
+TEST_F(BDDTest, BddNullPropagatesThroughZddOps) {
+    bddvar v = bddnewvar();
+    bddp z = getznode(v, bddempty, bddsingle);
+
+    // ZDD unary-var ops
+    EXPECT_EQ(bddoffset(bddnull, v), bddnull);
+    EXPECT_EQ(bddonset(bddnull, v), bddnull);
+    EXPECT_EQ(bddonset0(bddnull, v), bddnull);
+    EXPECT_EQ(bddchange(bddnull, v), bddnull);
+
+    // ZDD binary ops with bddnull as first arg
+    EXPECT_EQ(bddunion(bddnull, z), bddnull);
+    EXPECT_EQ(bddintersec(bddnull, z), bddnull);
+    EXPECT_EQ(bddsubtract(bddnull, z), bddnull);
+    EXPECT_EQ(bdddiv(bddnull, z), bddnull);
+    EXPECT_EQ(bddsymdiff(bddnull, z), bddnull);
+    EXPECT_EQ(bddjoin(bddnull, z), bddnull);
+    EXPECT_EQ(bddmeet(bddnull, z), bddnull);
+    EXPECT_EQ(bdddelta(bddnull, z), bddnull);
+    EXPECT_EQ(bddremainder(bddnull, z), bddnull);
+    EXPECT_EQ(bdddisjoin(bddnull, z), bddnull);
+    EXPECT_EQ(bddjointjoin(bddnull, z), bddnull);
+    EXPECT_EQ(bddrestrict(bddnull, z), bddnull);
+    EXPECT_EQ(bddpermit(bddnull, z), bddnull);
+    EXPECT_EQ(bddnonsup(bddnull, z), bddnull);
+    EXPECT_EQ(bddnonsub(bddnull, z), bddnull);
+
+    // ZDD binary ops with bddnull as second arg
+    EXPECT_EQ(bddunion(z, bddnull), bddnull);
+    EXPECT_EQ(bddintersec(z, bddnull), bddnull);
+    EXPECT_EQ(bddsubtract(z, bddnull), bddnull);
+    EXPECT_EQ(bdddiv(z, bddnull), bddnull);
+
+    // ZDD unary ops
+    EXPECT_EQ(bddmaximal(bddnull), bddnull);
+    EXPECT_EQ(bddminimal(bddnull), bddnull);
+    EXPECT_EQ(bddminhit(bddnull), bddnull);
+    EXPECT_EQ(bddclosure(bddnull), bddnull);
+
+    // bddcard
+    EXPECT_EQ(bddcard(bddnull), 0u);
+}

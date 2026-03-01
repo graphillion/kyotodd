@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 bddp bddand(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddfalse || g == bddfalse) return bddfalse;
     if (f == bddtrue) return g;
@@ -81,6 +82,7 @@ bddp bddnor(bddp f, bddp g) {
 }
 
 bddp bddxor(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddfalse) return g;
     if (f == bddtrue) return bddnot(g);
@@ -148,6 +150,7 @@ bddp bddxnor(bddp f, bddp g) {
 }
 
 bddp bddite(bddp f, bddp g, bddp h) {
+    if (f == bddnull || g == bddnull || h == bddnull) return bddnull;
     // Terminal cases for f
     if (f == bddtrue) return g;
     if (f == bddfalse) return h;
@@ -236,6 +239,7 @@ bddp bddite(bddp f, bddp g, bddp h) {
 }
 
 bddp bddat0(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -272,6 +276,7 @@ bddp bddat0(bddp f, bddvar v) {
 }
 
 bddp bddat1(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -308,6 +313,7 @@ bddp bddat1(bddp f, bddvar v) {
 }
 
 int bddimply(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return -1;
     // Terminal cases: is there an assignment where f=1 and g=0?
     if (f == bddfalse) return 1;   // f is never true
     if (g == bddtrue)  return 1;   // g is always true
@@ -371,6 +377,7 @@ static void bddsupport_collect(bddp f, std::unordered_set<bddvar>& vars,
 }
 
 bddp bddsupport(bddp f) {
+    if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddfalse;
 
     // Collect all variables appearing in f
@@ -394,6 +401,7 @@ bddp bddsupport(bddp f) {
 
 std::vector<bddvar> bddsupport_vec(bddp f) {
     std::vector<bddvar> vars;
+    if (f == bddnull) return vars;
     if (f & BDD_CONST_FLAG) return vars;
 
     std::unordered_set<bddvar> var_set;
@@ -408,6 +416,7 @@ std::vector<bddvar> bddsupport_vec(bddp f) {
 }
 
 bddp bddexist(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (g == bddfalse) return f;    // no variables to quantify
     if (f == bddfalse) return bddfalse;
@@ -471,6 +480,7 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
 }
 
 bddp bdduniv(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (g == bddfalse) return f;
     if (f == bddfalse) return bddfalse;
@@ -544,6 +554,7 @@ static bddp bddlshift_rec(bddp f, bddvar shift) {
 }
 
 bddp bddlshift(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
@@ -578,6 +589,7 @@ static bddp bddrshift_rec(bddp f, bddvar shift) {
 }
 
 bddp bddrshift(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
@@ -596,6 +608,7 @@ bddp bddrshift(bddp f, bddvar shift) {
 }
 
 bddp bddcofactor(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;   // f is constant
     if (g == bddfalse) return bddfalse; // care region is empty
@@ -655,6 +668,7 @@ bddp bddcofactor(bddp f, bddp g) {
 }
 
 bddp bddoffset(bddp f, bddvar var) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;
 
@@ -691,6 +705,7 @@ bddp bddoffset(bddp f, bddvar var) {
 }
 
 bddp bddonset(bddp f, bddvar var) {
+    if (f == bddnull) return bddnull;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -727,6 +742,7 @@ bddp bddonset(bddp f, bddvar var) {
 }
 
 bddp bddonset0(bddp f, bddvar var) {
+    if (f == bddnull) return bddnull;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -762,6 +778,7 @@ bddp bddonset0(bddp f, bddvar var) {
 }
 
 bddp bddchange(bddp f, bddvar var) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return getznode(var, bddempty, bddsingle);  // {{}} → {{var}}
@@ -798,6 +815,7 @@ bddp bddchange(bddp f, bddvar var) {
 }
 
 bddp bddunion(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -851,6 +869,7 @@ bddp bddunion(bddp f, bddp g) {
 }
 
 bddp bddintersec(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -899,6 +918,7 @@ bddp bddintersec(bddp f, bddp g) {
 }
 
 bddp bddsubtract(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;
@@ -946,6 +966,7 @@ bddp bddsubtract(bddp f, bddp g) {
 }
 
 bddp bdddiv(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Base cases
     if (g == bddsingle) return f;     // F / {∅} = F
     if (f == bddempty || g == bddempty) return bddempty;
@@ -998,6 +1019,7 @@ bddp bdddiv(bddp f, bddp g) {
 }
 
 bddp bddsymdiff(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -1050,6 +1072,7 @@ bddp bddsymdiff(bddp f, bddp g) {
 }
 
 bddp bddjoin(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // {∅} ⊔ G = G
@@ -1112,6 +1135,7 @@ bddp bddjoin(bddp f, bddp g) {
 }
 
 bddp bddmeet(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;  // ∅ ∩ B = ∅ for all B
@@ -1168,6 +1192,7 @@ bddp bddmeet(bddp f, bddp g) {
 }
 
 bddp bdddelta(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // ∅ ⊕ B = B for all B
@@ -1232,11 +1257,13 @@ bddp bdddelta(bddp f, bddp g) {
 }
 
 bddp bddremainder(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // F % G = F \ (G ⊔ (F / G))
     return bddsubtract(f, bddjoin(g, bdddiv(f, g)));
 }
 
 bddp bdddisjoin(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;
@@ -1296,6 +1323,7 @@ bddp bdddisjoin(bddp f, bddp g) {
 }
 
 bddp bddjointjoin(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddempty;  // ∅ ∩ B = ∅ for all B
@@ -1356,6 +1384,7 @@ bddp bddjointjoin(bddp f, bddp g) {
 }
 
 bddp bddrestrict(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -1409,6 +1438,7 @@ bddp bddrestrict(bddp f, bddp g) {
 }
 
 bddp bddpermit(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -1460,6 +1490,7 @@ bddp bddpermit(bddp f, bddp g) {
 }
 
 bddp bddnonsup(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;           // no B exists → all A qualify
@@ -1513,6 +1544,7 @@ bddp bddnonsup(bddp f, bddp g) {
 }
 
 bddp bddnonsub(bddp f, bddp g) {
+    if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;           // no B exists → all A qualify
@@ -1565,6 +1597,7 @@ bddp bddnonsub(bddp f, bddp g) {
 }
 
 bddp bddmaximal(bddp f) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -1590,6 +1623,7 @@ bddp bddmaximal(bddp f) {
 }
 
 bddp bddminimal(bddp f) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -1627,6 +1661,7 @@ static bool zdd_has_empty(bddp f) {
 }
 
 bddp bddminhit(bddp f) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddsingle;  // no constraints → {∅}
     if (f == bddsingle) return bddempty;  // ∅ ∈ F → impossible to hit
@@ -1658,6 +1693,7 @@ bddp bddminhit(bddp f) {
 }
 
 bddp bddclosure(bddp f) {
+    if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -1688,6 +1724,7 @@ bddp bddclosure(bddp f) {
 static const uint64_t BDDCARD_MAX = (UINT64_C(1) << 39) - 1;
 
 uint64_t bddcard(bddp f) {
+    if (f == bddnull) return 0;
     // Terminal cases
     if (f == bddempty) return 0;
     if (f == bddsingle) return 1;

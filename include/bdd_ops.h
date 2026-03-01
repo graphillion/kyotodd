@@ -3,7 +3,7 @@
 
 #include "bdd_types.h"
 
-inline bddp bddnot(bddp p) { return p ^ BDD_COMP_FLAG; }
+inline bddp bddnot(bddp p) { if (p == bddnull) return bddnull; return p ^ BDD_COMP_FLAG; }
 bddp bddand(bddp f, bddp g);
 bddp bddor(bddp f, bddp g);
 bddp bddxor(bddp f, bddp g);
