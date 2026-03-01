@@ -10,6 +10,7 @@
 
 static void export_collect(bddp f, std::unordered_set<bddp>& visited,
                            std::vector<bddp>& order) {
+    if (f == bddnull) return;
     if (f & BDD_CONST_FLAG) return;
     bddp node = f & ~BDD_COMP_FLAG;
     if (!visited.insert(node).second) return;
@@ -44,7 +45,7 @@ static void export_core(FILE* strm, bddp* p, int lim) {
     for (int i = 0; i < lim; i++) {
         export_collect(p[i], visited, order);
         // Track max level
-        if (!(p[i] & BDD_CONST_FLAG)) {
+        if (p[i] != bddnull && !(p[i] & BDD_CONST_FLAG)) {
             bddvar v = node_var(p[i]);  // strips complement internally
             bddvar lev = var2level[v];
             if (lev > max_level) max_level = lev;
@@ -80,7 +81,9 @@ static void export_core(FILE* strm, bddp* p, int lim) {
 
     // Root section
     for (int i = 0; i < lim; i++) {
-        if (p[i] == bddfalse) {
+        if (p[i] == bddnull) {
+            std::fprintf(strm, "N\n");
+        } else if (p[i] == bddfalse) {
             std::fprintf(strm, "F\n");
         } else if (p[i] == bddtrue) {
             std::fprintf(strm, "T\n");
@@ -100,7 +103,7 @@ static void export_core(std::ostream& strm, bddp* p, int lim) {
     bddvar max_level = 0;
     for (int i = 0; i < lim; i++) {
         export_collect(p[i], visited, order);
-        if (!(p[i] & BDD_CONST_FLAG)) {
+        if (p[i] != bddnull && !(p[i] & BDD_CONST_FLAG)) {
             bddvar v = node_var(p[i]);
             bddvar lev = var2level[v];
             if (lev > max_level) max_level = lev;
@@ -142,7 +145,9 @@ static void export_core(std::ostream& strm, bddp* p, int lim) {
 
     // Root section
     for (int i = 0; i < lim; i++) {
-        if (p[i] == bddfalse) {
+        if (p[i] == bddnull) {
+            strm << "N\n";
+        } else if (p[i] == bddfalse) {
             strm << "F\n";
         } else if (p[i] == bddtrue) {
             strm << "T\n";
@@ -178,6 +183,7 @@ typedef bddp (*import_nodefn_t)(bddvar, bddp, bddp);
 
 static bddp import_parse_arc(const char* s,
                               const std::unordered_map<uint64_t, bddp>& id_map) {
+    if (s[0] == 'N') return bddnull;
     if (s[0] == 'F') return bddfalse;
     if (s[0] == 'T') return bddtrue;
     uint64_t val = std::strtoull(s, nullptr, 10);

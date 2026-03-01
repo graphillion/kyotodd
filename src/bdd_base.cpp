@@ -2,6 +2,7 @@
 #include "bdd_internal.h"
 #include <cstdlib>
 #include <cstring>
+#include <new>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -116,6 +117,9 @@ static void unique_table_init(BddUniqueTable* t) {
     t->capacity = UNIQUE_TABLE_INITIAL_CAPACITY;
     t->count = 0;
     t->slots = static_cast<bddp*>(std::calloc(t->capacity, sizeof(bddp)));
+    if (!t->slots) {
+        throw std::bad_alloc();
+    }
 }
 
 static void unique_table_insert_raw(bddp* slots, uint64_t capacity,
@@ -132,6 +136,9 @@ static void unique_table_resize(BddUniqueTable* t) {
     bddp* old_slots = t->slots;
     uint64_t new_capacity = old_capacity * 2;
     bddp* new_slots = static_cast<bddp*>(std::calloc(new_capacity, sizeof(bddp)));
+    if (!new_slots) {
+        throw std::bad_alloc();
+    }
     for (uint64_t i = 0; i < old_capacity; i++) {
         if (old_slots[i] != 0) {
             bddp nid = old_slots[i];
@@ -166,15 +173,26 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
 
     if (node_count == 0) node_count = 1;
     if (node_max == 0) node_max = 1;
+    // Cap node_max so that node_id (= (node_used+1)*2) stays below BDD_CONST_FLAG
+    static const uint64_t NODE_ID_MAX = (BDD_CONST_FLAG >> 1) - 1;  // 0x3FFFFFFFFFFF
+    if (node_max > NODE_ID_MAX) node_max = NODE_ID_MAX;
     if (node_count > node_max) node_count = node_max;
     bdd_node_count = node_count;
     bdd_node_max = node_max;
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
+    if (!bdd_nodes) {
+        throw std::bad_alloc();
+    }
 
     // Initialize operation cache
     bdd_cache_size = next_power_of_2(node_count);
     bdd_cache = static_cast<BddCacheEntry*>(
         std::malloc(sizeof(BddCacheEntry) * bdd_cache_size));
+    if (!bdd_cache) {
+        std::free(bdd_nodes);
+        bdd_nodes = nullptr;
+        throw std::bad_alloc();
+    }
     for (uint64_t i = 0; i < bdd_cache_size; i++) {
         bdd_cache[i].fop = 0;
         bdd_cache[i].g = 0;
@@ -188,13 +206,25 @@ bddvar bddnewvar() {
     bddvar var = bdd_varcount;
     if (var >= var_capacity) {
         bddvar old_capacity = var_capacity;
-        var_capacity = (var_capacity == 0) ? VAR_INITIAL_CAPACITY : var_capacity * 2;
-        var2level = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * var_capacity));
-        level2var = static_cast<bddvar*>(std::realloc(level2var, sizeof(bddvar) * var_capacity));
-        bdd_unique_tables = static_cast<BddUniqueTable*>(
-            std::realloc(bdd_unique_tables, sizeof(BddUniqueTable) * var_capacity));
+        bddvar new_capacity = (var_capacity == 0) ? VAR_INITIAL_CAPACITY : var_capacity * 2;
+        bddvar* new_v2l = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * new_capacity));
+        if (!new_v2l) { bdd_varcount--; throw std::bad_alloc(); }
+        var2level = new_v2l;
+        bddvar* new_l2v = static_cast<bddvar*>(std::realloc(level2var, sizeof(bddvar) * new_capacity));
+        if (!new_l2v) { bdd_varcount--; throw std::bad_alloc(); }
+        level2var = new_l2v;
+        BddUniqueTable* new_ut = static_cast<BddUniqueTable*>(
+            std::realloc(bdd_unique_tables, sizeof(BddUniqueTable) * new_capacity));
+        if (!new_ut) { bdd_varcount--; throw std::bad_alloc(); }
+        bdd_unique_tables = new_ut;
+        var_capacity = new_capacity;
         std::memset(bdd_unique_tables + old_capacity, 0,
-                    sizeof(BddUniqueTable) * (var_capacity - old_capacity));
+                    sizeof(BddUniqueTable) * (new_capacity - old_capacity));
+        if (old_capacity == 0) {
+            // Initialize index 0 (terminal level) to safe values
+            var2level[0] = 0;
+            level2var[0] = 0;
+        }
     }
     var2level[var] = var;  // var i <-> level i
     level2var[var] = var;
@@ -267,6 +297,7 @@ uint64_t bddused() {
 }
 
 static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
+    if (f == bddnull) return;
     if (f & BDD_CONST_FLAG) return;
     bddp node = f & ~BDD_COMP_FLAG;
     if (!visited.insert(node).second) return;
@@ -275,6 +306,7 @@ static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
 }
 
 uint64_t bddsize(bddp f) {
+    if (f == bddnull) return 0;
     std::unordered_set<bddp> visited;
     bddsize_traverse(f, visited);
     return visited.size();
@@ -329,7 +361,9 @@ static void node_array_grow() {
             new_count = bdd_node_max;
         }
     }
-    bdd_nodes = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
+    BddNode* p = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
+    if (!p) return;  // allocation failed: keep old array, caller sees capacity unchanged
+    bdd_nodes = p;
     bdd_node_count = new_count;
 }
 
