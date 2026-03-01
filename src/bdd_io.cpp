@@ -196,12 +196,16 @@ static bddp import_parse_arc(const char* s,
     return comp ? bddnot(it->second) : it->second;
 }
 
+static const unsigned IMPORT_MAX_LEVEL_LIMIT = 1000000;
+
 static int import_core(FILE* strm, std::vector<bddp>& result,
                        import_nodefn_t make_node) {
     unsigned max_level, output_count, node_count;
     if (std::fscanf(strm, " _i %u", &max_level) != 1) return -1;
     if (std::fscanf(strm, " _o %u", &output_count) != 1) return -1;
     if (std::fscanf(strm, " _n %u", &node_count) != 1) return -1;
+
+    if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
 
     while (bddvarused() < max_level) bddnewvar();
 
@@ -239,6 +243,8 @@ static int import_core(std::istream& strm, std::vector<bddp>& result,
     if (!(strm >> tag >> max_level) || tag != "_i") return -1;
     if (!(strm >> tag >> output_count) || tag != "_o") return -1;
     if (!(strm >> tag >> node_count) || tag != "_n") return -1;
+
+    if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
 
     while (bddvarused() < max_level) bddnewvar();
 

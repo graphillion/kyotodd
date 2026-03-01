@@ -74,6 +74,7 @@ static inline uint64_t cache_hash3(uint8_t op, bddp f, bddp g, bddp h) {
 
 // --- Cache API (2-operand) ---
 bddp bddrcache(uint8_t op, bddp f, bddp g) {
+    if (bdd_cache_size == 0 || !bdd_cache) return bddnull;
     uint64_t idx = cache_hash(op, f, g);
     BddCacheEntry& e = bdd_cache[idx];
     uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
@@ -84,6 +85,7 @@ bddp bddrcache(uint8_t op, bddp f, bddp g) {
 }
 
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result) {
+    if (bdd_cache_size == 0 || !bdd_cache) return;
     uint64_t idx = cache_hash(op, f, g);
     BddCacheEntry& e = bdd_cache[idx];
     e.fop = (static_cast<uint64_t>(op) << 48) | f;
@@ -94,6 +96,7 @@ void bddwcache(uint8_t op, bddp f, bddp g, bddp result) {
 
 // --- Cache API (3-operand) ---
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h) {
+    if (bdd_cache_size == 0 || !bdd_cache) return bddnull;
     uint64_t idx = cache_hash3(op, f, g, h);
     BddCacheEntry& e = bdd_cache[idx];
     uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
@@ -104,6 +107,7 @@ bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h) {
 }
 
 void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result) {
+    if (bdd_cache_size == 0 || !bdd_cache) return;
     uint64_t idx = cache_hash3(op, f, g, h);
     BddCacheEntry& e = bdd_cache[idx];
     e.fop = (static_cast<uint64_t>(op) << 48) | f;
@@ -226,6 +230,11 @@ bddvar bddnewvar() {
         if (!new_ut) { bdd_varcount--; throw std::bad_alloc(); }
         bdd_unique_tables = new_ut;
         var_capacity = new_capacity;
+        // Zero-initialize newly allocated regions
+        std::memset(var2level + old_capacity, 0,
+                    sizeof(bddvar) * (new_capacity - old_capacity));
+        std::memset(level2var + old_capacity, 0,
+                    sizeof(bddvar) * (new_capacity - old_capacity));
         std::memset(bdd_unique_tables + old_capacity, 0,
                     sizeof(BddUniqueTable) * (new_capacity - old_capacity));
         if (old_capacity == 0) {
@@ -338,6 +347,7 @@ uint64_t bddvsize(const std::vector<bddp>& v) {
 }
 
 bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
+    if (var < 1 || var > bdd_varcount || !bdd_unique_tables) return 0;
     BddUniqueTable* t = &bdd_unique_tables[var];
     uint64_t idx = unique_table_hash(lo, hi, t->capacity);
     while (t->slots[idx] != 0) {
@@ -351,6 +361,9 @@ bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi) {
 }
 
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id) {
+    if (var < 1 || var > bdd_varcount || !bdd_unique_tables) {
+        throw std::out_of_range("BDD_UniqueTableInsert: var out of range");
+    }
     BddUniqueTable* t = &bdd_unique_tables[var];
     if ((t->count + 1) * 4 >= t->capacity * 3) {
         unique_table_resize(t);
