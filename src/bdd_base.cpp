@@ -138,6 +138,9 @@ static void unique_table_insert_raw(bddp* slots, uint64_t capacity,
 static void unique_table_resize(BddUniqueTable* t) {
     uint64_t old_capacity = t->capacity;
     bddp* old_slots = t->slots;
+    if (old_capacity > UINT64_MAX / 2) {
+        throw std::overflow_error("unique_table_resize: capacity overflow");
+    }
     uint64_t new_capacity = old_capacity * 2;
     bddp* new_slots = static_cast<bddp*>(std::calloc(new_capacity, sizeof(bddp)));
     if (!new_slots) {
@@ -183,6 +186,10 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     if (node_count > node_max) node_count = node_max;
     bdd_node_count = node_count;
     bdd_node_max = node_max;
+    // Guard against size_t overflow in malloc argument
+    if (node_count > SIZE_MAX / sizeof(BddNode)) {
+        throw std::overflow_error("bddinit: node allocation size overflow");
+    }
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
     if (!bdd_nodes) {
         throw std::bad_alloc();
@@ -190,6 +197,12 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
 
     // Initialize operation cache
     bdd_cache_size = next_power_of_2(node_count);
+    // Guard against size_t overflow in malloc argument
+    if (bdd_cache_size > SIZE_MAX / sizeof(BddCacheEntry)) {
+        std::free(bdd_nodes);
+        bdd_nodes = nullptr;
+        throw std::overflow_error("bddinit: cache allocation size overflow");
+    }
     bdd_cache = static_cast<BddCacheEntry*>(
         std::malloc(sizeof(BddCacheEntry) * bdd_cache_size));
     if (!bdd_cache) {
@@ -218,6 +231,11 @@ bddvar bddnewvar() {
             throw std::overflow_error("bddnewvar: variable capacity overflow");
         } else {
             new_capacity = var_capacity * 2;
+        }
+        // Guard against size_t overflow in realloc arguments
+        if (static_cast<uint64_t>(new_capacity) > SIZE_MAX / sizeof(BddUniqueTable)) {
+            bdd_varcount--;
+            throw std::overflow_error("bddnewvar: allocation size overflow");
         }
         bddvar* new_v2l = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * new_capacity));
         if (!new_v2l) { bdd_varcount--; throw std::bad_alloc(); }
@@ -383,6 +401,8 @@ static void node_array_grow() {
             new_count = bdd_node_max;
         }
     }
+    // Guard against size_t overflow in realloc argument
+    if (new_count > SIZE_MAX / sizeof(BddNode)) return;
     BddNode* p = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
     if (!p) return;  // allocation failed: keep old array, caller sees capacity unchanged
     bdd_nodes = p;
