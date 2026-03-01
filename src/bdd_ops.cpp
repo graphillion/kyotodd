@@ -584,6 +584,9 @@ bddp bddlshift(bddp f, bddvar shift) {
         uint64_t lev = static_cast<uint64_t>(var2level[*it]) + shift;
         if (lev > max_level64) max_level64 = lev;
     }
+    if (max_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+    }
     bddvar max_level = static_cast<bddvar>(max_level64);
     while (bdd_varcount < max_level) {
         bddnewvar();
@@ -1805,12 +1808,8 @@ uint64_t bddcard(bddp f) {
         // If ∅ ∈ family(f_raw): card(~f_raw) = count - 1
         // If ∅ ∉ family(f_raw): card(~f_raw) = count + 1
         // To check ∅ membership: follow lo edges to terminal
-        bddp p = f_raw;
-        while (!(p & BDD_CONST_FLAG)) {
-            p = node_lo(p);
-        }
-        // p is now a terminal: bddsingle means ∅ is in the family
-        if (p == bddsingle) {
+        // Use zdd_has_empty which correctly handles complement edges
+        if (zdd_has_empty(f_raw)) {
             // ∅ was in the family, complement removes it
             count = count - 1;
         } else {

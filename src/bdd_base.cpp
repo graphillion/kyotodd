@@ -313,6 +313,7 @@ uint64_t bddsize(bddp f) {
 }
 
 uint64_t bddvsize(bddp* p, int lim) {
+    if (lim <= 0 || !p) return 0;
     std::unordered_set<bddp> visited;
     for (int i = 0; i < lim; i++) {
         bddsize_traverse(p[i], visited);
