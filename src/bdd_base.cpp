@@ -385,6 +385,9 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
 }
 
 bddp bddprime(bddvar v) {
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddprime: var out of range");
+    }
     return getnode(v, bddfalse, bddtrue);
 }
 

@@ -4924,3 +4924,71 @@ TEST_F(BDDTest, BddNullPropagatesThroughZddOps) {
     // bddcard
     EXPECT_EQ(bddcard(bddnull), 0u);
 }
+
+// --- Issue 4: bddvar range checks ---
+TEST_F(BDDTest, BddVarRangeCheckThrowsForInvalidVar) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddprime(v1);
+    bddp z = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+
+    // var == 0 is invalid
+    EXPECT_THROW(bddprime(0), std::invalid_argument);
+    EXPECT_THROW(bddat0(f, 0), std::invalid_argument);
+    EXPECT_THROW(bddat1(f, 0), std::invalid_argument);
+    EXPECT_THROW(bddoffset(z, 0), std::invalid_argument);
+    EXPECT_THROW(bddonset(z, 0), std::invalid_argument);
+    EXPECT_THROW(bddonset0(z, 0), std::invalid_argument);
+    EXPECT_THROW(bddchange(z, 0), std::invalid_argument);
+
+    // var > bdd_varcount is invalid
+    bddvar bad = bddvarused() + 1;
+    EXPECT_THROW(bddprime(bad), std::invalid_argument);
+    EXPECT_THROW(bddat0(f, bad), std::invalid_argument);
+    EXPECT_THROW(bddat1(f, bad), std::invalid_argument);
+    EXPECT_THROW(bddoffset(z, bad), std::invalid_argument);
+    EXPECT_THROW(bddonset(z, bad), std::invalid_argument);
+    EXPECT_THROW(bddonset0(z, bad), std::invalid_argument);
+    EXPECT_THROW(bddchange(z, bad), std::invalid_argument);
+
+    // very large var
+    EXPECT_THROW(bddprime(999999), std::invalid_argument);
+    EXPECT_THROW(bddat0(f, 999999), std::invalid_argument);
+    EXPECT_THROW(bddat1(f, 999999), std::invalid_argument);
+
+    // bddexist/bdduniv with vector containing invalid var
+    std::vector<bddvar> bad_vars = {v1, 0};
+    EXPECT_THROW(bddexist(f, bad_vars), std::invalid_argument);
+    EXPECT_THROW(bdduniv(f, bad_vars), std::invalid_argument);
+
+    std::vector<bddvar> bad_vars2 = {999999};
+    EXPECT_THROW(bddexist(f, bad_vars2), std::invalid_argument);
+    EXPECT_THROW(bdduniv(f, bad_vars2), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddVarRangeCheckValidVarsStillWork) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Valid operations should still work
+    bddp f = bddprime(v1);
+    EXPECT_NE(f, bddnull);
+
+    bddp r0 = bddat0(f, v1);
+    EXPECT_EQ(r0, bddfalse);
+
+    bddp r1 = bddat1(f, v1);
+    EXPECT_EQ(r1, bddtrue);
+
+    // ZDD ops with valid vars
+    bddp z = getznode(v1, bddempty, bddsingle);
+    EXPECT_NO_THROW(bddoffset(z, v1));
+    EXPECT_NO_THROW(bddonset(z, v1));
+    EXPECT_NO_THROW(bddonset0(z, v1));
+    EXPECT_NO_THROW(bddchange(z, v1));
+
+    // bddexist/bdduniv with valid vars
+    std::vector<bddvar> vars = {v1};
+    EXPECT_NO_THROW(bddexist(bddprime(v1), vars));
+    EXPECT_NO_THROW(bdduniv(bddprime(v1), vars));
+}

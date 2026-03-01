@@ -239,6 +239,9 @@ bddp bddite(bddp f, bddp g, bddp h) {
 }
 
 bddp bddat0(bddp f, bddvar v) {
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddat0: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
@@ -276,6 +279,9 @@ bddp bddat0(bddp f, bddvar v) {
 }
 
 bddp bddat1(bddp f, bddvar v) {
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddat1: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
@@ -463,6 +469,11 @@ bddp bddexist(bddp f, bddp g) {
 }
 
 static bddp vars_to_cube(const std::vector<bddvar>& vars) {
+    for (size_t i = 0; i < vars.size(); i++) {
+        if (vars[i] < 1 || vars[i] > bdd_varcount) {
+            throw std::invalid_argument("bddexist/bdduniv: var out of range");
+        }
+    }
     // Build cube BDD: sort by level ascending, chain with hi=bddtrue
     std::vector<bddvar> sorted(vars);
     std::sort(sorted.begin(), sorted.end(), [](bddvar a, bddvar b) {
@@ -668,6 +679,9 @@ bddp bddcofactor(bddp f, bddp g) {
 }
 
 bddp bddoffset(bddp f, bddvar var) {
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddoffset: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;
@@ -705,6 +719,9 @@ bddp bddoffset(bddp f, bddvar var) {
 }
 
 bddp bddonset(bddp f, bddvar var) {
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddonset: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
@@ -742,6 +759,9 @@ bddp bddonset(bddp f, bddvar var) {
 }
 
 bddp bddonset0(bddp f, bddvar var) {
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddonset0: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
@@ -778,6 +798,9 @@ bddp bddonset0(bddp f, bddvar var) {
 }
 
 bddp bddchange(bddp f, bddvar var) {
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddchange: var out of range");
+    }
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
