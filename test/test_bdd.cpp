@@ -336,7 +336,7 @@ TEST_F(BDDTest, BDDOperatorEqualConstants) {
 
 TEST_F(BDDTest, OperatorLshift) {
     bddvar v1 = BDD_NewVar();
-    bddvar v2 = BDD_NewVar();
+    (void)BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD c = a << 1;
     EXPECT_EQ(c.root, bddlshift(a.root, 1));
@@ -344,7 +344,7 @@ TEST_F(BDDTest, OperatorLshift) {
 
 TEST_F(BDDTest, OperatorLshiftAssign) {
     bddvar v1 = BDD_NewVar();
-    bddvar v2 = BDD_NewVar();
+    (void)BDD_NewVar();
     BDD a = BDDvar(v1);
     bddp expected = bddlshift(a.root, 1);
     a <<= 1;
@@ -352,7 +352,7 @@ TEST_F(BDDTest, OperatorLshiftAssign) {
 }
 
 TEST_F(BDDTest, OperatorRshift) {
-    bddvar v1 = BDD_NewVar();
+    (void)BDD_NewVar();
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
     BDD c = a >> 1;
@@ -360,7 +360,7 @@ TEST_F(BDDTest, OperatorRshift) {
 }
 
 TEST_F(BDDTest, OperatorRshiftAssign) {
-    bddvar v1 = BDD_NewVar();
+    (void)BDD_NewVar();
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
     bddp expected = bddrshift(a.root, 1);
@@ -824,7 +824,7 @@ TEST_F(BDDTest, BddUsedAfterNodes) {
     EXPECT_EQ(bddused(), 1u);
     bddp p2 = bddprime(v2);  // 2 nodes
     EXPECT_EQ(bddused(), 2u);
-    bddp ab = bddand(p1, p2);  // 3 nodes
+    (void)bddand(p1, p2);  // 3 nodes
     EXPECT_EQ(bddused(), 3u);
 }
 
@@ -1098,7 +1098,7 @@ TEST_F(BDDTest, BddSupportZeroBranchChain) {
 TEST_F(BDDTest, BddSupportSkippedVar) {
     // f depends on v1 and v3 but not v2
     bddvar v1 = BDD_NewVar();
-    bddvar v2 = BDD_NewVar();
+    (void)BDD_NewVar();
     bddvar v3 = BDD_NewVar();
     bddp p1 = bddprime(v1);
     bddp p3 = bddprime(v3);
@@ -1258,9 +1258,8 @@ TEST_F(BDDTest, BddExistXor) {
 
 TEST_F(BDDTest, BddExistAlwaysFalse) {
     bddvar v1 = BDD_NewVar();
-    bddvar v2 = BDD_NewVar();
+    (void)BDD_NewVar();
     bddp p1 = bddprime(v1);
-    bddp p2 = bddprime(v2);
     // f = v1 & ~v1 = bddfalse; exist over anything is still false
     bddp f = bddand(p1, bddnot(p1));
     EXPECT_EQ(f, bddfalse);
@@ -1504,7 +1503,7 @@ TEST_F(BDDTest, BddLshiftTwoVars) {
 }
 
 TEST_F(BDDTest, BddLshiftAutoNewVar) {
-    bddvar v1 = BDD_NewVar();  // level 1
+    (void)BDD_NewVar();  // level 1
     bddvar v2 = BDD_NewVar();  // level 2
     bddp p2 = bddprime(v2);
     EXPECT_EQ(bddvarused(), 2u);
@@ -1620,7 +1619,7 @@ TEST_F(BDDTest, BddRshiftPreservesXor) {
 TEST_F(BDDTest, BddRshiftInvertsLshift) {
     bddvar v1 = BDD_NewVar();  // level 1
     bddvar v2 = BDD_NewVar();  // level 2
-    bddvar v3 = BDD_NewVar();  // level 3
+    (void)BDD_NewVar();  // level 3
     bddp p1 = bddprime(v1);
     bddp p2 = bddprime(v2);
     bddp f = bddand(p1, p2);
@@ -2520,7 +2519,7 @@ TEST_F(BDDTest, BddoffsetMixedFamily) {
 
 TEST_F(BDDTest, BddoffsetVarNotInFamily) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}} — only involves v1, ask about v3 (higher level)
     bddp z = getznode(v1, bddempty, bddsingle);
@@ -2591,7 +2590,7 @@ TEST_F(BDDTest, BddonsetMixedFamily) {
 
 TEST_F(BDDTest, BddonsetVarNotInFamily) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}} — v3 not present
     bddp z = getznode(v1, bddempty, bddsingle);
@@ -2656,7 +2655,7 @@ TEST_F(BDDTest, Bddonset0MixedFamily) {
 
 TEST_F(BDDTest, Bddonset0VarNotInFamily) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
     bddvar v3 = bddnewvar();
     bddp z = getznode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddonset0(z, v3), bddempty);
@@ -2717,14 +2716,13 @@ TEST_F(BDDTest, BddchangeMixedFamily) {
     // change(z, v1): toggle v1 in each set
     //   {v1} → {} (remove v1), {v2} → {v1, v2} (add v1)
     //   result = {{}, {v1, v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
     bddp expected = getznode(v2, bddsingle, z_v1);  // {{}, {v1, v2}}
     EXPECT_EQ(bddchange(z, v1), expected);
 }
 
 TEST_F(BDDTest, BddchangeVarAboveTop) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}}: change with v3 (higher level) → add v3 → {{v1, v3}}
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
@@ -2781,7 +2779,6 @@ TEST_F(BDDTest, BddunionOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);     // {{v2}}
     bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
     bddp z_v1v2 = getznode(v2, bddempty, z_v1);         // {{v1, v2}}
     // {{v1}, {v2}} ∪ {{v1, v2}} = {{v1}, {v2}, {v1, v2}}
@@ -2795,7 +2792,7 @@ TEST_F(BDDTest, BddunionOverlapping) {
 
 TEST_F(BDDTest, BddunionThreeVars) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
     bddvar v3 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
     bddp z_v3 = getznode(v3, bddempty, bddsingle);     // {{v3}}
@@ -3509,9 +3506,6 @@ TEST_F(BDDTest, ZDDDeltaThreeVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
 
     // F = {{v1,v2}}, G = {{v2,v3}}
@@ -3546,7 +3540,6 @@ TEST_F(BDDTest, ZDDRemainderNoDivisor) {
 TEST_F(BDDTest, ZDDRemainderExactDivision) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
     bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
 
@@ -3560,9 +3553,7 @@ TEST_F(BDDTest, ZDDRemainderPartialDivision) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
 
@@ -3582,7 +3573,6 @@ TEST_F(BDDTest, ZDDRemainderDefinition) {
     bddvar v3 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
 
@@ -3843,7 +3833,6 @@ TEST_F(BDDTest, ZDDDisjoinThreeVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
@@ -3924,7 +3913,6 @@ TEST_F(BDDTest, ZDDJointjoinComplex) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
@@ -3964,7 +3952,6 @@ TEST_F(BDDTest, ZDDDisjoinJointjoinCoverJoin) {
     bddvar v3 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
     bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
 
     // F = {{v1}}, G = {{v2}, {v2,v3}}
@@ -4035,7 +4022,6 @@ TEST_F(BDDTest, ZDDRestrictMultipleFilters) {
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
@@ -4157,7 +4143,6 @@ TEST_F(BDDTest, ZDDPermitMultipleOptions) {
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
 
@@ -4173,7 +4158,6 @@ TEST_F(BDDTest, ZDDPermitGSingletonOnly) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v1,v2}}, G = {∅}
@@ -4968,7 +4952,7 @@ TEST_F(BDDTest, BddVarRangeCheckThrowsForInvalidVar) {
 
 TEST_F(BDDTest, BddVarRangeCheckValidVarsStillWork) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    (void)bddnewvar();
 
     // Valid operations should still work
     bddp f = bddprime(v1);
