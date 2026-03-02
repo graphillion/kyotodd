@@ -87,6 +87,8 @@ A complement edge toggles membership of the empty set (∅) in the family. Since
 - `include/bdd_node.h` — BddNode 構造体の定義
 - `src/bdd_base.cpp` — グローバル変数、初期化、変数管理、ユニークテーブル、キャッシュ、ノード作成
 - `src/bdd_ops.cpp` — BDD 演算（and, or, xor, ite, cofactor, 量化等）
+- `src/zdd_ops.cpp` — ZDD 基本演算（offset, onset, change, union, intersec, subtract, div, join, meet, delta 等）
+- `src/zdd_adv.cpp` — ZDD 高度演算（disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card 等）
 - `src/bdd_io.cpp` — export/import の実装
 - `src/bdd_class.cpp` — BDD/ZDD static const 定義
 - `src/main.cpp` — メインエントリポイント
