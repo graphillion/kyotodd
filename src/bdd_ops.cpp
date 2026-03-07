@@ -180,6 +180,9 @@ bddp bddite(bddp f, bddp g, bddp h) {
         comp = true;
     }
 
+    // Post-normalization terminal check
+    if (g == h) return comp ? bddnot(g) : g;
+
     // Cache lookup
     bddp cached = bddrcache3(BDD_OP_ITE, f, g, h);
     if (cached != bddnull) return comp ? bddnot(cached) : cached;

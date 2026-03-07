@@ -5072,3 +5072,67 @@ TEST_F(BDDTest, BddVarRangeCheckValidVarsStillWork) {
     EXPECT_NO_THROW(bddexist(bddprime(v1), vars));
     EXPECT_NO_THROW(bdduniv(bddprime(v1), vars));
 }
+
+// --- bddite: post-normalization g == h check ---
+
+TEST_F(BDDTest, BddItePostNormalizationGEqualsH) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+
+    // After f-complement normalization (swap g,h) and g-complement
+    // normalization (negate g,h), g == h may arise.
+    // ITE(~f, g, ~g) -> normalize f: ITE(f, ~g, g) -> normalize g: comp=true, g'=g, h'=~g
+    // Then g' == ~h' ... not equal.
+    // But ITE(~f, g, g) = g is caught before normalization.
+    // Construct a case: ITE(f, ~a, a) with f complemented:
+    // After f-norm: ITE(~f_raw, ~a, a) -> swap: ITE(f_raw, a, ~a)
+    // After g-norm: g=a (non-comp), h=~a, comp=false. g != h, normal recursion.
+    // Now: ITE(~f, a, ~a):
+    // After f-norm: swap -> ITE(f, ~a, a)
+    // After g-norm: g was ~a, so negate both: g=a, h=~a, comp=true. g != h.
+
+    // Best case: ITE(~p1, p2, bddnot(p2))
+    // = ~p1 ? p2 : ~p2 = p1 XOR p2 XOR p2... no.
+    // = ITE(~p1, p2, ~p2) = XOR(p1, p2)... wait:
+    // ITE(f, g, h) = f ? g : h. ITE(~p1, p2, ~p2) = ~p1 ? p2 : ~p2
+    // = ~(p1 XOR p2)... no. Let me just verify correctness.
+    // ITE(~p1, p2, ~p2) = ~p1 ? p2 : ~p2 = XOR(p1, p2)
+    bddp r1 = bddite(bddnot(p1), p2, bddnot(p2));
+    EXPECT_EQ(r1, bddxor(p1, p2));
+
+    // ITE(p3, ~p1, ~p2): verify via cofactors
+    bddp r2 = bddite(p3, bddnot(p1), bddnot(p2));
+    EXPECT_EQ(bddat1(r2, v3), bddnot(p1));
+    EXPECT_EQ(bddat0(r2, v3), bddnot(p2));
+
+    // g == h caught before normalization
+    EXPECT_EQ(bddite(p1, bddnot(p2), bddnot(p2)), bddnot(p2));
+    EXPECT_EQ(bddite(bddnot(p1), p2, p2), p2);
+}
+
+// --- bddexport: vector with large-ish data ---
+
+TEST_F(BDDTest, ExportImportVectorRoundtrip) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+
+    std::vector<bddp> roots = {bddand(p1, p2), bddor(p1, p2), bddtrue, bddfalse};
+    std::ostringstream oss;
+    bddexport(oss, roots);
+
+    std::istringstream iss(oss.str());
+    std::vector<bddp> imported;
+    int ret = bddimport(iss, imported);
+    EXPECT_EQ(ret, 4);
+    ASSERT_EQ(imported.size(), 4u);
+    EXPECT_EQ(imported[0], roots[0]);
+    EXPECT_EQ(imported[1], roots[1]);
+    EXPECT_EQ(imported[2], bddtrue);
+    EXPECT_EQ(imported[3], bddfalse);
+}

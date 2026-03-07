@@ -453,7 +453,12 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
     }
-    BDD_UniqueTableInsert(var, lo, hi, node_id);
+    try {
+        BDD_UniqueTableInsert(var, lo, hi, node_id);
+    } catch (...) {
+        bdd_node_used--;
+        throw;
+    }
     return comp ? bddnot(node_id) : node_id;
 }
 
@@ -483,7 +488,12 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
     }
-    BDD_UniqueTableInsert(var, lo, hi, node_id);
+    try {
+        BDD_UniqueTableInsert(var, lo, hi, node_id);
+    } catch (...) {
+        bdd_node_used--;
+        throw;
+    }
     return comp ? bddnot(node_id) : node_id;
 }
 

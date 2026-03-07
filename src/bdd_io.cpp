@@ -1,6 +1,7 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include <cinttypes>
+#include <climits>
 #include <cstdlib>
 #include <istream>
 #include <ostream>
@@ -124,7 +125,8 @@ void bddexport(FILE* strm, const bddp* p, int lim) {
 }
 
 void bddexport(FILE* strm, const std::vector<bddp>& v) {
-    export_core(strm, v.data(), static_cast<int>(v.size()));
+    int lim = v.size() > static_cast<size_t>(INT_MAX) ? INT_MAX : static_cast<int>(v.size());
+    export_core(strm, v.data(), lim);
 }
 
 void bddexport(std::ostream& strm, const bddp* p, int lim) {
@@ -132,7 +134,8 @@ void bddexport(std::ostream& strm, const bddp* p, int lim) {
 }
 
 void bddexport(std::ostream& strm, const std::vector<bddp>& v) {
-    export_core(strm, v.data(), static_cast<int>(v.size()));
+    int lim = v.size() > static_cast<size_t>(INT_MAX) ? INT_MAX : static_cast<int>(v.size());
+    export_core(strm, v.data(), lim);
 }
 
 // --- bddimport / bddimportz ---
