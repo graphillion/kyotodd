@@ -489,13 +489,16 @@ BDD BDDvar(bddvar v) {
     return BDD_ID(bddprime(v));
 }
 
+// Obsolete: BDD and ZDD share the same node table, so node-level type
+// distinction is not possible. Retained for API compatibility.
 int bddisbdd(bddp f) {
     (void)f;
-    throw std::logic_error("bddisbdd: not supported");
+    throw std::logic_error("bddisbdd: obsolete — BDD/ZDD share the same node table");
 }
 
+// Obsolete: see bddisbdd above.
 int bddiszbdd(bddp f) {
     (void)f;
-    throw std::logic_error("bddiszbdd: not supported");
+    throw std::logic_error("bddiszbdd: obsolete — BDD/ZDD share the same node table");
 }
 

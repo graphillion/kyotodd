@@ -32,6 +32,7 @@ void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);
 void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result);
 
+// Obsolete: always throws. Retained for API compatibility.
 int bddisbdd(bddp f);
 int bddiszbdd(bddp f);
 
