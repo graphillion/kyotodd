@@ -1419,8 +1419,8 @@ TEST_F(BDDTest, BddExistSingleVarOverload) {
     bddp p2 = bddprime(v2);
     bddp f = bddand(p1, p2);
     // exist v1. (v1 & v2) = v2
-    EXPECT_EQ(bddexist(f, v1), p2);
-    EXPECT_EQ(bddexist(f, v1), bddexist(f, bddprime(v1)));
+    EXPECT_EQ(bddexistvar(f, v1), p2);
+    EXPECT_EQ(bddexistvar(f, v1), bddexist(f, bddprime(v1)));
 }
 
 TEST_F(BDDTest, BddUnivSingleVarOverload) {
@@ -1430,8 +1430,8 @@ TEST_F(BDDTest, BddUnivSingleVarOverload) {
     bddp p2 = bddprime(v2);
     bddp f = bddor(p1, p2);
     // forall v1. (v1 | v2) = v2
-    EXPECT_EQ(bdduniv(f, v1), p2);
-    EXPECT_EQ(bdduniv(f, v1), bdduniv(f, bddprime(v1)));
+    EXPECT_EQ(bddunivvar(f, v1), p2);
+    EXPECT_EQ(bddunivvar(f, v1), bdduniv(f, bddprime(v1)));
 }
 
 // --- bddcofactor ---

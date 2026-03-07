@@ -495,7 +495,7 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
     return bddexist(f, vars_to_cube(vars));
 }
 
-bddp bddexist(bddp f, bddvar v) {
+bddp bddexistvar(bddp f, bddvar v) {
     return bddexist(f, bddprime(v));
 }
 
@@ -552,7 +552,7 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
     return bdduniv(f, vars_to_cube(vars));
 }
 
-bddp bdduniv(bddp f, bddvar v) {
+bddp bddunivvar(bddp f, bddvar v) {
     return bdduniv(f, bddprime(v));
 }
 
