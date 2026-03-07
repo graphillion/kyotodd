@@ -4,8 +4,20 @@ project(KyotoDD CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(kyotodd src/main.cpp src/bdd_base.cpp src/bdd_class.cpp src/bdd_io.cpp src/bdd_ops.cpp src/zdd_ops.cpp src/zdd_adv.cpp)
-target_include_directories(kyotodd PRIVATE include)
+set(KYOTODD_LIB_SOURCES
+  src/bdd_base.cpp
+  src/bdd_class.cpp
+  src/bdd_io.cpp
+  src/bdd_ops.cpp
+  src/zdd_ops.cpp
+  src/zdd_adv.cpp
+)
+
+add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
+target_include_directories(kyotodd_lib PUBLIC include)
+
+add_executable(kyotodd src/main.cpp)
+target_link_libraries(kyotodd kyotodd_lib)
 
 # Google Test
 include(FetchContent)
@@ -18,9 +30,8 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(kyotodd_test test/test_bdd.cpp src/bdd_base.cpp src/bdd_class.cpp src/bdd_io.cpp src/bdd_ops.cpp src/zdd_ops.cpp src/zdd_adv.cpp)
-target_include_directories(kyotodd_test PRIVATE include)
-target_link_libraries(kyotodd_test GTest::gtest_main)
+add_executable(kyotodd_test test/test_bdd.cpp)
+target_link_libraries(kyotodd_test kyotodd_lib GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(kyotodd_test)
