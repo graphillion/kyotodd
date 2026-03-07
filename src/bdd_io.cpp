@@ -8,6 +8,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// Max token length for arc string representations (node IDs, "F", "T", "N").
+// ARC_BUF_SIZE includes the null terminator.
+#define ARC_MAX_LEN 31
+#define ARC_BUF_SIZE (ARC_MAX_LEN + 1)
+#define XSTR_(x) #x
+#define XSTR(x) XSTR_(x)
+
 static void export_collect(bddp f, std::unordered_set<bddp>& visited,
                            std::vector<bddp>& order) {
     if (f == bddnull) return;
@@ -74,7 +81,7 @@ static void export_core(Stream& strm, bddp* p, int lim) {
     write_str(strm, buf);
 
     // Node section
-    char buf0[32], buf1[32];
+    char buf0[ARC_BUF_SIZE], buf1[ARC_BUF_SIZE];
     for (size_t i = 0; i < order.size(); i++) {
         bddp node = order[i];
         bddvar v = node_var(node);
@@ -147,9 +154,10 @@ static const unsigned IMPORT_MAX_NODE_COUNT = 10000000;
 static const unsigned IMPORT_MAX_OUTPUT_COUNT = 1000000;
 
 // Stream input helpers for FILE* and std::istream.
+// Tags ("_i", "_o", "_n") are at most 2 chars; ARC_MAX_LEN is more than enough.
 static bool read_tag_uint(FILE* strm, const char* tag, unsigned& val) {
-    char buf[16];
-    if (std::fscanf(strm, " %15s %u", buf, &val) != 2) return false;
+    char buf[ARC_BUF_SIZE];
+    if (std::fscanf(strm, " %" XSTR(ARC_MAX_LEN) "s %u", buf, &val) != 2) return false;
     return std::string(buf) == tag;
 }
 static bool read_tag_uint(std::istream& strm, const char* tag, unsigned& val) {
@@ -159,26 +167,26 @@ static bool read_tag_uint(std::istream& strm, const char* tag, unsigned& val) {
 }
 
 static bool read_node_line(FILE* strm, uint64_t& id, unsigned& level,
-                            char* s0, size_t, char* s1, size_t) {
-    return std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
+                            char* s0, char* s1) {
+    return std::fscanf(strm, " %" SCNu64 " %u %" XSTR(ARC_MAX_LEN) "s %" XSTR(ARC_MAX_LEN) "s",
                        &id, &level, s0, s1) == 4;
 }
 static bool read_node_line(std::istream& strm, uint64_t& id, unsigned& level,
-                            char* s0, size_t s0size, char* s1, size_t s1size) {
+                            char* s0, char* s1) {
     std::string ss0, ss1;
     if (!(strm >> id >> level >> ss0 >> ss1)) return false;
-    std::snprintf(s0, s0size, "%s", ss0.c_str());
-    std::snprintf(s1, s1size, "%s", ss1.c_str());
+    std::snprintf(s0, ARC_BUF_SIZE, "%s", ss0.c_str());
+    std::snprintf(s1, ARC_BUF_SIZE, "%s", ss1.c_str());
     return true;
 }
 
-static bool read_token(FILE* strm, char* buf, size_t) {
-    return std::fscanf(strm, " %31s", buf) == 1;
+static bool read_token(FILE* strm, char* buf) {
+    return std::fscanf(strm, " %" XSTR(ARC_MAX_LEN) "s", buf) == 1;
 }
-static bool read_token(std::istream& strm, char* buf, size_t bufsize) {
+static bool read_token(std::istream& strm, char* buf) {
     std::string s;
     if (!(strm >> s)) return false;
-    std::snprintf(buf, bufsize, "%s", s.c_str());
+    std::snprintf(buf, ARC_BUF_SIZE, "%s", s.c_str());
     return true;
 }
 
@@ -197,11 +205,11 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
     while (bddvarused() < max_level) bddnewvar();
 
     std::unordered_map<uint64_t, bddp> id_map;
-    char buf0[32], buf1[32];
+    char buf0[ARC_BUF_SIZE], buf1[ARC_BUF_SIZE];
     for (unsigned i = 0; i < node_count; i++) {
         uint64_t old_id;
         unsigned level;
-        if (!read_node_line(strm, old_id, level, buf0, sizeof(buf0), buf1, sizeof(buf1))) return -1;
+        if (!read_node_line(strm, old_id, level, buf0, buf1)) return -1;
         if (level < 1 || level > max_level) return -1;
         bddp lo = import_parse_arc(buf0, id_map);
         bddp hi = import_parse_arc(buf1, id_map);
@@ -213,8 +221,8 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
 
     result.resize(output_count);
     for (unsigned i = 0; i < output_count; i++) {
-        char ref[32];
-        if (!read_token(strm, ref, sizeof(ref))) return -1;
+        char ref[ARC_BUF_SIZE];
+        if (!read_token(strm, ref)) return -1;
         bddp r = import_parse_arc(ref, id_map);
         if (r == bddnull) return -1;
         result[i] = r;
