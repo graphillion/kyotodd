@@ -402,9 +402,11 @@ static void node_array_grow() {
         }
     }
     // Guard against size_t overflow in realloc argument
-    if (new_count > SIZE_MAX / sizeof(BddNode)) return;
+    if (new_count > SIZE_MAX / sizeof(BddNode)) {
+        throw std::overflow_error("node_array_grow: allocation size overflow");
+    }
     BddNode* p = static_cast<BddNode*>(std::realloc(bdd_nodes, sizeof(BddNode) * new_count));
-    if (!p) return;  // allocation failed: keep old array, caller sees capacity unchanged
+    if (!p) throw std::bad_alloc();
     bdd_nodes = p;
     bdd_node_count = new_count;
 }
