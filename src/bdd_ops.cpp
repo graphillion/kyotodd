@@ -495,6 +495,10 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
     return bddexist(f, vars_to_cube(vars));
 }
 
+bddp bddexist(bddp f, bddvar v) {
+    return bddexist(f, bddprime(v));
+}
+
 bddp bdduniv(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
     // Cube represents a variable set; complement is meaningless — strip it.
@@ -546,6 +550,10 @@ bddp bdduniv(bddp f, bddp g) {
 
 bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
     return bdduniv(f, vars_to_cube(vars));
+}
+
+bddp bdduniv(bddp f, bddvar v) {
+    return bdduniv(f, bddprime(v));
 }
 
 static bddp bddlshift_rec(bddp f, bddvar shift) {

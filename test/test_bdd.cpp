@@ -1410,6 +1410,30 @@ TEST_F(BDDTest, BddUnivVecMatchesCube) {
     EXPECT_EQ(bdduniv(f, vars), bdduniv(f, cube));
 }
 
+// --- bddexist/bdduniv single variable overload ---
+
+TEST_F(BDDTest, BddExistSingleVarOverload) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // exist v1. (v1 & v2) = v2
+    EXPECT_EQ(bddexist(f, v1), p2);
+    EXPECT_EQ(bddexist(f, v1), bddexist(f, bddprime(v1)));
+}
+
+TEST_F(BDDTest, BddUnivSingleVarOverload) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);
+    // forall v1. (v1 | v2) = v2
+    EXPECT_EQ(bdduniv(f, v1), p2);
+    EXPECT_EQ(bdduniv(f, v1), bdduniv(f, bddprime(v1)));
+}
+
 // --- bddcofactor ---
 
 TEST_F(BDDTest, BddCofactorTerminalF) {
@@ -5166,6 +5190,9 @@ TEST_F(BDDTest, BDDClassExist) {
     // Exist with vector
     std::vector<bddvar> vars = {v1};
     EXPECT_EQ(f.Exist(vars).root, b.root);
+
+    // Exist with single variable
+    EXPECT_EQ(f.Exist(v1).root, b.root);
 }
 
 TEST_F(BDDTest, BDDClassUniv) {
@@ -5183,6 +5210,9 @@ TEST_F(BDDTest, BDDClassUniv) {
     // Univ with vector
     std::vector<bddvar> vars = {v1};
     EXPECT_EQ(f.Univ(vars).root, b.root);
+
+    // Univ with single variable
+    EXPECT_EQ(f.Univ(v1).root, b.root);
 }
 
 TEST_F(BDDTest, BDDClassCofactor) {

@@ -111,8 +111,10 @@ public:
     BDD At1(bddvar v) const;
     BDD Exist(const BDD& cube) const;
     BDD Exist(const std::vector<bddvar>& vars) const;
+    BDD Exist(bddvar v) const;
     BDD Univ(const BDD& cube) const;
     BDD Univ(const std::vector<bddvar>& vars) const;
+    BDD Univ(bddvar v) const;
     BDD Cofactor(const BDD& g) const;
     BDD Support() const;
     std::vector<bddvar> SupportVec() const;

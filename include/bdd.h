@@ -93,6 +93,12 @@ inline BDD BDD::Exist(const std::vector<bddvar>& vars) const {
     return b;
 }
 
+inline BDD BDD::Exist(bddvar v) const {
+    BDD b(0);
+    b.root = bddexist(root, v);
+    return b;
+}
+
 inline BDD BDD::Univ(const BDD& cube) const {
     BDD b(0);
     b.root = bdduniv(root, cube.root);
@@ -102,6 +108,12 @@ inline BDD BDD::Univ(const BDD& cube) const {
 inline BDD BDD::Univ(const std::vector<bddvar>& vars) const {
     BDD b(0);
     b.root = bdduniv(root, vars);
+    return b;
+}
+
+inline BDD BDD::Univ(bddvar v) const {
+    BDD b(0);
+    b.root = bdduniv(root, v);
     return b;
 }
 
