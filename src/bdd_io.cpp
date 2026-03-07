@@ -52,13 +52,21 @@ static bool stream_valid(std::ostream&) { return true; }
 template<typename Stream>
 static void export_core(Stream& strm, const bddp* p, int lim) {
     if (lim <= 0 || !p || !stream_valid(strm)) return;
+
+    // bddnull acts as a sentinel: stop at the first bddnull.
+    int effective_lim = 0;
+    while (effective_lim < lim && p[effective_lim] != bddnull) {
+        effective_lim++;
+    }
+    if (effective_lim == 0) return;
+
     // Collect all nodes in post-order
     std::unordered_set<bddp> visited;
     std::vector<bddp> order;
     bddvar max_level = 0;
-    for (int i = 0; i < lim; i++) {
+    for (int i = 0; i < effective_lim; i++) {
         export_collect(p[i], visited, order);
-        if (p[i] != bddnull && !(p[i] & BDD_CONST_FLAG)) {
+        if (!(p[i] & BDD_CONST_FLAG)) {
             bddvar v = node_var(p[i]);
             bddvar lev = var2level[v];
             if (lev > max_level) max_level = lev;
@@ -74,7 +82,7 @@ static void export_core(Stream& strm, const bddp* p, int lim) {
     // Header
     std::snprintf(buf, sizeof(buf), "_i %u\n", static_cast<unsigned>(max_level));
     write_str(strm, buf);
-    std::snprintf(buf, sizeof(buf), "_o %d\n", lim);
+    std::snprintf(buf, sizeof(buf), "_o %d\n", effective_lim);
     write_str(strm, buf);
     std::snprintf(buf, sizeof(buf), "_n %u\n", static_cast<unsigned>(order.size()));
     write_str(strm, buf);
@@ -96,10 +104,8 @@ static void export_core(Stream& strm, const bddp* p, int lim) {
     }
 
     // Root section
-    for (int i = 0; i < lim; i++) {
-        if (p[i] == bddnull) {
-            write_str(strm, "N\n");
-        } else if (p[i] == bddfalse) {
+    for (int i = 0; i < effective_lim; i++) {
+        if (p[i] == bddfalse) {
             write_str(strm, "F\n");
         } else if (p[i] == bddtrue) {
             write_str(strm, "T\n");
@@ -135,7 +141,6 @@ typedef bddp (*import_nodefn_t)(bddvar, bddp, bddp);
 
 static bddp import_parse_arc(const char* s,
                               const std::unordered_map<uint64_t, bddp>& id_map) {
-    if (s[0] == 'N') return bddnull;
     if (s[0] == 'F') return bddfalse;
     if (s[0] == 'T') return bddtrue;
     char* endptr;

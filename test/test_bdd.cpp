@@ -2084,6 +2084,49 @@ TEST_F(BDDTest, ExportMultipleBDDs) {
     ASSERT_EQ(lines.size(), 7u);
 }
 
+TEST_F(BDDTest, ExportBddnullSentinel) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f1 = bddprime(v1);
+    bddp f2 = bddprime(v2);
+    // bddnull as sentinel: only f1 should be exported
+    bddp p[] = { f1, bddnull, f2 };
+    std::ostringstream oss;
+    bddexport(oss, p, 3);
+    std::vector<std::string> lines = split_lines(oss.str());
+    EXPECT_EQ(lines[1], "_o 1");  // only 1 output
+    // 3 header + 1 node + 1 root = 5 lines
+    ASSERT_EQ(lines.size(), 5u);
+}
+
+TEST_F(BDDTest, ExportBddnullSentinelAtStart) {
+    bddvar v1 = bddnewvar();
+    bddp f1 = bddprime(v1);
+    bddp p[] = { bddnull, f1 };
+    std::ostringstream oss;
+    bddexport(oss, p, 2);
+    // bddnull at position 0: nothing to export
+    EXPECT_TRUE(oss.str().empty());
+}
+
+TEST_F(BDDTest, ExportImportRoundtripBddnullSentinel) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f1 = bddand(bddprime(v1), bddprime(v2));
+    bddp f2 = bddprime(v1);
+    // Export 2 roots with sentinel at position 2
+    bddp p_out[] = { f1, f2, bddnull };
+    std::ostringstream oss;
+    bddexport(oss, p_out, 3);
+    // Import: should get 2 outputs
+    std::istringstream iss(oss.str());
+    std::vector<bddp> result;
+    int ret = bddimport(iss, result);
+    ASSERT_EQ(ret, 2);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+}
+
 TEST_F(BDDTest, ExportSharedNodes) {
     // f1 = x1 AND x2, f2 = x1 OR x2 share the same internal nodes
     bddvar v1 = bddnewvar();
