@@ -36,70 +36,17 @@ static void export_arc_str(bddp arc, char* buf, size_t bufsize) {
     }
 }
 
-// Core export logic writing to FILE*.
-static void export_core(FILE* strm, bddp* p, int lim) {
-    if (lim <= 0 || !p || !strm) return;
+// Stream output helpers for FILE* and std::ostream.
+static void write_str(FILE* strm, const char* s) { std::fputs(s, strm); }
+static void write_str(std::ostream& strm, const char* s) { strm << s; }
+
+static bool stream_valid(FILE* strm) { return strm != nullptr; }
+static bool stream_valid(std::ostream&) { return true; }
+
+template<typename Stream>
+static void export_core(Stream& strm, bddp* p, int lim) {
+    if (lim <= 0 || !p || !stream_valid(strm)) return;
     // Collect all nodes in post-order
-    std::unordered_set<bddp> visited;
-    std::vector<bddp> order;
-    bddvar max_level = 0;
-    for (int i = 0; i < lim; i++) {
-        export_collect(p[i], visited, order);
-        // Track max level
-        if (p[i] != bddnull && !(p[i] & BDD_CONST_FLAG)) {
-            bddvar v = node_var(p[i]);  // strips complement internally
-            bddvar lev = var2level[v];
-            if (lev > max_level) max_level = lev;
-        }
-    }
-
-    // Also check max level among all collected nodes
-    for (size_t i = 0; i < order.size(); i++) {
-        bddvar v = node_var(order[i]);
-        bddvar lev = var2level[v];
-        if (lev > max_level) max_level = lev;
-    }
-
-    // Header
-    std::fprintf(strm, "_i %u\n", static_cast<unsigned>(max_level));
-    std::fprintf(strm, "_o %d\n", lim);
-    std::fprintf(strm, "_n %u\n", static_cast<unsigned>(order.size()));
-
-    // Node section
-    char buf0[32], buf1[32];
-    for (size_t i = 0; i < order.size(); i++) {
-        bddp node = order[i];
-        bddvar v = node_var(node);
-        bddvar lev = var2level[v];
-        bddp lo = node_lo(node);
-        bddp hi = node_hi(node);
-        export_arc_str(lo, buf0, sizeof(buf0));
-        export_arc_str(hi, buf1, sizeof(buf1));
-        std::fprintf(strm, "%" PRIu64 " %u %s %s\n",
-                     static_cast<uint64_t>(node),
-                     static_cast<unsigned>(lev), buf0, buf1);
-    }
-
-    // Root section
-    for (int i = 0; i < lim; i++) {
-        if (p[i] == bddnull) {
-            std::fprintf(strm, "N\n");
-        } else if (p[i] == bddfalse) {
-            std::fprintf(strm, "F\n");
-        } else if (p[i] == bddtrue) {
-            std::fprintf(strm, "T\n");
-        } else {
-            bddp node = p[i] & ~BDD_COMP_FLAG;
-            bool comp = (p[i] & BDD_COMP_FLAG) != 0;
-            uint64_t id = comp ? (node | 1) : node;
-            std::fprintf(strm, "%" PRIu64 "\n", id);
-        }
-    }
-}
-
-// Core export logic writing to std::ostream.
-static void export_core(std::ostream& strm, bddp* p, int lim) {
-    if (lim <= 0 || !p) return;
     std::unordered_set<bddp> visited;
     std::vector<bddp> order;
     bddvar max_level = 0;
@@ -117,46 +64,45 @@ static void export_core(std::ostream& strm, bddp* p, int lim) {
         if (lev > max_level) max_level = lev;
     }
 
+    char buf[128];
     // Header
-    strm << "_i " << max_level << "\n";
-    strm << "_o " << lim << "\n";
-    strm << "_n " << order.size() << "\n";
+    std::snprintf(buf, sizeof(buf), "_i %u\n", static_cast<unsigned>(max_level));
+    write_str(strm, buf);
+    std::snprintf(buf, sizeof(buf), "_o %d\n", lim);
+    write_str(strm, buf);
+    std::snprintf(buf, sizeof(buf), "_n %u\n", static_cast<unsigned>(order.size()));
+    write_str(strm, buf);
 
     // Node section
+    char buf0[32], buf1[32];
     for (size_t i = 0; i < order.size(); i++) {
         bddp node = order[i];
         bddvar v = node_var(node);
         bddvar lev = var2level[v];
         bddp lo = node_lo(node);
         bddp hi = node_hi(node);
-
-        strm << node << " " << lev << " ";
-        if (lo == bddfalse) strm << "F";
-        else if (lo == bddtrue) strm << "T";
-        else strm << static_cast<uint64_t>(lo);  // lo is always non-complemented
-        strm << " ";
-        if (hi == bddfalse) strm << "F";
-        else if (hi == bddtrue) strm << "T";
-        else {
-            bddp hn = hi & ~BDD_COMP_FLAG;
-            bool hc = (hi & BDD_COMP_FLAG) != 0;
-            strm << static_cast<uint64_t>(hc ? (hn | 1) : hn);
-        }
-        strm << "\n";
+        export_arc_str(lo, buf0, sizeof(buf0));
+        export_arc_str(hi, buf1, sizeof(buf1));
+        std::snprintf(buf, sizeof(buf), "%" PRIu64 " %u %s %s\n",
+                     static_cast<uint64_t>(node),
+                     static_cast<unsigned>(lev), buf0, buf1);
+        write_str(strm, buf);
     }
 
     // Root section
     for (int i = 0; i < lim; i++) {
         if (p[i] == bddnull) {
-            strm << "N\n";
+            write_str(strm, "N\n");
         } else if (p[i] == bddfalse) {
-            strm << "F\n";
+            write_str(strm, "F\n");
         } else if (p[i] == bddtrue) {
-            strm << "T\n";
+            write_str(strm, "T\n");
         } else {
             bddp node = p[i] & ~BDD_COMP_FLAG;
             bool comp = (p[i] & BDD_COMP_FLAG) != 0;
-            strm << static_cast<uint64_t>(comp ? (node | 1) : node) << "\n";
+            uint64_t id = comp ? (node | 1) : node;
+            std::snprintf(buf, sizeof(buf), "%" PRIu64 "\n", id);
+            write_str(strm, buf);
         }
     }
 }
@@ -200,12 +146,49 @@ static const unsigned IMPORT_MAX_LEVEL_LIMIT = 1000000;
 static const unsigned IMPORT_MAX_NODE_COUNT = 10000000;
 static const unsigned IMPORT_MAX_OUTPUT_COUNT = 1000000;
 
-static int import_core(FILE* strm, std::vector<bddp>& result,
+// Stream input helpers for FILE* and std::istream.
+static bool read_tag_uint(FILE* strm, const char* tag, unsigned& val) {
+    char buf[16];
+    if (std::fscanf(strm, " %15s %u", buf, &val) != 2) return false;
+    return std::string(buf) == tag;
+}
+static bool read_tag_uint(std::istream& strm, const char* tag, unsigned& val) {
+    std::string s;
+    if (!(strm >> s >> val)) return false;
+    return s == tag;
+}
+
+static bool read_node_line(FILE* strm, uint64_t& id, unsigned& level,
+                            char* s0, char* s1) {
+    return std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
+                       &id, &level, s0, s1) == 4;
+}
+static bool read_node_line(std::istream& strm, uint64_t& id, unsigned& level,
+                            char* s0, char* s1) {
+    std::string ss0, ss1;
+    if (!(strm >> id >> level >> ss0 >> ss1)) return false;
+    std::snprintf(s0, 32, "%s", ss0.c_str());
+    std::snprintf(s1, 32, "%s", ss1.c_str());
+    return true;
+}
+
+static bool read_token(FILE* strm, char* buf) {
+    return std::fscanf(strm, " %31s", buf) == 1;
+}
+static bool read_token(std::istream& strm, char* buf) {
+    std::string s;
+    if (!(strm >> s)) return false;
+    std::snprintf(buf, 32, "%s", s.c_str());
+    return true;
+}
+
+template<typename Stream>
+static int import_core(Stream& strm, std::vector<bddp>& result,
                        import_nodefn_t make_node) {
     unsigned max_level, output_count, node_count;
-    if (std::fscanf(strm, " _i %u", &max_level) != 1) return -1;
-    if (std::fscanf(strm, " _o %u", &output_count) != 1) return -1;
-    if (std::fscanf(strm, " _n %u", &node_count) != 1) return -1;
+    if (!read_tag_uint(strm, "_i", max_level)) return -1;
+    if (!read_tag_uint(strm, "_o", output_count)) return -1;
+    if (!read_tag_uint(strm, "_n", node_count)) return -1;
 
     if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
     if (node_count > IMPORT_MAX_NODE_COUNT) return -1;
@@ -218,8 +201,7 @@ static int import_core(FILE* strm, std::vector<bddp>& result,
     for (unsigned i = 0; i < node_count; i++) {
         uint64_t old_id;
         unsigned level;
-        if (std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
-                        &old_id, &level, buf0, buf1) != 4) return -1;
+        if (!read_node_line(strm, old_id, level, buf0, buf1)) return -1;
         if (level < 1 || level > max_level) return -1;
         bddp lo = import_parse_arc(buf0, id_map);
         bddp hi = import_parse_arc(buf1, id_map);
@@ -232,49 +214,8 @@ static int import_core(FILE* strm, std::vector<bddp>& result,
     result.resize(output_count);
     for (unsigned i = 0; i < output_count; i++) {
         char ref[32];
-        if (std::fscanf(strm, " %31s", ref) != 1) return -1;
+        if (!read_token(strm, ref)) return -1;
         bddp r = import_parse_arc(ref, id_map);
-        if (r == bddnull) return -1;
-        result[i] = r;
-    }
-
-    return static_cast<int>(output_count);
-}
-
-static int import_core(std::istream& strm, std::vector<bddp>& result,
-                       import_nodefn_t make_node) {
-    std::string tag;
-    unsigned max_level, output_count, node_count;
-    if (!(strm >> tag >> max_level) || tag != "_i") return -1;
-    if (!(strm >> tag >> output_count) || tag != "_o") return -1;
-    if (!(strm >> tag >> node_count) || tag != "_n") return -1;
-
-    if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
-    if (node_count > IMPORT_MAX_NODE_COUNT) return -1;
-    if (output_count > IMPORT_MAX_OUTPUT_COUNT) return -1;
-
-    while (bddvarused() < max_level) bddnewvar();
-
-    std::unordered_map<uint64_t, bddp> id_map;
-    for (unsigned i = 0; i < node_count; i++) {
-        uint64_t old_id;
-        unsigned level;
-        std::string s0, s1;
-        if (!(strm >> old_id >> level >> s0 >> s1)) return -1;
-        if (level < 1 || level > max_level) return -1;
-        bddp lo = import_parse_arc(s0.c_str(), id_map);
-        bddp hi = import_parse_arc(s1.c_str(), id_map);
-        if (lo == bddnull || hi == bddnull) return -1;
-        bddvar var = bddvaroflev(level);
-        bddp new_node = make_node(var, lo, hi);
-        id_map[old_id] = new_node;
-    }
-
-    result.resize(output_count);
-    for (unsigned i = 0; i < output_count; i++) {
-        std::string ref;
-        if (!(strm >> ref)) return -1;
-        bddp r = import_parse_arc(ref.c_str(), id_map);
         if (r == bddnull) return -1;
         result[i] = r;
     }
