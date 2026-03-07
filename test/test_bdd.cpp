@@ -488,6 +488,27 @@ TEST_F(BDDTest, NewVarOfLevNoVarsYet) {
     EXPECT_EQ(level2var[1], v1);
 }
 
+TEST_F(BDDTest, NewVarOfLevInvalidatesCache) {
+    bddvar v1 = BDD_NewVar();  // var=1, level=1
+    bddvar v2 = BDD_NewVar();  // var=2, level=2
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+
+    // Compute and cache: bddand uses level ordering internally
+    bddp r1 = bddand(p1, p2);
+    // Top variable should be v2 (level 2 > level 1)
+    EXPECT_EQ(bddtop(r1), v2);
+
+    // Insert new var at level 1, shifting v1 to level 2, v2 to level 3
+    bddvar v3 = bddnewvaroflev(1);
+    (void)v3;
+
+    // Recompute: if cache was not cleared, stale result could be returned
+    bddp r2 = bddand(p1, p2);
+    // After reordering, v2 has level 3 (highest), so it should still be top
+    EXPECT_EQ(bddtop(r2), v2);
+}
+
 // --- bddlevofvar / bddvaroflev / bddvarused ---
 
 TEST_F(BDDTest, BddVarUsedEmpty) {

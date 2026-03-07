@@ -218,6 +218,16 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     }
 }
 
+static void bdd_cache_clear() {
+    if (bdd_cache_size == 0 || !bdd_cache) return;
+    for (uint64_t i = 0; i < bdd_cache_size; i++) {
+        bdd_cache[i].fop = 0;
+        bdd_cache[i].g = 0;
+        bdd_cache[i].h = 0;
+        bdd_cache[i].result = bddnull;
+    }
+}
+
 bddvar bddnewvar() {
     bdd_varcount++;
     bddvar var = bdd_varcount;
@@ -291,6 +301,9 @@ bddvar bddnewvaroflev(bddvar lev) {
     for (bddvar v = 1; v <= bdd_varcount; v++) {
         level2var[var2level[v]] = v;
     }
+
+    // Invalidate cache: level mapping changed, so cached results may be wrong
+    bdd_cache_clear();
 
     return new_var;
 }
