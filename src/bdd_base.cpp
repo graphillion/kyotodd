@@ -429,7 +429,7 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     if (bdd_node_used >= bdd_node_count) {
         node_array_grow();
         if (bdd_node_used >= bdd_node_count) {
-            return bddnull;
+            throw std::overflow_error("getnode: node table exhausted");
         }
     }
     bdd_node_used++;
@@ -459,7 +459,7 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     if (bdd_node_used >= bdd_node_count) {
         node_array_grow();
         if (bdd_node_used >= bdd_node_count) {
-            return bddnull;
+            throw std::overflow_error("getznode: node table exhausted");
         }
     }
     bdd_node_used++;
