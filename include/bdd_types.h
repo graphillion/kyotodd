@@ -92,7 +92,7 @@ static const uint8_t BDD_OP_CARD = 33;
 class BDD {
 public:
     bddp root;
-    BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
+    explicit BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
     BDD operator&(const BDD& other) const;
     BDD& operator&=(const BDD& other);
     BDD operator|(const BDD& other) const;
@@ -114,7 +114,7 @@ public:
 class ZDD {
 public:
     bddp root;
-    ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
+    explicit ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
 
     ZDD Change(bddvar var) const;
     ZDD Offset(bddvar var) const;
