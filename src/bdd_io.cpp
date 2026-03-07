@@ -159,26 +159,26 @@ static bool read_tag_uint(std::istream& strm, const char* tag, unsigned& val) {
 }
 
 static bool read_node_line(FILE* strm, uint64_t& id, unsigned& level,
-                            char* s0, char* s1) {
+                            char* s0, size_t, char* s1, size_t) {
     return std::fscanf(strm, " %" SCNu64 " %u %31s %31s",
                        &id, &level, s0, s1) == 4;
 }
 static bool read_node_line(std::istream& strm, uint64_t& id, unsigned& level,
-                            char* s0, char* s1) {
+                            char* s0, size_t s0size, char* s1, size_t s1size) {
     std::string ss0, ss1;
     if (!(strm >> id >> level >> ss0 >> ss1)) return false;
-    std::snprintf(s0, 32, "%s", ss0.c_str());
-    std::snprintf(s1, 32, "%s", ss1.c_str());
+    std::snprintf(s0, s0size, "%s", ss0.c_str());
+    std::snprintf(s1, s1size, "%s", ss1.c_str());
     return true;
 }
 
-static bool read_token(FILE* strm, char* buf) {
+static bool read_token(FILE* strm, char* buf, size_t) {
     return std::fscanf(strm, " %31s", buf) == 1;
 }
-static bool read_token(std::istream& strm, char* buf) {
+static bool read_token(std::istream& strm, char* buf, size_t bufsize) {
     std::string s;
     if (!(strm >> s)) return false;
-    std::snprintf(buf, 32, "%s", s.c_str());
+    std::snprintf(buf, bufsize, "%s", s.c_str());
     return true;
 }
 
@@ -201,7 +201,7 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
     for (unsigned i = 0; i < node_count; i++) {
         uint64_t old_id;
         unsigned level;
-        if (!read_node_line(strm, old_id, level, buf0, buf1)) return -1;
+        if (!read_node_line(strm, old_id, level, buf0, sizeof(buf0), buf1, sizeof(buf1))) return -1;
         if (level < 1 || level > max_level) return -1;
         bddp lo = import_parse_arc(buf0, id_map);
         bddp hi = import_parse_arc(buf1, id_map);
@@ -214,7 +214,7 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
     result.resize(output_count);
     for (unsigned i = 0; i < output_count; i++) {
         char ref[32];
-        if (!read_token(strm, ref)) return -1;
+        if (!read_token(strm, ref, sizeof(ref))) return -1;
         bddp r = import_parse_arc(ref, id_map);
         if (r == bddnull) return -1;
         result[i] = r;
