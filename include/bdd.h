@@ -67,6 +67,74 @@ inline BDD& BDD::operator>>=(bddvar shift) {
     return *this;
 }
 
+// BDD high-level member functions
+
+inline BDD BDD::At0(bddvar v) const {
+    BDD b(0);
+    b.root = bddat0(root, v);
+    return b;
+}
+
+inline BDD BDD::At1(bddvar v) const {
+    BDD b(0);
+    b.root = bddat1(root, v);
+    return b;
+}
+
+inline BDD BDD::Exist(const BDD& cube) const {
+    BDD b(0);
+    b.root = bddexist(root, cube.root);
+    return b;
+}
+
+inline BDD BDD::Exist(const std::vector<bddvar>& vars) const {
+    BDD b(0);
+    b.root = bddexist(root, vars);
+    return b;
+}
+
+inline BDD BDD::Univ(const BDD& cube) const {
+    BDD b(0);
+    b.root = bdduniv(root, cube.root);
+    return b;
+}
+
+inline BDD BDD::Univ(const std::vector<bddvar>& vars) const {
+    BDD b(0);
+    b.root = bdduniv(root, vars);
+    return b;
+}
+
+inline BDD BDD::Cofactor(const BDD& g) const {
+    BDD b(0);
+    b.root = bddcofactor(root, g.root);
+    return b;
+}
+
+inline BDD BDD::Support() const {
+    BDD b(0);
+    b.root = bddsupport(root);
+    return b;
+}
+
+inline std::vector<bddvar> BDD::SupportVec() const {
+    return bddsupport_vec(root);
+}
+
+inline int BDD::Imply(const BDD& g) const {
+    return bddimply(root, g.root);
+}
+
+inline uint64_t BDD::Size() const {
+    return bddsize(root);
+}
+
+inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
+    BDD b(0);
+    b.root = bddite(f.root, g.root, h.root);
+    return b;
+}
+
 // ZDD member functions
 
 inline ZDD ZDD::Change(bddvar var) const {
@@ -168,6 +236,78 @@ inline ZDD ZDD::operator%(const ZDD& other) const {
 inline ZDD& ZDD::operator%=(const ZDD& other) {
     root = bddremainder(root, other.root);
     return *this;
+}
+
+// ZDD high-level member functions
+
+inline ZDD ZDD::Maximal() const {
+    ZDD z(0);
+    z.root = bddmaximal(root);
+    return z;
+}
+
+inline ZDD ZDD::Minimal() const {
+    ZDD z(0);
+    z.root = bddminimal(root);
+    return z;
+}
+
+inline ZDD ZDD::Minhit() const {
+    ZDD z(0);
+    z.root = bddminhit(root);
+    return z;
+}
+
+inline ZDD ZDD::Closure() const {
+    ZDD z(0);
+    z.root = bddclosure(root);
+    return z;
+}
+
+inline uint64_t ZDD::Card() const {
+    return bddcard(root);
+}
+
+inline ZDD ZDD::Restrict(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bddrestrict(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Permit(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bddpermit(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Nonsup(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bddnonsup(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Nonsub(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bddnonsub(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Disjoin(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bdddisjoin(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Jointjoin(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bddjointjoin(root, g.root);
+    return z;
+}
+
+inline ZDD ZDD::Delta(const ZDD& g) const {
+    ZDD z(0);
+    z.root = bdddelta(root, g.root);
+    return z;
 }
 
 #endif

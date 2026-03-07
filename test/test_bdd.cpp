@@ -5136,3 +5136,229 @@ TEST_F(BDDTest, ExportImportVectorRoundtrip) {
     EXPECT_EQ(imported[2], bddtrue);
     EXPECT_EQ(imported[3], bddfalse);
 }
+
+// --- BDD class high-level member functions ---
+
+TEST_F(BDDTest, BDDClassAt0At1) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    EXPECT_EQ(f.At0(v1), BDD::False);
+    EXPECT_EQ(f.At1(v1).root, b.root);
+    EXPECT_EQ(f.At0(v2).root, BDD::False.root);
+    EXPECT_EQ(f.At1(v2).root, a.root);
+}
+
+TEST_F(BDDTest, BDDClassExist) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+
+    // Exist with cube
+    BDD cube(0);
+    cube.root = bddprime(v1);
+    EXPECT_EQ(f.Exist(cube).root, b.root);
+
+    // Exist with vector
+    std::vector<bddvar> vars = {v1};
+    EXPECT_EQ(f.Exist(vars).root, b.root);
+}
+
+TEST_F(BDDTest, BDDClassUniv) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a | b;
+
+    // Univ with cube
+    BDD cube(0);
+    cube.root = bddprime(v1);
+    EXPECT_EQ(f.Univ(cube).root, b.root);
+
+    // Univ with vector
+    std::vector<bddvar> vars = {v1};
+    EXPECT_EQ(f.Univ(vars).root, b.root);
+}
+
+TEST_F(BDDTest, BDDClassCofactor) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    EXPECT_EQ(f.Cofactor(a).root, b.root);
+}
+
+TEST_F(BDDTest, BDDClassSupport) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+
+    BDD sup = f.Support();
+    EXPECT_EQ(sup.root, bddsupport(f.root));
+
+    std::vector<bddvar> sv = f.SupportVec();
+    EXPECT_EQ(sv.size(), 2u);
+}
+
+TEST_F(BDDTest, BDDClassImply) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    EXPECT_EQ(f.Imply(a), 1);
+    EXPECT_EQ(a.Imply(f), 0);
+}
+
+TEST_F(BDDTest, BDDClassSize) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    EXPECT_EQ(f.Size(), bddsize(f.root));
+    EXPECT_EQ(BDD::True.Size(), 0u);
+}
+
+TEST_F(BDDTest, BDDClassIte) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+
+    // ITE(a, b, False) = a & b
+    BDD r = BDD::Ite(a, b, BDD::False);
+    EXPECT_EQ(r.root, (a & b).root);
+
+    // ITE(a, True, b) = a | b
+    BDD r2 = BDD::Ite(a, BDD::True, b);
+    EXPECT_EQ(r2.root, (a | b).root);
+}
+
+// --- ZDD class high-level member functions ---
+
+TEST_F(BDDTest, ZDDClassMaximalMinimal) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    // {∅, {1}, {2}, {1,2}} → maximal = {{1,2}}, minimal = {∅}
+    bddp z1 = bddchange(bddsingle, v1);  // {{1}}
+    bddp z2 = bddchange(bddsingle, v2);  // {{2}}
+    bddp z12 = bddchange(z1, v2);        // {{1,2}}
+    bddp all = bddunion(bddunion(bddunion(bddsingle, z1), z2), z12);
+
+    ZDD zall(0);
+    zall.root = all;
+    EXPECT_EQ(zall.Maximal().root, z12);
+    EXPECT_EQ(zall.Minimal().root, bddsingle);
+}
+
+TEST_F(BDDTest, ZDDClassMinhitClosure) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    // {{1}, {2}} → minhit = {{1,2}}
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp f = bddunion(z1, z2);
+
+    ZDD zf(0);
+    zf.root = f;
+    ZDD mh = zf.Minhit();
+    bddp z12 = bddchange(z1, v2);
+    EXPECT_EQ(mh.root, z12);
+
+    // closure of {{1}} = {∅, {1}}
+    ZDD z1w(0);
+    z1w.root = z1;
+    ZDD cl = z1w.Closure();
+    EXPECT_EQ(cl.root, bddclosure(z1));
+}
+
+TEST_F(BDDTest, ZDDClassCard) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp f = bddunion(bddunion(bddsingle, z1), z2);
+
+    ZDD zf(0);
+    zf.root = f;
+    EXPECT_EQ(zf.Card(), 3u);
+    EXPECT_EQ(ZDD::Empty.Card(), 0u);
+    EXPECT_EQ(ZDD::Single.Card(), 1u);
+}
+
+TEST_F(BDDTest, ZDDClassRestrictPermit) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp z12 = bddchange(z1, v2);
+    bddp f = bddunion(bddunion(z1, z2), z12);
+
+    ZDD zf(0);
+    zf.root = f;
+    ZDD zp(0);
+    zp.root = z1;  // permit set: {{1}}
+
+    ZDD restricted = zf.Restrict(zp);
+    EXPECT_EQ(restricted.root, bddrestrict(f, z1));
+
+    ZDD permitted = zf.Permit(zp);
+    EXPECT_EQ(permitted.root, bddpermit(f, z1));
+}
+
+TEST_F(BDDTest, ZDDClassNonsupNonsub) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp z12 = bddchange(z1, v2);
+    bddp f = bddunion(bddunion(z1, z2), z12);
+
+    ZDD zf(0);
+    zf.root = f;
+    ZDD zg(0);
+    zg.root = z12;
+
+    EXPECT_EQ(zf.Nonsup(zg).root, bddnonsup(f, z12));
+    EXPECT_EQ(zf.Nonsub(zg).root, bddnonsub(f, z12));
+}
+
+TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+
+    ZDD za(0);
+    za.root = z1;
+    ZDD zb(0);
+    zb.root = z2;
+
+    EXPECT_EQ(za.Disjoin(zb).root, bdddisjoin(z1, z2));
+    EXPECT_EQ(za.Jointjoin(zb).root, bddjointjoin(z1, z2));
+}
+
+TEST_F(BDDTest, ZDDClassDelta) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp z12 = bddchange(z1, v2);
+    bddp f = bddunion(z1, z12);
+
+    ZDD zf(0);
+    zf.root = f;
+    ZDD zg(0);
+    zg.root = z2;
+
+    EXPECT_EQ(zf.Delta(zg).root, bdddelta(f, z2));
+}

@@ -106,6 +106,20 @@ public:
     BDD& operator<<=(bddvar shift);
     BDD operator>>(bddvar shift) const;
     BDD& operator>>=(bddvar shift);
+
+    BDD At0(bddvar v) const;
+    BDD At1(bddvar v) const;
+    BDD Exist(const BDD& cube) const;
+    BDD Exist(const std::vector<bddvar>& vars) const;
+    BDD Univ(const BDD& cube) const;
+    BDD Univ(const std::vector<bddvar>& vars) const;
+    BDD Cofactor(const BDD& g) const;
+    BDD Support() const;
+    std::vector<bddvar> SupportVec() const;
+    int Imply(const BDD& g) const;
+    uint64_t Size() const;
+    static BDD Ite(const BDD& f, const BDD& g, const BDD& h);
+
     static const BDD False;
     static const BDD True;
     static const BDD Null;
@@ -137,6 +151,19 @@ public:
     ZDD& operator%=(const ZDD& other);
     bool operator==(const ZDD& other) const { return root == other.root; }
     bool operator!=(const ZDD& other) const { return root != other.root; }
+
+    ZDD Maximal() const;
+    ZDD Minimal() const;
+    ZDD Minhit() const;
+    ZDD Closure() const;
+    uint64_t Card() const;
+    ZDD Restrict(const ZDD& g) const;
+    ZDD Permit(const ZDD& g) const;
+    ZDD Nonsup(const ZDD& g) const;
+    ZDD Nonsub(const ZDD& g) const;
+    ZDD Disjoin(const ZDD& g) const;
+    ZDD Jointjoin(const ZDD& g) const;
+    ZDD Delta(const ZDD& g) const;
 
     static const ZDD Empty;
     static const ZDD Single;
