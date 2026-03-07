@@ -6,9 +6,9 @@
 #include <vector>
 #include "bdd_types.h"
 
-void bddexport(FILE* strm, bddp* p, int lim);
+void bddexport(FILE* strm, const bddp* p, int lim);
 void bddexport(FILE* strm, const std::vector<bddp>& v);
-void bddexport(std::ostream& strm, bddp* p, int lim);
+void bddexport(std::ostream& strm, const bddp* p, int lim);
 void bddexport(std::ostream& strm, const std::vector<bddp>& v);
 
 int bddimport(FILE* strm, bddp* p, int lim);

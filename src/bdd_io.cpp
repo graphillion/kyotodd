@@ -34,8 +34,7 @@ static void export_arc_str(bddp arc, char* buf, size_t bufsize) {
     } else if (arc == bddtrue) {
         buf[0] = 'T'; buf[1] = '\0';
     } else {
-        // Non-terminal: strip the KyotoDD constant flag is not set here.
-        // complement bit (bit 0) maps directly to odd/even in the output.
+        // Non-terminal: complement bit (bit 0) maps directly to odd/even in the output.
         bddp node = arc & ~BDD_COMP_FLAG;
         bool comp = (arc & BDD_COMP_FLAG) != 0;
         uint64_t id = comp ? (node | 1) : node;
@@ -51,7 +50,7 @@ static bool stream_valid(FILE* strm) { return strm != nullptr; }
 static bool stream_valid(std::ostream&) { return true; }
 
 template<typename Stream>
-static void export_core(Stream& strm, bddp* p, int lim) {
+static void export_core(Stream& strm, const bddp* p, int lim) {
     if (lim <= 0 || !p || !stream_valid(strm)) return;
     // Collect all nodes in post-order
     std::unordered_set<bddp> visited;
@@ -114,22 +113,20 @@ static void export_core(Stream& strm, bddp* p, int lim) {
     }
 }
 
-void bddexport(FILE* strm, bddp* p, int lim) {
+void bddexport(FILE* strm, const bddp* p, int lim) {
     export_core(strm, p, lim);
 }
 
 void bddexport(FILE* strm, const std::vector<bddp>& v) {
-    std::vector<bddp> tmp(v);
-    export_core(strm, tmp.data(), static_cast<int>(tmp.size()));
+    export_core(strm, v.data(), static_cast<int>(v.size()));
 }
 
-void bddexport(std::ostream& strm, bddp* p, int lim) {
+void bddexport(std::ostream& strm, const bddp* p, int lim) {
     export_core(strm, p, lim);
 }
 
 void bddexport(std::ostream& strm, const std::vector<bddp>& v) {
-    std::vector<bddp> tmp(v);
-    export_core(strm, tmp.data(), static_cast<int>(tmp.size()));
+    export_core(strm, v.data(), static_cast<int>(v.size()));
 }
 
 // --- bddimport / bddimportz ---
@@ -141,7 +138,9 @@ static bddp import_parse_arc(const char* s,
     if (s[0] == 'N') return bddnull;
     if (s[0] == 'F') return bddfalse;
     if (s[0] == 'T') return bddtrue;
-    uint64_t val = std::strtoull(s, nullptr, 10);
+    char* endptr;
+    uint64_t val = std::strtoull(s, &endptr, 10);
+    if (endptr == s) return bddnull;  // no digits parsed
     bool comp = (val & 1) != 0;
     uint64_t node_id = comp ? (val - 1) : val;
     std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(node_id);
@@ -175,6 +174,7 @@ static bool read_node_line(std::istream& strm, uint64_t& id, unsigned& level,
                             char* s0, char* s1) {
     std::string ss0, ss1;
     if (!(strm >> id >> level >> ss0 >> ss1)) return false;
+    if (ss0.size() > ARC_MAX_LEN || ss1.size() > ARC_MAX_LEN) return false;
     std::snprintf(s0, ARC_BUF_SIZE, "%s", ss0.c_str());
     std::snprintf(s1, ARC_BUF_SIZE, "%s", ss1.c_str());
     return true;
@@ -186,6 +186,7 @@ static bool read_token(FILE* strm, char* buf) {
 static bool read_token(std::istream& strm, char* buf) {
     std::string s;
     if (!(strm >> s)) return false;
+    if (s.size() > ARC_MAX_LEN) return false;
     std::snprintf(buf, ARC_BUF_SIZE, "%s", s.c_str());
     return true;
 }

@@ -247,15 +247,17 @@ bddvar bddnewvar() {
             bdd_varcount--;
             throw std::overflow_error("bddnewvar: allocation size overflow");
         }
+        // Attempt all three reallocs before committing any, so that a
+        // partial failure does not leave arrays with mismatched sizes.
         bddvar* new_v2l = static_cast<bddvar*>(std::realloc(var2level, sizeof(bddvar) * new_capacity));
         if (!new_v2l) { bdd_varcount--; throw std::bad_alloc(); }
-        var2level = new_v2l;
         bddvar* new_l2v = static_cast<bddvar*>(std::realloc(level2var, sizeof(bddvar) * new_capacity));
-        if (!new_l2v) { bdd_varcount--; throw std::bad_alloc(); }
-        level2var = new_l2v;
+        if (!new_l2v) { var2level = new_v2l; bdd_varcount--; throw std::bad_alloc(); }
         BddUniqueTable* new_ut = static_cast<BddUniqueTable*>(
             std::realloc(bdd_unique_tables, sizeof(BddUniqueTable) * new_capacity));
-        if (!new_ut) { bdd_varcount--; throw std::bad_alloc(); }
+        if (!new_ut) { var2level = new_v2l; level2var = new_l2v; bdd_varcount--; throw std::bad_alloc(); }
+        var2level = new_v2l;
+        level2var = new_l2v;
         bdd_unique_tables = new_ut;
         var_capacity = new_capacity;
         // Zero-initialize newly allocated regions
