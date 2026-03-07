@@ -423,6 +423,8 @@ std::vector<bddvar> bddsupport_vec(bddp f) {
 
 bddp bddexist(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    g = g & ~BDD_COMP_FLAG;
     // Terminal cases
     if (g == bddfalse) return f;    // no variables to quantify
     if (f == bddfalse) return bddfalse;
@@ -492,6 +494,8 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
 
 bddp bdduniv(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    g = g & ~BDD_COMP_FLAG;
     // Terminal cases
     if (g == bddfalse) return f;
     if (f == bddfalse) return bddfalse;

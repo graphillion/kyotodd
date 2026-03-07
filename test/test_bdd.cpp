@@ -1277,6 +1277,40 @@ TEST_F(BDDTest, BddExistXor) {
     EXPECT_EQ(bddexist(f, bddprime(v1)), bddtrue);
 }
 
+TEST_F(BDDTest, BddExistComplementedCube) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);  // v1 & v2
+    bddp cube = bddprime(v1);
+    // Complemented cube should give same result as non-complemented
+    EXPECT_EQ(bddexist(f, bddnot(cube)), bddexist(f, cube));
+}
+
+TEST_F(BDDTest, BddUnivComplementedCube) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);  // v1 | v2
+    bddp cube = bddprime(v1);
+    // Complemented cube should give same result as non-complemented
+    EXPECT_EQ(bdduniv(f, bddnot(cube)), bdduniv(f, cube));
+}
+
+TEST_F(BDDTest, BddExistComplementedMultiVarCube) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp f = bddand(bddand(p1, p2), p3);
+    bddp cube = bddsupport(f);  // {v1, v2, v3}
+    EXPECT_EQ(bddexist(f, bddnot(cube)), bddexist(f, cube));
+}
+
 TEST_F(BDDTest, BddExistAlwaysFalse) {
     bddvar v1 = BDD_NewVar();
     (void)BDD_NewVar();
