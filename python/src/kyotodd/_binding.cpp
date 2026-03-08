@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <sstream>
+#include <fstream>
 #include "bdd.h"
 
 namespace py = pybind11;
@@ -148,6 +150,37 @@ PYBIND11_MODULE(_core, m) {
         .def_static("ite", &BDD::Ite, py::arg("f"), py::arg("g"), py::arg("h"),
              "If-then-else: returns (f & g) | (~f & h).")
 
+        // I/O
+        .def("export_str", [](const BDD& b) -> std::string {
+            std::ostringstream oss;
+            bddp p = b.root;
+            bddexport(oss, &p, 1);
+            return oss.str();
+        }, "Export BDD to a string.")
+        .def_static("import_str", [](const std::string& s) -> BDD {
+            ensure_init();
+            std::istringstream iss(s);
+            bddp p;
+            int ret = bddimport(iss, &p, 1);
+            if (ret < 1) throw std::runtime_error("BDD import failed");
+            return BDD_ID(p);
+        }, py::arg("s"), "Import a BDD from a string.")
+        .def("export_file", [](const BDD& b, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            bddp p = b.root;
+            bddexport(ofs, &p, 1);
+        }, py::arg("path"), "Export BDD to a file.")
+        .def_static("import_file", [](const std::string& path) -> BDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            bddp p;
+            int ret = bddimport(ifs, &p, 1);
+            if (ret < 1) throw std::runtime_error("BDD import failed");
+            return BDD_ID(p);
+        }, py::arg("path"), "Import a BDD from a file.")
+
         .def_property_readonly("node_id", [](const BDD& b) { return b.root; })
         .def_property_readonly("size", &BDD::Size)
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
@@ -235,6 +268,41 @@ PYBIND11_MODULE(_core, m) {
              "Joint join.")
         .def("delta", &ZDD::Delta, py::arg("g"),
              "Delta operation.")
+
+        // I/O
+        .def("export_str", [](const ZDD& z) -> std::string {
+            std::ostringstream oss;
+            bddp p = z.root;
+            bddexport(oss, &p, 1);
+            return oss.str();
+        }, "Export ZDD to a string.")
+        .def_static("import_str", [](const std::string& s) -> ZDD {
+            ensure_init();
+            std::istringstream iss(s);
+            bddp p;
+            int ret = bddimportz(iss, &p, 1);
+            if (ret < 1) throw std::runtime_error("ZDD import failed");
+            ZDD z(0);
+            z.root = p;
+            return z;
+        }, py::arg("s"), "Import a ZDD from a string.")
+        .def("export_file", [](const ZDD& z, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            bddp p = z.root;
+            bddexport(ofs, &p, 1);
+        }, py::arg("path"), "Export ZDD to a file.")
+        .def_static("import_file", [](const std::string& path) -> ZDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            bddp p;
+            int ret = bddimportz(ifs, &p, 1);
+            if (ret < 1) throw std::runtime_error("ZDD import failed");
+            ZDD z(0);
+            z.root = p;
+            return z;
+        }, py::arg("path"), "Import a ZDD from a file.")
 
         .def_property_readonly("card", &ZDD::Card)
         .def_property_readonly("node_id", [](const ZDD& z) { return z.root; })
