@@ -189,6 +189,12 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     bdd_unique_tables = nullptr;
     bdd_node_used = 0;
 
+    // Reset GC state
+    bdd_gc_depth = 0;
+    bdd_free_list = 0;
+    bdd_free_count = 0;
+    gc_roots().clear();
+
     if (node_count == 0) node_count = 1;
     if (node_max == 0) node_max = 1;
     // Cap node_max so that node_id (= (node_used+1)*2) stays below BDD_CONST_FLAG
