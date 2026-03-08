@@ -379,8 +379,62 @@ double bddgc_getthreshold() {
     return bdd_gc_threshold;
 }
 
+static void bddgc_mark(bddp f, uint8_t* marks) {
+    if (f == bddnull) return;
+    if (f & BDD_CONST_FLAG) return;
+    bddp node_id = f & ~BDD_COMP_FLAG;
+    uint64_t idx = node_id / 2 - 1;
+    if (idx >= bdd_node_used) return;
+    if (marks[idx]) return;
+    marks[idx] = 1;
+    bddgc_mark(node_lo(node_id), marks);
+    bddgc_mark(node_hi(node_id), marks);
+}
+
 void bddgc() {
-    // TODO: implement in Step 3
+    if (bdd_gc_depth > 0) return;
+    if (bdd_node_used == 0) return;
+
+    // 1. Allocate mark array
+    uint8_t* marks = static_cast<uint8_t*>(std::calloc(bdd_node_used, 1));
+    if (!marks) return;
+
+    // 2. Mark reachable nodes from all registered roots
+    for (bddp* ptr : gc_roots()) {
+        bddgc_mark(*ptr, marks);
+    }
+
+    // 3. Clear all unique tables
+    for (bddvar v = 1; v <= bdd_varcount; v++) {
+        BddUniqueTable& t = bdd_unique_tables[v];
+        std::memset(t.slots, 0, t.capacity * sizeof(bddp));
+        t.count = 0;
+    }
+
+    // 4. Sweep: rebuild unique tables and free list
+    bdd_free_list = 0;
+    bdd_free_count = 0;
+    for (uint64_t i = 0; i < bdd_node_used; i++) {
+        bddp node_id = (i + 1) * 2;
+        if (marks[i]) {
+            // Live node: re-insert into unique table
+            bddvar var = node_var(node_id);
+            bddp lo = node_lo(node_id);
+            bddp hi = node_hi(node_id);
+            BDD_UniqueTableInsert(var, lo, hi, node_id);
+        } else {
+            // Dead node: add to free list
+            bdd_nodes[i].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
+    }
+
+    // 5. Clear operation cache
+    bdd_cache_clear();
+
+    // 6. Free mark array
+    std::free(marks);
 }
 
 static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
