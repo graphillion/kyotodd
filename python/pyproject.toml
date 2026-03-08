@@ -1,0 +1,16 @@
+[build-system]
+requires = ["scikit-build-core>=0.5", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "kyotodd"
+version = "0.1.0"
+description = "Python bindings for the KyotoDD BDD/ZDD library"
+requires-python = ">=3.7"
+
+[tool.scikit-build]
+cmake.source-dir = "."
+wheel.packages = ["src/kyotodd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
