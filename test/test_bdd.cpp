@@ -4922,9 +4922,11 @@ TEST_F(BDDTest, GetNodeThrowsWhenNodeMaxExhausted) {
     bddvar v2 = bddnewvar();
     // First prime uses 1 node — should succeed
     bddp p1 = bddprime(v1);
+    bddgc_protect(&p1);
     EXPECT_NE(p1, bddnull);
     // Second prime needs another node but max is reached — should throw
     EXPECT_THROW(bddprime(v2), std::overflow_error);
+    bddgc_unprotect(&p1);
 }
 
 TEST_F(BDDTest, GetZNodeThrowsWhenNodeMaxExhausted) {
@@ -4932,8 +4934,10 @@ TEST_F(BDDTest, GetZNodeThrowsWhenNodeMaxExhausted) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddp z1 = getznode(v1, bddempty, bddsingle);
+    bddgc_protect(&z1);
     EXPECT_NE(z1, bddnull);
     EXPECT_THROW(getznode(v2, bddempty, bddsingle), std::overflow_error);
+    bddgc_unprotect(&z1);
 }
 
 // --- Issue #2: bddnull propagation through all operations ---

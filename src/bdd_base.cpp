@@ -517,6 +517,40 @@ static void node_array_grow() {
     bdd_node_count = new_count;
 }
 
+static bddp allocate_node() {
+    // 1. Free list
+    if (bdd_free_list != 0) {
+        bddp node_id = bdd_free_list;
+        uint64_t idx = node_id / 2 - 1;
+        bdd_free_list = bdd_nodes[idx].data[0];
+        bdd_free_count--;
+        return node_id;
+    }
+    // 2. Extend array
+    if (bdd_node_used < bdd_node_count) {
+        bdd_node_used++;
+        return bdd_node_used * 2;
+    }
+    // 3. Grow array (realloc)
+    node_array_grow();
+    if (bdd_node_used < bdd_node_count) {
+        bdd_node_used++;
+        return bdd_node_used * 2;
+    }
+    // 4. GC as last resort (only at top level)
+    if (bdd_gc_depth == 0) {
+        bddgc();
+        if (bdd_free_list != 0) {
+            bddp node_id = bdd_free_list;
+            uint64_t idx = node_id / 2 - 1;
+            bdd_free_list = bdd_nodes[idx].data[0];
+            bdd_free_count--;
+            return node_id;
+        }
+    }
+    throw std::overflow_error("node table exhausted");
+}
+
 bddp getnode(bddvar var, bddp lo, bddp hi) {
     if (lo == hi) return lo;  // reduction rule
 
@@ -532,14 +566,7 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     if (found != 0) {
         return comp ? bddnot(found) : found;
     }
-    if (bdd_node_used >= bdd_node_count) {
-        node_array_grow();
-        if (bdd_node_used >= bdd_node_count) {
-            throw std::overflow_error("getnode: node table exhausted");
-        }
-    }
-    bdd_node_used++;
-    bddp node_id = bdd_node_used * 2;  // index = node_id/2 - 1 = bdd_node_used - 1
+    bddp node_id = allocate_node();
     node_write(node_id, var, lo, hi);
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
@@ -547,7 +574,14 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     try {
         BDD_UniqueTableInsert(var, lo, hi, node_id);
     } catch (...) {
-        bdd_node_used--;
+        if (node_id / 2 == bdd_node_used) {
+            bdd_node_used--;
+        } else {
+            uint64_t idx = node_id / 2 - 1;
+            bdd_nodes[idx].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
         throw;
     }
     return comp ? bddnot(node_id) : node_id;
@@ -567,14 +601,7 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     if (found != 0) {
         return comp ? bddnot(found) : found;
     }
-    if (bdd_node_used >= bdd_node_count) {
-        node_array_grow();
-        if (bdd_node_used >= bdd_node_count) {
-            throw std::overflow_error("getznode: node table exhausted");
-        }
-    }
-    bdd_node_used++;
-    bddp node_id = bdd_node_used * 2;
+    bddp node_id = allocate_node();
     node_write(node_id, var, lo, hi);
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
@@ -582,7 +609,14 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     try {
         BDD_UniqueTableInsert(var, lo, hi, node_id);
     } catch (...) {
-        bdd_node_used--;
+        if (node_id / 2 == bdd_node_used) {
+            bdd_node_used--;
+        } else {
+            uint64_t idx = node_id / 2 - 1;
+            bdd_nodes[idx].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
         throw;
     }
     return comp ? bddnot(node_id) : node_id;
