@@ -122,3 +122,110 @@ class TestBDDProperties:
         kyotodd.newvar()
         x = BDD.var(2)
         assert x.top_var == 2
+
+
+class TestBDDOperators:
+    def _make_vars(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        return BDD.var(1), BDD.var(2)
+
+    def test_and(self):
+        x, y = self._make_vars()
+        z = x & y
+        assert z != BDD.false_
+        assert z != x
+        assert z != y
+
+    def test_or(self):
+        x, y = self._make_vars()
+        z = x | y
+        assert z != BDD.false_
+        assert z != x
+        assert z != y
+
+    def test_xor(self):
+        x, y = self._make_vars()
+        z = x ^ y
+        assert z != BDD.false_
+
+    def test_not(self):
+        x, _ = self._make_vars()
+        nx = ~x
+        assert nx != x
+        # x & ~x == false
+        assert (x & nx) == BDD.false_
+        # x | ~x == true
+        assert (x | nx) == BDD.true_
+
+    def test_double_not(self):
+        x, _ = self._make_vars()
+        assert ~~x == x
+
+    def test_lshift(self):
+        x, _ = self._make_vars()
+        shifted = x << 1
+        assert shifted != x
+        assert shifted.top_var == x.top_var + 1
+
+    def test_rshift(self):
+        _, y = self._make_vars()
+        shifted = y >> 1
+        assert shifted != y
+        assert shifted.top_var == y.top_var - 1
+
+    def test_and_identity(self):
+        x, _ = self._make_vars()
+        assert (x & BDD.true_) == x
+        assert (x & BDD.false_) == BDD.false_
+
+    def test_or_identity(self):
+        x, _ = self._make_vars()
+        assert (x | BDD.false_) == x
+        assert (x | BDD.true_) == BDD.true_
+
+    def test_xor_self(self):
+        x, _ = self._make_vars()
+        assert (x ^ x) == BDD.false_
+
+    def test_de_morgan(self):
+        x, y = self._make_vars()
+        assert ~(x & y) == (~x | ~y)
+        assert ~(x | y) == (~x & ~y)
+
+
+class TestBDDCompoundAssignment:
+    def _make_vars(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        return BDD.var(1), BDD.var(2)
+
+    def test_iand(self):
+        x, y = self._make_vars()
+        expected = x & y
+        x &= y
+        assert x == expected
+
+    def test_ior(self):
+        x, y = self._make_vars()
+        expected = x | y
+        x |= y
+        assert x == expected
+
+    def test_ixor(self):
+        x, y = self._make_vars()
+        expected = x ^ y
+        x ^= y
+        assert x == expected
+
+    def test_ilshift(self):
+        x, _ = self._make_vars()
+        expected = x << 1
+        x <<= 1
+        assert x == expected
+
+    def test_irshift(self):
+        _, y = self._make_vars()
+        expected = y >> 1
+        y >>= 1
+        assert y == expected

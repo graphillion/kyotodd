@@ -98,6 +98,24 @@ PYBIND11_MODULE(_core, m) {
                 "Use == BDD.false_ or == BDD.true_ instead.");
         })
 
+        // Operators
+        .def("__and__",    [](const BDD& a, const BDD& b) { return a & b; })
+        .def("__or__",     [](const BDD& a, const BDD& b) { return a | b; })
+        .def("__xor__",    [](const BDD& a, const BDD& b) { return a ^ b; })
+        .def("__invert__", [](const BDD& a) { return ~a; })
+        .def("__lshift__", [](const BDD& a, bddvar s) { return a << s; })
+        .def("__rshift__", [](const BDD& a, bddvar s) { return a >> s; })
+        .def("__iand__",   [](BDD& a, const BDD& b) -> BDD& { a &= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__ior__",    [](BDD& a, const BDD& b) -> BDD& { a |= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__ixor__",   [](BDD& a, const BDD& b) -> BDD& { a ^= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__ilshift__",[](BDD& a, bddvar s) -> BDD& { a <<= s; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__irshift__",[](BDD& a, bddvar s) -> BDD& { a >>= s; return a; },
+             py::return_value_policy::reference_internal)
+
         .def_property_readonly("node_id", [](const BDD& b) { return b.root; })
         .def_property_readonly("size", &BDD::Size)
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
