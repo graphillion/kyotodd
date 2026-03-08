@@ -3,6 +3,33 @@
 
 #include "bdd_types.h"
 #include <stdexcept>
+#include <functional>
+
+// --- GC guard ---
+extern int bdd_gc_depth;
+void bddgc();
+bool bdd_should_gc();
+
+template<typename F>
+bddp bdd_gc_guard(F func) {
+    bool is_outermost = (bdd_gc_depth == 0);
+    if (is_outermost && bdd_should_gc()) bddgc();
+    for (int attempt = 0; ; attempt++) {
+        bdd_gc_depth++;
+        try {
+            bddp result = func();
+            bdd_gc_depth--;
+            return result;
+        } catch (std::overflow_error&) {
+            bdd_gc_depth--;
+            if (is_outermost && attempt == 0) {
+                bddgc();
+                continue;
+            }
+            throw;
+        }
+    }
+}
 
 // --- Node index validation ---
 // Node ID must be a valid non-terminal, even ID >= 2 with index < bdd_node_used.

@@ -43,7 +43,7 @@ static std::unordered_set<bddp*>& gc_roots() {
     static auto* instance = new std::unordered_set<bddp*>();
     return *instance;
 }
-static int bdd_gc_depth = 0;
+int bdd_gc_depth = 0;
 static bddp bdd_free_list = 0;
 static uint64_t bdd_free_count = 0;
 static double bdd_gc_threshold = 0.9;
@@ -435,6 +435,12 @@ void bddgc() {
 
     // 6. Free mark array
     std::free(marks);
+}
+
+bool bdd_should_gc() {
+    if (bdd_node_count < bdd_node_max) return false;
+    uint64_t live = bdd_node_used - bdd_free_count;
+    return live > static_cast<uint64_t>(bdd_node_max * bdd_gc_threshold);
 }
 
 static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {

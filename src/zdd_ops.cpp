@@ -2,11 +2,20 @@
 #include "bdd_internal.h"
 #include <stdexcept>
 
+static bddp bddoffset_rec(bddp f, bddvar var);
+
 bddp bddoffset(bddp f, bddvar var) {
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddoffset: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal cases
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddoffset_rec(f, var); });
+}
+
+static bddp bddoffset_rec(bddp f, bddvar var) {
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;
 
@@ -33,8 +42,8 @@ bddp bddoffset(bddp f, bddvar var) {
         result = f_lo;
     } else {
         // f_level > v_level: var is below, recurse into both branches
-        bddp lo = bddoffset(f_lo, var);
-        bddp hi = bddoffset(f_hi, var);
+        bddp lo = bddoffset_rec(f_lo, var);
+        bddp hi = bddoffset_rec(f_hi, var);
         result = getznode(f_var, lo, hi);
     }
 
@@ -42,11 +51,20 @@ bddp bddoffset(bddp f, bddvar var) {
     return result;
 }
 
+static bddp bddonset_rec(bddp f, bddvar var);
+
 bddp bddonset(bddp f, bddvar var) {
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddonset: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal cases: no sets contain any variable
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp { return bddonset_rec(f, var); });
+}
+
+static bddp bddonset_rec(bddp f, bddvar var) {
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -73,8 +91,8 @@ bddp bddonset(bddp f, bddvar var) {
         result = getznode(var, bddempty, f_hi);
     } else {
         // f_level > v_level: var is below, recurse into both branches
-        bddp lo = bddonset(f_lo, var);
-        bddp hi = bddonset(f_hi, var);
+        bddp lo = bddonset_rec(f_lo, var);
+        bddp hi = bddonset_rec(f_hi, var);
         result = getznode(f_var, lo, hi);
     }
 
@@ -82,11 +100,20 @@ bddp bddonset(bddp f, bddvar var) {
     return result;
 }
 
+static bddp bddonset0_rec(bddp f, bddvar var);
+
 bddp bddonset0(bddp f, bddvar var) {
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddonset0: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal cases: no sets contain any variable
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp { return bddonset0_rec(f, var); });
+}
+
+static bddp bddonset0_rec(bddp f, bddvar var) {
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -112,8 +139,8 @@ bddp bddonset0(bddp f, bddvar var) {
         result = f_hi;
     } else {
         // f_level > v_level: var is below, recurse into both branches
-        bddp lo = bddonset0(f_lo, var);
-        bddp hi = bddonset0(f_hi, var);
+        bddp lo = bddonset0_rec(f_lo, var);
+        bddp hi = bddonset0_rec(f_hi, var);
         result = getznode(f_var, lo, hi);
     }
 
@@ -121,11 +148,20 @@ bddp bddonset0(bddp f, bddvar var) {
     return result;
 }
 
+static bddp bddchange_rec(bddp f, bddvar var);
+
 bddp bddchange(bddp f, bddvar var) {
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddchange: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp { return bddchange_rec(f, var); });
+}
+
+static bddp bddchange_rec(bddp f, bddvar var) {
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return getznode(var, bddempty, bddsingle);  // {{}} → {{var}}
@@ -152,8 +188,8 @@ bddp bddchange(bddp f, bddvar var) {
         result = getznode(var, f_hi, f_lo);
     } else {
         // f_level > v_level: var is below, recurse into both branches
-        bddp lo = bddchange(f_lo, var);
-        bddp hi = bddchange(f_hi, var);
+        bddp lo = bddchange_rec(f_lo, var);
+        bddp hi = bddchange_rec(f_hi, var);
         result = getznode(f_var, lo, hi);
     }
 
@@ -161,8 +197,22 @@ bddp bddchange(bddp f, bddvar var) {
     return result;
 }
 
+static bddp bddunion_rec(bddp f, bddp g);
+
 bddp bddunion(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty) return g;
+    if (g == bddempty) return f;
+    if (f == g) return f;
+
+    // Normalize order (union is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddunion_rec(f, g); });
+}
+
+static bddp bddunion_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -207,16 +257,30 @@ bddp bddunion(bddp f, bddp g) {
         if (g_comp) { g_lo = bddnot(g_lo); }
     }
 
-    bddp lo = bddunion(f_lo, g_lo);
-    bddp hi = bddunion(f_hi, g_hi);
+    bddp lo = bddunion_rec(f_lo, g_lo);
+    bddp hi = bddunion_rec(f_hi, g_hi);
     bddp result = getznode(top_var, lo, hi);
 
     bddwcache(BDD_OP_UNION, f, g, result);
     return result;
 }
 
+static bddp bddintersec_rec(bddp f, bddp g);
+
 bddp bddintersec(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (f == g) return f;
+
+    // Normalize order (intersection is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddintersec_rec(f, g); });
+}
+
+static bddp bddintersec_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -245,18 +309,18 @@ bddp bddintersec(bddp f, bddp g) {
         // g has no sets containing f_var; only f's lo branch can match
         bddp f_lo = node_lo(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        result = bddintersec(f_lo, g);
+        result = bddintersec_rec(f_lo, g);
     } else if (g_level > f_level) {
         bddp g_lo = node_lo(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        result = bddintersec(f, g_lo);
+        result = bddintersec_rec(f, g_lo);
     } else {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        bddp lo = bddintersec(f_lo, g_lo);
-        bddp hi = bddintersec(f_hi, g_hi);
+        bddp lo = bddintersec_rec(f_lo, g_lo);
+        bddp hi = bddintersec_rec(f_hi, g_hi);
         result = getznode(f_var, lo, hi);
     }
 
@@ -264,8 +328,19 @@ bddp bddintersec(bddp f, bddp g) {
     return result;
 }
 
+static bddp bddsubtract_rec(bddp f, bddp g);
+
 bddp bddsubtract(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;
+    if (f == g) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp { return bddsubtract_rec(f, g); });
+}
+
+static bddp bddsubtract_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;
@@ -291,20 +366,20 @@ bddp bddsubtract(bddp f, bddp g) {
         // g has no sets containing f_var; hi branch of f is untouched
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        bddp lo = bddsubtract(f_lo, g);
+        bddp lo = bddsubtract_rec(f_lo, g);
         result = getznode(f_var, lo, f_hi);
     } else if (g_level > f_level) {
         // f has no sets containing g_var; subtract from g's lo branch
         bddp g_lo = node_lo(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        result = bddsubtract(f, g_lo);
+        result = bddsubtract_rec(f, g_lo);
     } else {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        bddp lo = bddsubtract(f_lo, g_lo);
-        bddp hi = bddsubtract(f_hi, g_hi);
+        bddp lo = bddsubtract_rec(f_lo, g_lo);
+        bddp hi = bddsubtract_rec(f_hi, g_hi);
         result = getznode(f_var, lo, hi);
     }
 
@@ -312,8 +387,19 @@ bddp bddsubtract(bddp f, bddp g) {
     return result;
 }
 
+static bddp bdddiv_rec(bddp f, bddp g);
+
 bddp bdddiv(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Base cases
+    if (g == bddsingle) return f;     // F / {∅} = F
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddempty;  // G contains non-empty sets
+
+    return bdd_gc_guard([&]() -> bddp { return bdddiv_rec(f, g); });
+}
+
+static bddp bdddiv_rec(bddp f, bddp g) {
     // Base cases
     if (g == bddsingle) return f;     // F / {∅} = F
     if (f == bddempty || g == bddempty) return bddempty;
@@ -340,8 +426,8 @@ bddp bdddiv(bddp f, bddp g) {
         bddp f_lo = node_lo(f);
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        bddp lo = bdddiv(f_lo, g);
-        bddp hi = bdddiv(f_hi, g);
+        bddp lo = bdddiv_rec(f_lo, g);
+        bddp hi = bdddiv_rec(f_hi, g);
         result = getznode(f_var, lo, hi);
     } else {
         // Same top variable
@@ -352,12 +438,13 @@ bddp bdddiv(bddp f, bddp g) {
         bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
 
-        bddp q1 = bdddiv(f_hi, g_hi);
+        bddp q1 = bdddiv_rec(f_hi, g_hi);
         if (g_lo == bddempty) {
             result = q1;
         } else {
-            bddp q0 = bdddiv(f_lo, g_lo);
-            result = bddintersec(q0, q1);
+            bddp q0 = bdddiv_rec(f_lo, g_lo);
+            // Use _rec for same-file call
+            result = bddintersec_rec(q0, q1);
         }
     }
 
@@ -365,8 +452,22 @@ bddp bdddiv(bddp f, bddp g) {
     return result;
 }
 
+static bddp bddsymdiff_rec(bddp f, bddp g);
+
 bddp bddsymdiff(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty) return g;
+    if (g == bddempty) return f;
+    if (f == g) return bddempty;
+
+    // Normalize order (symmetric difference is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddsymdiff_rec(f, g); });
+}
+
+static bddp bddsymdiff_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -410,16 +511,30 @@ bddp bddsymdiff(bddp f, bddp g) {
         if (g_comp) { g_lo = bddnot(g_lo); }
     }
 
-    bddp lo = bddsymdiff(f_lo, g_lo);
-    bddp hi = bddsymdiff(f_hi, g_hi);
+    bddp lo = bddsymdiff_rec(f_lo, g_lo);
+    bddp hi = bddsymdiff_rec(f_hi, g_hi);
     bddp result = getznode(top_var, lo, hi);
 
     bddwcache(BDD_OP_SYMDIFF, f, g, result);
     return result;
 }
 
+static bddp bddjoin_rec(bddp f, bddp g);
+
 bddp bddjoin(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;  // {∅} ⊔ G = G
+    if (g == bddsingle) return f;  // F ⊔ {∅} = F
+
+    // Normalize order (join is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddjoin_rec(f, g); });
+}
+
+static bddp bddjoin_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // {∅} ⊔ G = G
@@ -449,15 +564,15 @@ bddp bddjoin(bddp f, bddp g) {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         // G has no sets with top_var, so A∪B keeps top_var iff A had it
-        bddp lo = bddjoin(f_lo, g);
-        bddp hi = bddjoin(f_hi, g);
+        bddp lo = bddjoin_rec(f_lo, g);
+        bddp hi = bddjoin_rec(f_hi, g);
         result = getznode(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        bddp lo = bddjoin(f, g_lo);
-        bddp hi = bddjoin(f, g_hi);
+        bddp lo = bddjoin_rec(f, g_lo);
+        bddp hi = bddjoin_rec(f, g_hi);
         result = getznode(top_var, lo, hi);
     } else {
         // Same top variable v
@@ -469,11 +584,12 @@ bddp bddjoin(bddp f, bddp g) {
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
 
-        bddp lo = bddjoin(f_lo, g_lo);
-        bddp hi_a = bddjoin(f_lo, g_hi);
-        bddp hi_b = bddjoin(f_hi, g_lo);
-        bddp hi_c = bddjoin(f_hi, g_hi);
-        bddp hi = bddunion(bddunion(hi_a, hi_b), hi_c);
+        bddp lo = bddjoin_rec(f_lo, g_lo);
+        bddp hi_a = bddjoin_rec(f_lo, g_hi);
+        bddp hi_b = bddjoin_rec(f_hi, g_lo);
+        bddp hi_c = bddjoin_rec(f_hi, g_hi);
+        // Use _rec for same-file calls
+        bddp hi = bddunion_rec(bddunion_rec(hi_a, hi_b), hi_c);
         result = getznode(top_var, lo, hi);
     }
 
@@ -481,8 +597,22 @@ bddp bddjoin(bddp f, bddp g) {
     return result;
 }
 
+static bddp bddmeet_rec(bddp f, bddp g);
+
 bddp bddmeet(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;  // ∅ ∩ B = ∅ for all B
+    if (g == bddsingle) return bddsingle;
+
+    // Normalize order (meet is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddmeet_rec(f, g); });
+}
+
+static bddp bddmeet_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;  // ∅ ∩ B = ∅ for all B
@@ -511,11 +641,12 @@ bddp bddmeet(bddp f, bddp g) {
         // G has no sets with f_var; intersection removes f_var
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        result = bddunion(bddmeet(f_lo, g), bddmeet(f_hi, g));
+        // Use _rec for same-file calls
+        result = bddunion_rec(bddmeet_rec(f_lo, g), bddmeet_rec(f_hi, g));
     } else if (g_level > f_level) {
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        result = bddunion(bddmeet(f, g_lo), bddmeet(f, g_hi));
+        result = bddunion_rec(bddmeet_rec(f, g_lo), bddmeet_rec(f, g_hi));
     } else {
         // Same top variable v
         // lo: (F_lo ⊓ G_lo) ∪ (F_lo ⊓ G_hi) ∪ (F_hi ⊓ G_lo)
@@ -526,11 +657,11 @@ bddp bddmeet(bddp f, bddp g) {
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
 
-        bddp lo_a = bddmeet(f_lo, g_lo);
-        bddp lo_b = bddmeet(f_lo, g_hi);
-        bddp lo_c = bddmeet(f_hi, g_lo);
-        bddp lo = bddunion(bddunion(lo_a, lo_b), lo_c);
-        bddp hi = bddmeet(f_hi, g_hi);
+        bddp lo_a = bddmeet_rec(f_lo, g_lo);
+        bddp lo_b = bddmeet_rec(f_lo, g_hi);
+        bddp lo_c = bddmeet_rec(f_hi, g_lo);
+        bddp lo = bddunion_rec(bddunion_rec(lo_a, lo_b), lo_c);
+        bddp hi = bddmeet_rec(f_hi, g_hi);
         result = getznode(top_var, lo, hi);
     }
 
@@ -538,8 +669,22 @@ bddp bddmeet(bddp f, bddp g) {
     return result;
 }
 
+static bddp bdddelta_rec(bddp f, bddp g);
+
 bddp bdddelta(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;  // ∅ ⊕ B = B for all B
+    if (g == bddsingle) return f;
+
+    // Normalize order (delta is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bdddelta_rec(f, g); });
+}
+
+static bddp bdddelta_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // ∅ ⊕ B = B for all B
@@ -569,15 +714,15 @@ bddp bdddelta(bddp f, bddp g) {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         // G has no sets with f_var; A⊕B keeps f_var iff A had it
-        bddp lo = bdddelta(f_lo, g);
-        bddp hi = bdddelta(f_hi, g);
+        bddp lo = bdddelta_rec(f_lo, g);
+        bddp hi = bdddelta_rec(f_hi, g);
         result = getznode(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        bddp lo = bdddelta(f, g_lo);
-        bddp hi = bdddelta(f, g_hi);
+        bddp lo = bdddelta_rec(f, g_lo);
+        bddp hi = bdddelta_rec(f, g_hi);
         result = getznode(top_var, lo, hi);
     } else {
         // Same top variable v
@@ -590,12 +735,13 @@ bddp bdddelta(bddp f, bddp g) {
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
 
-        bddp lo_a = bdddelta(f_lo, g_lo);
-        bddp lo_b = bdddelta(f_hi, g_hi);
-        bddp lo = bddunion(lo_a, lo_b);
-        bddp hi_a = bdddelta(f_lo, g_hi);
-        bddp hi_b = bdddelta(f_hi, g_lo);
-        bddp hi = bddunion(hi_a, hi_b);
+        bddp lo_a = bdddelta_rec(f_lo, g_lo);
+        bddp lo_b = bdddelta_rec(f_hi, g_hi);
+        // Use _rec for same-file calls
+        bddp lo = bddunion_rec(lo_a, lo_b);
+        bddp hi_a = bdddelta_rec(f_lo, g_hi);
+        bddp hi_b = bdddelta_rec(f_hi, g_lo);
+        bddp hi = bddunion_rec(hi_a, hi_b);
         result = getznode(top_var, lo, hi);
     }
 
@@ -606,5 +752,9 @@ bddp bdddelta(bddp f, bddp g) {
 bddp bddremainder(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
     // F % G = F \ (G ⊔ (F / G))
-    return bddsubtract(f, bddjoin(g, bdddiv(f, g)));
+    return bdd_gc_guard([&]() -> bddp {
+        bddp q = bdddiv_rec(f, g);
+        bddp j = bddjoin_rec(g, q);
+        return bddsubtract_rec(f, j);
+    });
 }

@@ -4,8 +4,24 @@
 #include <stdexcept>
 #include <unordered_set>
 
+static bddp bddand_rec(bddp f, bddp g);
+
 bddp bddand(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddfalse || g == bddfalse) return bddfalse;
+    if (f == bddtrue) return g;
+    if (g == bddtrue) return f;
+    if (f == g) return f;
+    if (f == bddnot(g)) return bddfalse;
+
+    // Normalize operand order (AND is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+}
+
+static bddp bddand_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddfalse || g == bddfalse) return bddfalse;
     if (f == bddtrue) return g;
@@ -58,8 +74,8 @@ bddp bddand(bddp f, bddp g) {
     }
 
     // Recurse
-    bddp lo = bddand(f_lo, g_lo);
-    bddp hi = bddand(f_hi, g_hi);
+    bddp lo = bddand_rec(f_lo, g_lo);
+    bddp hi = bddand_rec(f_hi, g_hi);
 
     bddp result = getnode(top_var, lo, hi);
 
@@ -81,8 +97,22 @@ bddp bddnor(bddp f, bddp g) {
     return bddand(bddnot(f), bddnot(g));
 }
 
+static bddp bddxor_rec(bddp f, bddp g);
+
 bddp bddxor(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddfalse) return g;
+    if (f == bddtrue) return bddnot(g);
+    if (g == bddfalse) return f;
+    if (g == bddtrue) return bddnot(f);
+    if (f == g) return bddfalse;
+    if (f == bddnot(g)) return bddtrue;
+
+    return bdd_gc_guard([&]() -> bddp { return bddxor_rec(f, g); });
+}
+
+static bddp bddxor_rec(bddp f, bddp g) {
     // Terminal cases
     if (f == bddfalse) return g;
     if (f == bddtrue) return bddnot(g);
@@ -134,8 +164,8 @@ bddp bddxor(bddp f, bddp g) {
     }
 
     // Recurse
-    bddp lo = bddxor(f_lo, g_lo);
-    bddp hi = bddxor(f_hi, g_hi);
+    bddp lo = bddxor_rec(f_lo, g_lo);
+    bddp hi = bddxor_rec(f_hi, g_hi);
 
     bddp result = getnode(top_var, lo, hi);
 
@@ -148,6 +178,8 @@ bddp bddxor(bddp f, bddp g) {
 bddp bddxnor(bddp f, bddp g) {
     return bddnot(bddxor(f, g));
 }
+
+static bddp bddite_rec(bddp f, bddp g, bddp h);
 
 bddp bddite(bddp f, bddp g, bddp h) {
     if (f == bddnull || g == bddnull || h == bddnull) return bddnull;
@@ -163,6 +195,24 @@ bddp bddite(bddp f, bddp g, bddp h) {
     if (g == bddfalse) return bddand(bddnot(f), h);
     if (h == bddfalse) return bddand(f, g);
     if (h == bddtrue) return bddor(bddnot(f), g);
+
+    return bdd_gc_guard([&]() -> bddp { return bddite_rec(f, g, h); });
+}
+
+static bddp bddite_rec(bddp f, bddp g, bddp h) {
+    // Terminal cases for f
+    if (f == bddtrue) return g;
+    if (f == bddfalse) return h;
+
+    // g == h
+    if (g == h) return g;
+
+    // Reduction to 2-operand when g or h is terminal
+    // Use _rec versions for same-file calls
+    if (g == bddtrue) return bddnot(bddand_rec(bddnot(f), bddnot(h)));
+    if (g == bddfalse) return bddand_rec(bddnot(f), h);
+    if (h == bddfalse) return bddand_rec(f, g);
+    if (h == bddtrue) return bddnot(bddand_rec(f, bddnot(g)));
 
     // All three are non-terminal at this point
 
@@ -230,8 +280,8 @@ bddp bddite(bddp f, bddp g, bddp h) {
     }
 
     // Recurse
-    bddp lo = bddite(f_lo, g_lo, h_lo);
-    bddp hi = bddite(f_hi, g_hi, h_hi);
+    bddp lo = bddite_rec(f_lo, g_lo, h_lo);
+    bddp hi = bddite_rec(f_hi, g_hi, h_hi);
 
     bddp result = getnode(top_var, lo, hi);
 
@@ -241,11 +291,20 @@ bddp bddite(bddp f, bddp g, bddp h) {
     return comp ? bddnot(result) : result;
 }
 
+static bddp bddat0_rec(bddp f, bddvar v);
+
 bddp bddat0(bddp f, bddvar v) {
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddat0: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal case
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddat0_rec(f, v); });
+}
+
+static bddp bddat0_rec(bddp f, bddvar v) {
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -272,8 +331,8 @@ bddp bddat0(bddp f, bddvar v) {
         bddp f_lo = node_lo(f);
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
-        bddp lo = bddat0(f_lo, v);
-        bddp hi = bddat0(f_hi, v);
+        bddp lo = bddat0_rec(f_lo, v);
+        bddp hi = bddat0_rec(f_hi, v);
         result = getnode(f_var, lo, hi);
     }
 
@@ -281,11 +340,20 @@ bddp bddat0(bddp f, bddvar v) {
     return result;
 }
 
+static bddp bddat1_rec(bddp f, bddvar v);
+
 bddp bddat1(bddp f, bddvar v) {
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddat1: var out of range");
     }
     if (f == bddnull) return bddnull;
+    // Terminal case
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddat1_rec(f, v); });
+}
+
+static bddp bddat1_rec(bddp f, bddvar v) {
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -312,8 +380,8 @@ bddp bddat1(bddp f, bddvar v) {
         bddp f_lo = node_lo(f);
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
-        bddp lo = bddat1(f_lo, v);
-        bddp hi = bddat1(f_hi, v);
+        bddp lo = bddat1_rec(f_lo, v);
+        bddp hi = bddat1_rec(f_hi, v);
         result = getnode(f_var, lo, hi);
     }
 
@@ -389,23 +457,25 @@ bddp bddsupport(bddp f) {
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddfalse;
 
-    // Collect all variables appearing in f
-    std::unordered_set<bddvar> var_set;
-    std::unordered_set<bddp> visited;
-    bddsupport_collect(f, var_set, visited);
+    return bdd_gc_guard([&]() -> bddp {
+        // Collect all variables appearing in f
+        std::unordered_set<bddvar> var_set;
+        std::unordered_set<bddp> visited;
+        bddsupport_collect(f, var_set, visited);
 
-    // Sort by level ascending (lowest level first)
-    std::vector<bddvar> vars(var_set.begin(), var_set.end());
-    std::sort(vars.begin(), vars.end(), [](bddvar a, bddvar b) {
-        return var2level[a] < var2level[b];
+        // Sort by level ascending (lowest level first)
+        std::vector<bddvar> vars(var_set.begin(), var_set.end());
+        std::sort(vars.begin(), vars.end(), [](bddvar a, bddvar b) {
+            return var2level[a] < var2level[b];
+        });
+
+        // Build chain bottom-up: each node has lo=chain, hi=bddtrue
+        bddp result = bddfalse;
+        for (size_t i = 0; i < vars.size(); i++) {
+            result = getnode(vars[i], result, bddtrue);
+        }
+        return result;
     });
-
-    // Build chain bottom-up: each node has lo=chain, hi=bddtrue
-    bddp result = bddfalse;
-    for (size_t i = 0; i < vars.size(); i++) {
-        result = getnode(vars[i], result, bddtrue);
-    }
-    return result;
 }
 
 std::vector<bddvar> bddsupport_vec(bddp f) {
@@ -424,8 +494,21 @@ std::vector<bddvar> bddsupport_vec(bddp f) {
     return vars;
 }
 
+static bddp bddexist_rec(bddp f, bddp g);
+
 bddp bddexist(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    g = g & ~BDD_COMP_FLAG;
+    // Terminal cases
+    if (g == bddfalse) return f;    // no variables to quantify
+    if (f == bddfalse) return bddfalse;
+    if (f == bddtrue) return bddtrue;
+
+    return bdd_gc_guard([&]() -> bddp { return bddexist_rec(f, g); });
+}
+
+static bddp bddexist_rec(bddp f, bddp g) {
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
     // Terminal cases
@@ -448,14 +531,14 @@ bddp bddexist(bddp f, bddp g) {
 
     if (g_level > f_level) {
         // g's top variable does not appear in f, skip it
-        result = bddexist(f, node_lo(g));
+        result = bddexist_rec(f, node_lo(g));
     } else if (f_level > g_level) {
         // f's top variable is not being quantified, keep it
         bddp f_lo = node_lo(f);
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
-        bddp lo = bddexist(f_lo, g);
-        bddp hi = bddexist(f_hi, g);
+        bddp lo = bddexist_rec(f_lo, g);
+        bddp hi = bddexist_rec(f_hi, g);
         result = getnode(f_var, lo, hi);
     } else {
         // Same variable: quantify it out
@@ -464,9 +547,10 @@ bddp bddexist(bddp f, bddp g) {
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp g_rest = node_lo(g);
-        bddp lo_r = bddexist(f_lo, g_rest);
-        bddp hi_r = bddexist(f_hi, g_rest);
-        result = bddor(lo_r, hi_r);
+        bddp lo_r = bddexist_rec(f_lo, g_rest);
+        bddp hi_r = bddexist_rec(f_hi, g_rest);
+        // bddor = ~bddand(~a, ~b), use _rec for same-file call
+        result = bddnot(bddand_rec(bddnot(lo_r), bddnot(hi_r)));
     }
 
     bddwcache(BDD_OP_EXIST, f, g, result);
@@ -492,15 +576,32 @@ static bddp vars_to_cube(const std::vector<bddvar>& vars) {
 }
 
 bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
-    return bddexist(f, vars_to_cube(vars));
+    if (f == bddnull) return bddnull;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp cube = vars_to_cube(vars);
+        return bddexist_rec(f, cube);
+    });
 }
 
 bddp bddexistvar(bddp f, bddvar v) {
     return bddexist(f, bddprime(v));
 }
 
+static bddp bdduniv_rec(bddp f, bddp g);
+
 bddp bdduniv(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    g = g & ~BDD_COMP_FLAG;
+    // Terminal cases
+    if (g == bddfalse) return f;
+    if (f == bddfalse) return bddfalse;
+    if (f == bddtrue) return bddtrue;
+
+    return bdd_gc_guard([&]() -> bddp { return bdduniv_rec(f, g); });
+}
+
+static bddp bdduniv_rec(bddp f, bddp g) {
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
     // Terminal cases
@@ -523,14 +624,14 @@ bddp bdduniv(bddp f, bddp g) {
 
     if (g_level > f_level) {
         // g's top variable does not appear in f, skip it
-        result = bdduniv(f, node_lo(g));
+        result = bdduniv_rec(f, node_lo(g));
     } else if (f_level > g_level) {
         // f's top variable is not being quantified, keep it
         bddp f_lo = node_lo(f);
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
-        bddp lo = bdduniv(f_lo, g);
-        bddp hi = bdduniv(f_hi, g);
+        bddp lo = bdduniv_rec(f_lo, g);
+        bddp hi = bdduniv_rec(f_hi, g);
         result = getnode(f_var, lo, hi);
     } else {
         // Same variable: quantify it universally
@@ -539,9 +640,10 @@ bddp bdduniv(bddp f, bddp g) {
         bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp g_rest = node_lo(g);
-        bddp lo_r = bdduniv(f_lo, g_rest);
-        bddp hi_r = bdduniv(f_hi, g_rest);
-        result = bddand(lo_r, hi_r);
+        bddp lo_r = bdduniv_rec(f_lo, g_rest);
+        bddp hi_r = bdduniv_rec(f_hi, g_rest);
+        // Use _rec for same-file call
+        result = bddand_rec(lo_r, hi_r);
     }
 
     bddwcache(BDD_OP_UNIV, f, g, result);
@@ -549,7 +651,11 @@ bddp bdduniv(bddp f, bddp g) {
 }
 
 bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
-    return bdduniv(f, vars_to_cube(vars));
+    if (f == bddnull) return bddnull;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp cube = vars_to_cube(vars);
+        return bdduniv_rec(f, cube);
+    });
 }
 
 bddp bddunivvar(bddp f, bddvar v) {
@@ -589,25 +695,27 @@ bddp bddlshift(bddp f, bddvar shift) {
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
-    // Ensure variables exist up to the required level for all variables in f
-    std::unordered_set<bddvar> var_set;
-    std::unordered_set<bddp> visited;
-    bddsupport_collect(f, var_set, visited);
-    uint64_t max_level64 = 0;
-    for (std::unordered_set<bddvar>::iterator it = var_set.begin();
-         it != var_set.end(); ++it) {
-        uint64_t lev = static_cast<uint64_t>(var2level[*it]) + shift;
-        if (lev > max_level64) max_level64 = lev;
-    }
-    if (max_level64 > static_cast<uint64_t>(UINT32_MAX)) {
-        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
-    }
-    bddvar max_level = static_cast<bddvar>(max_level64);
-    while (bdd_varcount < max_level) {
-        bddnewvar();
-    }
+    return bdd_gc_guard([&]() -> bddp {
+        // Ensure variables exist up to the required level for all variables in f
+        std::unordered_set<bddvar> var_set;
+        std::unordered_set<bddp> visited;
+        bddsupport_collect(f, var_set, visited);
+        uint64_t max_level64 = 0;
+        for (std::unordered_set<bddvar>::iterator it = var_set.begin();
+             it != var_set.end(); ++it) {
+            uint64_t lev = static_cast<uint64_t>(var2level[*it]) + shift;
+            if (lev > max_level64) max_level64 = lev;
+        }
+        if (max_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+            throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+        }
+        bddvar max_level = static_cast<bddvar>(max_level64);
+        while (bdd_varcount < max_level) {
+            bddnewvar();
+        }
 
-    return bddlshift_rec(f, shift);
+        return bddlshift_rec(f, shift);
+    });
 }
 
 static bddp bddrshift_rec(bddp f, bddvar shift) {
@@ -640,22 +748,37 @@ bddp bddrshift(bddp f, bddvar shift) {
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
-    // Pre-check: all variable levels must be greater than shift
-    std::unordered_set<bddvar> var_set;
-    std::unordered_set<bddp> visited;
-    bddsupport_collect(f, var_set, visited);
-    for (std::unordered_set<bddvar>::iterator it = var_set.begin();
-         it != var_set.end(); ++it) {
-        if (var2level[*it] <= shift) {
-            throw std::invalid_argument("bddrshift: shift exceeds minimum variable level");
+    return bdd_gc_guard([&]() -> bddp {
+        // Pre-check: all variable levels must be greater than shift
+        std::unordered_set<bddvar> var_set;
+        std::unordered_set<bddp> visited;
+        bddsupport_collect(f, var_set, visited);
+        for (std::unordered_set<bddvar>::iterator it = var_set.begin();
+             it != var_set.end(); ++it) {
+            if (var2level[*it] <= shift) {
+                throw std::invalid_argument("bddrshift: shift exceeds minimum variable level");
+            }
         }
-    }
 
-    return bddrshift_rec(f, shift);
+        return bddrshift_rec(f, shift);
+    });
 }
+
+static bddp bddcofactor_rec(bddp f, bddp g);
 
 bddp bddcofactor(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f & BDD_CONST_FLAG) return f;   // f is constant
+    if (g == bddfalse) return bddfalse; // care region is empty
+    if (f == bddnot(g)) return bddfalse; // f=0 wherever g=1
+    if (f == g) return bddtrue;          // f=1 wherever g=1
+    if (g == bddtrue) return f;          // no don't care region
+
+    return bdd_gc_guard([&]() -> bddp { return bddcofactor_rec(f, g); });
+}
+
+static bddp bddcofactor_rec(bddp f, bddp g) {
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;   // f is constant
     if (g == bddfalse) return bddfalse; // care region is empty
@@ -700,13 +823,13 @@ bddp bddcofactor(bddp f, bddp g) {
 
     if (g_lo == bddfalse && g_hi != bddfalse) {
         // Low branch is entirely don't care
-        result = bddcofactor(f_hi, g_hi);
+        result = bddcofactor_rec(f_hi, g_hi);
     } else if (g_hi == bddfalse && g_lo != bddfalse) {
         // High branch is entirely don't care
-        result = bddcofactor(f_lo, g_lo);
+        result = bddcofactor_rec(f_lo, g_lo);
     } else {
-        bddp lo = bddcofactor(f_lo, g_lo);
-        bddp hi = bddcofactor(f_hi, g_hi);
+        bddp lo = bddcofactor_rec(f_lo, g_lo);
+        bddp hi = bddcofactor_rec(f_hi, g_hi);
         result = getnode(top_var, lo, hi);
     }
 
