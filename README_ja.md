@@ -73,8 +73,7 @@ cmake --build .
 ### Python
 
 ```bash
-cd kyotodd/python
-pip install .
+pip install git+https://github.com/graphillion/kyotodd.git#subdirectory=python
 ```
 
 要件: Python >= 3.7, CMake >= 3.14, C++11 コンパイラ

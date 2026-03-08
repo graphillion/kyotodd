@@ -37,18 +37,18 @@ Python Package
 --------------
 
 The Python package uses `scikit-build-core <https://scikit-build-core.readthedocs.io/>`_
-with pybind11. Install directly from the source tree:
+with pybind11. Install directly from GitHub:
 
 .. code-block:: bash
 
-   cd KyotoDD/python
-   pip install .
+   pip install git+https://github.com/graphillion/kyotodd.git#subdirectory=python
 
-Or install in editable (development) mode:
+Or install from a local clone in editable (development) mode:
 
 .. code-block:: bash
 
-   cd KyotoDD/python
+   git clone https://github.com/graphillion/kyotodd.git
+   cd kyotodd/python
    pip install -e .
 
 Requirements:
