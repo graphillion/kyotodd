@@ -204,10 +204,39 @@ PYBIND11_MODULE(_core, m) {
         .def("__imod__",     [](ZDD& a, const ZDD& b) -> ZDD& { a %= b; return a; },
              py::return_value_policy::reference_internal)
 
-        // Basic methods (needed to construct ZDD families)
+        // Methods
         .def("change", &ZDD::Change, py::arg("v"),
              "Toggle membership of variable v.")
+        .def("offset", &ZDD::Offset, py::arg("v"),
+             "Remove variable v from all sets.")
+        .def("onset", &ZDD::OnSet, py::arg("v"),
+             "Select sets containing variable v, then remove v.")
+        .def("onset0", &ZDD::OnSet0, py::arg("v"),
+             "Select sets not containing variable v.")
+        .def("maximal", &ZDD::Maximal,
+             "Return maximal sets (no proper superset in the family).")
+        .def("minimal", &ZDD::Minimal,
+             "Return minimal sets (no proper subset in the family).")
+        .def("minhit", &ZDD::Minhit,
+             "Return minimum hitting sets.")
+        .def("closure", &ZDD::Closure,
+             "Return the downward closure.")
+        .def("restrict", &ZDD::Restrict, py::arg("g"),
+             "Restrict to sets that are subsets of some set in g.")
+        .def("permit", &ZDD::Permit, py::arg("g"),
+             "Permit: keep sets whose elements are permitted by g.")
+        .def("nonsup", &ZDD::Nonsup, py::arg("g"),
+             "Remove sets that are supersets of some set in g.")
+        .def("nonsub", &ZDD::Nonsub, py::arg("g"),
+             "Remove sets that are subsets of some set in g.")
+        .def("disjoin", &ZDD::Disjoin, py::arg("g"),
+             "Disjoint product.")
+        .def("jointjoin", &ZDD::Jointjoin, py::arg("g"),
+             "Joint join.")
+        .def("delta", &ZDD::Delta, py::arg("g"),
+             "Delta operation.")
 
+        .def_property_readonly("card", &ZDD::Card)
         .def_property_readonly("node_id", [](const ZDD& z) { return z.root; })
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.root);
