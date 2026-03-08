@@ -89,10 +89,35 @@ static const uint8_t BDD_OP_MINHIT = 31;
 static const uint8_t BDD_OP_CLOSURE = 32;
 static const uint8_t BDD_OP_CARD = 33;
 
+// Forward declarations for GC root registration (defined in bdd_base.h)
+void bddgc_protect(bddp* p);
+void bddgc_unprotect(bddp* p);
+
 class BDD {
 public:
     bddp root;
-    explicit BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {}
+    explicit BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {
+        bddgc_protect(&root);
+    }
+    BDD(const BDD& other) : root(other.root) {
+        bddgc_protect(&root);
+    }
+    BDD(BDD&& other) : root(other.root) {
+        bddgc_protect(&root);
+        other.root = bddnull;
+    }
+    ~BDD() {
+        bddgc_unprotect(&root);
+    }
+    BDD& operator=(const BDD& other) {
+        root = other.root;
+        return *this;
+    }
+    BDD& operator=(BDD&& other) {
+        root = other.root;
+        other.root = bddnull;
+        return *this;
+    }
     BDD operator&(const BDD& other) const;
     BDD& operator&=(const BDD& other);
     BDD operator|(const BDD& other) const;
@@ -130,7 +155,28 @@ public:
 class ZDD {
 public:
     bddp root;
-    explicit ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {}
+    explicit ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {
+        bddgc_protect(&root);
+    }
+    ZDD(const ZDD& other) : root(other.root) {
+        bddgc_protect(&root);
+    }
+    ZDD(ZDD&& other) : root(other.root) {
+        bddgc_protect(&root);
+        other.root = bddnull;
+    }
+    ~ZDD() {
+        bddgc_unprotect(&root);
+    }
+    ZDD& operator=(const ZDD& other) {
+        root = other.root;
+        return *this;
+    }
+    ZDD& operator=(ZDD&& other) {
+        root = other.root;
+        other.root = bddnull;
+        return *this;
+    }
 
     ZDD Change(bddvar var) const;
     ZDD Offset(bddvar var) const;
