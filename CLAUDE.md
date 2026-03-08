@@ -66,6 +66,45 @@ A complement edge toggles membership of the empty set (∅) in the family. Since
 - Normalization: if lo has bit 0 set, strip it from lo (hi is unchanged), and set bit 0 on the returned node ID.
 - When traversing a ZDD node with a complement edge, apply `bddnot` to **lo only**; hi stays unchanged.
 
+## Garbage Collection (GC)
+
+Mark-and-sweep GC with free list reuse. Dead nodes are reclaimed without changing live node IDs.
+
+### Architecture
+
+- **Mark phase**: Traverse all registered GC roots, mark reachable nodes recursively.
+- **Sweep phase**: Rebuild unique tables from live nodes. Dead nodes go to a free list. Cache is cleared.
+- **Free list**: Dead node slots are linked via `data[0]`. New node allocation checks free list first.
+
+### Node allocation priority
+
+1. Free list (fastest — reuse dead node slot)
+2. Array extend (`bdd_node_used++`, space available within capacity)
+3. Array grow (realloc to double capacity, up to `bdd_node_max`)
+4. GC (last resort — only when array cannot grow further)
+5. `std::overflow_error` if GC cannot free enough
+
+### GC API
+
+- `bddgc()` — Manual GC invocation. No-op if `bdd_gc_depth > 0`.
+- `bddgc_protect(bddp* p)` / `bddgc_unprotect(bddp* p)` — Register/unregister a raw `bddp` pointer as a GC root.
+- `bddgc_setthreshold(double)` / `bddgc_getthreshold()` — GC threshold (default 0.9). GC triggers when live nodes exceed `bdd_node_max * threshold` and array is at max capacity.
+- `bddlive()` — Number of live nodes (`bdd_node_used - bdd_free_count`).
+
+### `_rec` separation pattern
+
+Each recursive operation is split into a public wrapper and a static `_rec` function:
+
+- **Public wrapper** (e.g. `bddand`): Handles terminal fast-path checks, normalization (argument swap), then wraps the core logic in `bdd_gc_guard(...)`.
+- **`_rec` function** (e.g. `bddand_rec`): Contains the actual recursive logic with cache lookup, cofactoring, and recursive calls. Uses `_rec` directly for same-file calls (zero overhead). Cross-file calls go through public wrappers.
+- **`bdd_gc_guard` template** (`include/bdd_internal.h`): At outermost level (`bdd_gc_depth == 0`): pre-checks GC, increments depth, executes lambda, catches `overflow_error` for retry. At depth > 0: just increments/decrements depth.
+
+### BDD/ZDD class auto-protection
+
+- BDD/ZDD constructors call `bddgc_protect(&root)`, destructors call `bddgc_unprotect(&root)`.
+- Copy/move constructors register the new object's `&root`. Assignment operators only update the value.
+- `gc_roots()` uses a leaked singleton (`new std::unordered_set<bddp*>()`) to avoid static initialization/destruction order issues.
+
 ## BDD class
 
 - `BDD` class has a single member `root` (uint64_t): the root node ID.
