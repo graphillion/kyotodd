@@ -312,3 +312,96 @@ class TestBDDMethods:
         f = x & y
         # higher level = closer to root; var 2 is at level 2
         assert f.top_var == 2
+
+
+class TestBDDQuantification:
+    def _make_vars(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        kyotodd.newvar()
+        return BDD.var(1), BDD.var(2), BDD.var(3)
+
+    def test_exist_single_var(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # exist x. (x & y) = y
+        assert f.exist(1) == y
+
+    def test_exist_var_list(self):
+        x, y, z = self._make_vars()
+        f = x & y & z
+        # exist [x, y]. (x & y & z) = z
+        assert f.exist([1, 2]) == z
+
+    def test_exist_cube(self):
+        x, y, z = self._make_vars()
+        f = x & y & z
+        # cube-based exist should match var-list-based exist
+        result_list = f.exist([1, 2])
+        result_cube = f.exist(x.support())  # single-var cube
+        assert result_cube == f.exist(1)
+
+    def test_exist_all_vars(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # exist [x, y]. (x & y) = true
+        assert f.exist([1, 2]) == BDD.true_
+
+    def test_exist_no_effect(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # exist z. (x & y) = x & y (z not in support)
+        assert f.exist(3) == f
+
+    def test_univ_single_var(self):
+        x, y, _ = self._make_vars()
+        f = x | y
+        # forall x. (x | y) = y
+        assert f.univ(1) == y
+
+    def test_univ_var_list(self):
+        x, y, _ = self._make_vars()
+        f = x | y
+        # forall [x, y]. (x | y) = false
+        assert f.univ([1, 2]) == BDD.false_
+
+    def test_univ_cube(self):
+        x, y, _ = self._make_vars()
+        f = x | y
+        cube = x.support()
+        # forall x. (x | y) = y
+        assert f.univ(cube) == y
+
+    def test_exist_univ_duality(self):
+        """exist x. f  ==  ~(forall x. ~f)"""
+        x, y, _ = self._make_vars()
+        f = x & y
+        assert f.exist(1) == ~((~f).univ(1))
+
+
+class TestBDDIte:
+    def _make_vars(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        return BDD.var(1), BDD.var(2)
+
+    def test_ite_basic(self):
+        x, y = self._make_vars()
+        # ite(x, y, false) = x & y
+        assert BDD.ite(x, y, BDD.false_) == (x & y)
+
+    def test_ite_as_or(self):
+        x, y = self._make_vars()
+        # ite(x, true, y) = x | y
+        assert BDD.ite(x, BDD.true_, y) == (x | y)
+
+    def test_ite_as_not(self):
+        x, _ = self._make_vars()
+        # ite(x, false, true) = ~x
+        assert BDD.ite(x, BDD.false_, BDD.true_) == ~x
+
+    def test_ite_mux(self):
+        x, y = self._make_vars()
+        # ite(x, y, ~y) = x xnor y  (equiv: ~(x ^ y))
+        result = BDD.ite(x, y, ~y)
+        assert result == ~(x ^ y)
