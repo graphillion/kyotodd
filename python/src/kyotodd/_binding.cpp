@@ -36,52 +36,86 @@ PYBIND11_MODULE(_core, m) {
         bddinit(node_count, node_max);
         g_initialized = true;
     }, py::arg("node_count") = 256, py::arg("node_max") = UINT64_MAX,
-       "Initialize the BDD library.");
+       "Initialize the BDD library.\n\n"
+       "Args:\n"
+       "    node_count: Initial number of node slots to allocate (default: 256).\n"
+       "    node_max: Maximum number of node slots allowed (default: unlimited).\n");
 
     // Variable management
     m.def("newvar", []() -> bddvar {
         ensure_init();
         return bddnewvar();
-    }, "Create a new variable and return its variable number.");
+    }, "Create a new variable and return its variable number.\n\n"
+       "Returns:\n"
+       "    The variable number of the newly created variable.\n");
 
     m.def("newvar_of_level", [](bddvar lev) -> bddvar {
         ensure_init();
         return bddnewvaroflev(lev);
     }, py::arg("lev"),
-       "Create a new variable at the specified level.");
+       "Create a new variable at the specified level.\n\n"
+       "Args:\n"
+       "    lev: The level to insert the new variable at.\n\n"
+       "Returns:\n"
+       "    The variable number of the newly created variable.\n");
 
     m.def("var_count", &bddvarused,
-       "Return the number of variables created.");
+       "Return the number of variables created so far.\n\n"
+       "Returns:\n"
+       "    The count of variables.\n");
 
     m.def("level_of_var", &bddlevofvar, py::arg("var"),
-       "Return the level of the given variable.");
+       "Return the level of the given variable.\n\n"
+       "Args:\n"
+       "    var: Variable number.\n\n"
+       "Returns:\n"
+       "    The level of the variable.\n");
 
     m.def("var_of_level", &bddvaroflev, py::arg("level"),
-       "Return the variable at the given level.");
+       "Return the variable at the given level.\n\n"
+       "Args:\n"
+       "    level: Level number.\n\n"
+       "Returns:\n"
+       "    The variable number at that level.\n");
 
     // Node stats
     m.def("node_count", &bddused,
-       "Return the number of nodes in use.");
+       "Return the total number of nodes currently allocated.\n\n"
+       "Returns:\n"
+       "    The node count.\n");
 
     // GC API
     m.def("gc", &bddgc,
-       "Manually invoke garbage collection.");
+       "Manually invoke garbage collection.\n\n"
+       "Reclaims dead nodes that are no longer referenced.\n");
 
     m.def("live_nodes", &bddlive,
-       "Return the number of live nodes.");
+       "Return the number of live (non-garbage) nodes.\n\n"
+       "Returns:\n"
+       "    The live node count.\n");
 
     m.def("gc_set_threshold", &bddgc_setthreshold, py::arg("threshold"),
-       "Set the GC threshold (0.0 to 1.0).");
+       "Set the GC threshold.\n\n"
+       "Args:\n"
+       "    threshold: A value between 0.0 and 1.0 (default: 0.9).\n");
 
     m.def("gc_get_threshold", &bddgc_getthreshold,
-       "Get the current GC threshold.");
+       "Get the current GC threshold.\n\n"
+       "Returns:\n"
+       "    The current threshold value.\n");
 
     // BDD class
-    py::class_<BDD>(m, "BDD")
+    py::class_<BDD>(m, "BDD",
+        "A Binary Decision Diagram representing a Boolean function.\n\n"
+        "Each BDD object holds a root node ID and is automatically\n"
+        "protected from garbage collection during its lifetime.")
         .def(py::init([](int val) {
             ensure_init();
             return BDD(val);
-        }), py::arg("val") = 0)
+        }), py::arg("val") = 0,
+           "Construct a BDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for false, 1 for true, negative for null.\n")
 
         .def_static("var", [](bddvar v) -> BDD {
             ensure_init();
@@ -99,14 +133,16 @@ PYBIND11_MODULE(_core, m) {
             return BDD::Null;
         })
 
-        .def("__eq__", [](const BDD& a, const BDD& b) { return a == b; })
-        .def("__ne__", [](const BDD& a, const BDD& b) { return a != b; })
+        .def("__eq__", [](const BDD& a, const BDD& b) { return a == b; },
+             "Equality comparison by node ID.")
+        .def("__ne__", [](const BDD& a, const BDD& b) { return a != b; },
+             "Inequality comparison by node ID.")
         .def("__hash__", [](const BDD& a) {
             return std::hash<uint64_t>()(a.root);
-        })
+        }, "Hash based on node ID.")
         .def("__repr__", [](const BDD& a) {
             return "BDD(node_id=" + std::to_string(a.root) + ")";
-        })
+        }, "Return string representation: BDD(node_id=...).")
         .def("__bool__", [](const BDD&) -> bool {
             throw py::type_error(
                 "BDD cannot be converted to bool. "
@@ -114,22 +150,33 @@ PYBIND11_MODULE(_core, m) {
         })
 
         // Operators
-        .def("__and__",    [](const BDD& a, const BDD& b) { return a & b; })
-        .def("__or__",     [](const BDD& a, const BDD& b) { return a | b; })
-        .def("__xor__",    [](const BDD& a, const BDD& b) { return a ^ b; })
-        .def("__invert__", [](const BDD& a) { return ~a; })
-        .def("__lshift__", [](const BDD& a, bddvar s) { return a << s; })
-        .def("__rshift__", [](const BDD& a, bddvar s) { return a >> s; })
+        .def("__and__",    [](const BDD& a, const BDD& b) { return a & b; },
+             "Logical AND: self & other.")
+        .def("__or__",     [](const BDD& a, const BDD& b) { return a | b; },
+             "Logical OR: self | other.")
+        .def("__xor__",    [](const BDD& a, const BDD& b) { return a ^ b; },
+             "Logical XOR: self ^ other.")
+        .def("__invert__", [](const BDD& a) { return ~a; },
+             "Logical NOT: ~self.")
+        .def("__lshift__", [](const BDD& a, bddvar s) { return a << s; },
+             "Left shift: rename variable i to i+shift.")
+        .def("__rshift__", [](const BDD& a, bddvar s) { return a >> s; },
+             "Right shift: rename variable i to i-shift.")
         .def("__iand__",   [](BDD& a, const BDD& b) -> BDD& { a &= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place logical AND.")
         .def("__ior__",    [](BDD& a, const BDD& b) -> BDD& { a |= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place logical OR.")
         .def("__ixor__",   [](BDD& a, const BDD& b) -> BDD& { a ^= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place logical XOR.")
         .def("__ilshift__",[](BDD& a, bddvar s) -> BDD& { a <<= s; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place left shift.")
         .def("__irshift__",[](BDD& a, bddvar s) -> BDD& { a >>= s; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place right shift.")
 
         // Methods
         .def("at0", &BDD::At0, py::arg("v"),
@@ -169,7 +216,9 @@ PYBIND11_MODULE(_core, m) {
             bddp p = b.root;
             bddexport(oss, &p, 1);
             return oss.str();
-        }, "Export BDD to a string.")
+        }, "Export this BDD to a string representation.\n\n"
+           "Returns:\n"
+           "    The serialized BDD.\n")
         .def_static("import_str", [](const std::string& s) -> BDD {
             ensure_init();
             std::istringstream iss(s);
@@ -177,13 +226,23 @@ PYBIND11_MODULE(_core, m) {
             int ret = bddimport(iss, &p, 1);
             if (ret < 1) throw std::runtime_error("BDD import failed");
             return BDD_ID(p);
-        }, py::arg("s"), "Import a BDD from a string.")
+        }, py::arg("s"),
+           "Import a BDD from a string.\n\n"
+           "Args:\n"
+           "    s: The serialized BDD string.\n\n"
+           "Returns:\n"
+           "    The reconstructed BDD.\n\n"
+           "Raises:\n"
+           "    RuntimeError: If import fails.\n")
         .def("export_file", [](const BDD& b, const std::string& path) {
             std::ofstream ofs(path);
             if (!ofs) throw std::runtime_error("Cannot open file: " + path);
             bddp p = b.root;
             bddexport(ofs, &p, 1);
-        }, py::arg("path"), "Export BDD to a file.")
+        }, py::arg("path"),
+           "Export this BDD to a file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n")
         .def_static("import_file", [](const std::string& path) -> BDD {
             ensure_init();
             std::ifstream ifs(path);
@@ -192,21 +251,36 @@ PYBIND11_MODULE(_core, m) {
             int ret = bddimport(ifs, &p, 1);
             if (ret < 1) throw std::runtime_error("BDD import failed");
             return BDD_ID(p);
-        }, py::arg("path"), "Import a BDD from a file.")
+        }, py::arg("path"),
+           "Import a BDD from a file.\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n\n"
+           "Returns:\n"
+           "    The reconstructed BDD.\n\n"
+           "Raises:\n"
+           "    RuntimeError: If import fails or file cannot be opened.\n")
 
-        .def_property_readonly("node_id", [](const BDD& b) { return b.root; })
-        .def_property_readonly("size", &BDD::Size)
+        .def_property_readonly("node_id", [](const BDD& b) { return b.root; },
+             "The raw node ID of this BDD.")
+        .def_property_readonly("size", &BDD::Size,
+             "The number of nodes in the DAG of this BDD.")
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
             return bddtop(b.root);
-        })
+        }, "The top (root) variable number of this BDD.")
     ;
 
     // ZDD class
-    py::class_<ZDD>(m, "ZDD")
+    py::class_<ZDD>(m, "ZDD",
+        "A Zero-suppressed Decision Diagram representing a family of sets.\n\n"
+        "Each ZDD object holds a root node ID and is automatically\n"
+        "protected from garbage collection during its lifetime.")
         .def(py::init([](int val) {
             ensure_init();
             return ZDD(val);
-        }), py::arg("val") = 0)
+        }), py::arg("val") = 0,
+           "Construct a ZDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for empty family, 1 for unit family, negative for null.\n")
 
         .def_property_readonly_static("empty", [](py::object) -> ZDD {
             return ZDD::Empty;
@@ -218,69 +292,145 @@ PYBIND11_MODULE(_core, m) {
             return ZDD::Null;
         })
 
-        .def("__eq__", [](const ZDD& a, const ZDD& b) { return a == b; })
-        .def("__ne__", [](const ZDD& a, const ZDD& b) { return a != b; })
+        .def("__eq__", [](const ZDD& a, const ZDD& b) { return a == b; },
+             "Equality comparison by node ID.")
+        .def("__ne__", [](const ZDD& a, const ZDD& b) { return a != b; },
+             "Inequality comparison by node ID.")
         .def("__hash__", [](const ZDD& a) {
             return std::hash<uint64_t>()(a.root);
-        })
+        }, "Hash based on node ID.")
         .def("__repr__", [](const ZDD& a) {
             return "ZDD(node_id=" + std::to_string(a.root) + ")";
-        })
+        }, "Return string representation: ZDD(node_id=...).")
 
         // Operators
-        .def("__add__",      [](const ZDD& a, const ZDD& b) { return a + b; })
-        .def("__sub__",      [](const ZDD& a, const ZDD& b) { return a - b; })
-        .def("__and__",      [](const ZDD& a, const ZDD& b) { return a & b; })
-        .def("__xor__",      [](const ZDD& a, const ZDD& b) { return a ^ b; })
-        .def("__mul__",      [](const ZDD& a, const ZDD& b) { return a * b; })
-        .def("__truediv__",  [](const ZDD& a, const ZDD& b) { return a / b; })
-        .def("__mod__",      [](const ZDD& a, const ZDD& b) { return a % b; })
+        .def("__add__",      [](const ZDD& a, const ZDD& b) { return a + b; },
+             "Union: self + other.")
+        .def("__sub__",      [](const ZDD& a, const ZDD& b) { return a - b; },
+             "Subtraction (set difference): self - other.")
+        .def("__and__",      [](const ZDD& a, const ZDD& b) { return a & b; },
+             "Intersection: self & other.")
+        .def("__xor__",      [](const ZDD& a, const ZDD& b) { return a ^ b; },
+             "Symmetric difference: self ^ other.")
+        .def("__mul__",      [](const ZDD& a, const ZDD& b) { return a * b; },
+             "Join (cross product with union): self * other.")
+        .def("__truediv__",  [](const ZDD& a, const ZDD& b) { return a / b; },
+             "Division (quotient): self / other.")
+        .def("__mod__",      [](const ZDD& a, const ZDD& b) { return a % b; },
+             "Remainder: self %% other.")
         .def("__iadd__",     [](ZDD& a, const ZDD& b) -> ZDD& { a += b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place union.")
         .def("__isub__",     [](ZDD& a, const ZDD& b) -> ZDD& { a -= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place subtraction.")
         .def("__iand__",     [](ZDD& a, const ZDD& b) -> ZDD& { a &= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place intersection.")
         .def("__ixor__",     [](ZDD& a, const ZDD& b) -> ZDD& { a ^= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place symmetric difference.")
         .def("__imul__",     [](ZDD& a, const ZDD& b) -> ZDD& { a *= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place join.")
         .def("__itruediv__", [](ZDD& a, const ZDD& b) -> ZDD& { a /= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place division.")
         .def("__imod__",     [](ZDD& a, const ZDD& b) -> ZDD& { a %= b; return a; },
-             py::return_value_policy::reference_internal)
+             py::return_value_policy::reference_internal,
+             "In-place remainder.")
 
         // Methods
         .def("change", &ZDD::Change, py::arg("v"),
-             "Toggle membership of variable v.")
+             "Toggle membership of variable v in all sets.\n\n"
+             "For each set S in the family, if v is in S then remove it,\n"
+             "otherwise add it.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("offset", &ZDD::Offset, py::arg("v"),
-             "Remove variable v from all sets.")
+             "Select sets NOT containing variable v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("onset", &ZDD::OnSet, py::arg("v"),
-             "Select sets containing variable v, then remove v.")
+             "Select sets containing variable v, then remove v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("onset0", &ZDD::OnSet0, py::arg("v"),
-             "Select sets not containing variable v.")
+             "Select sets NOT containing variable v (same as offset).\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("maximal", &ZDD::Maximal,
-             "Return maximal sets (no proper superset in the family).")
+             "Extract maximal sets (no proper superset in the family).\n\n"
+             "Returns:\n"
+             "    A ZDD containing only the maximal sets.\n")
         .def("minimal", &ZDD::Minimal,
-             "Return minimal sets (no proper subset in the family).")
+             "Extract minimal sets (no proper subset in the family).\n\n"
+             "Returns:\n"
+             "    A ZDD containing only the minimal sets.\n")
         .def("minhit", &ZDD::Minhit,
-             "Return minimum hitting sets.")
+             "Compute minimum hitting sets.\n\n"
+             "A hitting set intersects every set in the family.\n\n"
+             "Returns:\n"
+             "    A ZDD of minimal hitting sets.\n")
         .def("closure", &ZDD::Closure,
-             "Return the downward closure.")
+             "Compute the downward closure.\n\n"
+             "Returns all subsets of sets in the family.\n\n"
+             "Returns:\n"
+             "    A ZDD representing the downward closure.\n")
         .def("restrict", &ZDD::Restrict, py::arg("g"),
-             "Restrict to sets that are subsets of some set in g.")
+             "Restrict to sets that are subsets of some set in g.\n\n"
+             "Args:\n"
+             "    g: The constraining family.\n\n"
+             "Returns:\n"
+             "    The restricted ZDD.\n")
         .def("permit", &ZDD::Permit, py::arg("g"),
-             "Permit: keep sets whose elements are permitted by g.")
+             "Keep sets whose elements are all permitted by g.\n\n"
+             "Args:\n"
+             "    g: The permitting family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("nonsup", &ZDD::Nonsup, py::arg("g"),
-             "Remove sets that are supersets of some set in g.")
+             "Remove sets that are supersets of some set in g.\n\n"
+             "Args:\n"
+             "    g: The constraining family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("nonsub", &ZDD::Nonsub, py::arg("g"),
-             "Remove sets that are subsets of some set in g.")
+             "Remove sets that are subsets of some set in g.\n\n"
+             "Args:\n"
+             "    g: The constraining family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("disjoin", &ZDD::Disjoin, py::arg("g"),
-             "Disjoint product.")
+             "Disjoint product of two families.\n\n"
+             "For each pair (A, B) where A is in this family and B is in g,\n"
+             "if A and B are disjoint, include A | B in the result.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("jointjoin", &ZDD::Jointjoin, py::arg("g"),
-             "Joint join.")
+             "Joint join of two families.\n\n"
+             "For each pair (A, B), include A | B in the result\n"
+             "regardless of overlap.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("delta", &ZDD::Delta, py::arg("g"),
-             "Delta operation.")
+             "Delta operation (symmetric difference of elements within pairs).\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
 
         // I/O
         .def("export_str", [](const ZDD& z) -> std::string {
@@ -288,7 +438,9 @@ PYBIND11_MODULE(_core, m) {
             bddp p = z.root;
             bddexport(oss, &p, 1);
             return oss.str();
-        }, "Export ZDD to a string.")
+        }, "Export this ZDD to a string representation.\n\n"
+           "Returns:\n"
+           "    The serialized ZDD.\n")
         .def_static("import_str", [](const std::string& s) -> ZDD {
             ensure_init();
             std::istringstream iss(s);
@@ -298,13 +450,23 @@ PYBIND11_MODULE(_core, m) {
             ZDD z(0);
             z.root = p;
             return z;
-        }, py::arg("s"), "Import a ZDD from a string.")
+        }, py::arg("s"),
+           "Import a ZDD from a string.\n\n"
+           "Args:\n"
+           "    s: The serialized ZDD string.\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n\n"
+           "Raises:\n"
+           "    RuntimeError: If import fails.\n")
         .def("export_file", [](const ZDD& z, const std::string& path) {
             std::ofstream ofs(path);
             if (!ofs) throw std::runtime_error("Cannot open file: " + path);
             bddp p = z.root;
             bddexport(ofs, &p, 1);
-        }, py::arg("path"), "Export ZDD to a file.")
+        }, py::arg("path"),
+           "Export this ZDD to a file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n")
         .def_static("import_file", [](const std::string& path) -> ZDD {
             ensure_init();
             std::ifstream ifs(path);
@@ -315,12 +477,21 @@ PYBIND11_MODULE(_core, m) {
             ZDD z(0);
             z.root = p;
             return z;
-        }, py::arg("path"), "Import a ZDD from a file.")
+        }, py::arg("path"),
+           "Import a ZDD from a file.\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n\n"
+           "Raises:\n"
+           "    RuntimeError: If import fails or file cannot be opened.\n")
 
-        .def_property_readonly("card", &ZDD::Card)
-        .def_property_readonly("node_id", [](const ZDD& z) { return z.root; })
+        .def_property_readonly("card", &ZDD::Card,
+             "The number of sets in the family (cardinality).")
+        .def_property_readonly("node_id", [](const ZDD& z) { return z.root; },
+             "The raw node ID of this ZDD.")
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.root);
-        })
+        }, "The top (root) variable number of this ZDD.")
     ;
 }
