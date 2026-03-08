@@ -116,6 +116,20 @@ PYBIND11_MODULE(_core, m) {
         .def("__irshift__",[](BDD& a, bddvar s) -> BDD& { a >>= s; return a; },
              py::return_value_policy::reference_internal)
 
+        // Methods
+        .def("at0", &BDD::At0, py::arg("v"),
+             "Cofactor: restrict variable v to 0.")
+        .def("at1", &BDD::At1, py::arg("v"),
+             "Cofactor: restrict variable v to 1.")
+        .def("cofactor", &BDD::Cofactor, py::arg("g"),
+             "Generalized cofactor by BDD g.")
+        .def("support", &BDD::Support,
+             "Return the support set as a BDD (conjunction of variables).")
+        .def("support_vec", &BDD::SupportVec,
+             "Return the support set as a list of variable numbers.")
+        .def("imply", &BDD::Imply, py::arg("other"),
+             "Check implication: return 1 if self => other, 0 otherwise.")
+
         .def_property_readonly("node_id", [](const BDD& b) { return b.root; })
         .def_property_readonly("size", &BDD::Size)
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {

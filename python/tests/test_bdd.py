@@ -229,3 +229,86 @@ class TestBDDCompoundAssignment:
         expected = y >> 1
         y >>= 1
         assert y == expected
+
+
+class TestBDDMethods:
+    def _make_vars(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        kyotodd.newvar()
+        return BDD.var(1), BDD.var(2), BDD.var(3)
+
+    def test_at0(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # f|_{x=0} = false & y = false
+        assert f.at0(1) == BDD.false_
+
+    def test_at1(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # f|_{x=1} = true & y = y
+        assert f.at1(1) == y
+
+    def test_at0_at1_reconstruct(self):
+        """Shannon expansion: f = x & f|_{x=1} | ~x & f|_{x=0}"""
+        x, y, z = self._make_vars()
+        f = (x & y) | z
+        assert f == (x & f.at1(1)) | (~x & f.at0(1))
+
+    def test_cofactor(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # cofactor by x gives y
+        assert f.cofactor(x) == y
+
+    def test_support(self):
+        x, y, z = self._make_vars()
+        f = x & z  # support = {1, 3}
+        s = f.support()
+        assert s != BDD.false_
+        assert s != BDD.true_
+
+    def test_support_vec(self):
+        x, y, z = self._make_vars()
+        f = x & z  # support = {1, 3}
+        sv = f.support_vec()
+        assert sorted(sv) == [1, 3]
+
+    def test_support_vec_single(self):
+        x, _, _ = self._make_vars()
+        assert x.support_vec() == [1]
+
+    def test_support_vec_constant(self):
+        assert BDD.false_.support_vec() == []
+        assert BDD.true_.support_vec() == []
+
+    def test_imply_true(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # (x & y) => x
+        assert f.imply(x) == 1
+
+    def test_imply_false(self):
+        x, y, _ = self._make_vars()
+        # x does not imply (x & y)
+        assert x.imply(x & y) == 0
+
+    def test_imply_self(self):
+        x, _, _ = self._make_vars()
+        assert x.imply(x) == 1
+
+    def test_imply_false_implies_anything(self):
+        x, _, _ = self._make_vars()
+        assert BDD.false_.imply(x) == 1
+
+    def test_size_complex(self):
+        x, y, z = self._make_vars()
+        f = (x & y) | z
+        assert f.size >= 2  # at least 2 nodes
+
+    def test_top_var_and(self):
+        x, y, _ = self._make_vars()
+        f = x & y
+        # higher level = closer to root; var 2 is at level 2
+        assert f.top_var == 2
