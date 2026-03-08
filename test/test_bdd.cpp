@@ -5396,3 +5396,312 @@ TEST_F(BDDTest, ZDDClassDelta) {
 
     EXPECT_EQ(zf.Delta(zg).root, bdddelta(f, z2));
 }
+
+// --- Garbage collection tests ---
+
+TEST_F(BDDTest, GCBasicProtectUnprotect) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp a = bddand(p1, p2);
+
+    // Protect a, then GC — a should survive
+    bddgc_protect(&a);
+    uint64_t live_before = bddlive();
+    bddgc();
+    uint64_t live_after = bddlive();
+    // a and its children (p1, p2) are reachable — they survive
+    // p1 and p2 are also reachable from a
+    EXPECT_LE(live_after, live_before);
+    // The node for a should still be valid
+    EXPECT_EQ(bddtop(a), v1 > v2 ? v1 : v2);
+    bddgc_unprotect(&a);
+}
+
+TEST_F(BDDTest, GCCollectsUnreachableNodes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Create nodes that are only referenced by raw bddp (not protected)
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp unreachable = bddand(p1, p2);
+    (void)unreachable;
+
+    // Create a protected node
+    bddp kept = bddprime(v3);
+    bddgc_protect(&kept);
+
+    uint64_t live_before = bddlive();
+    bddgc();
+    uint64_t live_after = bddlive();
+
+    // Unprotected nodes (p1, p2, unreachable) should be collected
+    // Only kept (v3 prime) should survive
+    EXPECT_LT(live_after, live_before);
+    EXPECT_EQ(bddtop(kept), v3);
+
+    bddgc_unprotect(&kept);
+}
+
+TEST_F(BDDTest, GCFreeListReuse) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp a = bddand(p1, p2);
+    (void)a;
+
+    uint64_t used_before = bddused();
+
+    // Nothing protected — GC should free all nodes
+    bddgc();
+    uint64_t live_after = bddlive();
+    EXPECT_EQ(live_after, 0u);
+
+    // Allocating new nodes should reuse freed slots
+    bddp p3 = bddprime(v1);
+    bddgc_protect(&p3);
+    uint64_t used_after = bddused();
+    // bddused() is high-water mark, should not increase
+    EXPECT_EQ(used_after, used_before);
+
+    bddgc_unprotect(&p3);
+}
+
+TEST_F(BDDTest, GCBDDClassAutoProtection) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // BDD objects automatically protect their root
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = a & b;
+
+    bddp expected_root = c.root;
+
+    bddgc();
+
+    // c should survive because BDD object protects &c.root
+    EXPECT_EQ(c.root, expected_root);
+    EXPECT_EQ(bddtop(c.root), v1 > v2 ? v1 : v2);
+}
+
+TEST_F(BDDTest, GCBDDClassScopeProtection) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    uint64_t live_after_create;
+    {
+        BDD a = BDDvar(v1);
+        BDD b = BDDvar(v2);
+        BDD c = a & b;
+        live_after_create = bddlive();
+        EXPECT_GT(live_after_create, 0u);
+    }
+    // a, b, c are out of scope — destructors unprotected their roots
+
+    bddgc();
+    uint64_t live_after_gc = bddlive();
+    EXPECT_EQ(live_after_gc, 0u);
+}
+
+TEST_F(BDDTest, GCZDDClassAutoProtection) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    ZDD z1(0);
+    z1.root = bddchange(bddsingle, v1);
+    ZDD z2(0);
+    z2.root = bddchange(bddsingle, v2);
+    ZDD z3 = z1 + z2;
+
+    bddp expected_root = z3.root;
+
+    bddgc();
+
+    // z3 should survive because ZDD object protects &z3.root
+    EXPECT_EQ(z3.root, expected_root);
+}
+
+TEST_F(BDDTest, GCAutoTriggerOnExhaustion) {
+    // Use a small node_max so GC is triggered automatically
+    bddinit(4, 8);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+
+    // Fill up nodes in a scope so they become unreachable
+    {
+        BDD a = BDDvar(v1);
+        BDD b = BDDvar(v2);
+        BDD c = a & b;
+        BDD d = a | b;
+        (void)c;
+        (void)d;
+    }
+    // All BDD objects out of scope — nodes are unprotected
+
+    // This operation should succeed because GC frees dead nodes
+    // even though we're at the node limit
+    BDD e = BDDvar(v3);
+    BDD f = BDDvar(v4);
+    BDD g = e & f;
+
+    EXPECT_EQ(bddtop(g.root), v3 > v4 ? v3 : v4);
+}
+
+TEST_F(BDDTest, GCPreservesOperationCorrectness) {
+    bddinit(16, 32);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = BDDvar(v3);
+
+    // Build some intermediate results that will require GC
+    BDD r1 = a & b;
+    BDD r2 = b | c;
+    BDD r3 = r1 ^ r2;
+
+    // Force GC
+    bddgc();
+
+    // Verify results are still correct after GC
+    // r3 = (v1 & v2) ^ (v2 | v3)
+    // Check by evaluating at all variable assignments
+    for (int i = 0; i < 8; i++) {
+        bool x1 = (i >> 0) & 1;
+        bool x2 = (i >> 1) & 1;
+        bool x3 = (i >> 2) & 1;
+
+        bddp f = r3.root;
+        f = x1 ? bddat1(f, v1) : bddat0(f, v1);
+        f = x2 ? bddat1(f, v2) : bddat0(f, v2);
+        f = x3 ? bddat1(f, v3) : bddat0(f, v3);
+
+        bool expected = (x1 && x2) ^ (x2 || x3);
+        EXPECT_EQ(f, expected ? bddtrue : bddfalse);
+    }
+}
+
+TEST_F(BDDTest, GCManualProtectRawBddp) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Manual protect for raw bddp values
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp a = bddand(p1, p2);
+
+    bddgc_protect(&a);
+    bddgc();
+
+    // a is still valid
+    EXPECT_EQ(bddtop(a), v1 > v2 ? v1 : v2);
+
+    // Unprotect and GC again — should be collected
+    bddgc_unprotect(&a);
+    bddgc();
+    EXPECT_EQ(bddlive(), 0u);
+}
+
+TEST_F(BDDTest, GCDepthPreventsCollection) {
+    bddvar v1 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    (void)p1;
+
+    uint64_t live_before = bddlive();
+    EXPECT_GT(live_before, 0u);
+
+    // Simulate being inside an operation (depth > 0)
+    extern int bdd_gc_depth;
+    bdd_gc_depth = 1;
+    bddgc();
+    // GC should be a no-op at depth > 0
+    EXPECT_EQ(bddlive(), live_before);
+
+    bdd_gc_depth = 0;
+    bddgc();
+    // Now GC runs — p1 is unprotected
+    EXPECT_EQ(bddlive(), 0u);
+}
+
+TEST_F(BDDTest, GCThresholdSetting) {
+    double orig = bddgc_getthreshold();
+    bddgc_setthreshold(0.5);
+    EXPECT_DOUBLE_EQ(bddgc_getthreshold(), 0.5);
+    bddgc_setthreshold(orig);
+    EXPECT_DOUBLE_EQ(bddgc_getthreshold(), orig);
+}
+
+TEST_F(BDDTest, GCLiveCount) {
+    EXPECT_EQ(bddlive(), 0u);
+
+    bddvar v1 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddgc_protect(&p1);
+
+    EXPECT_EQ(bddlive(), 1u);
+
+    bddvar v2 = bddnewvar();
+    bddp p2 = bddprime(v2);
+    bddgc_protect(&p2);
+
+    EXPECT_EQ(bddlive(), 2u);
+
+    bddgc_unprotect(&p2);
+    bddgc();
+    // p2 collected, p1 survives
+    EXPECT_EQ(bddlive(), 1u);
+
+    bddgc_unprotect(&p1);
+    bddgc();
+    EXPECT_EQ(bddlive(), 0u);
+}
+
+TEST_F(BDDTest, GCReinitClearsState) {
+    bddvar v1 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddgc_protect(&p1);
+
+    EXPECT_GT(bddlive(), 0u);
+
+    // Re-initialize clears everything
+    bddinit(256);
+    EXPECT_EQ(bddlive(), 0u);
+    EXPECT_EQ(bddused(), 0u);
+}
+
+TEST_F(BDDTest, GCZDDAutoTrigger) {
+    bddinit(4, 8);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Create and discard ZDD nodes
+    {
+        ZDD z1(0);
+        z1.root = bddchange(bddsingle, v1);
+        ZDD z2(0);
+        z2.root = bddchange(bddsingle, v2);
+        ZDD z3 = z1 + z2;
+        (void)z3;
+    }
+    // All out of scope
+
+    // Should succeed via auto GC
+    ZDD z4(0);
+    z4.root = bddchange(bddsingle, v3);
+    ZDD z5(0);
+    z5.root = bddchange(bddsingle, v1);
+    ZDD z6 = z4 + z5;
+
+    EXPECT_NE(z6.root, bddempty);
+}
