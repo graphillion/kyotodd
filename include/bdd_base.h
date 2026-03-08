@@ -32,6 +32,14 @@ void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);
 void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result);
 
+// Garbage collection
+void bddgc();
+void bddgc_protect(bddp* p);
+void bddgc_unprotect(bddp* p);
+void bddgc_setthreshold(double threshold);
+double bddgc_getthreshold();
+uint64_t bddlive();
+
 // Obsolete: always throws. Retained for API compatibility.
 int bddisbdd(bddp f);
 int bddiszbdd(bddp f);

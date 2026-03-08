@@ -37,6 +37,17 @@ BddUniqueTable* bdd_unique_tables = nullptr;
 BddCacheEntry* bdd_cache = nullptr;
 uint64_t bdd_cache_size = 0;
 
+// --- Garbage collection state ---
+// Leaked singleton to avoid static init/destruction order issues
+static std::unordered_set<bddp*>& gc_roots() {
+    static auto* instance = new std::unordered_set<bddp*>();
+    return *instance;
+}
+static int bdd_gc_depth = 0;
+static bddp bdd_free_list = 0;
+static uint64_t bdd_free_count = 0;
+static double bdd_gc_threshold = 0.9;
+
 // --- Hash function (splitmix64 style) ---
 static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
     uint64_t k = lo ^ (hi * UINT64_C(0x9E3779B97F4A7C15));
@@ -344,6 +355,32 @@ void bddfree(bddp) {
 
 uint64_t bddused() {
     return bdd_node_used;
+}
+
+uint64_t bddlive() {
+    return bdd_node_used - bdd_free_count;
+}
+
+// --- Garbage collection ---
+
+void bddgc_protect(bddp* p) {
+    gc_roots().insert(p);
+}
+
+void bddgc_unprotect(bddp* p) {
+    gc_roots().erase(p);
+}
+
+void bddgc_setthreshold(double threshold) {
+    bdd_gc_threshold = threshold;
+}
+
+double bddgc_getthreshold() {
+    return bdd_gc_threshold;
+}
+
+void bddgc() {
+    // TODO: implement in Step 3
 }
 
 static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
