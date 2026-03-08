@@ -1,6 +1,7 @@
 """KyotoDD - BDD/ZDD library for Python."""
 
 from kyotodd._core import (
+    BDD,
     init,
     newvar,
     newvar_of_level,
@@ -15,6 +16,7 @@ from kyotodd._core import (
 )
 
 __all__ = [
+    "BDD",
     "init",
     "newvar",
     "newvar_of_level",

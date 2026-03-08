@@ -60,4 +60,48 @@ PYBIND11_MODULE(_core, m) {
 
     m.def("gc_get_threshold", &bddgc_getthreshold,
        "Get the current GC threshold.");
+
+    // BDD class
+    py::class_<BDD>(m, "BDD")
+        .def(py::init([](int val) {
+            ensure_init();
+            return BDD(val);
+        }), py::arg("val") = 0)
+
+        .def_static("var", [](bddvar v) -> BDD {
+            ensure_init();
+            return BDDvar(v);
+        }, py::arg("v"),
+           "Create a BDD representing the given variable.")
+
+        .def_property_readonly_static("false_", [](py::object) -> BDD {
+            return BDD::False;
+        })
+        .def_property_readonly_static("true_", [](py::object) -> BDD {
+            return BDD::True;
+        })
+        .def_property_readonly_static("null", [](py::object) -> BDD {
+            return BDD::Null;
+        })
+
+        .def("__eq__", [](const BDD& a, const BDD& b) { return a == b; })
+        .def("__ne__", [](const BDD& a, const BDD& b) { return a != b; })
+        .def("__hash__", [](const BDD& a) {
+            return std::hash<uint64_t>()(a.root);
+        })
+        .def("__repr__", [](const BDD& a) {
+            return "BDD(node_id=" + std::to_string(a.root) + ")";
+        })
+        .def("__bool__", [](const BDD&) -> bool {
+            throw py::type_error(
+                "BDD cannot be converted to bool. "
+                "Use == BDD.false_ or == BDD.true_ instead.");
+        })
+
+        .def_property_readonly("node_id", [](const BDD& b) { return b.root; })
+        .def_property_readonly("size", &BDD::Size)
+        .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
+            return bddtop(b.root);
+        })
+    ;
 }
