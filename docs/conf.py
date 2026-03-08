@@ -5,7 +5,10 @@ release = '0.1.0'
 
 extensions = [
     'breathe',
+    'sphinx.ext.todo',
 ]
+
+todo_include_todos = False
 
 # -- Breathe Configuration --
 breathe_projects = {

@@ -98,9 +98,11 @@ static const uint8_t BDD_OP_MINHIT = 31;
 static const uint8_t BDD_OP_CLOSURE = 32;
 static const uint8_t BDD_OP_CARD = 33;
 
+/// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
 void bddgc_protect(bddp* p);
 void bddgc_unprotect(bddp* p);
+/// @endcond
 
 /**
  * @brief A Binary Decision Diagram (BDD) node.
