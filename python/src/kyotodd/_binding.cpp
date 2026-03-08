@@ -154,4 +154,63 @@ PYBIND11_MODULE(_core, m) {
             return bddtop(b.root);
         })
     ;
+
+    // ZDD class
+    py::class_<ZDD>(m, "ZDD")
+        .def(py::init([](int val) {
+            ensure_init();
+            return ZDD(val);
+        }), py::arg("val") = 0)
+
+        .def_property_readonly_static("empty", [](py::object) -> ZDD {
+            return ZDD::Empty;
+        })
+        .def_property_readonly_static("single", [](py::object) -> ZDD {
+            return ZDD::Single;
+        })
+        .def_property_readonly_static("null", [](py::object) -> ZDD {
+            return ZDD::Null;
+        })
+
+        .def("__eq__", [](const ZDD& a, const ZDD& b) { return a == b; })
+        .def("__ne__", [](const ZDD& a, const ZDD& b) { return a != b; })
+        .def("__hash__", [](const ZDD& a) {
+            return std::hash<uint64_t>()(a.root);
+        })
+        .def("__repr__", [](const ZDD& a) {
+            return "ZDD(node_id=" + std::to_string(a.root) + ")";
+        })
+
+        // Operators
+        .def("__add__",      [](const ZDD& a, const ZDD& b) { return a + b; })
+        .def("__sub__",      [](const ZDD& a, const ZDD& b) { return a - b; })
+        .def("__and__",      [](const ZDD& a, const ZDD& b) { return a & b; })
+        .def("__xor__",      [](const ZDD& a, const ZDD& b) { return a ^ b; })
+        .def("__mul__",      [](const ZDD& a, const ZDD& b) { return a * b; })
+        .def("__truediv__",  [](const ZDD& a, const ZDD& b) { return a / b; })
+        .def("__mod__",      [](const ZDD& a, const ZDD& b) { return a % b; })
+        .def("__iadd__",     [](ZDD& a, const ZDD& b) -> ZDD& { a += b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__isub__",     [](ZDD& a, const ZDD& b) -> ZDD& { a -= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__iand__",     [](ZDD& a, const ZDD& b) -> ZDD& { a &= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__ixor__",     [](ZDD& a, const ZDD& b) -> ZDD& { a ^= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__imul__",     [](ZDD& a, const ZDD& b) -> ZDD& { a *= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__itruediv__", [](ZDD& a, const ZDD& b) -> ZDD& { a /= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__imod__",     [](ZDD& a, const ZDD& b) -> ZDD& { a %= b; return a; },
+             py::return_value_policy::reference_internal)
+
+        // Basic methods (needed to construct ZDD families)
+        .def("change", &ZDD::Change, py::arg("v"),
+             "Toggle membership of variable v.")
+
+        .def_property_readonly("node_id", [](const ZDD& z) { return z.root; })
+        .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
+            return bddtop(z.root);
+        })
+    ;
 }

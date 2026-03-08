@@ -2,6 +2,7 @@
 
 from kyotodd._core import (
     BDD,
+    ZDD,
     init,
     newvar,
     newvar_of_level,
@@ -17,6 +18,7 @@ from kyotodd._core import (
 
 __all__ = [
     "BDD",
+    "ZDD",
     "init",
     "newvar",
     "newvar_of_level",
