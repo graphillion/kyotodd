@@ -71,3 +71,13 @@ def test_gc_threshold():
 def test_live_nodes():
     count = kyotodd.live_nodes()
     assert count >= 0
+
+
+def test_invalid_var_raises_valueerror():
+    from kyotodd import BDD
+    kyotodd.newvar()
+    x = BDD.var(1)
+    with pytest.raises(ValueError):
+        x.at0(0)  # var 0 is invalid
+    with pytest.raises(ValueError):
+        x.at1(999999)  # var out of range

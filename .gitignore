@@ -1,2 +1,9 @@
 conversation/
 build/
+__pycache__/
+*.egg-info/
+dist/
+*.so
+*.pyd
+python/build/
+python/.venv/

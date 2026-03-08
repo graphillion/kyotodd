@@ -18,6 +18,19 @@ static void ensure_init() {
 PYBIND11_MODULE(_core, m) {
     m.doc() = "KyotoDD BDD/ZDD library";
 
+    // Exception translation
+    py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const std::overflow_error& e) {
+            PyErr_SetString(PyExc_MemoryError, e.what());
+        } catch (const std::invalid_argument& e) {
+            PyErr_SetString(PyExc_ValueError, e.what());
+        } catch (const std::out_of_range& e) {
+            PyErr_SetString(PyExc_IndexError, e.what());
+        }
+    });
+
     // Initialization
     m.def("init", [](uint64_t node_count, uint64_t node_max) {
         bddinit(node_count, node_max);
