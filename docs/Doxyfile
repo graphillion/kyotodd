@@ -1,0 +1,35 @@
+PROJECT_NAME           = "KyotoDD"
+PROJECT_BRIEF          = "BDD/ZDD Library"
+
+OUTPUT_DIRECTORY       = _doxygen
+
+INPUT                  = ../include/bdd_types.h \
+                         ../include/bdd_base.h \
+                         ../include/bdd_ops.h \
+                         ../include/bdd_io.h \
+                         ../include/bdd.h
+
+RECURSIVE              = NO
+FILE_PATTERNS          = *.h
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+HIDE_UNDOC_MEMBERS     = YES
+HIDE_UNDOC_CLASSES     = YES
+
+BUILTIN_STL_SUPPORT    = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+
+SORT_MEMBER_DOCS       = NO
+STRIP_FROM_PATH        = ../include
+INLINE_INHERITED_MEMB  = YES
+
+QUIET                  = YES
+WARNINGS               = YES

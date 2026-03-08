@@ -7,3 +7,5 @@ dist/
 *.pyd
 python/build/
 python/.venv/
+docs/_build/
+docs/_doxygen/
