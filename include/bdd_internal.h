@@ -26,7 +26,7 @@ struct BDD_RecurGuard {
 
 // --- GC guard ---
 extern int bdd_gc_depth;
-void bddgc();
+int bddgc();
 bool bdd_should_gc();
 
 template<typename F>

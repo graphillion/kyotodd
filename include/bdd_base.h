@@ -12,13 +12,13 @@
  *
  * @param node_count Initial node table capacity (default: 256).
  * @param node_max   Maximum node table size (default: UINT64_MAX).
+ * @return 0 on success, 1 if memory allocation fails.
  * @throws std::overflow_error If allocation sizes overflow.
- * @throws std::bad_alloc If memory allocation fails.
  */
-void bddinit(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
+int bddinit(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 
 /** @brief Initialize the BDD library (alias of bddinit()). */
-inline void BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) { bddinit(node_count, node_max); }
+inline int BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) { return bddinit(node_count, node_max); }
 
 /**
  * @brief Create a new Boolean variable.
@@ -209,8 +209,9 @@ void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result);
  *
  * Reclaims dead nodes via mark-and-sweep. No-op if called from within
  * a recursive operation (bdd_gc_depth > 0).
+ * @return 0 on success, 1 if no free nodes after GC.
  */
-void bddgc();
+int bddgc();
 
 /**
  * @brief Register a raw bddp pointer as a GC root.

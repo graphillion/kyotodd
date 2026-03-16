@@ -170,7 +170,7 @@ static void unique_table_resize(BddUniqueTable* t) {
 }
 
 // --- Public API ---
-void bddinit(uint64_t node_count, uint64_t node_max) {
+int bddinit(uint64_t node_count, uint64_t node_max) {
     // Free previous allocations if re-initializing
     std::free(bdd_nodes);
     std::free(var2level);
@@ -211,7 +211,7 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     }
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
     if (!bdd_nodes) {
-        throw std::bad_alloc();
+        return 1;
     }
 
     // Initialize operation cache
@@ -227,7 +227,7 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
     if (!bdd_cache) {
         std::free(bdd_nodes);
         bdd_nodes = nullptr;
-        throw std::bad_alloc();
+        return 1;
     }
     for (uint64_t i = 0; i < bdd_cache_size; i++) {
         bdd_cache[i].fop = 0;
@@ -235,6 +235,7 @@ void bddinit(uint64_t node_count, uint64_t node_max) {
         bdd_cache[i].h = 0;
         bdd_cache[i].result = bddnull;
     }
+    return 0;
 }
 
 static void bdd_cache_clear() {
@@ -399,13 +400,13 @@ static void bddgc_mark(bddp f, uint8_t* marks) {
     bddgc_mark(node_hi(node_id), marks);
 }
 
-void bddgc() {
-    if (bdd_gc_depth > 0) return;
-    if (bdd_node_used == 0) return;
+int bddgc() {
+    if (bdd_gc_depth > 0) return 0;
+    if (bdd_node_used == 0) return 0;
 
     // 1. Allocate mark array
     uint8_t* marks = static_cast<uint8_t*>(std::calloc(bdd_node_used, 1));
-    if (!marks) return;
+    if (!marks) return 1;
 
     // 2. Mark reachable nodes from all registered roots
     for (bddp* ptr : gc_roots()) {
@@ -443,6 +444,8 @@ void bddgc() {
 
     // 6. Free mark array
     std::free(marks);
+
+    return (bdd_free_count == 0) ? 1 : 0;
 }
 
 bool bdd_should_gc() {
