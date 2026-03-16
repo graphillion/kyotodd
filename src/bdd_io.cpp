@@ -417,3 +417,24 @@ void bddvdump(bddp *p, int n) {
     }
     std::printf("\n");
 }
+
+// Obsolete graph functions: retained for API compatibility.
+void bddgraph0(bddp f) {
+    (void)f;
+    throw std::logic_error("bddgraph0: obsolete — BDD/ZDD share the same node table");
+}
+
+void bddgraph(bddp f) {
+    (void)f;
+    throw std::logic_error("bddgraph: obsolete — BDD/ZDD share the same node table");
+}
+
+void bddvgraph0(bddp* ptr, int lim) {
+    (void)ptr; (void)lim;
+    throw std::logic_error("bddvgraph0: obsolete — BDD/ZDD share the same node table");
+}
+
+void bddvgraph(bddp* ptr, int lim) {
+    (void)ptr; (void)lim;
+    throw std::logic_error("bddvgraph: obsolete — BDD/ZDD share the same node table");
+}

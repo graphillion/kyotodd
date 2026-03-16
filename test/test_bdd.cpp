@@ -6058,3 +6058,21 @@ TEST_F(BDDTest, Bddvdump_SharedNodes) {
     }
     EXPECT_EQ(count, 1u);
 }
+
+TEST_F(BDDTest, Bddgraph0_Throws) {
+    EXPECT_THROW(bddgraph0(bddfalse), std::logic_error);
+}
+
+TEST_F(BDDTest, Bddgraph_Throws) {
+    EXPECT_THROW(bddgraph(bddfalse), std::logic_error);
+}
+
+TEST_F(BDDTest, Bddvgraph0_Throws) {
+    bddp arr[1] = {bddfalse};
+    EXPECT_THROW(bddvgraph0(arr, 1), std::logic_error);
+}
+
+TEST_F(BDDTest, Bddvgraph_Throws) {
+    bddp arr[1] = {bddfalse};
+    EXPECT_THROW(bddvgraph(arr, 1), std::logic_error);
+}

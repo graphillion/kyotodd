@@ -129,4 +129,13 @@ void bdddump(bddp f);
  */
 void bddvdump(bddp *p, int n);
 
+/** @brief @deprecated Always throws. Retained for API compatibility. */
+void bddgraph0(bddp f);
+/** @brief @deprecated Always throws. Retained for API compatibility. */
+void bddgraph(bddp f);
+/** @brief @deprecated Always throws. Retained for API compatibility. */
+void bddvgraph0(bddp* ptr, int lim);
+/** @brief @deprecated Always throws. Retained for API compatibility. */
+void bddvgraph(bddp* ptr, int lim);
+
 #endif
