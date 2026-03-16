@@ -2,6 +2,7 @@
 #define KYOTODD_BDD_OPS_H
 
 #include "bdd_types.h"
+#include "bigint.hpp"
 
 /**
  * @brief Logical NOT (complement).
@@ -453,5 +454,16 @@ uint64_t bddlit(bddp f);
  * @return The maximum set size, or 0 for the empty family or {∅}.
  */
 uint64_t bddlen(bddp f);
+
+/**
+ * @brief Count the number of sets in a ZDD family (arbitrary precision).
+ *
+ * Same computation as bddcard, but returns a BigInt so the result
+ * is exact regardless of cardinality.
+ *
+ * @param f A ZDD node ID.
+ * @return The cardinality of the family as a BigInt.
+ */
+bigint::BigInt bddexactcount(bddp f);
 
 #endif

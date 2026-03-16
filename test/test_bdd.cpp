@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
 #include "bdd_internal.h"
+#include "bigint.hpp"
 #include <sstream>
 #include <unordered_set>
 
@@ -6233,4 +6234,125 @@ TEST_F(BDDTest, Bddlen_Complement) {
     bddp f = bddchange(bddsingle, v1);
     f = bddchange(f, v2);  // {{v1, v2}}
     EXPECT_EQ(bddlen(f), bddlen(bddnot(f)));
+}
+
+// --- bddexactcount tests ---
+
+TEST_F(BDDTest, BddExactCount_Terminals) {
+    EXPECT_EQ(bddexactcount(bddempty), bigint::BigInt(0));
+    EXPECT_EQ(bddexactcount(bddsingle), bigint::BigInt(1));
+    EXPECT_EQ(bddexactcount(bddnull), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, BddExactCount_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddexactcount(x1), bigint::BigInt(1));
+
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    EXPECT_EQ(bddexactcount(x2), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, BddExactCount_Union) {
+    bddvar v1 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
+    EXPECT_EQ(bddexactcount(f), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, BddExactCount_PowerSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
+    EXPECT_EQ(bddexactcount(f), bigint::BigInt(4));
+}
+
+TEST_F(BDDTest, BddExactCount_Complement) {
+    bddvar v1 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddexactcount(x1), bigint::BigInt(1));
+    EXPECT_EQ(bddexactcount(bddnot(x1)), bigint::BigInt(2));
+
+    EXPECT_EQ(bddexactcount(bddsingle), bigint::BigInt(1));
+    EXPECT_EQ(bddexactcount(bddnot(bddsingle)), bigint::BigInt(0));
+
+    EXPECT_EQ(bddexactcount(bddempty), bigint::BigInt(0));
+    EXPECT_EQ(bddexactcount(bddnot(bddempty)), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, BddExactCount_ComplementWithEmptySet) {
+    bddvar v1 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
+    EXPECT_EQ(bddexactcount(f), bigint::BigInt(2));
+    EXPECT_EQ(bddexactcount(bddnot(f)), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, BddExactCount_LargerFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x3 = getznode(v3, bddempty, bddsingle);
+    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp x13 = getznode(v1, bddempty, getznode(v3, bddempty, bddsingle));
+    bddp x23 = getznode(v2, bddempty, getznode(v3, bddempty, bddsingle));
+    bddp x123 = getznode(v1, bddempty, getznode(v2, bddempty, getznode(v3, bddempty, bddsingle)));
+
+    bddp f = bddunion(bddunion(bddunion(x1, x2), bddunion(x3, x12)),
+                       bddunion(bddunion(x13, x23), x123));
+    EXPECT_EQ(bddexactcount(f), bigint::BigInt(7));
+
+    bddp g = bddunion(f, bddsingle);
+    EXPECT_EQ(bddexactcount(g), bigint::BigInt(8));
+}
+
+TEST_F(BDDTest, BddExactCount_MatchesBddCard) {
+    // For small families, bddexactcount should match bddcard
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+
+    bddp s1 = bddchange(bddsingle, v1);
+    bddp s2 = bddchange(bddsingle, v2);
+    bddp s3 = bddchange(bddsingle, v3);
+    bddp s4 = bddchange(bddsingle, v4);
+    bddp s12 = bddchange(s1, v2);
+    bddp s34 = bddchange(s3, v4);
+
+    bddp f = bddunion(bddunion(bddunion(s1, s2), bddunion(s3, s4)),
+                       bddunion(s12, s34));
+    EXPECT_EQ(bddexactcount(f).to_string(),
+              std::to_string(bddcard(f)));
+
+    // With complement
+    bddp cf = bddnot(f);
+    EXPECT_EQ(bddexactcount(cf).to_string(),
+              std::to_string(bddcard(cf)));
+}
+
+TEST_F(BDDTest, BddExactCount_ZDDClassMethod) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z1 = bddchange(bddsingle, v1);
+    bddp z2 = bddchange(bddsingle, v2);
+    bddp f = bddunion(bddunion(bddsingle, z1), z2);
+
+    ZDD zf(0);
+    zf.root = f;
+    EXPECT_EQ(zf.ExactCount(), bigint::BigInt(3));
+    EXPECT_EQ(ZDD::Empty.ExactCount(), bigint::BigInt(0));
+    EXPECT_EQ(ZDD::Single.ExactCount(), bigint::BigInt(1));
 }

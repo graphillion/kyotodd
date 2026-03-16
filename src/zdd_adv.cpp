@@ -1,6 +1,8 @@
 #include "bdd.h"
 #include "bdd_internal.h"
+#include "bigint.hpp"
 #include <stdexcept>
+#include <unordered_map>
 
 static bddp bdddisjoin_rec(bddp f, bddp g);
 
@@ -738,4 +740,51 @@ uint64_t bddlen(bddp f) {
 
     bddwcache(BDD_OP_LEN, f_raw, 0, result);
     return result;
+}
+
+static bigint::BigInt bddexactcount_rec(
+    bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    // Terminal cases
+    if (f == bddempty) return bigint::BigInt(0);
+    if (f == bddsingle) return bigint::BigInt(1);
+
+    // Handle complement edge (ZDD: complement toggles empty set membership)
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    // Memo lookup
+    auto it = memo.find(f_raw);
+    bigint::BigInt count;
+    if (it != memo.end()) {
+        count = it->second;
+    } else {
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        bigint::BigInt c0 = bddexactcount_rec(lo, memo);
+        bigint::BigInt c1 = bddexactcount_rec(hi, memo);
+
+        count = c0 + c1;
+
+        memo[f_raw] = count;
+    }
+
+    // Complement edge toggles empty set membership
+    if (comp) {
+        if (zdd_has_empty(f_raw)) {
+            // ∅ was in the family, complement removes it
+            count -= bigint::BigInt(1);
+        } else {
+            // ∅ was not in the family, complement adds it
+            count += bigint::BigInt(1);
+        }
+    }
+
+    return count;
+}
+
+bigint::BigInt bddexactcount(bddp f) {
+    if (f == bddnull) return bigint::BigInt(0);
+    std::unordered_map<bddp, bigint::BigInt> memo;
+    return bddexactcount_rec(f, memo);
 }

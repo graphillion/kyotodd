@@ -280,6 +280,10 @@ inline uint64_t ZDD::Card() const {
     return bddcard(root);
 }
 
+inline bigint::BigInt ZDD::ExactCount() const {
+    return bddexactcount(root);
+}
+
 inline ZDD ZDD::Restrict(const ZDD& g) const {
     ZDD z(0);
     z.root = bddrestrict(root, g.root);

@@ -5,6 +5,8 @@
 #include <vector>
 #include "bdd_node.h"
 
+namespace bigint { class BigInt; }
+
 /** @brief DD node ID type (48-bit value stored in uint64_t). */
 typedef uint64_t bddp;
 
@@ -412,6 +414,11 @@ public:
      * @return The cardinality of the family.
      */
     uint64_t Card() const;
+    /**
+     * @brief Count the number of sets in the family (arbitrary precision).
+     * @return The cardinality of the family as a BigInt.
+     */
+    bigint::BigInt ExactCount() const;
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.
