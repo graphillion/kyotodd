@@ -6164,3 +6164,73 @@ TEST_F(BDDTest, Bddlit_Complement) {
     uint64_t lit_comp = bddlit(bddnot(s1));  // {{}, {v1}} or {{v1}} minus ∅
     EXPECT_EQ(lit_orig, lit_comp);
 }
+
+// --- bddlen ---
+
+TEST_F(BDDTest, Bddlen_Null) {
+    EXPECT_EQ(bddlen(bddnull), 0u);
+}
+
+TEST_F(BDDTest, Bddlen_Empty) {
+    EXPECT_EQ(bddlen(bddempty), 0u);
+}
+
+TEST_F(BDDTest, Bddlen_Single) {
+    // {∅} — max size is 0
+    EXPECT_EQ(bddlen(bddsingle), 0u);
+}
+
+TEST_F(BDDTest, Bddlen_SingleVar) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);  // {{v1}}
+    EXPECT_EQ(bddlen(f), 1u);
+}
+
+TEST_F(BDDTest, Bddlen_TwoElementSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);
+    f = bddchange(f, v2);  // {{v1, v2}}
+    EXPECT_EQ(bddlen(f), 2u);
+}
+
+TEST_F(BDDTest, Bddlen_Example) {
+    // {{a,b}, {a}, {b,c,d}} -> max(2, 1, 3) = 3
+    bddvar a = bddnewvar();
+    bddvar b = bddnewvar();
+    bddvar c = bddnewvar();
+    bddvar d = bddnewvar();
+
+    bddp ab = bddchange(bddsingle, a);
+    ab = bddchange(ab, b);
+
+    bddp sa = bddchange(bddsingle, a);
+
+    bddp bcd = bddchange(bddsingle, b);
+    bcd = bddchange(bcd, c);
+    bcd = bddchange(bcd, d);
+
+    bddp f = bddunion(ab, sa);
+    f = bddunion(f, bcd);
+
+    EXPECT_EQ(bddlen(f), 3u);
+}
+
+TEST_F(BDDTest, Bddlen_WithEmptySet) {
+    // {{}, {v1, v2}}: max(0, 2) = 2
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);
+    f = bddchange(f, v2);
+    f = bddunion(f, bddsingle);
+    EXPECT_EQ(bddlen(f), 2u);
+}
+
+TEST_F(BDDTest, Bddlen_Complement) {
+    // Complement toggles ∅ membership; max set size unchanged
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);
+    f = bddchange(f, v2);  // {{v1, v2}}
+    EXPECT_EQ(bddlen(f), bddlen(bddnot(f)));
+}

@@ -704,3 +704,38 @@ uint64_t bddlit(bddp f) {
     bddwcache(BDD_OP_LIT, f_raw, 0, sum);
     return sum;
 }
+
+static const uint64_t BDDLEN_MAX = (UINT64_C(1) << 39) - 1;
+
+uint64_t bddlen(bddp f) {
+    if (f == bddnull) return 0;
+    if (f == bddempty) return 0;
+    if (f == bddsingle) return 0;
+
+    // Complement edge toggles ∅ membership; ∅ has size 0,
+    // so max element size is unchanged.
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(BDD_OP_LEN, f_raw, 0);
+    if (cached != bddnull) {
+        return cached;
+    }
+
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    uint64_t len0 = bddlen(lo);
+    uint64_t len1 = bddlen(hi);
+
+    // len(f1) + 1 with overflow check
+    if (len1 >= BDDLEN_MAX) {
+        len1 = BDDLEN_MAX;
+    } else {
+        len1 += 1;
+    }
+
+    uint64_t result = len0 > len1 ? len0 : len1;
+
+    bddwcache(BDD_OP_LEN, f_raw, 0, result);
+    return result;
+}

@@ -443,4 +443,15 @@ uint64_t bddcard(bddp f);
  */
 uint64_t bddlit(bddp f);
 
+/**
+ * @brief Return the maximum set size in a ZDD family.
+ *
+ * Returns the size of the largest set in the family represented by @p f.
+ * For example, if f = {{a,b},{a},{b,c,d}}, returns max(2,1,3) = 3.
+ *
+ * @param f A ZDD node ID.
+ * @return The maximum set size, or 0 for the empty family or {∅}.
+ */
+uint64_t bddlen(bddp f);
+
 #endif
