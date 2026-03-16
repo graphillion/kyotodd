@@ -295,3 +295,125 @@ int bddimportz(std::istream& strm, bddp* p, int lim) {
 int bddimportz(std::istream& strm, std::vector<bddp>& v) {
     return import_core(strm, v, getznode);
 }
+
+// --- bdddump / bddvdump ---
+
+static void dump_rec(bddp f, std::unordered_set<bddp>& visited) {
+    bddp node = f & ~BDD_COMP_FLAG;
+    if (node & BDD_CONST_FLAG) return;
+    if (!visited.insert(node).second) return;
+
+    uint64_t idx = node / 2 - 1;
+    if (idx >= bdd_node_used) {
+        std::printf("bdddump: Invalid bddp\n");
+        return;
+    }
+
+    bddvar v = node_var(node);
+    bddp f0 = node_lo(node);
+    bddp f1 = node_hi(node);
+
+    // Recurse children first (bottom-up order)
+    dump_rec(f0, visited);
+    dump_rec(f1 & ~BDD_COMP_FLAG, visited);
+
+    uint64_t ndx = node / 2;
+    bddvar lev = var2level[v];
+
+    // Print: N<index> = [V<var>(<lev>), <f0>, <f1>]
+    std::printf("N%" PRIu64 " = [V%u(%u), ", ndx, static_cast<unsigned>(v), static_cast<unsigned>(lev));
+
+    // f0 (lo child) - always non-complemented due to normalization
+    if (f0 & BDD_CONST_FLAG) {
+        std::printf("%" PRIu64, f0 & ~BDD_CONST_FLAG);
+    } else {
+        std::printf("N%" PRIu64, (f0 & ~BDD_COMP_FLAG) / 2);
+    }
+
+    std::printf(", ");
+
+    // f1 (hi child) - may have complement edge
+    bool neg1 = (f1 & BDD_COMP_FLAG) != 0;
+    bddp f1abs = f1 & ~BDD_COMP_FLAG;
+    if (f1abs & BDD_CONST_FLAG) {
+        if (neg1) std::printf("~");
+        std::printf("%" PRIu64, f1abs & ~BDD_CONST_FLAG);
+    } else {
+        if (neg1) std::printf("~");
+        std::printf("N%" PRIu64, f1abs / 2);
+    }
+
+    std::printf("]\n");
+}
+
+static void dump_root(const char* label, bddp f) {
+    std::printf("%s = ", label);
+    if (f == bddnull) {
+        std::printf("NULL");
+    } else if (f & BDD_CONST_FLAG) {
+        bool neg = (f & BDD_COMP_FLAG) != 0;
+        bddp val = (f & ~BDD_COMP_FLAG) & ~BDD_CONST_FLAG;
+        if (neg) std::printf("~");
+        std::printf("%" PRIu64, val);
+    } else {
+        bool neg = (f & BDD_COMP_FLAG) != 0;
+        if (neg) std::printf("~");
+        std::printf("N%" PRIu64, (f & ~BDD_COMP_FLAG) / 2);
+    }
+    std::printf("\n");
+}
+
+void bdddump(bddp f) {
+    if (f == bddnull) {
+        std::printf("RT = NULL\n\n");
+        return;
+    }
+    if (!(f & BDD_CONST_FLAG)) {
+        bddp node = f & ~BDD_COMP_FLAG;
+        uint64_t idx = node / 2 - 1;
+        if (idx >= bdd_node_used) {
+            std::printf("bdddump: Invalid bddp\n");
+            return;
+        }
+    }
+    std::unordered_set<bddp> visited;
+    dump_rec(f, visited);
+    dump_root("RT", f);
+    std::printf("\n");
+}
+
+void bddvdump(bddp *p, int n) {
+    // Find effective limit (bddnull acts as sentinel)
+    int lim = 0;
+    for (int i = 0; i < n; i++) {
+        if (p[i] == bddnull) break;
+        lim = i + 1;
+    }
+
+    // Validate non-terminal nodes
+    for (int i = 0; i < lim; i++) {
+        if (!(p[i] & BDD_CONST_FLAG)) {
+            bddp node = p[i] & ~BDD_COMP_FLAG;
+            uint64_t idx = node / 2 - 1;
+            if (idx >= bdd_node_used) {
+                std::printf("bdddump: Invalid bddp\n");
+                return;
+            }
+        }
+    }
+
+    // Dump all nodes (shared nodes printed once)
+    std::unordered_set<bddp> visited;
+    for (int i = 0; i < lim; i++) {
+        dump_rec(p[i], visited);
+    }
+
+    // Print roots (up to and including the first bddnull)
+    for (int i = 0; i < n; i++) {
+        char label[32];
+        std::snprintf(label, sizeof(label), "RT%d", i);
+        dump_root(label, p[i]);
+        if (p[i] == bddnull) break;
+    }
+    std::printf("\n");
+}

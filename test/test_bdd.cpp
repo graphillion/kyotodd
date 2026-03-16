@@ -5929,3 +5929,132 @@ TEST_F(BDDTest, ReducedFlag_BDD_ID_ValidatesReduced) {
     EXPECT_NO_THROW(BDD_ID(bddfalse));
     EXPECT_NO_THROW(BDD_ID(bddtrue));
 }
+
+// --- bdddump / bddvdump ---
+
+static std::string capture_stdout(std::function<void()> fn) {
+    fflush(stdout);
+    int pipefd[2];
+    pipe(pipefd);
+    int saved = dup(STDOUT_FILENO);
+    dup2(pipefd[1], STDOUT_FILENO);
+    close(pipefd[1]);
+    fn();
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO);
+    close(saved);
+    std::string result;
+    char buf[1024];
+    ssize_t n;
+    while ((n = read(pipefd[0], buf, sizeof(buf))) > 0) {
+        result.append(buf, n);
+    }
+    close(pipefd[0]);
+    return result;
+}
+
+TEST_F(BDDTest, Bdddump_Null) {
+    std::string out = capture_stdout([]{ bdddump(bddnull); });
+    EXPECT_EQ(out, "RT = NULL\n\n");
+}
+
+TEST_F(BDDTest, Bdddump_False) {
+    std::string out = capture_stdout([]{ bdddump(bddfalse); });
+    EXPECT_EQ(out, "RT = 0\n\n");
+}
+
+TEST_F(BDDTest, Bdddump_True) {
+    std::string out = capture_stdout([]{ bdddump(bddtrue); });
+    EXPECT_EQ(out, "RT = ~0\n\n");
+}
+
+TEST_F(BDDTest, Bdddump_SingleVar) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);  // V1: lo=false, hi=true
+    std::string out = capture_stdout([f]{ bdddump(f); });
+    // f is node_id=2, index=1, var=1, lev=1
+    // lo=bddfalse(val 0), hi=bddtrue=~bddfalse -> complement of const 0
+    // bddtrue = BDD_CONST_FLAG | 1, but with complement edge representation:
+    // getnode(v, bddfalse, bddtrue): lo=bddfalse (no comp), hi=bddtrue
+    // bddtrue = 0x800000000001, which has BDD_CONST_FLAG set and value=1
+    // So hi is a constant with value 1, no complement edge (BDD_COMP_FLAG=bit0, but
+    // BDD_CONST_FLAG is bit 47). bddtrue has bit 0 set but it's a constant value, not comp flag.
+    // Actually: bddtrue = BDD_CONST_FLAG | 1. The "1" here IS the value.
+    // For display: f1 = bddtrue. Is BDD_COMP_FLAG set? BDD_COMP_FLAG = bit 0 = 1.
+    // bddtrue & BDD_COMP_FLAG = 1. So neg1 = true.
+    // f1abs = bddtrue & ~BDD_COMP_FLAG = BDD_CONST_FLAG | 0 = bddfalse.
+    // f1abs & BDD_CONST_FLAG = true. val = f1abs & ~BDD_CONST_FLAG = 0.
+    // So output: ~0. This matches the spec (bddtrue displays as ~0).
+    uint64_t ndx = (f & ~BDD_COMP_FLAG) / 2;
+    std::string expected = "N" + std::to_string(ndx) + " = [V1(1), 0, ~0]\n"
+                           "RT = N" + std::to_string(ndx) + "\n\n";
+    EXPECT_EQ(out, expected);
+}
+
+TEST_F(BDDTest, Bdddump_TwoVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp p1 = bddprime(v1);  // V1
+    bddp p2 = bddprime(v2);  // V2
+    bddp f = bddxor(p1, p2); // V1 XOR V2
+    std::string out = capture_stdout([f]{ bdddump(f); });
+    // Should contain node lines and RT line, ending with blank line
+    EXPECT_NE(out.find("RT = "), std::string::npos);
+    EXPECT_TRUE(out.size() >= 2 && out.substr(out.size()-2) == "\n\n");
+}
+
+TEST_F(BDDTest, Bdddump_NegatedRoot) {
+    bddvar v1 = bddnewvar();
+    bddp f = bddprime(v1);
+    bddp nf = bddnot(f);
+    std::string out = capture_stdout([nf]{ bdddump(nf); });
+    uint64_t ndx = (f & ~BDD_COMP_FLAG) / 2;
+    std::string expected = "N" + std::to_string(ndx) + " = [V1(1), 0, ~0]\n"
+                           "RT = ~N" + std::to_string(ndx) + "\n\n";
+    EXPECT_EQ(out, expected);
+}
+
+TEST_F(BDDTest, Bddvdump_Basic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    bddp arr[2] = {f, p1};
+    std::string out = capture_stdout([&arr]{ bddvdump(arr, 2); });
+    EXPECT_NE(out.find("RT0 = "), std::string::npos);
+    EXPECT_NE(out.find("RT1 = "), std::string::npos);
+    EXPECT_TRUE(out.size() >= 2 && out.substr(out.size()-2) == "\n\n");
+}
+
+TEST_F(BDDTest, Bddvdump_NullSentinel) {
+    bddvar v1 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddp arr[3] = {p1, bddnull, bddfalse};
+    std::string out = capture_stdout([&arr]{ bddvdump(arr, 3); });
+    // RT0 should show the node, RT1 should show NULL, RT2 should not appear
+    EXPECT_NE(out.find("RT0 = "), std::string::npos);
+    EXPECT_NE(out.find("RT1 = NULL"), std::string::npos);
+    EXPECT_EQ(out.find("RT2"), std::string::npos);
+}
+
+TEST_F(BDDTest, Bddvdump_SharedNodes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // f shares p1 as a subnode; shared nodes should be printed only once
+    bddp arr[2] = {f, bddnot(p1)};
+    std::string out = capture_stdout([&arr]{ bddvdump(arr, 2); });
+    uint64_t ndx1 = (p1 & ~BDD_COMP_FLAG) / 2;
+    std::string nstr = "N" + std::to_string(ndx1) + " = ";
+    // Count occurrences of the node line
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = out.find(nstr, pos)) != std::string::npos) {
+        count++;
+        pos += nstr.size();
+    }
+    EXPECT_EQ(count, 1u);
+}

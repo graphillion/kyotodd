@@ -116,4 +116,17 @@ int bddimportz(std::istream& strm, bddp* p, int lim);
  */
 int bddimportz(std::istream& strm, std::vector<bddp>& v);
 
+/**
+ * @brief Dump the internal structure of a single BDD/ZDD to stdout.
+ * @param f A node ID to dump.
+ */
+void bdddump(bddp f);
+
+/**
+ * @brief Dump the internal structure of multiple BDD/ZDDs to stdout.
+ * @param p Array of node IDs to dump.
+ * @param n Number of elements in the array.
+ */
+void bddvdump(bddp *p, int n);
+
 #endif
