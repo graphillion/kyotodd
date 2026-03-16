@@ -37,7 +37,7 @@ static const bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
 static const bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
 /** @brief Maximum recursion depth for recursive operations. */
-extern const int BDD_RecurLimit;
+#define BDD_RecurLimit 8192
 /** @brief Current recursion depth counter. */
 extern int BDD_RecurCount;
 

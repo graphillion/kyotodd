@@ -43,7 +43,6 @@ static std::unordered_set<bddp*>& gc_roots() {
     static auto* instance = new std::unordered_set<bddp*>();
     return *instance;
 }
-const int BDD_RecurLimit = 8192;
 int BDD_RecurCount = 0;
 int bdd_gc_depth = 0;
 static bddp bdd_free_list = 0;
