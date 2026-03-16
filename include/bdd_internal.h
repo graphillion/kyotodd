@@ -5,6 +5,14 @@
 #include <stdexcept>
 #include <functional>
 
+// --- Debug assertion ---
+#ifndef NDEBUG
+#define BDD_DEBUG_ASSERT(cond) \
+    do { if (!(cond)) throw std::logic_error("BDD assertion failed: " #cond); } while(0)
+#else
+#define BDD_DEBUG_ASSERT(cond) ((void)0)
+#endif
+
 // --- GC guard ---
 extern int bdd_gc_depth;
 void bddgc();

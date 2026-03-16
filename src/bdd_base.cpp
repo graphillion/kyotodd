@@ -580,6 +580,7 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     }
     bddp node_id = allocate_node();
     node_write(node_id, var, lo, hi);
+    BDD_DEBUG_ASSERT(bddp_is_reduced(lo) && bddp_is_reduced(hi));
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
     }
@@ -615,6 +616,7 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     }
     bddp node_id = allocate_node();
     node_write(node_id, var, lo, hi);
+    BDD_DEBUG_ASSERT(bddp_is_reduced(lo) && bddp_is_reduced(hi));
     if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
         node_set_reduced(node_id);
     }
@@ -642,9 +644,25 @@ bddp bddprime(bddvar v) {
 }
 
 BDD BDD_ID(bddp p) {
+    if (p != bddnull && !(p & BDD_CONST_FLAG)) {
+        if (!bddp_is_reduced(p)) {
+            throw std::invalid_argument("BDD_ID: node is not reduced");
+        }
+    }
     BDD b(0);
     b.root = p;
     return b;
+}
+
+ZDD ZDD_ID(bddp p) {
+    if (p != bddnull && !(p & BDD_CONST_FLAG)) {
+        if (!bddp_is_reduced(p)) {
+            throw std::invalid_argument("ZDD_ID: node is not reduced");
+        }
+    }
+    ZDD z(0);
+    z.root = p;
+    return z;
 }
 
 BDD BDDvar(bddvar v) {
@@ -662,5 +680,20 @@ int bddisbdd(bddp f) {
 int bddiszbdd(bddp f) {
     (void)f;
     throw std::logic_error("bddiszbdd: obsolete — BDD/ZDD share the same node table");
+}
+
+static bool bdd_check_reduced_rec(bddp f, std::unordered_set<bddp>& visited) {
+    if (f & BDD_CONST_FLAG) return true;
+    bddp node = f & ~BDD_COMP_FLAG;
+    if (!visited.insert(node).second) return true;
+    if (!node_is_reduced(node)) return false;
+    return bdd_check_reduced_rec(node_lo(node), visited)
+        && bdd_check_reduced_rec(node_hi(node), visited);
+}
+
+bool bdd_check_reduced(bddp root) {
+    if (root == bddnull) return true;
+    std::unordered_set<bddp> visited;
+    return bdd_check_reduced_rec(root, visited);
 }
 

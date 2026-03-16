@@ -163,10 +163,23 @@ bddp bddprime(bddvar v);
 
 /**
  * @brief Wrap a raw node ID into a BDD object.
+ *
+ * Validates that the node is reduced. Throws std::invalid_argument
+ * if the node is not reduced.
  * @param p A BDD node ID.
  * @return A BDD object holding @p p.
  */
 BDD BDD_ID(bddp p);
+
+/**
+ * @brief Wrap a raw node ID into a ZDD object.
+ *
+ * Validates that the node is reduced. Throws std::invalid_argument
+ * if the node is not reduced.
+ * @param p A ZDD node ID.
+ * @return A ZDD object holding @p p.
+ */
+ZDD ZDD_ID(bddp p);
 
 /**
  * @brief Create a BDD object for variable @p v.
@@ -233,5 +246,12 @@ uint64_t bddlive();
 int bddisbdd(bddp f);
 /** @brief @deprecated Always throws. Use BDD/ZDD class types instead. */
 int bddiszbdd(bddp f);
+
+/**
+ * @brief Check that all non-terminal nodes reachable from @p root are reduced.
+ * @param root A BDD/ZDD node ID.
+ * @return true if all reachable non-terminal nodes have the reduced flag set.
+ */
+bool bdd_check_reduced(bddp root);
 
 #endif

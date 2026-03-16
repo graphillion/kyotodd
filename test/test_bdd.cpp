@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include "bdd_internal.h"
 #include <sstream>
 #include <unordered_set>
 
@@ -5704,4 +5705,194 @@ TEST_F(BDDTest, GCZDDAutoTrigger) {
     ZDD z6 = z4 + z5;
 
     EXPECT_NE(z6.root, bddempty);
+}
+
+// --- Reduced flag tests ---
+
+TEST_F(BDDTest, ReducedFlag_TerminalsAreReduced) {
+    EXPECT_TRUE(bddp_is_reduced(bddfalse));
+    EXPECT_TRUE(bddp_is_reduced(bddtrue));
+    EXPECT_TRUE(bddp_is_reduced(bddempty));
+    EXPECT_TRUE(bddp_is_reduced(bddsingle));
+}
+
+TEST_F(BDDTest, ReducedFlag_PrimeNodeIsReduced) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_TRUE(bddp_is_reduced(p));
+    EXPECT_TRUE(node_is_reduced(p));
+}
+
+TEST_F(BDDTest, ReducedFlag_BDDOperations) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp x1 = bddprime(v1);
+    bddp x2 = bddprime(v2);
+    bddp x3 = bddprime(v3);
+
+    // AND
+    bddp a = bddand(x1, x2);
+    EXPECT_TRUE(bddp_is_reduced(a));
+    EXPECT_TRUE(bdd_check_reduced(a));
+
+    // OR
+    bddp o = bddor(x1, x2);
+    EXPECT_TRUE(bddp_is_reduced(o));
+    EXPECT_TRUE(bdd_check_reduced(o));
+
+    // XOR
+    bddp x = bddxor(x1, x2);
+    EXPECT_TRUE(bddp_is_reduced(x));
+    EXPECT_TRUE(bdd_check_reduced(x));
+
+    // NOT (complement edge)
+    bddp n = bddnot(x1);
+    EXPECT_TRUE(bddp_is_reduced(n));
+    EXPECT_TRUE(bdd_check_reduced(n));
+
+    // ITE
+    bddp ite = bddite(x1, x2, x3);
+    EXPECT_TRUE(bddp_is_reduced(ite));
+    EXPECT_TRUE(bdd_check_reduced(ite));
+
+    // Cofactor
+    bddp c0 = bddat0(a, v1);
+    EXPECT_TRUE(bddp_is_reduced(c0));
+    bddp c1 = bddat1(a, v1);
+    EXPECT_TRUE(bddp_is_reduced(c1));
+
+    // Quantification
+    bddp ex = bddexistvar(a, v1);
+    EXPECT_TRUE(bddp_is_reduced(ex));
+    bddp un = bddunivvar(a, v1);
+    EXPECT_TRUE(bddp_is_reduced(un));
+}
+
+TEST_F(BDDTest, ReducedFlag_ZDDOperations) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+
+    // Build ZDD sets: {v1}, {v2}, {v3}
+    bddp s1 = bddchange(bddsingle, v1);
+    bddp s2 = bddchange(bddsingle, v2);
+    bddp s3 = bddchange(bddsingle, v3);
+
+    EXPECT_TRUE(bddp_is_reduced(s1));
+    EXPECT_TRUE(bddp_is_reduced(s2));
+    EXPECT_TRUE(bddp_is_reduced(s3));
+
+    // Union
+    bddp u = bddunion(s1, s2);
+    EXPECT_TRUE(bddp_is_reduced(u));
+    EXPECT_TRUE(bdd_check_reduced(u));
+
+    // Intersect
+    bddp i = bddintersec(u, s1);
+    EXPECT_TRUE(bddp_is_reduced(i));
+
+    // Subtract
+    bddp sub = bddsubtract(u, s1);
+    EXPECT_TRUE(bddp_is_reduced(sub));
+
+    // Onset/Offset
+    bddp on = bddonset(u, v1);
+    EXPECT_TRUE(bddp_is_reduced(on));
+    bddp off = bddoffset(u, v1);
+    EXPECT_TRUE(bddp_is_reduced(off));
+
+    // Change
+    bddp ch = bddchange(u, v3);
+    EXPECT_TRUE(bddp_is_reduced(ch));
+    EXPECT_TRUE(bdd_check_reduced(ch));
+}
+
+TEST_F(BDDTest, ReducedFlag_ComplexBDD_CheckReduced) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddvar v4 = BDD_NewVar();
+    bddp x1 = bddprime(v1);
+    bddp x2 = bddprime(v2);
+    bddp x3 = bddprime(v3);
+    bddp x4 = bddprime(v4);
+
+    // Build complex BDD: (x1 & x2) | (x3 ^ x4)
+    bddp complex = bddor(bddand(x1, x2), bddxor(x3, x4));
+    EXPECT_TRUE(bdd_check_reduced(complex));
+
+    // bdd_check_reduced on terminals
+    EXPECT_TRUE(bdd_check_reduced(bddfalse));
+    EXPECT_TRUE(bdd_check_reduced(bddtrue));
+    EXPECT_TRUE(bdd_check_reduced(bddnull));
+}
+
+TEST_F(BDDTest, ReducedFlag_ComplexZDD_CheckReduced) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+
+    // Build ZDD family: {{v1,v2}, {v2,v3}, {v1}}
+    bddp s12 = bddchange(bddchange(bddsingle, v1), v2);
+    bddp s23 = bddchange(bddchange(bddsingle, v2), v3);
+    bddp s1 = bddchange(bddsingle, v1);
+    bddp family = bddunion(bddunion(s12, s23), s1);
+    EXPECT_TRUE(bdd_check_reduced(family));
+}
+
+TEST_F(BDDTest, ReducedFlag_GCPreservesFlag) {
+    BDD_Init(64, 64);
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp x1 = bddprime(v1);
+    bddp x2 = bddprime(v2);
+
+    bddp result = bddand(x1, x2);
+    bddgc_protect(&result);
+    bddgc();
+    EXPECT_TRUE(bddp_is_reduced(result));
+    EXPECT_TRUE(bdd_check_reduced(result));
+    bddgc_unprotect(&result);
+}
+
+TEST_F(BDDTest, ReducedFlag_ImportExport) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp x1 = bddprime(v1);
+    bddp x2 = bddprime(v2);
+    bddp orig = bddand(x1, x2);
+
+    // Export
+    std::ostringstream oss;
+    bddp arr[1] = { orig };
+    bddexport(oss, arr, 1);
+
+    // Re-init and import
+    BDD_Init(1024, UINT64_MAX);
+    BDD_NewVar();
+    BDD_NewVar();
+    std::istringstream iss(oss.str());
+    bddp imported;
+    int ret = bddimport(iss, &imported, 1);
+    EXPECT_EQ(ret, 1);
+    EXPECT_TRUE(bddp_is_reduced(imported));
+    EXPECT_TRUE(bdd_check_reduced(imported));
+}
+
+TEST_F(BDDTest, ReducedFlag_ZDD_ID) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddchange(bddsingle, v);
+    ZDD z = ZDD_ID(p);
+    EXPECT_EQ(z.root, p);
+}
+
+TEST_F(BDDTest, ReducedFlag_BDD_ID_ValidatesReduced) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // Should succeed — node is reduced
+    EXPECT_NO_THROW(BDD_ID(p));
+    // Terminals should succeed
+    EXPECT_NO_THROW(BDD_ID(bddfalse));
+    EXPECT_NO_THROW(BDD_ID(bddtrue));
 }
