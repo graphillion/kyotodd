@@ -151,6 +151,15 @@ bddp getnode(bddvar var, bddp lo, bddp hi);
 bddp getznode(bddvar var, bddp lo, bddp hi);
 
 /**
+ * @brief Create a terminal node with the given constant value.
+ *
+ * @param val The constant value (0 to bddvalmax).
+ * @return The node ID for the constant terminal.
+ * @throws std::invalid_argument If @p val exceeds bddvalmax.
+ */
+bddp bddconst(uint64_t val);
+
+/**
  * @brief Create a BDD representing a single positive literal.
  *
  * Returns a BDD for the function (var = true), equivalent to

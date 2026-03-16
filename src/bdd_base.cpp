@@ -636,6 +636,13 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
+bddp bddconst(uint64_t val) {
+    if (val > bddvalmax) {
+        throw std::invalid_argument("bddconst: val out of range");
+    }
+    return BDD_CONST_FLAG | val;
+}
+
 bddp bddprime(bddvar v) {
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddprime: var out of range");

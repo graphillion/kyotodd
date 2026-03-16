@@ -33,6 +33,14 @@ TEST_F(BDDTest, BddValMax) {
     EXPECT_EQ(bddvalmax, UINT64_C(0x7FFFFFFFFFFF));
 }
 
+TEST_F(BDDTest, BddConst) {
+    EXPECT_EQ(bddconst(0), bddfalse);
+    EXPECT_EQ(bddconst(1), bddtrue);
+    EXPECT_EQ(bddconst(42), BDD_CONST_FLAG | 42);
+    EXPECT_EQ(bddconst(bddvalmax), BDD_CONST_FLAG | bddvalmax);
+    EXPECT_THROW(bddconst(bddvalmax + 1), std::invalid_argument);
+}
+
 // --- BDD/ZDD constructors ---
 
 TEST_F(BDDTest, BDDConstructor) {
