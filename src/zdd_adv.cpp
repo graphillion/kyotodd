@@ -662,3 +662,45 @@ uint64_t bddcard(bddp f) {
 
     return count;
 }
+
+static const uint64_t BDDLIT_MAX = (UINT64_C(1) << 39) - 1;
+
+uint64_t bddlit(bddp f) {
+    if (f == bddnull) return 0;
+    // Terminal cases
+    if (f == bddempty) return 0;
+    if (f == bddsingle) return 0;  // {∅} — empty set has 0 literals
+
+    // Complement edge: toggles ∅ membership. ∅ has 0 literals, so lit is unchanged.
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_LIT, f_raw, 0);
+    if (cached != bddnull) {
+        return cached;
+    }
+
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    uint64_t l0 = bddlit(lo);
+    uint64_t l1 = bddlit(hi);
+    uint64_t c1 = bddcard(hi);
+
+    // lit(f) = lit(f0) + lit(f1) + card(f1), with overflow check
+    uint64_t sum = l0;
+    if (l1 > BDDLIT_MAX - sum) {
+        sum = BDDLIT_MAX;
+    } else {
+        sum += l1;
+    }
+    if (c1 > BDDLIT_MAX - sum) {
+        sum = BDDLIT_MAX;
+    } else {
+        sum += c1;
+    }
+    if (sum > BDDLIT_MAX) sum = BDDLIT_MAX;
+
+    bddwcache(BDD_OP_LIT, f_raw, 0, sum);
+    return sum;
+}

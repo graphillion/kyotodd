@@ -6076,3 +6076,91 @@ TEST_F(BDDTest, Bddvgraph_Throws) {
     bddp arr[1] = {bddfalse};
     EXPECT_THROW(bddvgraph(arr, 1), std::logic_error);
 }
+
+// --- bddlit ---
+
+TEST_F(BDDTest, Bddlit_Null) {
+    EXPECT_EQ(bddlit(bddnull), 0u);
+}
+
+TEST_F(BDDTest, Bddlit_Empty) {
+    EXPECT_EQ(bddlit(bddempty), 0u);
+}
+
+TEST_F(BDDTest, Bddlit_Single) {
+    // {∅} — empty set has 0 literals
+    EXPECT_EQ(bddlit(bddsingle), 0u);
+}
+
+TEST_F(BDDTest, Bddlit_SingleVar) {
+    // ZDD for {{v1}}: onset of v1 from bddsingle
+    bddvar v1 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);  // {{v1}}
+    EXPECT_EQ(bddcard(f), 1u);
+    EXPECT_EQ(bddlit(f), 1u);  // 1 set, 1 element
+}
+
+TEST_F(BDDTest, Bddlit_TwoElementSet) {
+    // {{v1, v2}}: single set with 2 elements
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddchange(bddsingle, v1);  // {{v1}}
+    f = bddchange(f, v2);               // {{v1, v2}}
+    EXPECT_EQ(bddcard(f), 1u);
+    EXPECT_EQ(bddlit(f), 2u);
+}
+
+TEST_F(BDDTest, Bddlit_TwoSets) {
+    // {{v1}, {v2}}: two singleton sets
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp s1 = bddchange(bddsingle, v1);  // {{v1}}
+    bddp s2 = bddchange(bddsingle, v2);  // {{v2}}
+    bddp f = bddunion(s1, s2);           // {{v1}, {v2}}
+    EXPECT_EQ(bddcard(f), 2u);
+    EXPECT_EQ(bddlit(f), 2u);  // 1 + 1
+}
+
+TEST_F(BDDTest, Bddlit_Example) {
+    // {{a,b}, {a}, {b,c,d}} -> 2 + 1 + 3 = 6
+    bddvar a = bddnewvar();
+    bddvar b = bddnewvar();
+    bddvar c = bddnewvar();
+    bddvar d = bddnewvar();
+
+    // Build {a,b}
+    bddp ab = bddchange(bddsingle, a);
+    ab = bddchange(ab, b);
+
+    // Build {a}
+    bddp sa = bddchange(bddsingle, a);
+
+    // Build {b,c,d}
+    bddp bcd = bddchange(bddsingle, b);
+    bcd = bddchange(bcd, c);
+    bcd = bddchange(bcd, d);
+
+    bddp f = bddunion(ab, sa);
+    f = bddunion(f, bcd);
+
+    EXPECT_EQ(bddcard(f), 3u);
+    EXPECT_EQ(bddlit(f), 6u);
+}
+
+TEST_F(BDDTest, Bddlit_WithEmptySet) {
+    // {{}, {v1}}: empty set contributes 0 literals
+    bddvar v1 = bddnewvar();
+    bddp s1 = bddchange(bddsingle, v1);  // {{v1}}
+    bddp f = bddunion(bddsingle, s1);    // {{}, {v1}}
+    EXPECT_EQ(bddcard(f), 2u);
+    EXPECT_EQ(bddlit(f), 1u);  // 0 + 1
+}
+
+TEST_F(BDDTest, Bddlit_Complement) {
+    // Complement toggles ∅ membership, lit should be unchanged
+    bddvar v1 = bddnewvar();
+    bddp s1 = bddchange(bddsingle, v1);  // {{v1}}
+    uint64_t lit_orig = bddlit(s1);
+    uint64_t lit_comp = bddlit(bddnot(s1));  // {{}, {v1}} or {{v1}} minus ∅
+    EXPECT_EQ(lit_orig, lit_comp);
+}

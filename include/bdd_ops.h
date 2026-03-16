@@ -432,4 +432,15 @@ bddp bddclosure(bddp f);
  */
 uint64_t bddcard(bddp f);
 
+/**
+ * @brief Return the total literal count of a ZDD family.
+ *
+ * Sums the sizes of all sets in the family represented by @p f.
+ * For example, if f = {{a,b},{a},{b,c,d}}, returns 2+1+3 = 6.
+ *
+ * @param f A ZDD node ID.
+ * @return The total literal count.
+ */
+uint64_t bddlit(bddp f);
+
 #endif
