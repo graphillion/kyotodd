@@ -36,6 +36,11 @@ static const bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
 /** @brief Null (error) node ID. Returned on invalid operations. */
 static const bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
+/** @brief Maximum recursion depth for recursive operations. */
+extern const int BDD_RecurLimit;
+/** @brief Current recursion depth counter. */
+extern int BDD_RecurCount;
+
 extern BddNode* bdd_nodes;
 extern uint64_t bdd_node_count;  // allocated capacity
 extern uint64_t bdd_node_used;   // number of nodes in use

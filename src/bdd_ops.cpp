@@ -22,6 +22,7 @@ bddp bddand(bddp f, bddp g) {
 }
 
 static bddp bddand_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddfalse || g == bddfalse) return bddfalse;
     if (f == bddtrue) return g;
@@ -113,6 +114,7 @@ bddp bddxor(bddp f, bddp g) {
 }
 
 static bddp bddxor_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddfalse) return g;
     if (f == bddtrue) return bddnot(g);
@@ -200,6 +202,7 @@ bddp bddite(bddp f, bddp g, bddp h) {
 }
 
 static bddp bddite_rec(bddp f, bddp g, bddp h) {
+    BDD_RecurGuard guard;
     // Terminal cases for f
     if (f == bddtrue) return g;
     if (f == bddfalse) return h;
@@ -305,6 +308,7 @@ bddp bddat0(bddp f, bddvar v) {
 }
 
 static bddp bddat0_rec(bddp f, bddvar v) {
+    BDD_RecurGuard guard;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -354,6 +358,7 @@ bddp bddat1(bddp f, bddvar v) {
 }
 
 static bddp bddat1_rec(bddp f, bddvar v) {
+    BDD_RecurGuard guard;
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
@@ -509,6 +514,7 @@ bddp bddexist(bddp f, bddp g) {
 }
 
 static bddp bddexist_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
     // Terminal cases
@@ -602,6 +608,7 @@ bddp bdduniv(bddp f, bddp g) {
 }
 
 static bddp bdduniv_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
     // Terminal cases
@@ -663,6 +670,7 @@ bddp bddunivvar(bddp f, bddvar v) {
 }
 
 static bddp bddlshift_rec(bddp f, bddvar shift) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
     // Normalize complement for better cache hit rate
@@ -719,6 +727,7 @@ bddp bddlshift(bddp f, bddvar shift) {
 }
 
 static bddp bddrshift_rec(bddp f, bddvar shift) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
@@ -779,6 +788,7 @@ bddp bddcofactor(bddp f, bddp g) {
 }
 
 static bddp bddcofactor_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;   // f is constant
     if (g == bddfalse) return bddfalse; // care region is empty

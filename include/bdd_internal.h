@@ -13,6 +13,17 @@
 #define BDD_DEBUG_ASSERT(cond) ((void)0)
 #endif
 
+// --- Recursion depth guard ---
+struct BDD_RecurGuard {
+    BDD_RecurGuard() {
+        if (++BDD_RecurCount > BDD_RecurLimit) {
+            --BDD_RecurCount;
+            throw std::overflow_error("BDD recursion depth limit exceeded");
+        }
+    }
+    ~BDD_RecurGuard() { --BDD_RecurCount; }
+};
+
 // --- GC guard ---
 extern int bdd_gc_depth;
 void bddgc();

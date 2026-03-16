@@ -18,6 +18,7 @@ bddp bdddisjoin(bddp f, bddp g) {
 }
 
 static bddp bdddisjoin_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;
@@ -93,6 +94,7 @@ bddp bddjointjoin(bddp f, bddp g) {
 }
 
 static bddp bddjointjoin_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddempty;  // ∅ ∩ B = ∅ for all B
@@ -167,6 +169,7 @@ bddp bddrestrict(bddp f, bddp g) {
 }
 
 static bddp bddrestrict_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -234,6 +237,7 @@ bddp bddpermit(bddp f, bddp g) {
 }
 
 static bddp bddpermit_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -300,6 +304,7 @@ bddp bddnonsup(bddp f, bddp g) {
 }
 
 static bddp bddnonsup_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;           // no B exists → all A qualify
@@ -367,6 +372,7 @@ bddp bddnonsub(bddp f, bddp g) {
 }
 
 static bddp bddnonsub_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;           // no B exists → all A qualify
@@ -432,6 +438,7 @@ bddp bddmaximal(bddp f) {
 }
 
 static bddp bddmaximal_rec(bddp f) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -469,6 +476,7 @@ bddp bddminimal(bddp f) {
 }
 
 static bddp bddminimal_rec(bddp f) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -521,6 +529,7 @@ bddp bddminhit(bddp f) {
 }
 
 static bddp bddminhit_rec(bddp f) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddsingle;  // no constraints → {∅}
     if (f == bddsingle) return bddempty;  // ∅ ∈ F → impossible to hit
@@ -565,6 +574,7 @@ bddp bddclosure(bddp f) {
 }
 
 static bddp bddclosure_rec(bddp f) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;

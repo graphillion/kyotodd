@@ -16,6 +16,7 @@ bddp bddoffset(bddp f, bddvar var) {
 }
 
 static bddp bddoffset_rec(bddp f, bddvar var) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;
 
@@ -65,6 +66,7 @@ bddp bddonset(bddp f, bddvar var) {
 }
 
 static bddp bddonset_rec(bddp f, bddvar var) {
+    BDD_RecurGuard guard;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -114,6 +116,7 @@ bddp bddonset0(bddp f, bddvar var) {
 }
 
 static bddp bddonset0_rec(bddp f, bddvar var) {
+    BDD_RecurGuard guard;
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -162,6 +165,7 @@ bddp bddchange(bddp f, bddvar var) {
 }
 
 static bddp bddchange_rec(bddp f, bddvar var) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return getznode(var, bddempty, bddsingle);  // {{}} → {{var}}
@@ -213,6 +217,7 @@ bddp bddunion(bddp f, bddp g) {
 }
 
 static bddp bddunion_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -281,6 +286,7 @@ bddp bddintersec(bddp f, bddp g) {
 }
 
 static bddp bddintersec_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return bddempty;
@@ -341,6 +347,7 @@ bddp bddsubtract(bddp f, bddp g) {
 }
 
 static bddp bddsubtract_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;
@@ -400,6 +407,7 @@ bddp bdddiv(bddp f, bddp g) {
 }
 
 static bddp bdddiv_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Base cases
     if (g == bddsingle) return f;     // F / {∅} = F
     if (f == bddempty || g == bddempty) return bddempty;
@@ -468,6 +476,7 @@ bddp bddsymdiff(bddp f, bddp g) {
 }
 
 static bddp bddsymdiff_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return g;
     if (g == bddempty) return f;
@@ -535,6 +544,7 @@ bddp bddjoin(bddp f, bddp g) {
 }
 
 static bddp bddjoin_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // {∅} ⊔ G = G
@@ -613,6 +623,7 @@ bddp bddmeet(bddp f, bddp g) {
 }
 
 static bddp bddmeet_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;  // ∅ ∩ B = ∅ for all B
@@ -685,6 +696,7 @@ bddp bdddelta(bddp f, bddp g) {
 }
 
 static bddp bdddelta_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return g;  // ∅ ⊕ B = B for all B

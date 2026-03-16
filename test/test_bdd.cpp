@@ -41,6 +41,19 @@ TEST_F(BDDTest, BddConst) {
     EXPECT_THROW(bddconst(bddvalmax + 1), std::invalid_argument);
 }
 
+TEST_F(BDDTest, RecurLimitAndCount) {
+    EXPECT_EQ(BDD_RecurLimit, 8192);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    // Normal operation should leave count at 0 after completion
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp a = bddprime(v1);
+    bddp b = bddprime(v2);
+    bddp c = bddand(a, b);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    (void)c;
+}
+
 // --- BDD/ZDD constructors ---
 
 TEST_F(BDDTest, BDDConstructor) {
