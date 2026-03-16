@@ -12,8 +12,9 @@
  *
  * @param node_count Initial node table capacity (default: 256).
  * @param node_max   Maximum node table size (default: UINT64_MAX).
- * @return 0 on success, 1 if memory allocation fails.
+ * @return 0 on success.
  * @throws std::overflow_error If allocation sizes overflow.
+ * @throws std::bad_alloc If memory allocation fails.
  */
 int bddinit(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 

@@ -211,7 +211,7 @@ int bddinit(uint64_t node_count, uint64_t node_max) {
     }
     bdd_nodes = static_cast<BddNode*>(std::malloc(sizeof(BddNode) * node_count));
     if (!bdd_nodes) {
-        return 1;
+        throw std::bad_alloc();
     }
 
     // Initialize operation cache
@@ -227,7 +227,7 @@ int bddinit(uint64_t node_count, uint64_t node_max) {
     if (!bdd_cache) {
         std::free(bdd_nodes);
         bdd_nodes = nullptr;
-        return 1;
+        throw std::bad_alloc();
     }
     for (uint64_t i = 0; i < bdd_cache_size; i++) {
         bdd_cache[i].fop = 0;
