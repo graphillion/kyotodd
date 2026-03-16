@@ -424,6 +424,18 @@ bddp bddminhit(bddp f);
  */
 bddp bddclosure(bddp f);
 
+/**
+ * @brief Push a variable onto a ZDD node.
+ *
+ * Creates a new ZDD node with 0-edge = bddempty and 1-edge = f.
+ * No level ordering check is performed (for Sequence BDD support).
+ *
+ * @param f A ZDD node ID.
+ * @param v Variable number to push.
+ * @return The resulting ZDD node ID.
+ */
+bddp bddpush(bddp f, bddvar v);
+
 // ZDD counting
 
 /**

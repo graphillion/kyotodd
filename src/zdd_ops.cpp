@@ -2,6 +2,15 @@
 #include "bdd_internal.h"
 #include <stdexcept>
 
+bddp bddpush(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddpush: var out of range");
+    }
+    // f == bddempty → getznode(v, bddempty, bddempty) → bddempty (zero-suppression)
+    return bdd_gc_guard([&]() -> bddp { return getznode(v, bddempty, f); });
+}
+
 static bddp bddoffset_rec(bddp f, bddvar var);
 
 bddp bddoffset(bddp f, bddvar var) {

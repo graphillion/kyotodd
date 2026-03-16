@@ -6552,3 +6552,69 @@ TEST_F(BDDTest, Bddcardmp16_UppercaseLetters) {
     std::free(r);
     bddgc_unprotect(&f);
 }
+
+// --- bddpush ---
+
+TEST_F(BDDTest, BddpushTerminals) {
+    bddvar v1 = bddnewvar();
+    // push on empty family → empty (zero-suppression: hi=bddempty)
+    EXPECT_EQ(bddpush(bddempty, v1), bddempty);
+    // push on null → null
+    EXPECT_EQ(bddpush(bddnull, v1), bddnull);
+}
+
+TEST_F(BDDTest, BddpushSingle) {
+    bddvar v1 = bddnewvar();
+    // push v1 onto {∅} → {{v1}}
+    bddp result = bddpush(bddsingle, v1);
+    // This should be getznode(v1, bddempty, bddsingle) = node(v1, 0-edge=∅, 1-edge={∅})
+    // which represents {{v1}}
+    EXPECT_EQ(bddcard(result), 1u);
+    // The top variable should be v1
+    EXPECT_EQ(bddtop(result), v1);
+    // onset0 of v1 should give {∅}
+    EXPECT_EQ(bddonset0(result, v1), bddsingle);
+    // offset of v1 should give empty
+    EXPECT_EQ(bddoffset(result, v1), bddempty);
+}
+
+TEST_F(BDDTest, BddpushOnZDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Build {{v2}} = getznode(v2, bddempty, bddsingle)
+    bddp f = getznode(v2, bddempty, bddsingle);
+    // push v1 onto {{v2}} → node(v1, bddempty, {{v2}})
+    // This represents sets where v1 is always present, and v2 is present
+    // So the family is {{v1, v2}}
+    bddp result = bddpush(f, v1);
+    EXPECT_EQ(bddcard(result), 1u);
+    EXPECT_EQ(bddtop(result), v1);
+}
+
+TEST_F(BDDTest, BddpushNoLevelOrderCheck) {
+    bddvar v1 = bddnewvar();  // level 1
+    bddvar v2 = bddnewvar();  // level 2
+    // Build a ZDD with top variable v1 (level 1)
+    bddp f = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    // Push v2 (level 2) on top — this would violate normal ZDD ordering
+    // but bddpush should allow it for Sequence BDD support
+    bddp result = bddpush(f, v2);
+    EXPECT_NE(result, bddnull);
+    EXPECT_EQ(bddtop(result), v2);
+}
+
+TEST_F(BDDTest, BddpushSameVar) {
+    bddvar v1 = bddnewvar();
+    // Build {{v1}}
+    bddp f = getznode(v1, bddempty, bddsingle);
+    // Push v1 again — for Sequence BDD, same variable can appear multiple times
+    bddp result = bddpush(f, v1);
+    EXPECT_NE(result, bddnull);
+    EXPECT_EQ(bddtop(result), v1);
+}
+
+TEST_F(BDDTest, BddpushVarOutOfRange) {
+    bddnewvar();
+    EXPECT_THROW(bddpush(bddsingle, 0), std::invalid_argument);
+    EXPECT_THROW(bddpush(bddsingle, bdd_varcount + 1), std::invalid_argument);
+}
