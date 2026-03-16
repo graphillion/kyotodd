@@ -6356,3 +6356,93 @@ TEST_F(BDDTest, BddExactCount_ZDDClassMethod) {
     EXPECT_EQ(ZDD::Empty.ExactCount(), bigint::BigInt(0));
     EXPECT_EQ(ZDD::Single.ExactCount(), bigint::BigInt(1));
 }
+
+TEST_F(BDDTest, BddExactCount_PowerSet65_Exceeds2pow64) {
+    // Power set of 65 variables has 2^65 elements, which exceeds uint64_t max.
+    // The ZDD for a power set of {v1,...,vn} needs only n internal nodes:
+    //   node_i = getznode(v_i, node_{i-1}, node_{i-1})
+    // where node_0 = bddsingle.
+    const int N = 65;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    bigint::BigInt result = bddexactcount(f);
+    // 2^65 = 36893488147419103232
+    EXPECT_EQ(result.to_string(), "36893488147419103232");
+
+    bddgc_unprotect(&f);
+}
+
+TEST_F(BDDTest, BddExactCount_PowerSet100) {
+    // Power set of 100 variables has 2^100 elements.
+    // 2^100 = 1267650600228229401496703205376
+    const int N = 100;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    bigint::BigInt result = bddexactcount(f);
+    EXPECT_EQ(result.to_string(), "1267650600228229401496703205376");
+
+    bddgc_unprotect(&f);
+}
+
+TEST_F(BDDTest, BddExactCount_PowerSet200) {
+    // Power set of 200 variables has 2^200 elements.
+    // 2^200 = 1606938044258990275541962092341162602522202993782792835301376
+    const int N = 200;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    bigint::BigInt result = bddexactcount(f);
+    EXPECT_EQ(result.to_string(),
+              "1606938044258990275541962092341162602522202993782792835301376");
+
+    bddgc_unprotect(&f);
+}
+
+TEST_F(BDDTest, BddExactCount_PowerSet200_Complement) {
+    // Complement of power set: 2^200 - 1 (∅ removed) or 2^200 + 1 (∅ added)
+    // Power set already contains ∅, so complement removes it: 2^200 - 1
+    const int N = 200;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    bigint::BigInt result = bddexactcount(bddnot(f));
+    // 2^200 - 1
+    EXPECT_EQ(result.to_string(),
+              "1606938044258990275541962092341162602522202993782792835301375");
+
+    bddgc_unprotect(&f);
+}
