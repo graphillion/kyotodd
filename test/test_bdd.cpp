@@ -6446,3 +6446,109 @@ TEST_F(BDDTest, BddExactCount_PowerSet200_Complement) {
 
     bddgc_unprotect(&f);
 }
+
+// --- bddcardmp16 tests ---
+
+TEST_F(BDDTest, Bddcardmp16_Terminals) {
+    // bddempty → 0
+    char *r = bddcardmp16(bddempty, NULL);
+    EXPECT_STREQ(r, "0");
+    std::free(r);
+
+    // bddsingle → 1
+    r = bddcardmp16(bddsingle, NULL);
+    EXPECT_STREQ(r, "1");
+    std::free(r);
+
+    // bddnull → 0
+    r = bddcardmp16(bddnull, NULL);
+    EXPECT_STREQ(r, "0");
+    std::free(r);
+}
+
+TEST_F(BDDTest, Bddcardmp16_SmallFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Power set of 2 vars → 4 = 0x4
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
+
+    char *r = bddcardmp16(f, NULL);
+    EXPECT_STREQ(r, "4");
+    std::free(r);
+}
+
+TEST_F(BDDTest, Bddcardmp16_UserBuffer) {
+    bddvar v1 = bddnewvar();
+    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp f = bddunion(x1, bddsingle);  // 2 = 0x2
+
+    char buf[64];
+    char *r = bddcardmp16(f, buf);
+    EXPECT_EQ(r, buf);
+    EXPECT_STREQ(buf, "2");
+}
+
+TEST_F(BDDTest, Bddcardmp16_PowerSet64_Hex) {
+    // 2^64 = 0x10000000000000000 (17 hex digits)
+    const int N = 64;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    char *r = bddcardmp16(f, NULL);
+    EXPECT_STREQ(r, "10000000000000000");
+    std::free(r);
+    bddgc_unprotect(&f);
+}
+
+TEST_F(BDDTest, Bddcardmp16_PowerSet200_Hex) {
+    // 2^200 in hex = 1 followed by 50 zeros
+    const int N = 200;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+
+    char *r = bddcardmp16(f, NULL);
+    // 2^200 = 0x100000000000000000000000000000000000000000000000000 (1 + 50 zeros)
+    std::string expected = "1";
+    for (int i = 0; i < 50; i++) expected += "0";
+    EXPECT_STREQ(r, expected.c_str());
+    std::free(r);
+    bddgc_unprotect(&f);
+}
+
+TEST_F(BDDTest, Bddcardmp16_UppercaseLetters) {
+    // Build a family with cardinality 255 = 0xFF to check uppercase
+    // 2^8 - 1 = 255. Power set of 8 vars minus ∅.
+    const int N = 8;
+    bddvar vars[N];
+    for (int i = 0; i < N; i++) {
+        vars[i] = bddnewvar();
+    }
+    bddp f = bddsingle;
+    bddgc_protect(&f);
+    for (int i = 0; i < N; i++) {
+        f = getznode(vars[i], f, f);
+    }
+    // f = power set (256 elements), complement removes ∅ → 255
+    char *r = bddcardmp16(bddnot(f), NULL);
+    EXPECT_STREQ(r, "FF");
+    std::free(r);
+    bddgc_unprotect(&f);
+}

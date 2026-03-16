@@ -1,6 +1,8 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include <cstdlib>
+#include <cstring>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -787,4 +789,17 @@ bigint::BigInt bddexactcount(bddp f) {
     if (f == bddnull) return bigint::BigInt(0);
     std::unordered_map<bddp, bigint::BigInt> memo;
     return bddexactcount_rec(f, memo);
+}
+
+// Legacy compatibility wrapper: returns cardinality as uppercase hex string.
+char *bddcardmp16(bddp f, char *s) {
+    std::string hex = bddexactcount(f).to_hex_upper();
+    if (s == NULL) {
+        char *buf = static_cast<char *>(std::malloc(hex.size() + 1));
+        if (buf == NULL) return NULL;
+        std::memcpy(buf, hex.c_str(), hex.size() + 1);
+        return buf;
+    }
+    std::memcpy(s, hex.c_str(), hex.size() + 1);
+    return s;
 }

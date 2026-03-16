@@ -492,6 +492,30 @@ public:
         return result;
     }
 
+    std::string to_hex_upper() const {
+        if (is_zero()) return "0";
+
+        const char* hex_digits = "0123456789ABCDEF";
+        std::string result;
+
+        // limbs_ is little-endian uint32_t; iterate from MSB to LSB
+        bool leading = true;
+        for (std::size_t i = limbs_.size(); i > 0; --i) {
+            uint32_t limb = limbs_[i - 1];
+            for (int nibble = 7; nibble >= 0; --nibble) {
+                uint32_t d = (limb >> (nibble * 4)) & 0xFU;
+                if (leading && d == 0) continue;
+                leading = false;
+                result += hex_digits[d];
+            }
+        }
+
+        if (negative_) {
+            result = "-" + result;
+        }
+        return result;
+    }
+
     // ---------------------------------------------------------------
     // Stream I/O
     // ---------------------------------------------------------------

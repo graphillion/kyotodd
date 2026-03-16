@@ -466,4 +466,19 @@ uint64_t bddlen(bddp f);
  */
 bigint::BigInt bddexactcount(bddp f);
 
+/**
+ * @brief Count the number of sets in a ZDD family as a hex string.
+ *
+ * Legacy compatibility wrapper around bddexactcount.
+ * Returns the cardinality as an uppercase hexadecimal string with no
+ * leading zeros.
+ *
+ * @param f A ZDD node ID.
+ * @param s If non-NULL, the result is written into this buffer (caller is
+ *          responsible for ensuring sufficient size). If NULL, a new buffer
+ *          is allocated with malloc.
+ * @return Pointer to the hex string (either @p s or a malloc'd buffer).
+ */
+char *bddcardmp16(bddp f, char *s);
+
 #endif
