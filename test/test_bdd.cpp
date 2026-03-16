@@ -21,6 +21,18 @@ TEST_F(BDDTest, TerminalConstants) {
     EXPECT_NE(bddtrue, bddnull);
 }
 
+TEST_F(BDDTest, BddVarMax) {
+    // 31-bit maximum
+    EXPECT_EQ(bddvarmax, (UINT32_C(1) << (sizeof(uint64_t) * 8 - BDD_NODE_VAR_SHIFT)) - 1);
+    EXPECT_EQ(bddvarmax, UINT32_C(0x7FFFFFFF));
+}
+
+TEST_F(BDDTest, BddValMax) {
+    // 47-bit maximum
+    EXPECT_EQ(bddvalmax, BDD_CONST_FLAG - 1);
+    EXPECT_EQ(bddvalmax, UINT64_C(0x7FFFFFFFFFFF));
+}
+
 // --- BDD/ZDD constructors ---
 
 TEST_F(BDDTest, BDDConstructor) {

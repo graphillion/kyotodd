@@ -20,6 +20,11 @@ static const bddp BDD_CONST_FLAG = UINT64_C(0x800000000000);  // bit 47: constan
 /** @brief Complement flag (bit 0). When set, the edge is a complement (negated) edge. */
 static const bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);  // bit 0: complement flag
 
+/** @brief Maximum variable number (31-bit). */
+static const bddvar bddvarmax = (UINT32_C(1) << (sizeof(uint64_t) * 8 - BDD_NODE_VAR_SHIFT)) - 1;
+/** @brief Maximum constant value for terminal nodes (47-bit). */
+static const bddp bddvalmax = BDD_CONST_FLAG - 1;
+
 /** @brief Constant false (0-terminal) for BDD. */
 static const bddp bddfalse  = BDD_CONST_FLAG | 0;  // 0-terminal
 /** @brief Empty family (0-terminal) for ZDD. Alias of bddfalse. */
