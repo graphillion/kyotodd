@@ -511,9 +511,11 @@ bigint::BigInt bddexactcount(bddp f);
  * leading zeros.
  *
  * @param f A ZDD node ID.
- * @param s If non-NULL, the result is written into this buffer (caller is
- *          responsible for ensuring sufficient size). If NULL, a new buffer
- *          is allocated with malloc.
+ * @param s If non-NULL, the result is written into this buffer. The caller
+ *          must ensure the buffer is large enough (no size check is performed).
+ *          Prefer passing NULL to let the function allocate, or use
+ *          bddexactcount() which returns a BigInt. If NULL, a new buffer
+ *          is allocated with malloc (caller must free).
  * @return Pointer to the hex string (either @p s or a malloc'd buffer).
  */
 char *bddcardmp16(bddp f, char *s);
