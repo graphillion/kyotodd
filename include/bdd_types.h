@@ -270,8 +270,8 @@ public:
      */
     BDD Cofactor(const BDD& g) const;
     /**
-     * @brief Compute the support set as a BDD (conjunction of variables).
-     * @return A BDD representing the conjunction of all variables in the support.
+     * @brief Compute the support set as a BDD (disjunction of variables).
+     * @return A BDD representing the disjunction of all variables in the support.
      */
     BDD Support() const;
     /**

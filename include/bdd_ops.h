@@ -98,9 +98,9 @@ bddp bddite(bddp f, bddp g, bddp h);
 int bddimply(bddp f, bddp g);
 
 /**
- * @brief Compute the support set as a BDD (conjunction of variables).
+ * @brief Compute the support set as a BDD (disjunction of variables).
  * @param f A BDD node ID.
- * @return A BDD representing the conjunction of all variables in the support.
+ * @return A BDD representing the disjunction of all variables in the support.
  */
 bddp bddsupport(bddp f);
 

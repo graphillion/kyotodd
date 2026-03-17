@@ -228,7 +228,7 @@ PYBIND11_MODULE(_core, m) {
         .def("cofactor", &BDD::Cofactor, py::arg("g"),
              "Generalized cofactor by BDD g.")
         .def("support", &BDD::Support,
-             "Return the support set as a BDD (conjunction of variables).")
+             "Return the support set as a BDD (disjunction of variables).")
         .def("support_vec", &BDD::SupportVec,
              "Return the support set as a list of variable numbers.")
         .def("imply", &BDD::Imply, py::arg("other"),

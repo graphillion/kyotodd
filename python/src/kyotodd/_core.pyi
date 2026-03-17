@@ -158,7 +158,7 @@ class BDD:
         ...
 
     def support(self) -> BDD:
-        """Return the support set as a BDD (conjunction of variables)."""
+        """Return the support set as a BDD (disjunction of variables)."""
         ...
 
     def support_vec(self) -> List[int]:
