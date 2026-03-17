@@ -7280,3 +7280,85 @@ TEST(ZDD_AlwaysTest, WithEmptySet) {
     ZDD f = ZDD::Single + ZDD::Single.Change(1);
     EXPECT_EQ(f.Always(), ZDD::Empty);
 }
+
+// --- bddsymchk / ZDD::SymChk ---
+
+TEST(ZDD_SymChkTest, TrivialCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(bddsymchk(bddnull, 1, 2), -1);
+    EXPECT_EQ(ZDD::Empty.SymChk(1, 2), 1);
+    EXPECT_EQ(ZDD::Single.SymChk(1, 2), 1);
+    // Same variable -> trivially symmetric
+    ZDD s1 = ZDD::Single.Change(1);
+    EXPECT_EQ(s1.SymChk(1, 1), 1);
+}
+
+TEST(ZDD_SymChkTest, SymmetricFamily) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: swapping v1 and v2 gives the same family -> symmetric
+    ZDD f = ZDD::Single.Change(1) + ZDD::Single.Change(2);
+    EXPECT_EQ(f.SymChk(1, 2), 1);
+
+    // {{v1, v2}}: swapping gives {{v1, v2}} -> symmetric
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    EXPECT_EQ(s12.SymChk(1, 2), 1);
+}
+
+TEST(ZDD_SymChkTest, NotSymmetric) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}}: swapping v1,v2 gives {{v2}} != {{v1}} -> not symmetric
+    ZDD s1 = ZDD::Single.Change(1);
+    EXPECT_EQ(s1.SymChk(1, 2), 0);
+}
+
+TEST(ZDD_SymChkTest, ConsistentWithSwap) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // Build a variety of families and verify: SymChk(v1,v2)==1 iff Swap(v1,v2)==f
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD s3 = ZDD::Single.Change(3);
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD s13 = ZDD::Single.Change(1).Change(3);
+    ZDD s23 = ZDD::Single.Change(2).Change(3);
+
+    ZDD families[] = {
+        s1 + s2,          // {{v1}, {v2}}
+        s1 + s3,          // {{v1}, {v3}}
+        s12 + s3,         // {{v1,v2}, {v3}}
+        s13 + s23,        // {{v1,v3}, {v2,v3}}
+        s1 + s2 + s12,    // {{v1}, {v2}, {v1,v2}}
+    };
+
+    for (const auto& f : families) {
+        for (int v1 = 1; v1 <= 3; v1++) {
+            for (int v2 = v1 + 1; v2 <= 3; v2++) {
+                bool swap_eq = (f.Swap(v1, v2) == f);
+                bool sym = (f.SymChk(v1, v2) == 1);
+                EXPECT_EQ(swap_eq, sym)
+                    << "v1=" << v1 << " v2=" << v2
+                    << " swap_eq=" << swap_eq << " sym=" << sym;
+            }
+        }
+    }
+}
+
+TEST(ZDD_SymChkTest, IntermediateVariables) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v2, v3}}: v1,v2 symmetric (v3 is intermediate between v1,v2 and both branches have it)
+    ZDD f = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(2).Change(3);
+    EXPECT_EQ(f.SymChk(1, 2), 1);
+
+    // {{v1, v3}, {v2}}: v1,v2 not symmetric
+    ZDD g = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(2);
+    EXPECT_EQ(g.SymChk(1, 2), 0);
+}

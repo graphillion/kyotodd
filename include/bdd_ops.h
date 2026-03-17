@@ -554,6 +554,15 @@ bddp bddpermitsym(bddp f, int n);
  */
 bddp bddalways(bddp f);
 
+/**
+ * @brief Check if two variables are symmetric in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v1 First variable number.
+ * @param v2 Second variable number.
+ * @return 1 if symmetric, 0 if not, -1 on error.
+ */
+int bddsymchk(bddp f, bddvar v1, bddvar v2);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

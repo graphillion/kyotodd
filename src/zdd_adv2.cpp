@@ -166,3 +166,85 @@ static bddp bddalways_rec(bddp f) {
     bddwcache(BDD_OP_ALWAYS, f, 0, result);
     return result;
 }
+
+// --- bddsymchk ---
+
+static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2);
+
+int bddsymchk(bddp f, bddvar v1, bddvar v2) {
+    if (f == bddnull) return -1;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddsymchk: variable out of range");
+    }
+    if (v1 == v2) return 1;
+    if (f & BDD_CONST_FLAG) return 1;
+
+    // Normalize: v1 has higher level
+    if (var2level[v1] < var2level[v2]) {
+        bddvar tmp = v1; v1 = v2; v2 = tmp;
+    }
+
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        return static_cast<bddp>(bddsymchk_rec(f, v1, v2));
+    });
+    return static_cast<int>(r);
+}
+
+static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
+    BDD_RecurGuard guard;
+
+    if (f & BDD_CONST_FLAG) return 1;
+
+    // Cache lookup (v1 > v2 by level, already normalized)
+    bddp cached = bddrcache3(BDD_OP_SYMCHK, f,
+                              static_cast<bddp>(v1), static_cast<bddp>(v2));
+    if (cached != bddnull) return static_cast<int>(cached);
+
+    bddvar t = bddtop(f);
+    bddvar t_level = var2level[t];
+    bddvar v1_level = var2level[v1];
+
+    int result;
+
+    if (t_level > v1_level) {
+        // t is above v1: recurse on both branches
+        bddp f1 = bddonset0(f, t);
+        bddp f0 = bddoffset(f, t);
+        result = bddsymchk_rec(f1, v1, v2) && bddsymchk_rec(f0, v1, v2);
+    } else {
+        // t_level <= v1_level: decompose by v1
+        bddp f0 = bddoffset(f, v1);
+        bddp f1 = bddonset0(f, v1);
+
+        bddvar f0_top = bddtop(f0);
+        bddvar f1_top = bddtop(f1);
+        bddvar f0_level = (f0_top == 0) ? 0 : var2level[f0_top];
+        bddvar f1_level = (f1_top == 0) ? 0 : var2level[f1_top];
+        bddvar v2_level = var2level[v2];
+
+        if (f0_level <= v2_level && f1_level <= v2_level) {
+            // No intermediate variables: direct comparison
+            result = (bddonset0(f0, v2) == bddoffset(f1, v2)) ? 1 : 0;
+        } else {
+            // Intermediate variable t2 between v1 and v2
+            bddvar t2 = (f0_level > f1_level) ? f0_top : f1_top;
+
+            bddp f00 = bddoffset(f0, t2);
+            bddp f01 = bddonset0(f0, t2);
+            bddp f10 = bddoffset(f1, t2);
+            bddp f11 = bddonset0(f1, t2);
+
+            // Reconstruct sub-ZDDs for each t2-branch and recurse
+            bddp ft2_yes = getznode(v1, f01, f11);
+            bddp ft2_no  = getznode(v1, f00, f10);
+
+            result = bddsymchk_rec(ft2_yes, v1, v2) &&
+                     bddsymchk_rec(ft2_no, v1, v2);
+        }
+    }
+
+    bddwcache3(BDD_OP_SYMCHK, f,
+               static_cast<bddp>(v1), static_cast<bddp>(v2),
+               static_cast<bddp>(result));
+    return result;
+}

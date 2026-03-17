@@ -526,6 +526,8 @@ public:
     ZDD PermitSym(int n) const;
     /** @brief Find elements common to all sets in the family. */
     ZDD Always() const;
+    /** @brief Check if v1 and v2 are symmetric in the family. */
+    int SymChk(int v1, int v2) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

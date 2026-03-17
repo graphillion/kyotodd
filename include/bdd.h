@@ -414,4 +414,8 @@ inline ZDD ZDD::Always() const {
     return z;
 }
 
+inline int ZDD::SymChk(int v1, int v2) const {
+    return bddsymchk(root, v1, v2);
+}
+
 #endif
