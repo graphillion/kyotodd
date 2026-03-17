@@ -5407,6 +5407,63 @@ TEST_F(BDDTest, BDDClassSwapCommutative) {
     EXPECT_EQ(f.Swap(v1, v2), f.Swap(v2, v1));
 }
 
+TEST_F(BDDTest, BDDClassSwapConstants) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    EXPECT_EQ(BDD::True.Swap(v1, v2), BDD::True);
+    EXPECT_EQ(BDD::False.Swap(v1, v2), BDD::False);
+    EXPECT_EQ(bddswap(bddnull, v1, v2), bddnull);
+}
+
+TEST_F(BDDTest, BDDClassSwapComplement) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & ~BDDvar(v2);
+    // swap(~f, v1, v2) == ~swap(f, v1, v2)
+    EXPECT_EQ((~f).Swap(v1, v2), ~f.Swap(v1, v2));
+}
+
+TEST_F(BDDTest, BDDClassSwapNonAdjacent) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddvar v4 = BDD_NewVar();
+    bddvar v5 = BDD_NewVar();
+    BDD a = BDDvar(v1), b = BDDvar(v2), c = BDDvar(v3);
+    BDD d = BDDvar(v4), e = BDDvar(v5);
+    // Swap v1 and v5 (4 variables between them)
+    BDD f = (a & b) | (c & d) | e;
+    BDD swapped = f.Swap(v1, v5);
+    BDD expected = (e & b) | (c & d) | a;
+    EXPECT_EQ(swapped, expected);
+    // Involution: swap twice restores original
+    EXPECT_EQ(swapped.Swap(v1, v5), f);
+}
+
+TEST_F(BDDTest, BDDClassSwapNonAdjacentComplex) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddvar v4 = BDD_NewVar();
+    BDD a = BDDvar(v1), b = BDDvar(v2), c = BDDvar(v3), d = BDDvar(v4);
+    // f involves v1 and v3 with v2 between them
+    BDD f = (a & b & c) | (~a & d);
+    BDD swapped = f.Swap(v1, v3);
+    BDD expected = (c & b & a) | (~c & d);
+    EXPECT_EQ(swapped, expected);
+    // Commutativity
+    EXPECT_EQ(f.Swap(v1, v3), f.Swap(v3, v1));
+    // Involution
+    EXPECT_EQ(f.Swap(v1, v3).Swap(v1, v3), f);
+}
+
+TEST_F(BDDTest, BDDClassSwapVariableOutOfRange) {
+    bddvar v1 = BDD_NewVar();
+    BDD f = BDDvar(v1);
+    EXPECT_THROW(f.Swap(0, v1), std::invalid_argument);
+    EXPECT_THROW(f.Swap(v1, bdd_varcount + 1), std::invalid_argument);
+}
+
 // --- BDD::Smooth ---
 
 TEST_F(BDDTest, BDDClassSmoothConstant) {

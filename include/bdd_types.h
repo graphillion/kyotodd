@@ -120,6 +120,7 @@ static const uint8_t BDD_OP_SYMSET     = 39;
 static const uint8_t BDD_OP_COIMPLYSET = 40;
 static const uint8_t BDD_OP_SMOOTH = 41;
 static const uint8_t BDD_OP_SPREAD = 42;
+static const uint8_t BDD_OP_SWAP = 43;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)

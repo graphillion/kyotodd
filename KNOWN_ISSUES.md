@@ -28,9 +28,6 @@ the BDD/ZDD class layout and is a significant architectural change.
 
 ## Performance Optimizations (Not Yet Implemented)
 
-- **`bddswap` uses 6 cofactors + 6 ANDs + 3 ORs via Shannon decomposition** (`src/bdd_ops.cpp`).
-  A dedicated `bddswap_rec` with caching would be significantly faster.
-
 - **`bddremainder` does not cache results** (`src/zdd_ops.cpp`).
   Repeated calls with the same arguments recompute from scratch.
 

@@ -862,23 +862,91 @@ static bddp bddcofactor_rec(bddp f, bddp g) {
 
 // --- bddswap ---
 
+static bddp bddswap_rec(bddp f, bddvar v1, bddvar v2,
+                         bddvar lev1, bddvar lev2) {
+    BDD_RecurGuard guard;
+
+    // Terminal
+    if (f & BDD_CONST_FLAG) return f;
+
+    // Factor out complement: swap(~f, v1, v2) = ~swap(f, v1, v2)
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~static_cast<bddp>(BDD_COMP_FLAG);
+
+    bddvar f_var = node_var(fn);
+    bddvar f_level = var2level[f_var];
+
+    // Below both swap levels: f doesn't depend on v1 or v2
+    if (f_level < lev2) {
+        return f;
+    }
+
+    // Cache lookup (use non-complemented fn)
+    bddp cache_key = (static_cast<bddp>(v1) << 31) | static_cast<bddp>(v2);
+    bddp cached = bddrcache(BDD_OP_SWAP, fn, cache_key);
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    // fn is non-complemented, so node_lo is guaranteed non-complemented
+    bddp f_lo = node_lo(fn);
+    bddp f_hi = node_hi(fn);
+
+    bddp result;
+
+    if (f_var == v1) {
+        // At the higher swap variable (level lev1)
+        // Children may contain v2. Recurse, then reconstruct with v2.
+        bddp r_lo = bddswap_rec(f_lo, v1, v2, lev1, lev2);
+        bddp r_hi = bddswap_rec(f_hi, v1, v2, lev1, lev2);
+        // What was controlled by v1 is now controlled by v2.
+        // Use ITE to handle ordering correctly (children may contain
+        // v1 nodes from v2->v1 relabeling at lev1 > lev2).
+        result = bddite_rec(bddprime(v2), r_hi, r_lo);
+    } else if (f_var == v2) {
+        // At the lower swap variable (level lev2)
+        // Children are below lev2, hence below lev1 too.
+        // Neither v1 nor v2 appears in children. Just relabel v2 -> v1.
+        result = getnode(v1, f_lo, f_hi);
+    } else if (f_level > lev1) {
+        // Above both swap levels
+        // After swap, children have max level <= lev1 < f_level. Safe.
+        bddp r_lo = bddswap_rec(f_lo, v1, v2, lev1, lev2);
+        bddp r_hi = bddswap_rec(f_hi, v1, v2, lev1, lev2);
+        result = getnode(f_var, r_lo, r_hi);
+    } else {
+        // Between swap levels: lev2 < f_level < lev1
+        // Children may contain v2; after swap, v2->v1 at lev1 > f_level.
+        // Must use ITE for correct ordering.
+        bddp r_lo = bddswap_rec(f_lo, v1, v2, lev1, lev2);
+        bddp r_hi = bddswap_rec(f_hi, v1, v2, lev1, lev2);
+        result = bddite_rec(bddprime(f_var), r_hi, r_lo);
+    }
+
+    // Cache write (result is for non-complemented fn)
+    bddwcache(BDD_OP_SWAP, fn, cache_key, result);
+
+    return comp ? bddnot(result) : result;
+}
+
 bddp bddswap(bddp f, bddvar v1, bddvar v2) {
     if (f == bddnull) return bddnull;
     if (v1 == v2) return f;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddswap: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return f;
 
-    bddp fx0 = bddat0(f, v1);
-    bddp fx1 = bddat1(f, v1);
-    bddp fx0_y0 = bddat0(fx0, v2);
-    bddp fx0_y1 = bddat1(fx0, v2);
-    bddp fx1_y0 = bddat0(fx1, v2);
-    bddp fx1_y1 = bddat1(fx1, v2);
-    bddp xv1 = bddprime(v1);
-    bddp xv2 = bddprime(v2);
-    bddp nxv1 = bddnot(xv1);
-    bddp nxv2 = bddnot(xv2);
-    bddp hi = bddor(bddand(nxv2, fx0_y1), bddand(xv2, fx1_y1));
-    bddp lo = bddor(bddand(nxv2, fx0_y0), bddand(xv2, fx1_y0));
-    return bddor(bddand(xv1, hi), bddand(nxv1, lo));
+    // Normalize: ensure lev1 > lev2 (v1 at higher level)
+    bddvar lev1 = var2level[v1];
+    bddvar lev2 = var2level[v2];
+    if (lev1 < lev2) {
+        bddvar tmp;
+        tmp = v1; v1 = v2; v2 = tmp;
+        tmp = lev1; lev1 = lev2; lev2 = tmp;
+    }
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bddswap_rec(f, v1, v2, lev1, lev2);
+    });
 }
 
 // --- bddsmooth ---
