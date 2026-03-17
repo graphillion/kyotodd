@@ -354,4 +354,34 @@ inline ZDD ZDD::Delta(const ZDD& g) const {
     return z;
 }
 
+inline bddvar ZDD::Top() const {
+    return bddtop(root);
+}
+
+inline uint64_t ZDD::Size() const {
+    return bddsize(root);
+}
+
+inline uint64_t ZDD::Lit() const {
+    return bddlit(root);
+}
+
+inline uint64_t ZDD::Len() const {
+    return bddlen(root);
+}
+
+inline char* ZDD::CardMP16(char* s) const {
+    return bddcardmp16(root, s);
+}
+
+inline void ZDD::Export(FILE* strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
+inline void ZDD::Export(std::ostream& strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
 #endif

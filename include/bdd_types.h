@@ -2,6 +2,8 @@
 #define KYOTODD_BDD_TYPES_H
 
 #include <cstdint>
+#include <cstdio>
+#include <iosfwd>
 #include <vector>
 #include "bdd_node.h"
 
@@ -483,6 +485,21 @@ public:
      * @return The resulting ZDD.
      */
     ZDD Delta(const ZDD& g) const;
+
+    /** @brief Get the top variable number. */
+    bddvar Top() const;
+    /** @brief Count the number of nodes. */
+    uint64_t Size() const;
+    /** @brief Count the total number of literals across all sets. */
+    uint64_t Lit() const;
+    /** @brief Count the total number of sets weighted by set size. */
+    uint64_t Len() const;
+    /** @brief Return the cardinality as a hexadecimal string. */
+    char* CardMP16(char* s) const;
+    /** @brief Export to a FILE stream. */
+    void Export(FILE* strm) const;
+    /** @brief Export to an output stream. */
+    void Export(std::ostream& strm) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

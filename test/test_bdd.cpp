@@ -6872,3 +6872,97 @@ TEST_F(BDDTest, ZDD_Intersec_WithEmpty) {
 
     EXPECT_EQ(z.Intersec(e), e);
 }
+
+// --- ZDD::Top ---
+
+TEST_F(BDDTest, ZDD_Top) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z.Top(), bddtop(z.GetID()));
+}
+
+TEST_F(BDDTest, ZDD_TopTerminal) {
+    ZDD e(0);
+    EXPECT_EQ(e.Top(), bddtop(bddempty));
+}
+
+// --- ZDD::Size ---
+
+TEST_F(BDDTest, ZDD_Size) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.Size(), bddsize(F.GetID()));
+}
+
+// --- ZDD::Lit ---
+
+TEST_F(BDDTest, ZDD_Lit) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;  // {{v1}, {v2}} -> 2 literals total
+    EXPECT_EQ(F.Lit(), bddlit(F.GetID()));
+}
+
+// --- ZDD::Len ---
+
+TEST_F(BDDTest, ZDD_Len) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD F = ZDD(1) + z_v1v2;  // {∅, {v1,v2}} -> lengths 0 + 2 = 2
+    EXPECT_EQ(F.Len(), bddlen(F.GetID()));
+}
+
+// --- ZDD::CardMP16 ---
+
+TEST_F(BDDTest, ZDD_CardMP16) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;  // {{v1}, {v2}} -> card = 2
+    char* result = F.CardMP16(nullptr);
+    char* expected = bddcardmp16(F.GetID(), nullptr);
+    EXPECT_STREQ(result, expected);
+    std::free(result);
+    std::free(expected);
+}
+
+// --- ZDD::Export ---
+
+TEST_F(BDDTest, ZDD_ExportOstream) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    std::ostringstream oss1;
+    z.Export(oss1);
+
+    std::ostringstream oss2;
+    bddp p = z.GetID();
+    bddexport(oss2, &p, 1);
+
+    EXPECT_EQ(oss1.str(), oss2.str());
+}
+
+TEST_F(BDDTest, ZDD_ExportFilePtr) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    z.Export(tmp);
+    long len1 = std::ftell(tmp);
+
+    std::rewind(tmp);
+    // Verify roundtrip via ZDD_Import
+    ZDD imported = ZDD_Import(tmp);
+    std::fclose(tmp);
+    EXPECT_GT(len1, 0);
+    EXPECT_EQ(imported, z);
+}
