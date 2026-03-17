@@ -847,6 +847,27 @@ static bddp bddcofactor_rec(bddp f, bddp g) {
     return result;
 }
 
+// --- bddswap ---
+
+bddp bddswap(bddp f, bddvar v1, bddvar v2) {
+    if (f == bddnull) return bddnull;
+    if (v1 == v2) return f;
+
+    bddp fx0 = bddat0(f, v1);
+    bddp fx1 = bddat1(f, v1);
+    bddp fx0_y0 = bddat0(fx0, v2);
+    bddp fx0_y1 = bddat1(fx0, v2);
+    bddp fx1_y0 = bddat0(fx1, v2);
+    bddp fx1_y1 = bddat1(fx1, v2);
+    bddp xv1 = bddprime(v1);
+    bddp xv2 = bddprime(v2);
+    bddp nxv1 = bddnot(xv1);
+    bddp nxv2 = bddnot(xv2);
+    bddp hi = bddor(bddand(nxv2, fx0_y1), bddand(xv2, fx1_y1));
+    bddp lo = bddor(bddand(nxv2, fx0_y0), bddand(xv2, fx1_y0));
+    return bddor(bddand(xv1, hi), bddand(nxv1, lo));
+}
+
 // --- bddsmooth ---
 
 static bddp bddsmooth_rec(bddp f, bddvar v) {
