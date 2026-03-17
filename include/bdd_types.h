@@ -135,7 +135,9 @@ void bddgc_unprotect(bddp* p);
  * protected from garbage collection during its lifetime.
  */
 class BDD {
+    /// @cond INTERNAL
     friend BDD BDD_ID(bddp p);
+    /// @endcond
 
     bddp root;  /**< @brief The root node ID of this BDD. */
 
@@ -333,8 +335,10 @@ public:
  * protected from garbage collection during its lifetime.
  */
 class ZDD {
+    /// @cond INTERNAL
     friend ZDD ZDD_ID(bddp p);
     friend ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
+    /// @endcond
 
     bddp root;  /**< @brief The root node ID of this ZDD. */
 
