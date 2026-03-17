@@ -292,6 +292,8 @@ bddp bddsubtract(bddp f, bddp g);
  * @brief Division (quotient) of two ZDD families.
  *
  * Returns the family Q such that Q * g ⊆ f, where * is join.
+ * The quotient assumes that elements of Q and g are disjoint
+ * (non-overlapping).
  *
  * @param f Dividend family.
  * @param g Divisor family.

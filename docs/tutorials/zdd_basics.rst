@@ -97,7 +97,7 @@ Algebraic Operations
    # Join (cross product with union): for each (A,B), include A∪B
    joined = F * G
 
-   # Division: quotient Q such that Q * G ⊆ F
+   # Division: quotient Q such that Q * G ⊆ F (Q and G are disjoint)
    quotient = F / G
 
    # Remainder: F - (F / G) * G
