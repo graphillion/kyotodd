@@ -314,24 +314,24 @@ inline ZDD& ZDD::operator%=(const ZDD& other) {
     return *this;
 }
 
-inline ZDD ZDD::operator<<(int s) const {
+inline ZDD ZDD::operator<<(bddvar s) const {
     ZDD z(0);
     z.root = bddlshift(root, s);
     return z;
 }
 
-inline ZDD& ZDD::operator<<=(int s) {
+inline ZDD& ZDD::operator<<=(bddvar s) {
     root = bddlshift(root, s);
     return *this;
 }
 
-inline ZDD ZDD::operator>>(int s) const {
+inline ZDD ZDD::operator>>(bddvar s) const {
     ZDD z(0);
     z.root = bddrshift(root, s);
     return z;
 }
 
-inline ZDD& ZDD::operator>>=(int s) {
+inline ZDD& ZDD::operator>>=(bddvar s) {
     root = bddrshift(root, s);
     return *this;
 }
@@ -462,17 +462,17 @@ inline int ZDD::IsPoly() const {
     return bddispoly(root);
 }
 
-inline ZDD ZDD::Swap(int v1, int v2) const {
+inline ZDD ZDD::Swap(bddvar v1, bddvar v2) const {
     ZDD z(0);
     z.root = bddswapz(root, v1, v2);
     return z;
 }
 
-inline int ZDD::ImplyChk(int v1, int v2) const {
+inline int ZDD::ImplyChk(bddvar v1, bddvar v2) const {
     return bddimplychk(root, v1, v2);
 }
 
-inline int ZDD::CoImplyChk(int v1, int v2) const {
+inline int ZDD::CoImplyChk(bddvar v1, bddvar v2) const {
     return bddcoimplychk(root, v1, v2);
 }
 
@@ -488,7 +488,7 @@ inline ZDD ZDD::Always() const {
     return z;
 }
 
-inline int ZDD::SymChk(int v1, int v2) const {
+inline int ZDD::SymChk(bddvar v1, bddvar v2) const {
     return bddsymchk(root, v1, v2);
 }
 

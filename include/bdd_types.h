@@ -445,13 +445,13 @@ public:
     /** @brief In-place remainder. */
     ZDD& operator%=(const ZDD& other);
     /** @brief Left shift (increase variable numbers by @p s). */
-    ZDD operator<<(int s) const;
+    ZDD operator<<(bddvar s) const;
     /** @brief In-place left shift. */
-    ZDD& operator<<=(int s);
+    ZDD& operator<<=(bddvar s);
     /** @brief Right shift (decrease variable numbers by @p s). */
-    ZDD operator>>(int s) const;
+    ZDD operator>>(bddvar s) const;
     /** @brief In-place right shift. */
-    ZDD& operator>>=(int s);
+    ZDD& operator>>=(bddvar s);
     /** @brief Equality comparison by node ID. */
     bool operator==(const ZDD& other) const { return root == other.root; }
     /** @brief Inequality comparison by node ID. */
@@ -581,17 +581,17 @@ public:
     /** @brief Check if the family is a polynomial (has ≥ 2 sets). */
     int IsPoly() const;
     /** @brief Swap two variables in the family. */
-    ZDD Swap(int v1, int v2) const;
+    ZDD Swap(bddvar v1, bddvar v2) const;
     /** @brief Check if v1 implies v2 (all sets with v1 also have v2). */
-    int ImplyChk(int v1, int v2) const;
+    int ImplyChk(bddvar v1, bddvar v2) const;
     /** @brief Check co-implication between v1 and v2. */
-    int CoImplyChk(int v1, int v2) const;
+    int CoImplyChk(bddvar v1, bddvar v2) const;
     /** @brief Keep sets with at most n elements. */
     ZDD PermitSym(int n) const;
     /** @brief Find elements common to all sets in the family. */
     ZDD Always() const;
     /** @brief Check if v1 and v2 are symmetric in the family. */
-    int SymChk(int v1, int v2) const;
+    int SymChk(bddvar v1, bddvar v2) const;
     /** @brief Find all variables implied by v. */
     ZDD ImplySet(int v) const;
     /** @brief Find symmetry groups (size ≥ 2). */
