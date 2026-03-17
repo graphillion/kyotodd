@@ -29,18 +29,21 @@ extern int bdd_gc_depth;
 int bddgc();
 bool bdd_should_gc();
 
+struct BDD_GCDepthGuard {
+    BDD_GCDepthGuard() { ++bdd_gc_depth; }
+    ~BDD_GCDepthGuard() { --bdd_gc_depth; }
+};
+
 template<typename F>
 bddp bdd_gc_guard(F func) {
     bool is_outermost = (bdd_gc_depth == 0);
     if (is_outermost && bdd_should_gc()) bddgc();
     for (int attempt = 0; ; attempt++) {
-        bdd_gc_depth++;
         try {
+            BDD_GCDepthGuard depth_guard;
             bddp result = func();
-            bdd_gc_depth--;
             return result;
         } catch (std::overflow_error&) {
-            bdd_gc_depth--;
             if (is_outermost && attempt == 0) {
                 bddgc();
                 continue;
