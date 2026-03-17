@@ -83,12 +83,18 @@ template<typename Stream>
 static void export_core(Stream& strm, const bddp* p, int lim) {
     if (lim <= 0 || !p || !stream_valid(strm)) return;
 
-    // Collect all nodes in post-order (skip bddnull entries)
+    // bddnull acts as a sentinel: stop at the first bddnull.
+    int effective_lim = 0;
+    while (effective_lim < lim && p[effective_lim] != bddnull) {
+        effective_lim++;
+    }
+    if (effective_lim == 0) return;
+
+    // Collect all nodes in post-order
     std::unordered_set<bddp> visited;
     std::vector<bddp> order;
     bddvar max_level = 0;
-    for (int i = 0; i < lim; i++) {
-        if (p[i] == bddnull) continue;
+    for (int i = 0; i < effective_lim; i++) {
         export_collect(p[i], visited, order);
         if (!(p[i] & BDD_CONST_FLAG)) {
             bddvar v = node_var(p[i]);
@@ -106,7 +112,7 @@ static void export_core(Stream& strm, const bddp* p, int lim) {
     // Header
     std::snprintf(buf, sizeof(buf), "_i %u\n", static_cast<unsigned>(max_level));
     write_str(strm, buf);
-    std::snprintf(buf, sizeof(buf), "_o %d\n", lim);
+    std::snprintf(buf, sizeof(buf), "_o %d\n", effective_lim);
     write_str(strm, buf);
     std::snprintf(buf, sizeof(buf), "_n %u\n", static_cast<unsigned>(order.size()));
     write_str(strm, buf);
@@ -128,10 +134,8 @@ static void export_core(Stream& strm, const bddp* p, int lim) {
     }
 
     // Root section
-    for (int i = 0; i < lim; i++) {
-        if (p[i] == bddnull) {
-            write_str(strm, "N\n");
-        } else if (p[i] == bddfalse) {
+    for (int i = 0; i < effective_lim; i++) {
+        if (p[i] == bddfalse) {
             write_str(strm, "F\n");
         } else if (p[i] == bddtrue) {
             write_str(strm, "T\n");
@@ -262,13 +266,9 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
     for (unsigned i = 0; i < output_count; i++) {
         char ref[ARC_BUF_SIZE];
         if (!read_token(strm, ref)) return -1;
-        if (ref[0] == 'N' && ref[1] == '\0') {
-            result[i] = bddnull;
-        } else {
-            bddp r = import_parse_arc(ref, id_map);
-            if (r == bddnull) return -1;
-            result[i] = r;
-        }
+        bddp r = import_parse_arc(ref, id_map);
+        if (r == bddnull) return -1;
+        result[i] = r;
     }
 
     return static_cast<int>(output_count);
@@ -452,10 +452,15 @@ void bdddump(bddp f) {
 
 void bddvdump(bddp *p, int n) {
     if (!p || n <= 0) return;
-
-    // Validate non-terminal nodes (skip bddnull)
+    // Find effective limit (bddnull acts as sentinel)
+    int lim = 0;
     for (int i = 0; i < n; i++) {
-        if (p[i] == bddnull) continue;
+        if (p[i] == bddnull) break;
+        lim = i + 1;
+    }
+
+    // Validate non-terminal nodes
+    for (int i = 0; i < lim; i++) {
         if (!(p[i] & BDD_CONST_FLAG)) {
             bddp node = p[i] & ~BDD_COMP_FLAG;
             uint64_t idx = node / 2 - 1;
@@ -466,18 +471,18 @@ void bddvdump(bddp *p, int n) {
         }
     }
 
-    // Dump all nodes (shared nodes printed once, skip bddnull)
+    // Dump all nodes (shared nodes printed once)
     std::unordered_set<bddp> visited;
-    for (int i = 0; i < n; i++) {
-        if (p[i] == bddnull) continue;
+    for (int i = 0; i < lim; i++) {
         dump_rec(p[i], visited);
     }
 
-    // Print all n roots
+    // Print roots (up to and including the first bddnull)
     for (int i = 0; i < n; i++) {
         char label[32];
         std::snprintf(label, sizeof(label), "RT%d", i);
         dump_root(label, p[i]);
+        if (p[i] == bddnull) break;
     }
     std::printf("\n");
 }
