@@ -790,6 +790,85 @@ bddp bddremainder(bddp f, bddp g) {
     });
 }
 
+static bddp bddlshift_rec(bddp f, bddvar shift) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+
+    // Normalize complement for better cache hit rate
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_LSHIFT, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
+    if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+    }
+    bddvar new_level = static_cast<bddvar>(new_level64);
+    // Allocate new variables on demand if needed
+    while (bdd_varcount < new_level) {
+        bddnewvar();
+    }
+    bddvar target_var = level2var[new_level];
+
+    bddp lo = bddlshift_rec(node_lo(fn), shift);
+    bddp hi = bddlshift_rec(node_hi(fn), shift);
+
+    bddp result = getznode(target_var, lo, hi);
+
+    bddwcache(BDD_OP_LSHIFT, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
+bddp bddlshift(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bddlshift_rec(f, shift);
+    });
+}
+
+static bddp bddrshift_rec(bddp f, bddvar shift) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(BDD_OP_RSHIFT, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    bddvar lev = var2level[v];
+    if (lev <= shift) {
+        throw std::invalid_argument("bddrshift: shifted level underflows");
+    }
+    bddvar target_var = level2var[lev - shift];
+
+    bddp lo = bddrshift_rec(node_lo(fn), shift);
+    bddp hi = bddrshift_rec(node_hi(fn), shift);
+
+    bddp result = getznode(target_var, lo, hi);
+
+    bddwcache(BDD_OP_RSHIFT, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
+bddp bddrshift(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bddrshift_rec(f, shift);
+    });
+}
+
 ZDD ZDD_Random(int lev, int density) {
     if (lev <= 0) {
         return (std::rand() % 100 < density) ? ZDD(1) : ZDD(0);

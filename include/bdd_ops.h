@@ -168,22 +168,6 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
 bddp bddunivvar(bddp f, bddvar v);
 
 /**
- * @brief Left shift: rename variable i to variable i+shift for all variables.
- * @param f A BDD node ID.
- * @param shift The number of positions to shift.
- * @return The resulting BDD.
- */
-bddp bddlshift(bddp f, bddvar shift);
-
-/**
- * @brief Right shift: rename variable i to variable i-shift for all variables.
- * @param f A BDD node ID.
- * @param shift The number of positions to shift.
- * @return The resulting BDD.
- */
-bddp bddrshift(bddp f, bddvar shift);
-
-/**
  * @brief Generalized cofactor of @p f by @p g.
  *
  * Computes the constrain (generalized cofactor) of f with respect to g.
@@ -460,6 +444,22 @@ bddp bddclosure(bddp f);
  * @return The resulting ZDD node ID.
  */
 bddp bddpush(bddp f, bddvar v);
+
+/**
+ * @brief ZDD left shift: rename variable i to variable i+shift for all variables.
+ * @param f A ZDD node ID.
+ * @param shift The number of positions to shift.
+ * @return The resulting ZDD.
+ */
+bddp bddlshift(bddp f, bddvar shift);
+
+/**
+ * @brief ZDD right shift: rename variable i to variable i-shift for all variables.
+ * @param f A ZDD node ID.
+ * @param shift The number of positions to shift.
+ * @return The resulting ZDD.
+ */
+bddp bddrshift(bddp f, bddvar shift);
 
 // ZDD counting
 
