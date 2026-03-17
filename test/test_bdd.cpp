@@ -8072,3 +8072,104 @@ TEST_F(BDDTest, ImportzEmptyStream) {
     int ret = bddimportz(empty, &p, 1);
     EXPECT_LT(ret, 0);
 }
+
+// --- Garbage Collection ---
+
+TEST_F(BDDTest, GCManualCallReducesNodes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Create some nodes without protecting them
+    {
+        BDD a = BDDvar(v1) & BDDvar(v2);
+        BDD b = BDDvar(v1) | BDDvar(v2);
+        // a, b are protected via BDD class
+    }
+    // a, b destructors ran; nodes are now unreachable
+    uint64_t before = bddlive();
+    bddgc();
+    uint64_t after = bddlive();
+    EXPECT_LE(after, before);
+}
+
+TEST_F(BDDTest, GCProtectUnprotect) {
+    bddvar v1 = bddnewvar();
+    bddp node = bddand(BDDvar(v1).GetID(), bddtrue);
+    bddgc_protect(&node);
+    EXPECT_EQ(bddgc_rootcount(), 1u);
+    bddgc();
+    // node should still be valid after GC
+    EXPECT_EQ(bddtop(node), v1);
+    bddgc_unprotect(&node);
+    EXPECT_EQ(bddgc_rootcount(), 0u);
+}
+
+TEST_F(BDDTest, GCThreshold) {
+    double orig = bddgc_getthreshold();
+    EXPECT_DOUBLE_EQ(orig, 0.9);
+    bddgc_setthreshold(0.5);
+    EXPECT_DOUBLE_EQ(bddgc_getthreshold(), 0.5);
+    bddgc_setthreshold(0.9);
+}
+
+// --- bddfinal ---
+
+TEST_F(BDDTest, BddFinalReleasesResources) {
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    bddfinal();
+    // After bddfinal, re-init should work
+    bddinit(256, UINT64_MAX);
+    bddvar v2 = bddnewvar();
+    EXPECT_EQ(v2, 1u);
+}
+
+TEST_F(BDDTest, BddFinalDoubleCallSafe) {
+    bddfinal();
+    bddfinal();  // should not crash
+    bddinit(256, UINT64_MAX);
+}
+
+TEST_F(BDDTest, BddFinalResetState) {
+    bddnewvar();
+    bddgc_setthreshold(0.5);
+    bddfinal();
+    bddinit(256, UINT64_MAX);
+    // Threshold should be reset to default
+    EXPECT_DOUBLE_EQ(bddgc_getthreshold(), 0.9);
+    // Variable count should be 0
+    EXPECT_EQ(bddvarused(), 0u);
+}
+
+// --- Memory pressure ---
+
+TEST_F(BDDTest, NodeMaxLimitTriggersGC) {
+    // Re-init with small node_max to force GC
+    bddfinal();
+    bddinit(16, 64);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // Create many nodes in a loop; GC should keep things running
+    for (int i = 0; i < 100; i++) {
+        BDD a = BDDvar(v1) & BDDvar(v2);
+        BDD b = a | BDDvar(v3);
+        (void)b;
+    }
+    // If we got here without overflow, GC is working
+}
+
+TEST_F(BDDTest, NodeMaxExhaustion) {
+    bddfinal();
+    bddinit(4, 4);
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+    // With only 4 slots and many variables, eventually nodes exhaust
+    EXPECT_THROW({
+        BDD a = BDDvar(v1) & BDDvar(v2) & BDDvar(v3) & BDDvar(v4);
+        BDD b = BDDvar(v1) | BDDvar(v2) | BDDvar(v3) | BDDvar(v4);
+        BDD c = a ^ b;
+        (void)c;
+    }, std::overflow_error);
+}
