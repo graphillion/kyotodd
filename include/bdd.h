@@ -1,6 +1,13 @@
 #ifndef KYOTODD_BDD_H
 #define KYOTODD_BDD_H
 
+/**
+ * @note Thread safety: This library is NOT thread-safe. All BDD/ZDD
+ * operations use shared global state (node table, unique tables, cache,
+ * GC roots) without synchronization. All calls must be made from a
+ * single thread, or externally serialized by the caller.
+ */
+
 #include "bdd_types.h"
 #include "bdd_base.h"
 #include "bdd_ops.h"
