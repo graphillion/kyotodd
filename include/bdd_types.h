@@ -40,7 +40,9 @@ static constexpr bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
 /** @brief Null (error) node ID. Returned on invalid operations. */
 static constexpr bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
-/** @brief Maximum recursion depth for recursive operations. */
+/** @brief Maximum recursion depth for recursive operations.
+ *  Chosen conservatively for typical thread stack sizes (1-8 MB).
+ *  Each recursion frame is ~100-200 bytes, so 8192 levels ≈ 0.8-1.6 MB. */
 static constexpr int BDD_RecurLimit = 8192;
 /** @brief Current recursion depth counter. */
 extern int BDD_RecurCount;

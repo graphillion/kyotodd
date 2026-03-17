@@ -491,8 +491,12 @@ bddp bddrshift(bddp f, bddvar shift);
 
 /**
  * @brief Count the number of sets in a ZDD family.
+ *
+ * Saturates at (2^39 - 1) for very large families. Use bddexactcard()
+ * or bddexactcardmp16() for exact results beyond this limit.
+ *
  * @param f A ZDD node ID.
- * @return The cardinality of the family.
+ * @return The cardinality of the family, or (2^39 - 1) if saturated.
  */
 uint64_t bddcard(bddp f);
 
@@ -503,7 +507,10 @@ uint64_t bddcard(bddp f);
  * For example, if f = {{a,b},{a},{b,c,d}}, returns 2+1+3 = 6.
  *
  * @param f A ZDD node ID.
- * @return The total literal count.
+ * Saturates at (2^39 - 1) for very large families. Use bddexactlit()
+ * for exact results beyond this limit.
+ *
+ * @return The total literal count, or (2^39 - 1) if saturated.
  */
 uint64_t bddlit(bddp f);
 
@@ -514,7 +521,10 @@ uint64_t bddlit(bddp f);
  * For example, if f = {{a,b},{a},{b,c,d}}, returns max(2,1,3) = 3.
  *
  * @param f A ZDD node ID.
+ * Saturates at (2^39 - 1) for very deep families.
+ *
  * @return The maximum set size, or 0 for the empty family or {∅}.
+ *         Returns (2^39 - 1) if saturated.
  */
 uint64_t bddlen(bddp f);
 
