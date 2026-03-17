@@ -200,6 +200,17 @@ ZDD ZDD_ID(bddp p);
  */
 BDD BDDvar(bddvar v);
 
+/**
+ * @brief Compute the meet of two ZDD families.
+ *
+ * Wrapper that calls bddmeet on the root nodes and returns the result
+ * as a ZDD object.
+ * @param f First ZDD family.
+ * @param g Second ZDD family.
+ * @return The resulting ZDD.
+ */
+ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
+
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);

@@ -681,6 +681,12 @@ BDD BDDvar(bddvar v) {
     return BDD_ID(bddprime(v));
 }
 
+ZDD ZDD_Meet(const ZDD& f, const ZDD& g) {
+    ZDD z(0);
+    z.root = bddmeet(f.root, g.root);
+    return z;
+}
+
 // Obsolete: BDD and ZDD share the same node table, so node-level type
 // distinction is not possible. Retained for API compatibility.
 int bddisbdd(bddp f) {

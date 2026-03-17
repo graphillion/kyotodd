@@ -70,9 +70,9 @@ TEST_F(BDDTest, ZDDConstructor) {
     ZDD e(0);
     ZDD s(1);
     ZDD n(-1);
-    EXPECT_EQ(e.root, bddempty);
-    EXPECT_EQ(s.root, bddsingle);
-    EXPECT_EQ(n.root, bddnull);
+    EXPECT_EQ(e.GetID(), bddempty);
+    EXPECT_EQ(s.GetID(), bddsingle);
+    EXPECT_EQ(n.GetID(), bddnull);
 }
 
 // --- Static const objects ---
@@ -84,9 +84,9 @@ TEST_F(BDDTest, BDDStaticConsts) {
 }
 
 TEST_F(BDDTest, ZDDStaticConsts) {
-    EXPECT_EQ(ZDD::Empty.root, bddempty);
-    EXPECT_EQ(ZDD::Single.root, bddsingle);
-    EXPECT_EQ(ZDD::Null.root, bddnull);
+    EXPECT_EQ(ZDD::Empty.GetID(), bddempty);
+    EXPECT_EQ(ZDD::Single.GetID(), bddsingle);
+    EXPECT_EQ(ZDD::Null.GetID(), bddnull);
 }
 
 // --- BDD_NewVar ---
@@ -3267,9 +3267,9 @@ TEST_F(BDDTest, ZDDOperatorDiv) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, z_v1.root);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, z_v1.GetID()));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
     // {{v1, v2}} / {{v2}} = {{v1}}
     ZDD result = z_v1v2 / z_v2;
@@ -3280,9 +3280,9 @@ TEST_F(BDDTest, ZDDOperatorDivAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, z_v1.root);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, z_v1.GetID()));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
     z_v1v2 /= z_v2;
     EXPECT_EQ(z_v1v2, z_v1);
@@ -3383,10 +3383,10 @@ TEST_F(BDDTest, ZDDOperatorSymdiff) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD G = z_v2;
 
     // F ^ G = {{v1}}
@@ -3398,10 +3398,10 @@ TEST_F(BDDTest, ZDDOperatorSymdiffAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F ^= z_v2;
     EXPECT_EQ(F, z_v1);
 }
@@ -3491,25 +3491,25 @@ TEST_F(BDDTest, ZDDOperatorJoin) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
     // {{v1}} * {{v2}} = {{v1, v2}}
     ZDD result = z_v1 * z_v2;
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    EXPECT_EQ(result.root, z_v1v2);
+    EXPECT_EQ(result.GetID(), z_v1v2);
 }
 
 TEST_F(BDDTest, ZDDOperatorJoinAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     z_v1 *= z_v2;
-    EXPECT_EQ(z_v1.root, z_v1v2);
+    EXPECT_EQ(z_v1.GetID(), z_v1v2);
 }
 
 // --- bddmeet ---
@@ -3746,8 +3746,8 @@ TEST_F(BDDTest, ZDDOperatorRemainder) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
 
     // {{v1}} % {{v2}} = {{v1}} (no divisor)
     ZDD result = z_v1 % z_v2;
@@ -3759,8 +3759,8 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
     bddvar v2 = bddnewvar();
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
 
-    ZDD F(0); F.root = z_v1v2;  // {{v1,v2}}
-    ZDD G(0); G.root = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    ZDD F = ZDD_ID(z_v1v2);  // {{v1,v2}}
+    ZDD G = ZDD_ID(getznode(v2, bddempty, bddsingle));  // {{v2}}
 
     // {{v1,v2}} % {{v2}} = {} (exact division)
     F %= G;
@@ -3772,20 +3772,20 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
 TEST_F(BDDTest, ZDDOperatorPlus) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
     ZDD result = z_v1 + z_v2;
-    EXPECT_EQ(result.root, bddunion(z_v1.root, z_v2.root));
+    EXPECT_EQ(result.GetID(), bddunion(z_v1.GetID(), z_v2.GetID()));
 }
 
 TEST_F(BDDTest, ZDDOperatorPlusAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
-    bddp expected = bddunion(z_v1.root, z_v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    bddp expected = bddunion(z_v1.GetID(), z_v2.GetID());
     z_v1 += z_v2;
-    EXPECT_EQ(z_v1.root, expected);
+    EXPECT_EQ(z_v1.GetID(), expected);
 }
 
 // --- ZDD operator- / operator-= ---
@@ -3793,9 +3793,9 @@ TEST_F(BDDTest, ZDDOperatorPlusAssign) {
 TEST_F(BDDTest, ZDDOperatorMinus) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD result = F - z_v2;
     EXPECT_EQ(result, z_v1);
 }
@@ -3803,9 +3803,9 @@ TEST_F(BDDTest, ZDDOperatorMinus) {
 TEST_F(BDDTest, ZDDOperatorMinusAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F -= z_v2;
     EXPECT_EQ(F, z_v1);
 }
@@ -3815,9 +3815,9 @@ TEST_F(BDDTest, ZDDOperatorMinusAssign) {
 TEST_F(BDDTest, ZDDOperatorIntersec) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD result = F & z_v1;
     EXPECT_EQ(result, z_v1);
 }
@@ -3825,9 +3825,9 @@ TEST_F(BDDTest, ZDDOperatorIntersec) {
 TEST_F(BDDTest, ZDDOperatorIntersecAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v2(0); z_v2.root = getznode(v2, bddempty, bddsingle);
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F &= z_v1;
     EXPECT_EQ(F, z_v1);
 }
@@ -3836,8 +3836,8 @@ TEST_F(BDDTest, ZDDOperatorIntersecAssign) {
 
 TEST_F(BDDTest, ZDDOperatorEqual) {
     bddvar v1 = bddnewvar();
-    ZDD a(0); a.root = getznode(v1, bddempty, bddsingle);
-    ZDD b(0); b.root = getznode(v1, bddempty, bddsingle);
+    ZDD a = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD b = ZDD_ID(getznode(v1, bddempty, bddsingle));
     EXPECT_TRUE(a == b);
     EXPECT_FALSE(a != b);
 }
@@ -3845,8 +3845,8 @@ TEST_F(BDDTest, ZDDOperatorEqual) {
 TEST_F(BDDTest, ZDDOperatorNotEqual) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD a(0); a.root = getznode(v1, bddempty, bddsingle);
-    ZDD b(0); b.root = getznode(v2, bddempty, bddsingle);
+    ZDD a = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD b = ZDD_ID(getznode(v2, bddempty, bddsingle));
     EXPECT_FALSE(a == b);
     EXPECT_TRUE(a != b);
 }
@@ -3863,9 +3863,9 @@ TEST_F(BDDTest, ZDDOperatorEqualConstants) {
 TEST_F(BDDTest, ZDDChangeMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
     ZDD result = z_v1.Change(v2);
-    EXPECT_EQ(result.root, bddchange(z_v1.root, v2));
+    EXPECT_EQ(result.GetID(), bddchange(z_v1.GetID(), v2));
 }
 
 // --- ZDD::Offset ---
@@ -3873,9 +3873,9 @@ TEST_F(BDDTest, ZDDChangeMethod) {
 TEST_F(BDDTest, ZDDOffsetMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     ZDD result = F.Offset(v2);
     EXPECT_EQ(result, z_v1);
 }
@@ -3885,9 +3885,9 @@ TEST_F(BDDTest, ZDDOffsetMethod) {
 TEST_F(BDDTest, ZDDOnSetMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     ZDD result = F.OnSet(v2);
     EXPECT_EQ(result, z_v1v2);
 }
@@ -3897,9 +3897,9 @@ TEST_F(BDDTest, ZDDOnSetMethod) {
 TEST_F(BDDTest, ZDDOnSet0Method) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1(0); z_v1.root = getznode(v1, bddempty, bddsingle);
-    ZDD z_v1v2(0); z_v1v2.root = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    ZDD F(0); F.root = bddunion(z_v1.root, z_v1v2.root);
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     // OnSet0(v2) returns sets containing v2 with v2 removed = {{v1}}
     ZDD result = F.OnSet0(v2);
     EXPECT_EQ(result, z_v1);
@@ -5323,10 +5323,9 @@ TEST_F(BDDTest, ZDDClassMaximalMinimal) {
     bddp z12 = bddchange(z1, v2);        // {{1,2}}
     bddp all = bddunion(bddunion(bddunion(bddsingle, z1), z2), z12);
 
-    ZDD zall(0);
-    zall.root = all;
-    EXPECT_EQ(zall.Maximal().root, z12);
-    EXPECT_EQ(zall.Minimal().root, bddsingle);
+    ZDD zall = ZDD_ID(all);
+    EXPECT_EQ(zall.Maximal().GetID(), z12);
+    EXPECT_EQ(zall.Minimal().GetID(), bddsingle);
 }
 
 TEST_F(BDDTest, ZDDClassMinhitClosure) {
@@ -5337,17 +5336,15 @@ TEST_F(BDDTest, ZDDClassMinhitClosure) {
     bddp z2 = bddchange(bddsingle, v2);
     bddp f = bddunion(z1, z2);
 
-    ZDD zf(0);
-    zf.root = f;
+    ZDD zf = ZDD_ID(f);
     ZDD mh = zf.Minhit();
     bddp z12 = bddchange(z1, v2);
-    EXPECT_EQ(mh.root, z12);
+    EXPECT_EQ(mh.GetID(), z12);
 
     // closure of {{1}} = {∅, {1}}
-    ZDD z1w(0);
-    z1w.root = z1;
+    ZDD z1w = ZDD_ID(z1);
     ZDD cl = z1w.Closure();
-    EXPECT_EQ(cl.root, bddclosure(z1));
+    EXPECT_EQ(cl.GetID(), bddclosure(z1));
 }
 
 TEST_F(BDDTest, ZDDClassCard) {
@@ -5357,8 +5354,7 @@ TEST_F(BDDTest, ZDDClassCard) {
     bddp z2 = bddchange(bddsingle, v2);
     bddp f = bddunion(bddunion(bddsingle, z1), z2);
 
-    ZDD zf(0);
-    zf.root = f;
+    ZDD zf = ZDD_ID(f);
     EXPECT_EQ(zf.Card(), 3u);
     EXPECT_EQ(ZDD::Empty.Card(), 0u);
     EXPECT_EQ(ZDD::Single.Card(), 1u);
@@ -5372,16 +5368,14 @@ TEST_F(BDDTest, ZDDClassRestrictPermit) {
     bddp z12 = bddchange(z1, v2);
     bddp f = bddunion(bddunion(z1, z2), z12);
 
-    ZDD zf(0);
-    zf.root = f;
-    ZDD zp(0);
-    zp.root = z1;  // permit set: {{1}}
+    ZDD zf = ZDD_ID(f);
+    ZDD zp = ZDD_ID(z1);  // permit set: {{1}}
 
     ZDD restricted = zf.Restrict(zp);
-    EXPECT_EQ(restricted.root, bddrestrict(f, z1));
+    EXPECT_EQ(restricted.GetID(), bddrestrict(f, z1));
 
     ZDD permitted = zf.Permit(zp);
-    EXPECT_EQ(permitted.root, bddpermit(f, z1));
+    EXPECT_EQ(permitted.GetID(), bddpermit(f, z1));
 }
 
 TEST_F(BDDTest, ZDDClassNonsupNonsub) {
@@ -5392,13 +5386,11 @@ TEST_F(BDDTest, ZDDClassNonsupNonsub) {
     bddp z12 = bddchange(z1, v2);
     bddp f = bddunion(bddunion(z1, z2), z12);
 
-    ZDD zf(0);
-    zf.root = f;
-    ZDD zg(0);
-    zg.root = z12;
+    ZDD zf = ZDD_ID(f);
+    ZDD zg = ZDD_ID(z12);
 
-    EXPECT_EQ(zf.Nonsup(zg).root, bddnonsup(f, z12));
-    EXPECT_EQ(zf.Nonsub(zg).root, bddnonsub(f, z12));
+    EXPECT_EQ(zf.Nonsup(zg).GetID(), bddnonsup(f, z12));
+    EXPECT_EQ(zf.Nonsub(zg).GetID(), bddnonsub(f, z12));
 }
 
 TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {
@@ -5407,13 +5399,11 @@ TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {
     bddp z1 = bddchange(bddsingle, v1);
     bddp z2 = bddchange(bddsingle, v2);
 
-    ZDD za(0);
-    za.root = z1;
-    ZDD zb(0);
-    zb.root = z2;
+    ZDD za = ZDD_ID(z1);
+    ZDD zb = ZDD_ID(z2);
 
-    EXPECT_EQ(za.Disjoin(zb).root, bdddisjoin(z1, z2));
-    EXPECT_EQ(za.Jointjoin(zb).root, bddjointjoin(z1, z2));
+    EXPECT_EQ(za.Disjoin(zb).GetID(), bdddisjoin(z1, z2));
+    EXPECT_EQ(za.Jointjoin(zb).GetID(), bddjointjoin(z1, z2));
 }
 
 TEST_F(BDDTest, ZDDClassDelta) {
@@ -5424,12 +5414,10 @@ TEST_F(BDDTest, ZDDClassDelta) {
     bddp z12 = bddchange(z1, v2);
     bddp f = bddunion(z1, z12);
 
-    ZDD zf(0);
-    zf.root = f;
-    ZDD zg(0);
-    zg.root = z2;
+    ZDD zf = ZDD_ID(f);
+    ZDD zg = ZDD_ID(z2);
 
-    EXPECT_EQ(zf.Delta(zg).root, bdddelta(f, z2));
+    EXPECT_EQ(zf.Delta(zg).GetID(), bdddelta(f, z2));
 }
 
 // --- Garbage collection tests ---
@@ -5548,18 +5536,16 @@ TEST_F(BDDTest, GCZDDClassAutoProtection) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z1(0);
-    z1.root = bddchange(bddsingle, v1);
-    ZDD z2(0);
-    z2.root = bddchange(bddsingle, v2);
+    ZDD z1 = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD z2 = ZDD_ID(bddchange(bddsingle, v2));
     ZDD z3 = z1 + z2;
 
-    bddp expected_root = z3.root;
+    bddp expected_root = z3.GetID();
 
     bddgc();
 
     // z3 should survive because ZDD object protects &z3.root
-    EXPECT_EQ(z3.root, expected_root);
+    EXPECT_EQ(z3.GetID(), expected_root);
 }
 
 TEST_F(BDDTest, GCAutoTriggerOnExhaustion) {
@@ -5722,23 +5708,19 @@ TEST_F(BDDTest, GCZDDAutoTrigger) {
 
     // Create and discard ZDD nodes
     {
-        ZDD z1(0);
-        z1.root = bddchange(bddsingle, v1);
-        ZDD z2(0);
-        z2.root = bddchange(bddsingle, v2);
+        ZDD z1 = ZDD_ID(bddchange(bddsingle, v1));
+        ZDD z2 = ZDD_ID(bddchange(bddsingle, v2));
         ZDD z3 = z1 + z2;
         (void)z3;
     }
     // All out of scope
 
     // Should succeed via auto GC
-    ZDD z4(0);
-    z4.root = bddchange(bddsingle, v3);
-    ZDD z5(0);
-    z5.root = bddchange(bddsingle, v1);
+    ZDD z4 = ZDD_ID(bddchange(bddsingle, v3));
+    ZDD z5 = ZDD_ID(bddchange(bddsingle, v1));
     ZDD z6 = z4 + z5;
 
-    EXPECT_NE(z6.root, bddempty);
+    EXPECT_NE(z6.GetID(), bddempty);
 }
 
 // --- Reduced flag tests ---
@@ -5918,7 +5900,7 @@ TEST_F(BDDTest, ReducedFlag_ZDD_ID) {
     bddvar v = BDD_NewVar();
     bddp p = bddchange(bddsingle, v);
     ZDD z = ZDD_ID(p);
-    EXPECT_EQ(z.root, p);
+    EXPECT_EQ(z.GetID(), p);
 }
 
 TEST_F(BDDTest, ReducedFlag_BDD_ID_ValidatesReduced) {
@@ -6350,8 +6332,7 @@ TEST_F(BDDTest, BddExactCount_ZDDClassMethod) {
     bddp z2 = bddchange(bddsingle, v2);
     bddp f = bddunion(bddunion(bddsingle, z1), z2);
 
-    ZDD zf(0);
-    zf.root = f;
+    ZDD zf = ZDD_ID(f);
     EXPECT_EQ(zf.ExactCount(), bigint::BigInt(3));
     EXPECT_EQ(ZDD::Empty.ExactCount(), bigint::BigInt(0));
     EXPECT_EQ(ZDD::Single.ExactCount(), bigint::BigInt(1));

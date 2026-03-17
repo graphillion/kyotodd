@@ -284,8 +284,14 @@ public:
  * protected from garbage collection during its lifetime.
  */
 class ZDD {
-public:
+    friend ZDD ZDD_ID(bddp p);
+    friend ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
+
     bddp root;  /**< @brief The root node ID of this ZDD. */
+
+public:
+    /** @brief Get the raw node ID. */
+    bddp GetID() const { return root; }
 
     /**
      * @brief Construct a ZDD from an integer value.
