@@ -128,8 +128,13 @@ void bddgc_unprotect(bddp* p);
  * protected from garbage collection during its lifetime.
  */
 class BDD {
-public:
+    friend BDD BDD_ID(bddp p);
+
     bddp root;  /**< @brief The root node ID of this BDD. */
+
+public:
+    /** @brief Get the raw node ID. */
+    bddp GetID() const { return root; }
 
     /**
      * @brief Construct a BDD from an integer value.
