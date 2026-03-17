@@ -396,15 +396,21 @@ double bddgc_getthreshold() {
 }
 
 static void bddgc_mark(bddp f, uint8_t* marks) {
-    if (f == bddnull) return;
-    if (f & BDD_CONST_FLAG) return;
-    bddp node_id = f & ~BDD_COMP_FLAG;
-    uint64_t idx = node_id / 2 - 1;
-    if (idx >= bdd_node_used) return;
-    if (marks[idx]) return;
-    marks[idx] = 1;
-    bddgc_mark(node_lo(node_id), marks);
-    bddgc_mark(node_hi(node_id), marks);
+    std::vector<bddp> stack;
+    stack.push_back(f);
+    while (!stack.empty()) {
+        bddp cur = stack.back();
+        stack.pop_back();
+        if (cur == bddnull) continue;
+        if (cur & BDD_CONST_FLAG) continue;
+        bddp node_id = cur & ~BDD_COMP_FLAG;
+        uint64_t idx = node_id / 2 - 1;
+        if (idx >= bdd_node_used) continue;
+        if (marks[idx]) continue;
+        marks[idx] = 1;
+        stack.push_back(node_lo(node_id));
+        stack.push_back(node_hi(node_id));
+    }
 }
 
 int bddgc() {
@@ -462,12 +468,18 @@ bool bdd_should_gc() {
 }
 
 static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
-    if (f == bddnull) return;
-    if (f & BDD_CONST_FLAG) return;
-    bddp node = f & ~BDD_COMP_FLAG;
-    if (!visited.insert(node).second) return;
-    bddsize_traverse(node_lo(node), visited);
-    bddsize_traverse(node_hi(node), visited);
+    std::vector<bddp> stack;
+    stack.push_back(f);
+    while (!stack.empty()) {
+        bddp cur = stack.back();
+        stack.pop_back();
+        if (cur == bddnull) continue;
+        if (cur & BDD_CONST_FLAG) continue;
+        bddp node = cur & ~BDD_COMP_FLAG;
+        if (!visited.insert(node).second) continue;
+        stack.push_back(node_lo(node));
+        stack.push_back(node_hi(node));
+    }
 }
 
 uint64_t bddsize(bddp f) {
