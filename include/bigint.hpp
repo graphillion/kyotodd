@@ -109,7 +109,6 @@ public:
 
         // Process 9 digits at a time (10^9 base)
         // We build up the number by: result = result * 10^k + chunk
-        const uint32_t base9 = 1000000000U; // 10^9
         std::size_t len = str.size() - first_nonzero;
         const char* digits = str.c_str() + first_nonzero;
 

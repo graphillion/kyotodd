@@ -5564,7 +5564,7 @@ TEST_F(BDDTest, BDDClassSpreadZero) {
 }
 
 TEST_F(BDDTest, BDDClassSpreadConstant) {
-    bddvar v1 = BDD_NewVar();
+    (void)BDD_NewVar();
     EXPECT_EQ(BDD::True.Spread(1), BDD::True);
     EXPECT_EQ(BDD::False.Spread(1), BDD::False);
 }

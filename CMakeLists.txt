@@ -17,6 +17,9 @@ set(KYOTODD_LIB_SOURCES
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
 target_include_directories(kyotodd_lib PUBLIC include)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(kyotodd_lib PRIVATE -Wall -Wextra)
+endif()
 
 add_executable(kyotodd src/main.cpp)
 target_link_libraries(kyotodd kyotodd_lib)
@@ -34,6 +37,9 @@ enable_testing()
 
 add_executable(kyotodd_test test/test_bdd.cpp)
 target_link_libraries(kyotodd_test kyotodd_lib GTest::gtest_main)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(kyotodd_test PRIVATE -Wall -Wextra)
+endif()
 
 include(GoogleTest)
 gtest_discover_tests(kyotodd_test)
