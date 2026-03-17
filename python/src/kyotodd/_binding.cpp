@@ -623,7 +623,7 @@ PYBIND11_MODULE(_core, m) {
              "The number of nodes in the DAG of this ZDD.")
         .def_property_readonly("lit", &ZDD::Lit,
              "The total literal count across all sets in the family.")
-        .def_property_readonly("len", &ZDD::Len,
+        .def_property_readonly("max_set_size", &ZDD::Len,
              "The maximum set size in the family.")
         .def_property_readonly("is_poly", &ZDD::IsPoly,
              "1 if the family has >= 2 sets, 0 otherwise.")
