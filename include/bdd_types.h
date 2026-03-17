@@ -570,7 +570,7 @@ public:
     uint64_t Size() const;
     /** @brief Count the total number of literals across all sets. */
     uint64_t Lit() const;
-    /** @brief Count the total number of sets weighted by set size. */
+    /** @brief Return the maximum set size in the family. */
     uint64_t Len() const;
     /** @brief Return the cardinality as a hexadecimal string. */
     char* CardMP16(char* s) const;
