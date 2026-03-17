@@ -11,6 +11,7 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_ops.cpp
   src/zdd_ops.cpp
   src/zdd_adv.cpp
+  src/zdd_adv2.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})

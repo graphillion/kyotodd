@@ -113,6 +113,11 @@ static const uint8_t BDD_OP_CLOSURE = 32;
 static const uint8_t BDD_OP_CARD = 33;
 static const uint8_t BDD_OP_LIT = 34;
 static const uint8_t BDD_OP_LEN = 35;
+static const uint8_t BDD_OP_PERMITSYM  = 36;
+static const uint8_t BDD_OP_ALWAYS     = 37;
+static const uint8_t BDD_OP_SYMCHK     = 38;
+static const uint8_t BDD_OP_SYMSET     = 39;
+static const uint8_t BDD_OP_COIMPLYSET = 40;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -508,6 +513,9 @@ public:
     ZDD ZLev(int lev, int last) const;
     /** @brief Set ZDD skip flags. */
     void SetZSkip() const;
+
+    /** @brief Check if the family is a polynomial (has ≥ 2 sets). */
+    int IsPoly() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

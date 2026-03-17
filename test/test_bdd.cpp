@@ -6966,3 +6966,61 @@ TEST_F(BDDTest, ZDD_ExportFilePtr) {
     EXPECT_GT(len1, 0);
     EXPECT_EQ(imported, z);
 }
+
+// --- bddispoly / ZDD::IsPoly ---
+
+TEST(ZDD_IsPolyTest, EmptyAndSingle) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // Empty family: 0 sets -> not poly
+    EXPECT_EQ(bddispoly(bddempty), 0);
+    // Single family {∅}: 1 set -> not poly
+    EXPECT_EQ(bddispoly(bddsingle), 0);
+    // Null -> error
+    EXPECT_EQ(bddispoly(bddnull), -1);
+}
+
+TEST(ZDD_IsPolyTest, SingleSet) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {v1} = single set containing only variable 1 -> not poly
+    bddp s1 = bddchange(bddsingle, 1);
+    EXPECT_EQ(bddispoly(s1), 0);
+
+    // {v1, v2} = single set -> not poly
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    EXPECT_EQ(bddispoly(s12), 0);
+}
+
+TEST(ZDD_IsPolyTest, MultipleSets) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}} = 2 sets -> poly
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s2 = bddchange(bddsingle, 2);
+    bddp f = bddunion(s1, s2);
+    EXPECT_EQ(bddispoly(f), 1);
+
+    // {{∅}, {v1}} = 2 sets -> poly
+    bddp g = bddunion(bddsingle, s1);
+    EXPECT_EQ(bddispoly(g), 1);
+}
+
+TEST(ZDD_IsPolyTest, ClassWrapper) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    ZDD empty = ZDD::Empty;
+    EXPECT_EQ(empty.IsPoly(), 0);
+
+    ZDD single = ZDD::Single;
+    EXPECT_EQ(single.IsPoly(), 0);
+
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD f = s1 + s2;
+    EXPECT_EQ(f.IsPoly(), 1);
+}

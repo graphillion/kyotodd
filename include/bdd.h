@@ -384,4 +384,8 @@ inline void ZDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline int ZDD::IsPoly() const {
+    return bddispoly(root);
+}
+
 #endif

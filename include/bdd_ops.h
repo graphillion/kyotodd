@@ -505,6 +505,13 @@ char *bddcardmp16(bddp f, char *s);
  */
 ZDD ZDD_Random(int lev, int density = 50);
 
+/**
+ * @brief Check if a ZDD represents a polynomial (family with ≥ 2 sets).
+ * @param f A ZDD node ID.
+ * @return 1 if the family has 2 or more sets, 0 otherwise, or -1 on error.
+ */
+int bddispoly(bddp f);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */
