@@ -279,7 +279,8 @@ ZDD Class
 
       Find elements common to ALL sets in the family.
 
-      :return: A ZDD representing the single set of always-present variables.
+      :return: A ZDD family of singletons, one for each always-present variable.
+              For example, ``{{1,2,3},{1,2}}.always()`` returns ``{{1},{2}}``.
       :rtype: ZDD
 
    .. py:method:: permit_sym(n)

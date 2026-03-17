@@ -507,7 +507,8 @@ PYBIND11_MODULE(_core, m) {
         .def("always", &ZDD::Always,
              "Find elements common to ALL sets in the family.\n\n"
              "Returns:\n"
-             "    A ZDD representing the single set of always-present variables.\n")
+             "    A ZDD family of singletons, one for each always-present variable.\n"
+             "    For example, {{1,2,3},{1,2}}.always() returns {{1},{2}}.\n")
         .def("permit_sym", &ZDD::PermitSym, py::arg("n"),
              "Symmetric permit: keep sets with at most n elements.\n\n"
              "Args:\n"

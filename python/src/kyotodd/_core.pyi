@@ -548,7 +548,11 @@ class ZDD:
         ...
 
     def always(self) -> ZDD:
-        """Find elements common to ALL sets in the family."""
+        """Find elements common to ALL sets in the family.
+
+        Returns a family of singletons, one for each always-present variable.
+        For example, ``{{1,2,3},{1,2}}.always()`` returns ``{{1},{2}}``.
+        """
         ...
 
     def permit_sym(self, n: int) -> ZDD:

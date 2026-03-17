@@ -615,7 +615,8 @@ bddp bddpermitsym(bddp f, int n);
 /**
  * @brief Find elements common to ALL sets in a ZDD family.
  * @param f A ZDD node ID.
- * @return A ZDD representing the single set of always-present variables.
+ * @return A ZDD family of singletons, one for each always-present variable.
+ *         For example, if f = {{1,2,3},{1,2}}, returns {{1},{2}}.
  */
 bddp bddalways(bddp f);
 
