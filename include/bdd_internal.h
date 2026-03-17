@@ -57,13 +57,9 @@ bddp bdd_gc_guard(F func) {
 // Node ID must be a valid non-terminal, even ID >= 2 with index < bdd_node_used.
 inline uint64_t node_index(bddp node_id) {
     node_id &= ~BDD_COMP_FLAG;
-    if (node_id < 2 || (node_id & BDD_CONST_FLAG)) {
-        throw std::out_of_range("node access: invalid node ID");
-    }
+    BDD_DEBUG_ASSERT(node_id >= 2 && !(node_id & BDD_CONST_FLAG));
     uint64_t idx = node_id / 2 - 1;
-    if (idx >= bdd_node_used) {
-        throw std::out_of_range("node access: node ID out of bounds");
-    }
+    BDD_DEBUG_ASSERT(idx < bdd_node_used);
     return idx;
 }
 
