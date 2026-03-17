@@ -442,7 +442,7 @@ ZDD Class
 
       The total literal count across all sets in the family.
 
-   .. py:property:: len
+   .. py:property:: max_set_size
       :type: int
 
       The maximum set size in the family.

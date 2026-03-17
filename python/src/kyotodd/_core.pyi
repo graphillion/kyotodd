@@ -696,7 +696,7 @@ class ZDD:
         """The total literal count across all sets in the family."""
         ...
     @property
-    def len(self) -> int:
+    def max_set_size(self) -> int:
         """The maximum set size in the family."""
         ...
     @property
