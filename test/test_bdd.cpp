@@ -3778,6 +3778,43 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
     EXPECT_EQ(F, ZDD::Empty);
 }
 
+TEST_F(BDDTest, ZDDRemainderEmptyDividend) {
+    bddvar v1 = bddnewvar();
+    bddp g = getznode(v1, bddempty, bddsingle);
+    EXPECT_EQ(bddremainder(bddempty, g), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRemainderSingletonDivisor) {
+    bddvar v1 = bddnewvar();
+    bddp f = getznode(v1, bddempty, bddsingle);
+    // F % {∅} = ∅ (since {∅} divides everything)
+    EXPECT_EQ(bddremainder(f, bddsingle), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRemainderSelf) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddunion(getznode(v1, bddempty, bddsingle),
+                       getznode(v2, bddempty, bddsingle));
+    // F % F = ∅
+    EXPECT_EQ(bddremainder(f, f), bddempty);
+}
+
+TEST_F(BDDTest, ZDDRemainderCacheConsistency) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp sv1 = getznode(v1, bddempty, bddsingle);
+    bddp sv2 = getznode(v2, bddempty, bddsingle);
+    bddp sv3 = getznode(v3, bddempty, bddsingle);
+    bddp f = bddunion(bddjoin(sv1, sv2), bddjoin(sv1, sv3));
+    bddp g = sv1;
+    // Call twice — second call should use cache and return same result
+    bddp r1 = bddremainder(f, g);
+    bddp r2 = bddremainder(f, g);
+    EXPECT_EQ(r1, r2);
+}
+
 // --- ZDD operator+ / operator+= ---
 
 TEST_F(BDDTest, ZDDOperatorPlus) {

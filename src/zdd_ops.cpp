@@ -772,11 +772,21 @@ static bddp bdddelta_rec(bddp f, bddp g) {
 
 bddp bddremainder(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddsingle) return bddempty;  // F/{∅}=F, {∅}⊔F=F, F\F=∅
+    if (f == g) return bddempty;
+
     // F % G = F \ (G ⊔ (F / G))
     return bdd_gc_guard([&]() -> bddp {
+        bddp cached = bddrcache(BDD_OP_REMAINDER, f, g);
+        if (cached != bddnull) return cached;
+
         bddp q = bdddiv_rec(f, g);
         bddp j = bddjoin_rec(g, q);
-        return bddsubtract_rec(f, j);
+        bddp result = bddsubtract_rec(f, j);
+
+        bddwcache(BDD_OP_REMAINDER, f, g, result);
+        return result;
     });
 }
 

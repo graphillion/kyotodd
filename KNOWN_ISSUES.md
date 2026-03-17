@@ -28,9 +28,6 @@ the BDD/ZDD class layout and is a significant architectural change.
 
 ## Performance Optimizations (Not Yet Implemented)
 
-- **`bddremainder` does not cache results** (`src/zdd_ops.cpp`).
-  Repeated calls with the same arguments recompute from scratch.
-
 - **`bddlshift` / `bddrshift` traverse the BDD twice** (`src/bdd_ops.cpp`).
   Once for `bddsupport_collect` validation, then again for the actual shift.
 
