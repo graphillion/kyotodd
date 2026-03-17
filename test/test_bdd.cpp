@@ -7362,3 +7362,102 @@ TEST(ZDD_SymChkTest, IntermediateVariables) {
     ZDD g = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(2);
     EXPECT_EQ(g.SymChk(1, 2), 0);
 }
+
+// --- bddimplyset / ZDD::ImplySet ---
+
+TEST(ZDD_ImplySetTest, Basic) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}, {v1, v3}}: v1 implies nothing else (v2 sometimes, v3 sometimes)
+    ZDD f = ZDD::Single.Change(1).Change(2) + ZDD::Single.Change(1).Change(3);
+    EXPECT_EQ(f.ImplySet(1), ZDD::Empty);
+
+    // {{v1, v2}, {v3}}: v1 implies v2 (every set with v1 also has v2)
+    ZDD g = ZDD::Single.Change(1).Change(2) + ZDD::Single.Change(3);
+    ZDD expected = ZDD::Single.Change(2);  // {v2} as singleton family
+    EXPECT_EQ(g.ImplySet(1), expected);
+}
+
+TEST(ZDD_ImplySetTest, ConsistentWithImplyChk) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2, v3}, {v1, v2}}: v1 implies v2
+    ZDD f = ZDD::Single.Change(1).Change(2).Change(3) + ZDD::Single.Change(1).Change(2);
+    ZDD iset = f.ImplySet(1);
+
+    // Verify: for each variable v != 1, ImplyChk should agree with ImplySet
+    for (int v = 2; v <= 5; v++) {
+        ZDD sv = ZDD::Single.Change(v);
+        bool in_iset = ((iset & sv) != ZDD::Empty);
+        bool chk = (f.ImplyChk(1, v) == 1);
+        EXPECT_EQ(in_iset, chk) << "v=" << v;
+    }
+}
+
+// --- bddsymgrp / ZDD::SymGrp ---
+
+TEST(ZDD_SymGrpTest, NoGroups) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}}: no variable pair is symmetric -> empty result
+    ZDD f = ZDD::Single.Change(1);
+    EXPECT_EQ(f.SymGrp(), ZDD::Empty);
+}
+
+TEST(ZDD_SymGrpTest, OneGroup) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: v1 and v2 are symmetric -> group {v1, v2}
+    ZDD f = ZDD::Single.Change(1) + ZDD::Single.Change(2);
+    ZDD expected = ZDD::Single.Change(1).Change(2);  // {{v1, v2}}
+    EXPECT_EQ(f.SymGrp(), expected);
+}
+
+TEST(ZDD_SymGrpTest, MultipleGroups) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v1, v4}, {v2, v3}, {v2, v4}}: v1↔v2 symmetric, v3↔v4 symmetric
+    ZDD f = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(1).Change(4)
+          + ZDD::Single.Change(2).Change(3) + ZDD::Single.Change(2).Change(4);
+
+    ZDD grp = f.SymGrp();
+    // Should contain {v1,v2} and {v3,v4}
+    ZDD g12 = ZDD::Single.Change(1).Change(2);
+    ZDD g34 = ZDD::Single.Change(3).Change(4);
+    EXPECT_EQ(grp, g12 + g34);
+}
+
+// --- bddsymgrpnaive / ZDD::SymGrpNaive ---
+
+TEST(ZDD_SymGrpNaiveTest, IncludesSingletons) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}}: SymGrpNaive includes size-1 groups
+    ZDD f = ZDD::Single.Change(1);
+    ZDD result = f.SymGrpNaive();
+    // Should contain {v1} as a singleton group
+    ZDD expected = ZDD::Single.Change(1);
+    EXPECT_EQ(result, expected);
+}
+
+TEST(ZDD_SymGrpNaiveTest, ConsistentWithSymGrp) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v1, v4}, {v2, v3}, {v2, v4}}
+    ZDD f = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(1).Change(4)
+          + ZDD::Single.Change(2).Change(3) + ZDD::Single.Change(2).Change(4);
+
+    ZDD grp = f.SymGrp();
+    ZDD naive = f.SymGrpNaive();
+
+    // SymGrp (size>=2) should be subset of SymGrpNaive (all sizes)
+    // For this case, naive should also have {v1,v2} and {v3,v4} (no singletons since all are in groups)
+    EXPECT_EQ(grp, naive);
+}

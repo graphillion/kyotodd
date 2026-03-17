@@ -248,3 +248,103 @@ static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
                static_cast<bddp>(result));
     return result;
 }
+
+// --- bddimplyset ---
+
+bddp bddimplyset(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddimplyset: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        bddp f1 = bddonset0(f, v);
+        if (f1 == bddempty) {
+            // v not in any set -> vacuous truth: all support variables implied
+            return bddsupport(f);
+        }
+        return bddalways(f1);
+    });
+}
+
+// --- bddsymgrp ---
+
+bddp bddsymgrp(bddp f) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        std::vector<bddvar> vars = bddsupport_vec(f);
+        std::unordered_set<bddvar> remaining(vars.begin(), vars.end());
+        bddp result = bddempty;
+
+        for (size_t i = 0; i < vars.size(); i++) {
+            bddvar t = vars[i];
+            if (remaining.count(t) == 0) continue;
+            remaining.erase(t);
+
+            // Start group with {t}
+            bddp group = bddchange(bddsingle, t);
+            int group_size = 1;
+
+            for (size_t j = i + 1; j < vars.size(); j++) {
+                bddvar t2 = vars[j];
+                if (remaining.count(t2) == 0) continue;
+                if (bddsymchk(f, t, t2) == 1) {
+                    group = bddchange(group, t2);
+                    group_size++;
+                    remaining.erase(t2);
+                }
+            }
+
+            // Only include groups of size >= 2
+            if (group_size >= 2) {
+                result = bddunion(result, group);
+            }
+        }
+        return result;
+    });
+}
+
+// --- bddsymgrpnaive ---
+
+bddp bddsymgrpnaive(bddp f) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        std::vector<bddvar> vars = bddsupport_vec(f);
+        std::unordered_set<bddvar> remaining(vars.begin(), vars.end());
+        bddp result = bddempty;
+
+        for (size_t i = 0; i < vars.size(); i++) {
+            bddvar t = vars[i];
+            if (remaining.count(t) == 0) continue;
+            remaining.erase(t);
+
+            bddp f0 = bddoffset(f, t);
+            bddp f1 = bddonset0(f, t);
+
+            bddp group = bddchange(bddsingle, t);
+            std::vector<bddvar> to_remove;
+
+            for (size_t j = i + 1; j < vars.size(); j++) {
+                bddvar t2 = vars[j];
+                if (remaining.count(t2) == 0) continue;
+                if (bddonset0(f0, t2) == bddoffset(f1, t2)) {
+                    group = bddchange(group, t2);
+                    to_remove.push_back(t2);
+                }
+            }
+
+            for (bddvar v : to_remove) {
+                remaining.erase(v);
+            }
+
+            // Include all groups (even size 1)
+            result = bddunion(result, group);
+        }
+        return result;
+    });
+}

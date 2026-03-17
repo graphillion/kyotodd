@@ -563,6 +563,28 @@ bddp bddalways(bddp f);
  */
 int bddsymchk(bddp f, bddvar v1, bddvar v2);
 
+/**
+ * @brief Find all variables implied by v in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v Variable number.
+ * @return A ZDD (family of singletons) of variables that v implies.
+ */
+bddp bddimplyset(bddp f, bddvar v);
+
+/**
+ * @brief Find all symmetry groups (size ≥ 2) in a ZDD family.
+ * @param f A ZDD node ID.
+ * @return A ZDD family where each set is a symmetry group.
+ */
+bddp bddsymgrp(bddp f);
+
+/**
+ * @brief Find all symmetry groups (naive method, includes size 1).
+ * @param f A ZDD node ID.
+ * @return A ZDD family where each set is a symmetry group.
+ */
+bddp bddsymgrpnaive(bddp f);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

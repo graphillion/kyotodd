@@ -418,4 +418,22 @@ inline int ZDD::SymChk(int v1, int v2) const {
     return bddsymchk(root, v1, v2);
 }
 
+inline ZDD ZDD::ImplySet(int v) const {
+    ZDD z(0);
+    z.root = bddimplyset(root, v);
+    return z;
+}
+
+inline ZDD ZDD::SymGrp() const {
+    ZDD z(0);
+    z.root = bddsymgrp(root);
+    return z;
+}
+
+inline ZDD ZDD::SymGrpNaive() const {
+    ZDD z(0);
+    z.root = bddsymgrpnaive(root);
+    return z;
+}
+
 #endif

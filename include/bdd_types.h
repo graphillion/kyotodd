@@ -528,6 +528,12 @@ public:
     ZDD Always() const;
     /** @brief Check if v1 and v2 are symmetric in the family. */
     int SymChk(int v1, int v2) const;
+    /** @brief Find all variables implied by v. */
+    ZDD ImplySet(int v) const;
+    /** @brief Find symmetry groups (size ≥ 2). */
+    ZDD SymGrp() const;
+    /** @brief Find symmetry groups (naive, includes size 1). */
+    ZDD SymGrpNaive() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
