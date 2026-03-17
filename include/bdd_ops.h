@@ -601,6 +601,13 @@ bddp bddsymset(bddp f, bddvar v);
  */
 bddp bddcoimplyset(bddp f, bddvar v);
 
+/**
+ * @brief Find a non-trivial divisor of a ZDD family (as polynomial).
+ * @param f A ZDD node ID.
+ * @return A ZDD representing a divisor, or bddsingle if f is monomial.
+ */
+bddp bdddivisor(bddp f);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

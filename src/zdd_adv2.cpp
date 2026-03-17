@@ -483,3 +483,24 @@ static bddp bddcoimplyset_rec(bddp f0, bddp f1) {
     bddwcache(BDD_OP_COIMPLYSET, f0, f1, result);
     return result;
 }
+
+// --- bdddivisor ---
+
+bddp bdddivisor(bddp f) {
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (!bddispoly(f)) return bddsingle;
+
+    return bdd_gc_guard([&]() -> bddp {
+        std::vector<bddvar> vars = bddsupport_vec(f);
+        bddp cur = f;
+
+        for (bddvar t : vars) {
+            bddp f1 = bddonset0(cur, t);
+            if (bddispoly(f1)) {
+                cur = f1;
+            }
+        }
+        return cur;
+    });
+}

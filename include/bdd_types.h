@@ -538,6 +538,8 @@ public:
     ZDD SymSet(int v) const;
     /** @brief Find all variables in co-implication with v. */
     ZDD CoImplySet(int v) const;
+    /** @brief Find a non-trivial divisor of the family. */
+    ZDD Divisor() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

@@ -7543,3 +7543,42 @@ TEST(ZDD_CoImplySetTest, TerminalCases) {
     EXPECT_EQ(bddcoimplyset(bddempty, 1), bddempty);
     EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
 }
+
+// --- bdddivisor / ZDD::Divisor ---
+
+TEST(ZDD_DivisorTest, TerminalCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(bdddivisor(bddnull), bddnull);
+    EXPECT_EQ(bdddivisor(bddempty), bddempty);
+    // Single set (monomial) -> returns single (unit element)
+    ZDD s1 = ZDD::Single.Change(1);
+    EXPECT_EQ(s1.Divisor(), ZDD::Single);
+}
+
+TEST(ZDD_DivisorTest, SimplePolynomial) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}, {v1, v3}}: restricting by v1 gives {{v2}, {v3}} which is still polynomial
+    // So divisor should be {{v2}, {v3}} or a further restriction
+    ZDD f = ZDD::Single.Change(1).Change(2) + ZDD::Single.Change(1).Change(3);
+    ZDD d = f.Divisor();
+    // Divisor should have ≥ 2 sets (still polynomial) or be the end result
+    EXPECT_EQ(d.IsPoly(), 1);
+}
+
+TEST(ZDD_DivisorTest, DivisorDivides) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}, {v1, v3}}: the divisor should divide the original
+    ZDD f = ZDD::Single.Change(1).Change(2) + ZDD::Single.Change(1).Change(3);
+    ZDD d = f.Divisor();
+    // f / d should not be empty (d is a factor)
+    ZDD q = f / d;
+    EXPECT_NE(q, ZDD::Empty);
+    // q * d should give back f (or a subset of f)
+    EXPECT_EQ(q * d, f);
+}

@@ -448,4 +448,10 @@ inline ZDD ZDD::CoImplySet(int v) const {
     return z;
 }
 
+inline ZDD ZDD::Divisor() const {
+    ZDD z(0);
+    z.root = bdddivisor(root);
+    return z;
+}
+
 #endif
