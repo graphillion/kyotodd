@@ -677,8 +677,8 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
 }
 
 bddp bddconst(uint64_t val) {
-    if (val > bddvalmax) {
-        throw std::invalid_argument("bddconst: val out of range");
+    if (val > 1) {
+        throw std::invalid_argument("bddconst: val must be 0 or 1");
     }
     return BDD_CONST_FLAG | val;
 }
