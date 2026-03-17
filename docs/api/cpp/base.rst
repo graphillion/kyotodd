@@ -6,6 +6,7 @@ Initialization
 
 .. doxygenfunction:: bddinit
 .. doxygenfunction:: BDD_Init
+.. doxygenfunction:: bddfinal
 
 Variable Management
 -------------------
@@ -25,7 +26,7 @@ Node Queries
 .. doxygenfunction:: bddfree
 .. doxygenfunction:: bddused
 .. doxygenfunction:: bddsize
-.. doxygenfunction:: bddvsize(bddp *p, int lim)
+.. doxygenfunction:: bddvsize(bddp *p, size_t lim)
 .. doxygenfunction:: bddvsize(const std::vector< bddp > &v)
 
 Node Creation
@@ -49,6 +50,7 @@ Garbage Collection
 .. doxygenfunction:: bddgc_setthreshold
 .. doxygenfunction:: bddgc_getthreshold
 .. doxygenfunction:: bddlive
+.. doxygenfunction:: bddgc_rootcount
 
 Validation
 ----------
