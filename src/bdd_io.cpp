@@ -177,11 +177,11 @@ typedef bddp (*import_nodefn_t)(bddvar, bddp, bddp);
 
 static bddp import_parse_arc(const char* s,
                               const std::unordered_map<uint64_t, bddp>& id_map) {
-    if (s[0] == 'F') return bddfalse;
-    if (s[0] == 'T') return bddtrue;
+    if (s[0] == 'F' && s[1] == '\0') return bddfalse;
+    if (s[0] == 'T' && s[1] == '\0') return bddtrue;
     char* endptr;
     uint64_t val = std::strtoull(s, &endptr, 10);
-    if (endptr == s) return bddnull;  // no digits parsed
+    if (endptr == s || *endptr != '\0') return bddnull;  // no digits or trailing garbage
     bool comp = (val & 1) != 0;
     uint64_t node_id = comp ? (val - 1) : val;
     std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(node_id);
@@ -257,6 +257,7 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
         bddp hi = import_parse_arc(buf1, id_map);
         if (lo == bddnull || hi == bddnull) return -1;
         bddvar var = bddvaroflev(level);
+        if (id_map.count(old_id)) return -1;  // duplicate node ID
         bddp new_node = make_node(var, lo, hi);
         id_map[old_id] = new_node;
     }

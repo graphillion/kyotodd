@@ -8073,6 +8073,34 @@ TEST_F(BDDTest, ImportzEmptyStream) {
     EXPECT_LT(ret, 0);
 }
 
+TEST_F(BDDTest, ImportRejectsTrailingGarbageInTerminal) {
+    // "FZ" should not be accepted as bddfalse
+    std::istringstream ss("_i 1\n_o 1\n_n 0\nFZ\n");
+    bddp p = bddnull;
+    int ret = bddimport(ss, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
+TEST_F(BDDTest, ImportRejectsTrailingGarbageInNodeId) {
+    // "2abc" should not be accepted as node ID 2
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    std::istringstream ss("_i 1\n_o 1\n_n 1\n2 1 F T\n2abc\n");
+    bddp p = bddnull;
+    int ret = bddimport(ss, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
+TEST_F(BDDTest, ImportRejectsDuplicateNodeId) {
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    // Two nodes with the same old_id = 2
+    std::istringstream ss("_i 1\n_o 1\n_n 2\n2 1 F T\n2 1 T F\nT\n");
+    bddp p = bddnull;
+    int ret = bddimport(ss, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
 // --- Garbage Collection ---
 
 TEST_F(BDDTest, GCManualCallReducesNodes) {
