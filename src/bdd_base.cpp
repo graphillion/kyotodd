@@ -498,10 +498,10 @@ uint64_t bddsize(bddp f) {
     return visited.size();
 }
 
-uint64_t bddvsize(bddp* p, int lim) {
-    if (lim <= 0 || !p) return 0;
+uint64_t bddvsize(bddp* p, size_t lim) {
+    if (lim == 0 || !p) return 0;
     std::unordered_set<bddp> visited;
-    for (int i = 0; i < lim; i++) {
+    for (size_t i = 0; i < lim; i++) {
         bddsize_traverse(p[i], visited);
     }
     return visited.size();

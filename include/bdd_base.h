@@ -111,7 +111,7 @@ uint64_t bddsize(bddp f);
  * @param lim Number of roots in the array.
  * @return The combined DAG node count.
  */
-uint64_t bddvsize(bddp* p, int lim);
+uint64_t bddvsize(bddp* p, size_t lim);
 
 /**
  * @brief Return the total number of nodes in multiple DAGs (vector version).
