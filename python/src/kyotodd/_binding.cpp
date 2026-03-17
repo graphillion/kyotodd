@@ -142,6 +142,8 @@ PYBIND11_MODULE(_core, m) {
         return ZDD_Random(lev, density);
     }, py::arg("lev"), py::arg("density") = 50,
        "Generate a random ZDD over the lowest lev levels.\n\n"
+       "Variables for levels 1..lev must have been created (via newvar())\n"
+       "before calling this function.\n\n"
        "Args:\n"
        "    lev: Number of variable levels to use.\n"
        "    density: Probability (0-100) for each terminal to be 1 (default: 50).\n\n"

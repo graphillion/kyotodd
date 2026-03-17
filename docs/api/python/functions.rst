@@ -120,6 +120,10 @@ Random Generation
    Recursively builds a random family of sets. Each terminal is
    independently set to 1 with probability *density* / 100.
 
+   .. note::
+      Variables for levels 1 through *lev* must have been created
+      (via :py:func:`newvar`) before calling this function.
+
    :param int lev: Number of variable levels to use.
    :param int density: Probability (0--100) for each terminal to be 1 (default: 50).
    :return: A random ZDD.
