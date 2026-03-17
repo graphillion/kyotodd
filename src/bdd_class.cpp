@@ -26,3 +26,11 @@ void ZDD::Print() const {
 void ZDD::PrintPla() const {
     throw std::logic_error("ZDD::PrintPla: not implemented");
 }
+
+ZDD ZDD::ZLev(int lev, int last) const {
+    throw std::logic_error("ZDD::ZLev: not implemented");
+}
+
+void ZDD::SetZSkip() const {
+    throw std::logic_error("ZDD::SetZSkip: not implemented");
+}

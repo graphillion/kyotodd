@@ -803,3 +803,15 @@ char *bddcardmp16(bddp f, char *s) {
     std::memcpy(s, hex.c_str(), hex.size() + 1);
     return s;
 }
+
+ZDD ZDD_LCM_A(char* filename, int threshold) {
+    throw std::logic_error("ZDD_LCM_A: not implemented");
+}
+
+ZDD ZDD_LCM_C(char* filename, int threshold) {
+    throw std::logic_error("ZDD_LCM_C: not implemented");
+}
+
+ZDD ZDD_LCM_M(char* filename, int threshold) {
+    throw std::logic_error("ZDD_LCM_M: not implemented");
+}

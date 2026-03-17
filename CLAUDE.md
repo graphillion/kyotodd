@@ -6,6 +6,7 @@
 - Never decide unclear specifications on your own — always ask the user first.
 - Commit to git after every change.
 - Always write tests after implementing a feature.
+- Do not remove or modify existing comments in the code unless explicitly asked to do so.
 
 ## Build
 

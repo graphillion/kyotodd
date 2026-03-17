@@ -505,4 +505,11 @@ char *bddcardmp16(bddp f, char *s);
  */
 ZDD ZDD_Random(int lev, int density = 50);
 
+/** @brief LCM algorithm (all frequent itemsets). */
+ZDD ZDD_LCM_A(char* filename, int threshold);
+/** @brief LCM algorithm (closed frequent itemsets). */
+ZDD ZDD_LCM_C(char* filename, int threshold);
+/** @brief LCM algorithm (maximal frequent itemsets). */
+ZDD ZDD_LCM_M(char* filename, int threshold);
+
 #endif

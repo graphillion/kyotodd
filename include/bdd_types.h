@@ -504,6 +504,10 @@ public:
     void Print() const;
     /** @brief Print in PLA format. */
     void PrintPla() const;
+    /** @brief Adjust ZDD to a given number of levels. */
+    ZDD ZLev(int lev, int last) const;
+    /** @brief Set ZDD skip flags. */
+    void SetZSkip() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
