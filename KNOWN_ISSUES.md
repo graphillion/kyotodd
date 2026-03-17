@@ -28,8 +28,9 @@ the BDD/ZDD class layout and is a significant architectural change.
 
 ## Performance Optimizations (Not Yet Implemented)
 
-- **`bddlshift` / `bddrshift` traverse the BDD twice** (`src/bdd_ops.cpp`).
-  Once for `bddsupport_collect` validation, then again for the actual shift.
+- ~~**`bddlshift` / `bddrshift` traverse the BDD twice** (`src/bdd_ops.cpp`).~~
+  Fixed: removed pre-traversal with `bddsupport_collect`. Validation and
+  variable allocation are now done inline in the `_rec` functions.
 
 - ~~**GC mark array uses `uint8_t` per node** (`src/bdd_base.cpp`).~~
   Fixed: now uses a `uint64_t` bit vector (1/8 memory usage).

@@ -696,10 +696,14 @@ static bddp bddlshift_rec(bddp f, bddvar shift) {
 
     bddvar v = node_var(fn);
     uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
-    if (new_level64 > bdd_varcount) {
-        throw std::invalid_argument("bddlshift: shifted level exceeds variable count");
+    if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
     }
     bddvar new_level = static_cast<bddvar>(new_level64);
+    // Allocate new variables on demand if needed
+    while (bdd_varcount < new_level) {
+        bddnewvar();
+    }
     bddvar target_var = level2var[new_level];
 
     bddp lo = bddlshift_rec(node_lo(fn), shift);
@@ -717,24 +721,6 @@ bddp bddlshift(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        // Ensure variables exist up to the required level for all variables in f
-        std::unordered_set<bddvar> var_set;
-        std::unordered_set<bddp> visited;
-        bddsupport_collect(f, var_set, visited);
-        uint64_t max_level64 = 0;
-        for (std::unordered_set<bddvar>::iterator it = var_set.begin();
-             it != var_set.end(); ++it) {
-            uint64_t lev = static_cast<uint64_t>(var2level[*it]) + shift;
-            if (lev > max_level64) max_level64 = lev;
-        }
-        if (max_level64 > static_cast<uint64_t>(UINT32_MAX)) {
-            throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
-        }
-        bddvar max_level = static_cast<bddvar>(max_level64);
-        while (bdd_varcount < max_level) {
-            bddnewvar();
-        }
-
         return bddlshift_rec(f, shift);
     });
 }
@@ -771,17 +757,6 @@ bddp bddrshift(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        // Pre-check: all variable levels must be greater than shift
-        std::unordered_set<bddvar> var_set;
-        std::unordered_set<bddp> visited;
-        bddsupport_collect(f, var_set, visited);
-        for (std::unordered_set<bddvar>::iterator it = var_set.begin();
-             it != var_set.end(); ++it) {
-            if (var2level[*it] <= shift) {
-                throw std::invalid_argument("bddrshift: shift exceeds minimum variable level");
-            }
-        }
-
         return bddrshift_rec(f, shift);
     });
 }
