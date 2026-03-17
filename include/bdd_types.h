@@ -277,6 +277,10 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Print BDD graph (bddgraph0 wrapper). */
+    void XPrint0() const;
+    /** @brief Print BDD graph (bddgraph wrapper). */
+    void XPrint() const;
     /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.

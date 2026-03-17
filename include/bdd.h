@@ -157,6 +157,14 @@ inline void BDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline void BDD::XPrint0() const {
+    bddgraph0(root);
+}
+
+inline void BDD::XPrint() const {
+    bddgraph(root);
+}
+
 // ZDD member functions
 
 inline ZDD ZDD::Change(bddvar var) const {

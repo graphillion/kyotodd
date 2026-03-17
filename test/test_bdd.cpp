@@ -5315,6 +5315,16 @@ TEST_F(BDDTest, BDDClassIte) {
     EXPECT_EQ(r2.GetID(), (a | b).GetID());
 }
 
+TEST_F(BDDTest, BDDClassXPrint0) {
+    BDD f = BDDvar(BDD_NewVar());
+    EXPECT_THROW(f.XPrint0(), std::logic_error);
+}
+
+TEST_F(BDDTest, BDDClassXPrint) {
+    BDD f = BDDvar(BDD_NewVar());
+    EXPECT_THROW(f.XPrint(), std::logic_error);
+}
+
 TEST_F(BDDTest, BDDClassExportOstream) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();
