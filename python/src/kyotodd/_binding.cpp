@@ -57,11 +57,16 @@ PYBIND11_MODULE(_core, m) {
        "    node_max: Maximum number of node slots allowed (default: unlimited).\n");
 
     m.def("finalize", []() {
+        if (g_initialized && bddgc_rootcount() > 0) {
+            throw std::runtime_error(
+                "finalize(): cannot finalize while BDD/ZDD objects exist. "
+                "Delete all BDD/ZDD objects first.");
+        }
         bddfinal();
         g_initialized = false;
     }, "Finalize the BDD library and release all resources.\n\n"
-       "Clears all GC roots and frees all nodes. Safe to call multiple\n"
-       "times. Any existing BDD/ZDD objects become invalid after this call.\n");
+       "Raises RuntimeError if called while BDD/ZDD objects exist.\n"
+       "Safe to call multiple times when no objects are alive.\n");
 
     // Variable management
     m.def("newvar", []() -> bddvar {
