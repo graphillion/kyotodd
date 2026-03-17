@@ -718,6 +718,14 @@ def init(node_count: int = 256, node_max: int = ...) -> None:
     """
     ...
 
+def finalize() -> None:
+    """Finalize the BDD library and release all resources.
+
+    Raises RuntimeError if called while BDD or ZDD objects exist.
+    Safe to call multiple times when no objects are alive.
+    """
+    ...
+
 def newvar() -> int:
     """Create a new variable and return its variable number."""
     ...

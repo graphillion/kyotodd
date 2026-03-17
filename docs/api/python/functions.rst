@@ -14,6 +14,13 @@ Initialization
    :param int node_count: Initial number of node slots to allocate.
    :param int node_max: Maximum number of node slots allowed.
 
+.. py:function:: kyotodd.finalize()
+
+   Finalize the BDD library and release all resources.
+
+   Raises :py:exc:`RuntimeError` if called while BDD or ZDD objects exist.
+   Safe to call multiple times when no objects are alive.
+
 Variable Management
 -------------------
 
