@@ -22,6 +22,10 @@ PYBIND11_MODULE(_core, m) {
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
+        } catch (const py::builtin_exception&) {
+            throw;  // Let pybind11 handle its own exception types
+        } catch (const py::error_already_set&) {
+            throw;  // Let pybind11 handle Python errors
         } catch (const std::overflow_error& e) {
             PyErr_SetString(PyExc_MemoryError, e.what());
         } catch (const std::invalid_argument& e) {
