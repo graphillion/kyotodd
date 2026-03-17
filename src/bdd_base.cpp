@@ -740,18 +740,22 @@ int bddiszbdd(bddp f) {
     throw std::logic_error("bddiszbdd: obsolete — BDD/ZDD share the same node table");
 }
 
-static bool bdd_check_reduced_rec(bddp f, std::unordered_set<bddp>& visited) {
-    if (f & BDD_CONST_FLAG) return true;
-    bddp node = f & ~BDD_COMP_FLAG;
-    if (!visited.insert(node).second) return true;
-    if (!node_is_reduced(node)) return false;
-    return bdd_check_reduced_rec(node_lo(node), visited)
-        && bdd_check_reduced_rec(node_hi(node), visited);
-}
-
 bool bdd_check_reduced(bddp root) {
     if (root == bddnull) return true;
+    if (root & BDD_CONST_FLAG) return true;
     std::unordered_set<bddp> visited;
-    return bdd_check_reduced_rec(root, visited);
+    std::vector<bddp> stack;
+    stack.push_back(root & ~BDD_COMP_FLAG);
+    while (!stack.empty()) {
+        bddp node = stack.back();
+        stack.pop_back();
+        if (node & BDD_CONST_FLAG) continue;
+        bddp n = node & ~BDD_COMP_FLAG;
+        if (!visited.insert(n).second) continue;
+        if (!node_is_reduced(n)) return false;
+        stack.push_back(node_lo(n));
+        stack.push_back(node_hi(n));
+    }
+    return true;
 }
 
