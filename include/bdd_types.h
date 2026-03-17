@@ -273,6 +273,10 @@ public:
      * @return The DAG node count.
      */
     uint64_t Size() const;
+    /** @brief Export to a FILE stream. */
+    void Export(FILE* strm) const;
+    /** @brief Export to an output stream. */
+    void Export(std::ostream& strm) const;
     /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.

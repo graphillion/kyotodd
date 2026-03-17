@@ -147,6 +147,16 @@ inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
     return b;
 }
 
+inline void BDD::Export(FILE* strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
+inline void BDD::Export(std::ostream& strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
 // ZDD member functions
 
 inline ZDD ZDD::Change(bddvar var) const {

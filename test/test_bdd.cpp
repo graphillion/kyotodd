@@ -5315,6 +5315,40 @@ TEST_F(BDDTest, BDDClassIte) {
     EXPECT_EQ(r2.GetID(), (a | b).GetID());
 }
 
+TEST_F(BDDTest, BDDClassExportOstream) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    std::ostringstream oss1;
+    f.Export(oss1);
+
+    std::ostringstream oss2;
+    bddp p = f.GetID();
+    bddexport(oss2, &p, 1);
+
+    EXPECT_EQ(oss1.str(), oss2.str());
+}
+
+TEST_F(BDDTest, BDDClassExportFilePtr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    f.Export(tmp);
+    long len = std::ftell(tmp);
+    EXPECT_GT(len, 0);
+
+    std::rewind(tmp);
+    bddp p;
+    int ret = bddimport(tmp, &p, 1);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(p, f.GetID());
+}
+
 // --- ZDD class high-level member functions ---
 
 TEST_F(BDDTest, ZDDClassMaximalMinimal) {
