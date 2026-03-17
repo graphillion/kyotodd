@@ -307,7 +307,14 @@ bddvar bddnewvar() {
     }
     var2level[var] = var;  // var i <-> level i
     level2var[var] = var;
-    unique_table_init(&bdd_unique_tables[var]);
+    try {
+        unique_table_init(&bdd_unique_tables[var]);
+    } catch (...) {
+        var2level[var] = 0;
+        level2var[var] = 0;
+        bdd_varcount--;
+        throw;
+    }
     return var;
 }
 
