@@ -6660,3 +6660,65 @@ TEST_F(BDDTest, ZDD_MeetCommutativity) {
 
     EXPECT_EQ(ZDD_Meet(F, z_v2), ZDD_Meet(z_v2, F));
 }
+
+// --- ZDD_Import ---
+
+TEST_F(BDDTest, ZDD_ImportIstreamSingle) {
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp p[] = { z };
+    std::ostringstream oss;
+    bddexport(oss, p, 1);
+    std::istringstream iss(oss.str());
+    ZDD result = ZDD_Import(iss);
+    EXPECT_EQ(result.GetID(), z);
+}
+
+TEST_F(BDDTest, ZDD_ImportIstreamVector) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    std::vector<bddp> orig = { z_v1, z_v2 };
+    std::ostringstream oss;
+    bddexport(oss, orig);
+    std::istringstream iss(oss.str());
+    std::vector<ZDD> v;
+    int ret = ZDD_Import(iss, v);
+    EXPECT_EQ(ret, 2);
+    ASSERT_EQ(v.size(), 2u);
+    EXPECT_EQ(v[0].GetID(), z_v1);
+    EXPECT_EQ(v[1].GetID(), z_v2);
+}
+
+TEST_F(BDDTest, ZDD_ImportFilePtrSingle) {
+    bddvar v1 = bddnewvar();
+    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp p[] = { z };
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, p, 1);
+    std::rewind(tmp);
+    ZDD result = ZDD_Import(tmp);
+    std::fclose(tmp);
+    EXPECT_EQ(result.GetID(), z);
+}
+
+TEST_F(BDDTest, ZDD_ImportFilePtrVector) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    std::vector<bddp> orig = { z_v1, z_v2 };
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    bddexport(tmp, orig);
+    std::rewind(tmp);
+    std::vector<ZDD> v;
+    int ret = ZDD_Import(tmp, v);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 2);
+    ASSERT_EQ(v.size(), 2u);
+    EXPECT_EQ(v[0].GetID(), z_v1);
+    EXPECT_EQ(v[1].GetID(), z_v2);
+}

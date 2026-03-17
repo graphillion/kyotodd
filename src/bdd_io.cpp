@@ -296,6 +296,38 @@ int bddimportz(std::istream& strm, std::vector<bddp>& v) {
     return import_core(strm, v, getznode);
 }
 
+// --- ZDD_Import ---
+
+ZDD ZDD_Import(FILE* strm) {
+    bddp p;
+    bddimportz(strm, &p, 1);
+    return ZDD_ID(p);
+}
+
+int ZDD_Import(FILE* strm, std::vector<ZDD>& v) {
+    std::vector<bddp> raw;
+    int ret = bddimportz(strm, raw);
+    if (ret < 0) return ret;
+    v.clear();
+    for (int i = 0; i < ret; i++) v.push_back(ZDD_ID(raw[i]));
+    return ret;
+}
+
+ZDD ZDD_Import(std::istream& strm) {
+    bddp p;
+    bddimportz(strm, &p, 1);
+    return ZDD_ID(p);
+}
+
+int ZDD_Import(std::istream& strm, std::vector<ZDD>& v) {
+    std::vector<bddp> raw;
+    int ret = bddimportz(strm, raw);
+    if (ret < 0) return ret;
+    v.clear();
+    for (int i = 0; i < ret; i++) v.push_back(ZDD_ID(raw[i]));
+    return ret;
+}
+
 // --- bdddump / bddvdump ---
 
 static void dump_rec(bddp f, std::unordered_set<bddp>& visited) {

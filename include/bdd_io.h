@@ -117,6 +117,36 @@ int bddimportz(std::istream& strm, bddp* p, int lim);
 int bddimportz(std::istream& strm, std::vector<bddp>& v);
 
 /**
+ * @brief Import a single ZDD from a FILE stream.
+ * @param strm Input FILE stream.
+ * @return The imported ZDD.
+ */
+ZDD ZDD_Import(FILE* strm);
+
+/**
+ * @brief Import multiple ZDDs from a FILE stream.
+ * @param strm Input FILE stream.
+ * @param v Vector to store imported ZDDs.
+ * @return The number of ZDDs successfully imported.
+ */
+int ZDD_Import(FILE* strm, std::vector<ZDD>& v);
+
+/**
+ * @brief Import a single ZDD from an input stream.
+ * @param strm Input stream.
+ * @return The imported ZDD.
+ */
+ZDD ZDD_Import(std::istream& strm);
+
+/**
+ * @brief Import multiple ZDDs from an input stream.
+ * @param strm Input stream.
+ * @param v Vector to store imported ZDDs.
+ * @return The number of ZDDs successfully imported.
+ */
+int ZDD_Import(std::istream& strm, std::vector<ZDD>& v);
+
+/**
  * @brief Dump the internal structure of a single BDD/ZDD to stdout.
  * @param f A node ID to dump.
  */
