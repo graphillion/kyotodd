@@ -601,15 +601,15 @@ public:
     /** @brief Check if v1 and v2 are symmetric in the family. */
     int SymChk(bddvar v1, bddvar v2) const;
     /** @brief Find all variables implied by v. */
-    ZDD ImplySet(int v) const;
+    ZDD ImplySet(bddvar v) const;
     /** @brief Find symmetry groups (size ≥ 2). */
     ZDD SymGrp() const;
     /** @brief Find symmetry groups (naive, includes size 1). */
     ZDD SymGrpNaive() const;
     /** @brief Find all variables symmetric with v. */
-    ZDD SymSet(int v) const;
+    ZDD SymSet(bddvar v) const;
     /** @brief Find all variables in co-implication with v. */
-    ZDD CoImplySet(int v) const;
+    ZDD CoImplySet(bddvar v) const;
     /** @brief Find a non-trivial divisor of the family. */
     ZDD Divisor() const;
 

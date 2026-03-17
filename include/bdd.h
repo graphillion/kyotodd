@@ -498,7 +498,7 @@ inline int ZDD::SymChk(bddvar v1, bddvar v2) const {
     return bddsymchk(root, v1, v2);
 }
 
-inline ZDD ZDD::ImplySet(int v) const {
+inline ZDD ZDD::ImplySet(bddvar v) const {
     ZDD z(0);
     z.root = bddimplyset(root, v);
     return z;
@@ -516,13 +516,13 @@ inline ZDD ZDD::SymGrpNaive() const {
     return z;
 }
 
-inline ZDD ZDD::SymSet(int v) const {
+inline ZDD ZDD::SymSet(bddvar v) const {
     ZDD z(0);
     z.root = bddsymset(root, v);
     return z;
 }
 
-inline ZDD ZDD::CoImplySet(int v) const {
+inline ZDD ZDD::CoImplySet(bddvar v) const {
     ZDD z(0);
     z.root = bddcoimplyset(root, v);
     return z;
