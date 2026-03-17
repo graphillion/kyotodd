@@ -390,7 +390,7 @@ inline int ZDD::IsPoly() const {
 
 inline ZDD ZDD::Swap(int v1, int v2) const {
     ZDD z(0);
-    z.root = bddswap(root, v1, v2);
+    z.root = bddswapz(root, v1, v2);
     return z;
 }
 

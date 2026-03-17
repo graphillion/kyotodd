@@ -21,12 +21,12 @@ int bddispoly(bddp f) {
     return 0;
 }
 
-// --- bddswap ---
+// --- bddswapz ---
 
-bddp bddswap(bddp f, bddvar v1, bddvar v2) {
+bddp bddswapz(bddp f, bddvar v1, bddvar v2) {
     if (f == bddnull) return bddnull;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
-        throw std::invalid_argument("bddswap: variable out of range");
+        throw std::invalid_argument("bddswapz: variable out of range");
     }
     if (v1 == v2) return f;
     if (f & BDD_CONST_FLAG) return f;

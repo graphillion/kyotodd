@@ -519,7 +519,7 @@ int bddispoly(bddp f);
  * @param v2 Second variable number.
  * @return A ZDD with v1 and v2 swapped.
  */
-bddp bddswap(bddp f, bddvar v1, bddvar v2);
+bddp bddswapz(bddp f, bddvar v1, bddvar v2);
 
 /**
  * @brief Check if v1 implies v2 in a ZDD family.

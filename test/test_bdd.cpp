@@ -7025,7 +7025,7 @@ TEST(ZDD_IsPolyTest, ClassWrapper) {
     EXPECT_EQ(f.IsPoly(), 1);
 }
 
-// --- bddswap / ZDD::Swap ---
+// --- bddswapz / ZDD::Swap ---
 
 TEST(ZDD_SwapTest, SameVariable) {
     BDD_Init(256, 256);
@@ -7076,11 +7076,11 @@ TEST(ZDD_SwapTest, TerminalCases) {
     for (int i = 0; i < 5; i++) BDD_NewVar();
 
     // Empty family: swap is still empty
-    EXPECT_EQ(bddswap(bddempty, 1, 2), bddempty);
+    EXPECT_EQ(bddswapz(bddempty, 1, 2), bddempty);
     // Single family {∅}: no variables, swap is identity
-    EXPECT_EQ(bddswap(bddsingle, 1, 2), bddsingle);
+    EXPECT_EQ(bddswapz(bddsingle, 1, 2), bddsingle);
     // Null -> null
-    EXPECT_EQ(bddswap(bddnull, 1, 2), bddnull);
+    EXPECT_EQ(bddswapz(bddnull, 1, 2), bddnull);
 }
 
 TEST(ZDD_SwapTest, Involution) {
