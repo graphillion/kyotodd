@@ -60,6 +60,12 @@ ZDD Class
       :param ZDD other: Right operand.
       :rtype: ZDD
 
+   .. py:method:: __invert__()
+
+      Complement: toggle empty set membership (``~self``).
+
+      :rtype: ZDD
+
    Algebraic Operators
    -------------------
 
@@ -198,6 +204,17 @@ ZDD Class
       include the symmetric difference of A and B in the result.
 
       :param ZDD g: The other family.
+      :return: The resulting ZDD.
+      :rtype: ZDD
+
+   .. py:method:: meet(other)
+
+      Meet operation (intersection of all element pairs).
+
+      For each pair of sets (one from this family, one from *other*),
+      compute their intersection and collect all results.
+
+      :param ZDD other: Another ZDD family.
       :return: The resulting ZDD.
       :rtype: ZDD
 

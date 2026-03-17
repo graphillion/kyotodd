@@ -328,6 +328,9 @@ class ZDD:
     def __xor__(self, other: ZDD) -> ZDD:
         """Symmetric difference: self ^ other."""
         ...
+    def __invert__(self) -> ZDD:
+        """Complement: toggle empty set membership (~self)."""
+        ...
     def __mul__(self, other: ZDD) -> ZDD:
         """Join (cross product with union): self * other."""
         ...
@@ -541,6 +544,20 @@ class ZDD:
 
         Args:
             g: The other family.
+
+        Returns:
+            The resulting ZDD.
+        """
+        ...
+
+    def meet(self, other: ZDD) -> ZDD:
+        """Meet operation (intersection of all element pairs).
+
+        For each pair of sets (one from this family, one from other),
+        compute their intersection and collect all results.
+
+        Args:
+            other: Another ZDD family.
 
         Returns:
             The resulting ZDD.
