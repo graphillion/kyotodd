@@ -331,6 +331,12 @@ inline ZDD& ZDD::operator>>=(int s) {
 
 // ZDD high-level member functions
 
+inline ZDD ZDD::Meet(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddmeet(root, other.root);
+    return z;
+}
+
 inline ZDD ZDD::Maximal() const {
     ZDD z(0);
     z.root = bddmaximal(root);

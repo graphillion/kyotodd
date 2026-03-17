@@ -264,6 +264,23 @@ class TestZDDMethods:
         # change(1) again: toggle back → {{}}
         assert s1.change(1) == ZDD.single
 
+    def test_meet(self):
+        a, b, _ = self._setup()
+        ab = a * b  # {{1,2}}
+        u = a + b   # {{1}, {2}}
+        # meet({{1,2}}, {{1}, {2}}):
+        #   {1,2} ∩ {1} = {1}, {1,2} ∩ {2} = {2} → {{1}, {2}}
+        m = ab.meet(u)
+        assert m == u
+
+    def test_meet_with_self(self):
+        a, b, _ = self._setup()
+        assert a.meet(a) == a
+
+    def test_meet_with_empty(self):
+        a, _, _ = self._setup()
+        assert a.meet(ZDD.empty) == ZDD.empty
+
     def test_maximal(self):
         a, b, _ = self._setup()
         ab = a * b  # {{1,2}}
