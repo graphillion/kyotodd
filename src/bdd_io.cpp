@@ -299,8 +299,9 @@ int bddimportz(std::istream& strm, std::vector<bddp>& v) {
 // --- ZDD_Import ---
 
 ZDD ZDD_Import(FILE* strm) {
-    bddp p;
-    bddimportz(strm, &p, 1);
+    bddp p = bddnull;
+    int ret = bddimportz(strm, &p, 1);
+    if (ret <= 0) return ZDD_ID(bddempty);
     return ZDD_ID(p);
 }
 
@@ -314,8 +315,9 @@ int ZDD_Import(FILE* strm, std::vector<ZDD>& v) {
 }
 
 ZDD ZDD_Import(std::istream& strm) {
-    bddp p;
-    bddimportz(strm, &p, 1);
+    bddp p = bddnull;
+    int ret = bddimportz(strm, &p, 1);
+    if (ret <= 0) return ZDD_ID(bddempty);
     return ZDD_ID(p);
 }
 
