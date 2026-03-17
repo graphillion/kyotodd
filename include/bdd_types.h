@@ -118,6 +118,8 @@ static const uint8_t BDD_OP_ALWAYS     = 37;
 static const uint8_t BDD_OP_SYMCHK     = 38;
 static const uint8_t BDD_OP_SYMSET     = 39;
 static const uint8_t BDD_OP_COIMPLYSET = 40;
+static const uint8_t BDD_OP_SMOOTH = 41;
+static const uint8_t BDD_OP_SPREAD = 42;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -133,9 +135,18 @@ void bddgc_unprotect(bddp* p);
  * protected from garbage collection during its lifetime.
  */
 class BDD {
-public:
+    friend BDD BDD_ID(bddp p);
+
     bddp root;  /**< @brief The root node ID of this BDD. */
 
+public:
+    /** @brief Get the raw node ID. */
+    bddp GetID() const { return root; }
+
+    /** @brief Default constructor. Constructs a false BDD. */
+    BDD() : root(bddfalse) {
+        bddgc_protect(&root);
+    }
     /**
      * @brief Construct a BDD from an integer value.
      * @param val 0 for false, 1 for true, negative for null.
@@ -269,6 +280,35 @@ public:
      * @return The DAG node count.
      */
     uint64_t Size() const;
+    /** @brief Export to a FILE stream. */
+    void Export(FILE* strm) const;
+    /** @brief Export to an output stream. */
+    void Export(std::ostream& strm) const;
+    /** @brief Print BDD summary (ID, Var, Level, Size) to stdout. */
+    void Print() const;
+    /** @brief Print BDD graph (bddgraph0 wrapper). */
+    void XPrint0() const;
+    /** @brief Print BDD graph (bddgraph wrapper). */
+    void XPrint() const;
+    /**
+     * @brief Swap variables v1 and v2 in the BDD.
+     * @param v1 First variable number.
+     * @param v2 Second variable number.
+     * @return The BDD with v1 and v2 swapped.
+     */
+    BDD Swap(bddvar v1, bddvar v2) const;
+    /**
+     * @brief Smooth (existential quantification) of variable v.
+     * @param v Variable number to quantify out.
+     * @return The BDD with variable v existentially quantified.
+     */
+    BDD Smooth(bddvar v) const;
+    /**
+     * @brief Spread variable values to neighboring k levels.
+     * @param k Number of levels to spread (must be >= 0).
+     * @return The BDD with values spread by k levels.
+     */
+    BDD Spread(int k) const;
     /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.

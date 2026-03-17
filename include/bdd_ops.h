@@ -194,6 +194,31 @@ bddp bddrshift(bddp f, bddvar shift);
  */
 bddp bddcofactor(bddp f, bddp g);
 
+/**
+ * @brief Swap variables v1 and v2 in a BDD.
+ * @param f A BDD node ID.
+ * @param v1 First variable number.
+ * @param v2 Second variable number.
+ * @return The BDD with v1 and v2 swapped.
+ */
+bddp bddswap(bddp f, bddvar v1, bddvar v2);
+
+/**
+ * @brief Smooth (existential quantification) of a single variable.
+ * @param f A BDD node ID.
+ * @param v Variable number to quantify out.
+ * @return The resulting BDD.
+ */
+bddp bddsmooth(bddp f, bddvar v);
+
+/**
+ * @brief Spread variable values to neighboring k levels.
+ * @param f A BDD node ID.
+ * @param k Number of levels to spread (must be >= 0).
+ * @return The resulting BDD.
+ */
+bddp bddspread(bddp f, int k);
+
 // ZDD operations
 
 /**

@@ -138,10 +138,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__ne__", [](const BDD& a, const BDD& b) { return a != b; },
              "Inequality comparison by node ID.")
         .def("__hash__", [](const BDD& a) {
-            return std::hash<uint64_t>()(a.root);
+            return std::hash<uint64_t>()(a.GetID());
         }, "Hash based on node ID.")
         .def("__repr__", [](const BDD& a) {
-            return "BDD(node_id=" + std::to_string(a.root) + ")";
+            return "BDD(node_id=" + std::to_string(a.GetID()) + ")";
         }, "Return string representation: BDD(node_id=...).")
         .def("__bool__", [](const BDD&) -> bool {
             throw py::type_error(
@@ -213,7 +213,7 @@ PYBIND11_MODULE(_core, m) {
         // I/O
         .def("export_str", [](const BDD& b) -> std::string {
             std::ostringstream oss;
-            bddp p = b.root;
+            bddp p = b.GetID();
             bddexport(oss, &p, 1);
             return oss.str();
         }, "Export this BDD to a string representation.\n\n"
@@ -237,7 +237,7 @@ PYBIND11_MODULE(_core, m) {
         .def("export_file", [](const BDD& b, const std::string& path) {
             std::ofstream ofs(path);
             if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            bddp p = b.root;
+            bddp p = b.GetID();
             bddexport(ofs, &p, 1);
         }, py::arg("path"),
            "Export this BDD to a file.\n\n"
@@ -260,12 +260,12 @@ PYBIND11_MODULE(_core, m) {
            "Raises:\n"
            "    RuntimeError: If import fails or file cannot be opened.\n")
 
-        .def_property_readonly("node_id", [](const BDD& b) { return b.root; },
+        .def_property_readonly("node_id", [](const BDD& b) { return b.GetID(); },
              "The raw node ID of this BDD.")
         .def_property_readonly("size", &BDD::Size,
              "The number of nodes in the DAG of this BDD.")
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
-            return bddtop(b.root);
+            return bddtop(b.GetID());
         }, "The top (root) variable number of this BDD.")
     ;
 
@@ -297,10 +297,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__ne__", [](const ZDD& a, const ZDD& b) { return a != b; },
              "Inequality comparison by node ID.")
         .def("__hash__", [](const ZDD& a) {
-            return std::hash<uint64_t>()(a.root);
+            return std::hash<uint64_t>()(a.GetID());
         }, "Hash based on node ID.")
         .def("__repr__", [](const ZDD& a) {
-            return "ZDD(node_id=" + std::to_string(a.root) + ")";
+            return "ZDD(node_id=" + std::to_string(a.GetID()) + ")";
         }, "Return string representation: ZDD(node_id=...).")
 
         // Operators
@@ -435,7 +435,7 @@ PYBIND11_MODULE(_core, m) {
         // I/O
         .def("export_str", [](const ZDD& z) -> std::string {
             std::ostringstream oss;
-            bddp p = z.root;
+            bddp p = z.GetID();
             bddexport(oss, &p, 1);
             return oss.str();
         }, "Export this ZDD to a string representation.\n\n"
@@ -447,9 +447,7 @@ PYBIND11_MODULE(_core, m) {
             bddp p;
             int ret = bddimportz(iss, &p, 1);
             if (ret < 1) throw std::runtime_error("ZDD import failed");
-            ZDD z(0);
-            z.root = p;
-            return z;
+            return ZDD_ID(p);
         }, py::arg("s"),
            "Import a ZDD from a string.\n\n"
            "Args:\n"
@@ -461,7 +459,7 @@ PYBIND11_MODULE(_core, m) {
         .def("export_file", [](const ZDD& z, const std::string& path) {
             std::ofstream ofs(path);
             if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            bddp p = z.root;
+            bddp p = z.GetID();
             bddexport(ofs, &p, 1);
         }, py::arg("path"),
            "Export this ZDD to a file.\n\n"
@@ -474,9 +472,7 @@ PYBIND11_MODULE(_core, m) {
             bddp p;
             int ret = bddimportz(ifs, &p, 1);
             if (ret < 1) throw std::runtime_error("ZDD import failed");
-            ZDD z(0);
-            z.root = p;
-            return z;
+            return ZDD_ID(p);
         }, py::arg("path"),
            "Import a ZDD from a file.\n\n"
            "Args:\n"
@@ -488,10 +484,10 @@ PYBIND11_MODULE(_core, m) {
 
         .def_property_readonly("card", &ZDD::Card,
              "The number of sets in the family (cardinality).")
-        .def_property_readonly("node_id", [](const ZDD& z) { return z.root; },
+        .def_property_readonly("node_id", [](const ZDD& z) { return z.GetID(); },
              "The raw node ID of this ZDD.")
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
-            return bddtop(z.root);
+            return bddtop(z.GetID());
         }, "The top (root) variable number of this ZDD.")
     ;
 }

@@ -57,13 +57,18 @@ TEST_F(BDDTest, RecurLimitAndCount) {
 
 // --- BDD/ZDD constructors ---
 
+TEST_F(BDDTest, BDDDefaultConstructor) {
+    BDD f;
+    EXPECT_EQ(f.GetID(), bddfalse);
+}
+
 TEST_F(BDDTest, BDDConstructor) {
     BDD f(0);
     BDD t(1);
     BDD n(-1);
-    EXPECT_EQ(f.root, bddfalse);
-    EXPECT_EQ(t.root, bddtrue);
-    EXPECT_EQ(n.root, bddnull);
+    EXPECT_EQ(f.GetID(), bddfalse);
+    EXPECT_EQ(t.GetID(), bddtrue);
+    EXPECT_EQ(n.GetID(), bddnull);
 }
 
 TEST_F(BDDTest, ZDDConstructor) {
@@ -78,9 +83,9 @@ TEST_F(BDDTest, ZDDConstructor) {
 // --- Static const objects ---
 
 TEST_F(BDDTest, BDDStaticConsts) {
-    EXPECT_EQ(BDD::False.root, bddfalse);
-    EXPECT_EQ(BDD::True.root, bddtrue);
-    EXPECT_EQ(BDD::Null.root, bddnull);
+    EXPECT_EQ(BDD::False.GetID(), bddfalse);
+    EXPECT_EQ(BDD::True.GetID(), bddtrue);
+    EXPECT_EQ(BDD::Null.GetID(), bddnull);
 }
 
 TEST_F(BDDTest, ZDDStaticConsts) {
@@ -125,7 +130,7 @@ TEST_F(BDDTest, BddPrimeSameVar) {
 TEST_F(BDDTest, BDDvar) {
     bddvar v = BDD_NewVar();
     BDD b = BDDvar(v);
-    EXPECT_EQ(b.root, bddprime(v));
+    EXPECT_EQ(b.GetID(), bddprime(v));
 }
 
 // --- BDD_ID ---
@@ -134,7 +139,7 @@ TEST_F(BDDTest, BDD_ID) {
     bddvar v = BDD_NewVar();
     bddp p = bddprime(v);
     BDD b = BDD_ID(p);
-    EXPECT_EQ(b.root, p);
+    EXPECT_EQ(b.GetID(), p);
 }
 
 // --- bddnot ---
@@ -254,7 +259,7 @@ TEST_F(BDDTest, OperatorAnd) {
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
     BDD c = a & b;
-    EXPECT_EQ(c.root, bddand(a.root, b.root));
+    EXPECT_EQ(c.GetID(), bddand(a.GetID(), b.GetID()));
 }
 
 TEST_F(BDDTest, OperatorAndAssign) {
@@ -262,9 +267,9 @@ TEST_F(BDDTest, OperatorAndAssign) {
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
-    bddp expected = bddand(a.root, b.root);
+    bddp expected = bddand(a.GetID(), b.GetID());
     a &= b;
-    EXPECT_EQ(a.root, expected);
+    EXPECT_EQ(a.GetID(), expected);
 }
 
 TEST_F(BDDTest, OperatorAndWithFalse) {
@@ -272,7 +277,7 @@ TEST_F(BDDTest, OperatorAndWithFalse) {
     BDD a = BDDvar(v);
     BDD f = BDD::False;
     BDD result = a & f;
-    EXPECT_EQ(result.root, bddfalse);
+    EXPECT_EQ(result.GetID(), bddfalse);
 }
 
 TEST_F(BDDTest, OperatorAndWithTrue) {
@@ -280,7 +285,7 @@ TEST_F(BDDTest, OperatorAndWithTrue) {
     BDD a = BDDvar(v);
     BDD t = BDD::True;
     BDD result = a & t;
-    EXPECT_EQ(result.root, a.root);
+    EXPECT_EQ(result.GetID(), a.GetID());
 }
 
 // --- BDD operator| ---
@@ -291,7 +296,7 @@ TEST_F(BDDTest, OperatorOr) {
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
     BDD c = a | b;
-    EXPECT_EQ(c.root, bddor(a.root, b.root));
+    EXPECT_EQ(c.GetID(), bddor(a.GetID(), b.GetID()));
 }
 
 TEST_F(BDDTest, OperatorOrAssign) {
@@ -299,9 +304,9 @@ TEST_F(BDDTest, OperatorOrAssign) {
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
-    bddp expected = bddor(a.root, b.root);
+    bddp expected = bddor(a.GetID(), b.GetID());
     a |= b;
-    EXPECT_EQ(a.root, expected);
+    EXPECT_EQ(a.GetID(), expected);
 }
 
 // --- BDD operator^ ---
@@ -312,7 +317,7 @@ TEST_F(BDDTest, OperatorXor) {
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
     BDD c = a ^ b;
-    EXPECT_EQ(c.root, bddxor(a.root, b.root));
+    EXPECT_EQ(c.GetID(), bddxor(a.GetID(), b.GetID()));
 }
 
 TEST_F(BDDTest, OperatorXorAssign) {
@@ -320,9 +325,9 @@ TEST_F(BDDTest, OperatorXorAssign) {
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
-    bddp expected = bddxor(a.root, b.root);
+    bddp expected = bddxor(a.GetID(), b.GetID());
     a ^= b;
-    EXPECT_EQ(a.root, expected);
+    EXPECT_EQ(a.GetID(), expected);
 }
 
 // --- BDD operator~ ---
@@ -331,14 +336,14 @@ TEST_F(BDDTest, OperatorNot) {
     bddvar v = BDD_NewVar();
     BDD a = BDDvar(v);
     BDD c = ~a;
-    EXPECT_EQ(c.root, bddnot(a.root));
+    EXPECT_EQ(c.GetID(), bddnot(a.GetID()));
 }
 
 TEST_F(BDDTest, OperatorDoubleNot) {
     bddvar v = BDD_NewVar();
     BDD a = BDDvar(v);
     BDD c = ~(~a);
-    EXPECT_EQ(c.root, a.root);
+    EXPECT_EQ(c.GetID(), a.GetID());
 }
 
 // --- BDD operator== / operator!= ---
@@ -374,16 +379,16 @@ TEST_F(BDDTest, OperatorLshift) {
     (void)BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD c = a << 1;
-    EXPECT_EQ(c.root, bddlshift(a.root, 1));
+    EXPECT_EQ(c.GetID(), bddlshift(a.GetID(), 1));
 }
 
 TEST_F(BDDTest, OperatorLshiftAssign) {
     bddvar v1 = BDD_NewVar();
     (void)BDD_NewVar();
     BDD a = BDDvar(v1);
-    bddp expected = bddlshift(a.root, 1);
+    bddp expected = bddlshift(a.GetID(), 1);
     a <<= 1;
-    EXPECT_EQ(a.root, expected);
+    EXPECT_EQ(a.GetID(), expected);
 }
 
 TEST_F(BDDTest, OperatorRshift) {
@@ -391,16 +396,16 @@ TEST_F(BDDTest, OperatorRshift) {
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
     BDD c = a >> 1;
-    EXPECT_EQ(c.root, bddrshift(a.root, 1));
+    EXPECT_EQ(c.GetID(), bddrshift(a.GetID(), 1));
 }
 
 TEST_F(BDDTest, OperatorRshiftAssign) {
     (void)BDD_NewVar();
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
-    bddp expected = bddrshift(a.root, 1);
+    bddp expected = bddrshift(a.GetID(), 1);
     a >>= 1;
-    EXPECT_EQ(a.root, expected);
+    EXPECT_EQ(a.GetID(), expected);
 }
 
 // --- Operation cache (bddrcache / bddwcache) ---
@@ -589,15 +594,21 @@ TEST_F(BDDTest, BddLevOfVarAfterNewVarOfLev) {
     EXPECT_EQ(bddvaroflev(3), v2);
 }
 
+TEST_F(BDDTest, BddLevOfVarZero) {
+    EXPECT_EQ(bddlevofvar(0), 0u);
+}
+
 TEST_F(BDDTest, BddLevOfVarInvalidRange) {
     BDD_NewVar();
-    EXPECT_THROW(bddlevofvar(0), std::invalid_argument);
     EXPECT_THROW(bddlevofvar(2), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddVarOfLevZero) {
+    EXPECT_EQ(bddvaroflev(0), 0u);
 }
 
 TEST_F(BDDTest, BddVarOfLevInvalidRange) {
     BDD_NewVar();
-    EXPECT_THROW(bddvaroflev(0), std::invalid_argument);
     EXPECT_THROW(bddvaroflev(2), std::invalid_argument);
 }
 
@@ -5209,9 +5220,9 @@ TEST_F(BDDTest, BDDClassAt0At1) {
     BDD b = BDDvar(v2);
     BDD f = a & b;
     EXPECT_EQ(f.At0(v1), BDD::False);
-    EXPECT_EQ(f.At1(v1).root, b.root);
-    EXPECT_EQ(f.At0(v2).root, BDD::False.root);
-    EXPECT_EQ(f.At1(v2).root, a.root);
+    EXPECT_EQ(f.At1(v1).GetID(), b.GetID());
+    EXPECT_EQ(f.At0(v2).GetID(), BDD::False.GetID());
+    EXPECT_EQ(f.At1(v2).GetID(), a.GetID());
 }
 
 TEST_F(BDDTest, BDDClassExist) {
@@ -5222,16 +5233,15 @@ TEST_F(BDDTest, BDDClassExist) {
     BDD f = a & b;
 
     // Exist with cube
-    BDD cube(0);
-    cube.root = bddprime(v1);
-    EXPECT_EQ(f.Exist(cube).root, b.root);
+    BDD cube = BDD_ID(bddprime(v1));
+    EXPECT_EQ(f.Exist(cube).GetID(), b.GetID());
 
     // Exist with vector
     std::vector<bddvar> vars = {v1};
-    EXPECT_EQ(f.Exist(vars).root, b.root);
+    EXPECT_EQ(f.Exist(vars).GetID(), b.GetID());
 
     // Exist with single variable
-    EXPECT_EQ(f.Exist(v1).root, b.root);
+    EXPECT_EQ(f.Exist(v1).GetID(), b.GetID());
 }
 
 TEST_F(BDDTest, BDDClassUniv) {
@@ -5242,16 +5252,15 @@ TEST_F(BDDTest, BDDClassUniv) {
     BDD f = a | b;
 
     // Univ with cube
-    BDD cube(0);
-    cube.root = bddprime(v1);
-    EXPECT_EQ(f.Univ(cube).root, b.root);
+    BDD cube = BDD_ID(bddprime(v1));
+    EXPECT_EQ(f.Univ(cube).GetID(), b.GetID());
 
     // Univ with vector
     std::vector<bddvar> vars = {v1};
-    EXPECT_EQ(f.Univ(vars).root, b.root);
+    EXPECT_EQ(f.Univ(vars).GetID(), b.GetID());
 
     // Univ with single variable
-    EXPECT_EQ(f.Univ(v1).root, b.root);
+    EXPECT_EQ(f.Univ(v1).GetID(), b.GetID());
 }
 
 TEST_F(BDDTest, BDDClassCofactor) {
@@ -5260,7 +5269,7 @@ TEST_F(BDDTest, BDDClassCofactor) {
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
     BDD f = a & b;
-    EXPECT_EQ(f.Cofactor(a).root, b.root);
+    EXPECT_EQ(f.Cofactor(a).GetID(), b.GetID());
 }
 
 TEST_F(BDDTest, BDDClassSupport) {
@@ -5271,7 +5280,7 @@ TEST_F(BDDTest, BDDClassSupport) {
     BDD f = a & b;
 
     BDD sup = f.Support();
-    EXPECT_EQ(sup.root, bddsupport(f.root));
+    EXPECT_EQ(sup.GetID(), bddsupport(f.GetID()));
 
     std::vector<bddvar> sv = f.SupportVec();
     EXPECT_EQ(sv.size(), 2u);
@@ -5293,7 +5302,7 @@ TEST_F(BDDTest, BDDClassSize) {
     BDD a = BDDvar(v1);
     BDD b = BDDvar(v2);
     BDD f = a & b;
-    EXPECT_EQ(f.Size(), bddsize(f.root));
+    EXPECT_EQ(f.Size(), bddsize(f.GetID()));
     EXPECT_EQ(BDD::True.Size(), 0u);
 }
 
@@ -5305,11 +5314,241 @@ TEST_F(BDDTest, BDDClassIte) {
 
     // ITE(a, b, False) = a & b
     BDD r = BDD::Ite(a, b, BDD::False);
-    EXPECT_EQ(r.root, (a & b).root);
+    EXPECT_EQ(r.GetID(), (a & b).GetID());
 
     // ITE(a, True, b) = a | b
     BDD r2 = BDD::Ite(a, BDD::True, b);
-    EXPECT_EQ(r2.root, (a | b).root);
+    EXPECT_EQ(r2.GetID(), (a | b).GetID());
+}
+
+TEST_F(BDDTest, BDDClassPrint) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    // Capture stdout
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    f.Print();
+    std::cout.rdbuf(old);
+
+    std::string out = oss.str();
+    bddvar top = bddtop(f.GetID());
+
+    // Build expected string
+    std::ostringstream expected;
+    expected << "[ " << f.GetID()
+             << " Var:" << top << "(" << bddlevofvar(top) << ")"
+             << " Size:" << bddsize(f.GetID())
+             << " ]";
+    EXPECT_EQ(out, expected.str());
+}
+
+TEST_F(BDDTest, BDDClassPrintConstant) {
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    BDD::False.Print();
+    std::cout.rdbuf(old);
+
+    // Constant: Var:0(0) Size:0
+    std::string out = oss.str();
+    EXPECT_NE(out.find("Var:0(0)"), std::string::npos);
+    EXPECT_NE(out.find("Size:0"), std::string::npos);
+}
+
+// --- BDD::Swap ---
+
+TEST_F(BDDTest, BDDClassSwapSameVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    EXPECT_EQ(a.Swap(v1, v1), a);
+}
+
+TEST_F(BDDTest, BDDClassSwapSimple) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Swap(v1, v2) on x1 should give x2
+    BDD swapped = a.Swap(v1, v2);
+    EXPECT_EQ(swapped, BDDvar(v2));
+}
+
+TEST_F(BDDTest, BDDClassSwapAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = BDDvar(v3);
+    // f = v1 & v2, swap(v1, v3) should give v3 & v2
+    BDD f = a & b;
+    BDD swapped = f.Swap(v1, v3);
+    EXPECT_EQ(swapped, c & b);
+}
+
+TEST_F(BDDTest, BDDClassSwapSymmetric) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+    // Swapping twice should restore original
+    EXPECT_EQ(f.Swap(v1, v2).Swap(v1, v2), f);
+}
+
+TEST_F(BDDTest, BDDClassSwapCommutative) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) | ~BDDvar(v2);
+    // Swap(v1,v2) == Swap(v2,v1)
+    EXPECT_EQ(f.Swap(v1, v2), f.Swap(v2, v1));
+}
+
+// --- BDD::Smooth ---
+
+TEST_F(BDDTest, BDDClassSmoothConstant) {
+    bddvar v1 = BDD_NewVar();
+    EXPECT_EQ(BDD::True.Smooth(v1), BDD::True);
+    EXPECT_EQ(BDD::False.Smooth(v1), BDD::False);
+}
+
+TEST_F(BDDTest, BDDClassSmoothSingleVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // ∃v1. v1 = true
+    EXPECT_EQ(a.Smooth(v1), BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSmoothNotInBDD) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // ∃v2. v1 = v1  (v2 not in BDD)
+    EXPECT_EQ(a.Smooth(v2), a);
+}
+
+TEST_F(BDDTest, BDDClassSmoothAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    // ∃v1. (v1 ∧ v2) = v2
+    EXPECT_EQ(f.Smooth(v1), b);
+}
+
+TEST_F(BDDTest, BDDClassSmoothMatchesExist) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    BDD f = (BDDvar(v1) & BDDvar(v2)) | BDDvar(v3);
+    // Smooth(v) should be the same as Exist(v)
+    EXPECT_EQ(f.Smooth(v1), f.Exist(v1));
+    EXPECT_EQ(f.Smooth(v2), f.Exist(v2));
+    EXPECT_EQ(f.Smooth(v3), f.Exist(v3));
+}
+
+// --- BDD::Spread ---
+
+TEST_F(BDDTest, BDDClassSpreadZero) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Spread(0) = identity
+    EXPECT_EQ(a.Spread(0), a);
+}
+
+TEST_F(BDDTest, BDDClassSpreadConstant) {
+    bddvar v1 = BDD_NewVar();
+    EXPECT_EQ(BDD::True.Spread(1), BDD::True);
+    EXPECT_EQ(BDD::False.Spread(1), BDD::False);
+}
+
+TEST_F(BDDTest, BDDClassSpreadNegativeThrows) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    EXPECT_THROW(a.Spread(-1), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDDClassSpreadSingleVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Spread(1) on v1: at node v1, f0=false, f1=true
+    // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
+    // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
+    // getnode(v1, true, true) = true (reduced)
+    EXPECT_EQ(a.Spread(1), BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSpreadTwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    // f = v1, Spread(1): at top variable v2 (or v1 depending on ordering),
+    // the 0-branch and 1-branch mix via OR
+    // For a single variable f = v1 with 2 vars:
+    // BDD has top = v2 (higher level), At0(v2) = v1, At1(v2) = v1
+    // Wait, v1 doesn't depend on v2, so the BDD just has v1 at its node.
+    // Actually the BDD of v1 only has one node with var v1.
+    // Spread(1) decomposes by v1: f0 = false, f1 = true
+    // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
+    // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
+    // result = getnode(v1, true, true) = true
+    // So Spread(1) on a single var BDD with >1 vars defined = true
+    BDD result = a.Spread(1);
+    EXPECT_EQ(result, BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSpreadAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+    // Spread should make result >= f (more true values)
+    // f => Spread(f, k) for all k >= 0
+    BDD spread1 = f.Spread(1);
+    EXPECT_EQ(f.Imply(spread1), 1);
+}
+
+TEST_F(BDDTest, BDDClassXPrint0) {
+    BDD f = BDDvar(BDD_NewVar());
+    EXPECT_THROW(f.XPrint0(), std::logic_error);
+}
+
+TEST_F(BDDTest, BDDClassXPrint) {
+    BDD f = BDDvar(BDD_NewVar());
+    EXPECT_THROW(f.XPrint(), std::logic_error);
+}
+
+TEST_F(BDDTest, BDDClassExportOstream) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    std::ostringstream oss1;
+    f.Export(oss1);
+
+    std::ostringstream oss2;
+    bddp p = f.GetID();
+    bddexport(oss2, &p, 1);
+
+    EXPECT_EQ(oss1.str(), oss2.str());
+}
+
+TEST_F(BDDTest, BDDClassExportFilePtr) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    FILE* tmp = std::tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    f.Export(tmp);
+    long len = std::ftell(tmp);
+    EXPECT_GT(len, 0);
+
+    std::rewind(tmp);
+    bddp p;
+    int ret = bddimport(tmp, &p, 1);
+    std::fclose(tmp);
+    EXPECT_EQ(ret, 1);
+    EXPECT_EQ(p, f.GetID());
 }
 
 // --- ZDD class high-level member functions ---
@@ -5504,13 +5743,13 @@ TEST_F(BDDTest, GCBDDClassAutoProtection) {
     BDD b = BDDvar(v2);
     BDD c = a & b;
 
-    bddp expected_root = c.root;
+    bddp expected_root = c.GetID();
 
     bddgc();
 
     // c should survive because BDD object protects &c.root
-    EXPECT_EQ(c.root, expected_root);
-    EXPECT_EQ(bddtop(c.root), v1 > v2 ? v1 : v2);
+    EXPECT_EQ(c.GetID(), expected_root);
+    EXPECT_EQ(bddtop(c.GetID()), v1 > v2 ? v1 : v2);
 }
 
 TEST_F(BDDTest, GCBDDClassScopeProtection) {
@@ -5573,7 +5812,7 @@ TEST_F(BDDTest, GCAutoTriggerOnExhaustion) {
     BDD f = BDDvar(v4);
     BDD g = e & f;
 
-    EXPECT_EQ(bddtop(g.root), v3 > v4 ? v3 : v4);
+    EXPECT_EQ(bddtop(g.GetID()), v3 > v4 ? v3 : v4);
 }
 
 TEST_F(BDDTest, GCPreservesOperationCorrectness) {
@@ -5602,7 +5841,7 @@ TEST_F(BDDTest, GCPreservesOperationCorrectness) {
         bool x2 = (i >> 1) & 1;
         bool x3 = (i >> 2) & 1;
 
-        bddp f = r3.root;
+        bddp f = r3.GetID();
         f = x1 ? bddat1(f, v1) : bddat0(f, v1);
         f = x2 ? bddat1(f, v2) : bddat0(f, v2);
         f = x3 ? bddat1(f, v3) : bddat0(f, v3);

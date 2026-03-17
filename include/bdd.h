@@ -5,6 +5,7 @@
 #include "bdd_base.h"
 #include "bdd_ops.h"
 #include "bdd_io.h"
+#include <iostream>
 
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
@@ -145,6 +146,52 @@ inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
     BDD b(0);
     b.root = bddite(f.root, g.root, h.root);
     return b;
+}
+
+inline BDD BDD::Swap(bddvar v1, bddvar v2) const {
+    BDD b(0);
+    b.root = bddswap(root, v1, v2);
+    return b;
+}
+
+inline BDD BDD::Smooth(bddvar v) const {
+    BDD b(0);
+    b.root = bddsmooth(root, v);
+    return b;
+}
+
+inline BDD BDD::Spread(int k) const {
+    BDD b(0);
+    b.root = bddspread(root, k);
+    return b;
+}
+
+inline void BDD::Export(FILE* strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
+inline void BDD::Export(std::ostream& strm) const {
+    bddp p = root;
+    bddexport(strm, &p, 1);
+}
+
+inline void BDD::Print() const {
+    bddvar v = bddtop(root);
+    bddvar lev = bddlevofvar(v);
+    std::cout << "[ " << root
+              << " Var:" << v << "(" << lev << ")"
+              << " Size:" << bddsize(root)
+              << " ]";
+    std::cout.flush();
+}
+
+inline void BDD::XPrint0() const {
+    bddgraph0(root);
+}
+
+inline void BDD::XPrint() const {
+    bddgraph(root);
 }
 
 // ZDD member functions
