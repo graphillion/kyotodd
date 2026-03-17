@@ -176,6 +176,10 @@ inline void BDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline bddvar BDD::Top() const {
+    return bddtop(root);
+}
+
 inline void BDD::Print() const {
     bddvar v = bddtop(root);
     bddvar lev = bddlevofvar(v);

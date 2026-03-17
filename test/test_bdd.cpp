@@ -7112,6 +7112,20 @@ TEST_F(BDDTest, ZDD_Intersec_WithEmpty) {
     EXPECT_EQ(z.Intersec(e), e);
 }
 
+// --- BDD::Top ---
+
+TEST_F(BDDTest, BDD_Top) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+    EXPECT_EQ(f.Top(), bddtop(f.GetID()));
+}
+
+TEST_F(BDDTest, BDD_TopTerminal) {
+    BDD f(0);
+    EXPECT_EQ(f.Top(), 0u);
+}
+
 // --- ZDD::Top ---
 
 TEST_F(BDDTest, ZDD_Top) {

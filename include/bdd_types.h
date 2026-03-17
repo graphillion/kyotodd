@@ -275,6 +275,8 @@ public:
      * @return 1 if this BDD implies @p g, 0 otherwise.
      */
     int Imply(const BDD& g) const;
+    /** @brief Get the top variable number. */
+    bddvar Top() const;
     /**
      * @brief Return the number of nodes in this BDD.
      * @return The DAG node count.
