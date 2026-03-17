@@ -6043,7 +6043,11 @@ TEST_F(BDDTest, GCReinitClearsState) {
 
     EXPECT_GT(bddlive(), 0u);
 
-    // Re-initialize clears everything
+    // Re-initialize throws while non-terminal roots exist
+    EXPECT_THROW(bddinit(256), std::runtime_error);
+
+    // After unprotecting, re-initialize succeeds
+    bddgc_unprotect(&p1);
     bddinit(256);
     EXPECT_EQ(bddlive(), 0u);
     EXPECT_EQ(bddused(), 0u);
@@ -8200,4 +8204,25 @@ TEST_F(BDDTest, NodeMaxExhaustion) {
         BDD c = a ^ b;
         (void)c;
     }, std::overflow_error);
+}
+
+TEST_F(BDDTest, BddfinalWithLiveObjectsThrows) {
+    bddvar v = bddnewvar();
+    {
+        BDD x = BDDvar(v);
+        EXPECT_THROW(bddfinal(), std::runtime_error);
+        // x is still valid
+        EXPECT_EQ(x.Top(), v);
+    }
+    // After x is destroyed, bddfinal succeeds
+    bddfinal();
+}
+
+TEST_F(BDDTest, BddinitWithLiveObjectsThrows) {
+    bddvar v = bddnewvar();
+    {
+        BDD x = BDDvar(v);  // non-terminal node
+        EXPECT_THROW(bddinit(256, UINT64_MAX), std::runtime_error);
+        (void)x;
+    }
 }

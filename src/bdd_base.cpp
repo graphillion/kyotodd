@@ -177,6 +177,18 @@ static void unique_table_resize(BddUniqueTable* t) {
 
 // --- Public API ---
 void bddfinal() {
+    // Check if any GC root points to a non-terminal node.
+    // Static constants (BDD::False, ZDD::Empty, etc.) hold terminal values
+    // (BDD_CONST_FLAG set or bddnull) and are safe across bddfinal.
+    for (bddp* p : gc_roots()) {
+        bddp v = *p;
+        if (v != bddnull && !(v & BDD_CONST_FLAG)) {
+            throw std::runtime_error(
+                "bddfinal(): cannot finalize while BDD/ZDD objects "
+                "referencing non-terminal nodes exist. "
+                "Delete all such objects first.");
+        }
+    }
     std::free(bdd_nodes);
     bdd_nodes = nullptr;
     std::free(var2level);

@@ -27,6 +27,9 @@ inline int BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) {
  * Frees all allocated memory (nodes, unique tables, cache) and clears
  * all GC roots. Safe to call multiple times or before bddinit().
  * Any existing BDD/ZDD node IDs become invalid after this call.
+ *
+ * @throws std::runtime_error If live BDD/ZDD objects still exist
+ *         (registered GC roots are non-empty).
  */
 void bddfinal();
 
