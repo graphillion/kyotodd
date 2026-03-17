@@ -8,8 +8,8 @@ KyotoDD uses CMake as its build system and requires a C++11 compiler.
 
 .. code-block:: bash
 
-   git clone https://github.com/your-org/KyotoDD.git
-   cd KyotoDD
+   git clone https://github.com/graphillion/kyotodd.git
+   cd kyotodd
    mkdir build && cd build
    cmake ..
    cmake --build .
