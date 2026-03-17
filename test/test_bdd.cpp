@@ -7189,6 +7189,42 @@ TEST_F(BDDTest, ZDD_LshiftRshiftRoundtrip) {
     EXPECT_EQ(roundtrip, z);
 }
 
+TEST_F(BDDTest, ZDD_LshiftMultipleSetFamily) {
+    // Regression: bddlshift dropped sets from multi-set families
+    for (int i = 0; i < 10; i++) bddnewvar();
+
+    // Input: {{1}, {1,2,4,5}, {1,2,5}}
+    ZDD a(1); a = a.Change(1);
+    ZDD b(1); b = b.Change(1).Change(2).Change(4).Change(5);
+    ZDD c(1); c = c.Change(1).Change(2).Change(5);
+    ZDD f = a + b + c;
+    ASSERT_EQ(f.Card(), 3);
+
+    ZDD result = f << 1;
+    // Expected: {{2}, {2,3,5,6}, {2,3,6}}
+    EXPECT_EQ(result.Card(), 3);
+
+    // Verify roundtrip
+    ZDD roundtrip = (f << 1) >> 1;
+    EXPECT_EQ(roundtrip, f);
+}
+
+TEST_F(BDDTest, ZDD_RshiftMultipleSetFamily) {
+    // Regression: bddrshift had the same getnode/getznode bug
+    for (int i = 0; i < 10; i++) bddnewvar();
+
+    // Input: {{2}, {2,3,5,6}, {2,3,6}}
+    ZDD a(1); a = a.Change(2);
+    ZDD b(1); b = b.Change(2).Change(3).Change(5).Change(6);
+    ZDD c(1); c = c.Change(2).Change(3).Change(6);
+    ZDD f = a + b + c;
+    ASSERT_EQ(f.Card(), 3);
+
+    ZDD result = f >> 1;
+    // Expected: {{1}, {1,2,4,5}, {1,2,5}}
+    EXPECT_EQ(result.Card(), 3);
+}
+
 // --- ZDD::Intersec ---
 
 TEST_F(BDDTest, ZDD_Intersec_MatchesOperatorAnd) {

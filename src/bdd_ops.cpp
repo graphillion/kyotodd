@@ -709,7 +709,7 @@ static bddp bddlshift_rec(bddp f, bddvar shift) {
     bddp lo = bddlshift_rec(node_lo(fn), shift);
     bddp hi = bddlshift_rec(node_hi(fn), shift);
 
-    bddp result = getnode(target_var, lo, hi);
+    bddp result = getznode(target_var, lo, hi);
 
     bddwcache(BDD_OP_LSHIFT, fn, static_cast<bddp>(shift), result);
     return comp ? bddnot(result) : result;
@@ -745,7 +745,7 @@ static bddp bddrshift_rec(bddp f, bddvar shift) {
     bddp lo = bddrshift_rec(node_lo(fn), shift);
     bddp hi = bddrshift_rec(node_hi(fn), shift);
 
-    bddp result = getnode(target_var, lo, hi);
+    bddp result = getznode(target_var, lo, hi);
 
     bddwcache(BDD_OP_RSHIFT, fn, static_cast<bddp>(shift), result);
     return comp ? bddnot(result) : result;
