@@ -24,7 +24,7 @@ target_link_libraries(kyotodd kyotodd_lib)
 include(FetchContent)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
+  URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
