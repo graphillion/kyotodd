@@ -518,6 +518,10 @@ public:
     int IsPoly() const;
     /** @brief Swap two variables in the family. */
     ZDD Swap(int v1, int v2) const;
+    /** @brief Check if v1 implies v2 (all sets with v1 also have v2). */
+    int ImplyChk(int v1, int v2) const;
+    /** @brief Check co-implication between v1 and v2. */
+    int CoImplyChk(int v1, int v2) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

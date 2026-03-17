@@ -394,4 +394,12 @@ inline ZDD ZDD::Swap(int v1, int v2) const {
     return z;
 }
 
+inline int ZDD::ImplyChk(int v1, int v2) const {
+    return bddimplychk(root, v1, v2);
+}
+
+inline int ZDD::CoImplyChk(int v1, int v2) const {
+    return bddcoimplychk(root, v1, v2);
+}
+
 #endif

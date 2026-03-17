@@ -46,3 +46,45 @@ bddp bddswap(bddp f, bddvar v1, bddvar v2) {
         return bddunion(bddunion(f00, f11), h_swapped);
     });
 }
+
+// --- bddimplychk ---
+
+int bddimplychk(bddp f, bddvar v1, bddvar v2) {
+    if (f == bddnull) return -1;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddimplychk: variable out of range");
+    }
+    if (v1 == v2) return 1;
+    if (f & BDD_CONST_FLAG) return 1;
+
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        // f10 = sets containing v1 but not v2
+        bddp f1 = bddonset0(f, v1);
+        bddp f10 = bddoffset(f1, v2);
+        return (f10 == bddempty) ? (bddp)1 : (bddp)0;
+    });
+    return (int)r;
+}
+
+// --- bddcoimplychk ---
+
+int bddcoimplychk(bddp f, bddvar v1, bddvar v2) {
+    if (f == bddnull) return -1;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddcoimplychk: variable out of range");
+    }
+    if (v1 == v2) return 1;
+    if (f & BDD_CONST_FLAG) return 1;
+
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        // f10 = sets with v1 but not v2
+        bddp f10 = bddoffset(bddonset0(f, v1), v2);
+        if (f10 == bddempty) return (bddp)1;
+        // f01 = sets with v2 but not v1
+        bddp f01 = bddonset0(bddoffset(f, v1), v2);
+        // co-implication holds iff f10 ⊆ f01
+        bddp chk = bddsubtract(f10, f01);
+        return (chk == bddempty) ? (bddp)1 : (bddp)0;
+    });
+    return (int)r;
+}

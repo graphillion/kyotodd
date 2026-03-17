@@ -7094,3 +7094,87 @@ TEST(ZDD_SwapTest, Involution) {
 
     EXPECT_EQ(f.Swap(1, 2).Swap(1, 2), f);
 }
+
+// --- bddimplychk / ZDD::ImplyChk ---
+
+TEST(ZDD_ImplyChkTest, TrivialCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // v1 == v2: always true
+    ZDD f = ZDD::Single.Change(1);
+    EXPECT_EQ(f.ImplyChk(1, 1), 1);
+    // Empty family: trivially true
+    EXPECT_EQ(ZDD::Empty.ImplyChk(1, 2), 1);
+    // Single family {∅}: trivially true (no set contains v1)
+    EXPECT_EQ(ZDD::Single.ImplyChk(1, 2), 1);
+    // Null -> error
+    EXPECT_EQ(bddimplychk(bddnull, 1, 2), -1);
+}
+
+TEST(ZDD_ImplyChkTest, ImplicationHolds) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}, {v3}}: every set with v1 also has v2 -> v1 implies v2
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD s3 = ZDD::Single.Change(3);
+    ZDD f = s12 + s3;
+    EXPECT_EQ(f.ImplyChk(1, 2), 1);
+}
+
+TEST(ZDD_ImplyChkTest, ImplicationFails) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: v1 does not imply v2 ({v1} has v1 but not v2)
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD f = s1 + s2;
+    EXPECT_EQ(f.ImplyChk(1, 2), 0);
+}
+
+// --- bddcoimplychk / ZDD::CoImplyChk ---
+
+TEST(ZDD_CoImplyChkTest, TrivialCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(ZDD::Empty.CoImplyChk(1, 2), 1);
+    EXPECT_EQ(ZDD::Single.CoImplyChk(1, 2), 1);
+    EXPECT_EQ(bddcoimplychk(bddnull, 1, 2), -1);
+}
+
+TEST(ZDD_CoImplyChkTest, ImplicationSubsumesCoImplication) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // If v1 implies v2, co-implication also holds
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD s3 = ZDD::Single.Change(3);
+    ZDD f = s12 + s3;
+    EXPECT_EQ(f.ImplyChk(1, 2), 1);
+    EXPECT_EQ(f.CoImplyChk(1, 2), 1);
+}
+
+TEST(ZDD_CoImplyChkTest, CoImplicationHoldsButNotImplication) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v2}}: v1 does not imply v2 (set {v1,v3} has v1 but not v2)
+    // f10 = {v3} (sets with v1 but not v2, v1 removed)
+    // f01 = {∅}  (sets with v2 but not v1, v2 removed) -- wait, {v2} has v2 but not v1, so f01 = OnSet0(OffSet(f,v1),v2) = {∅}
+    // f10 - f01 = {v3} - {∅} = {v3} != empty -> co-implication fails
+    ZDD s13 = ZDD::Single.Change(1).Change(3);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD f = s13 + s2;
+    EXPECT_EQ(f.ImplyChk(1, 2), 0);
+    EXPECT_EQ(f.CoImplyChk(1, 2), 0);
+
+    // {{v1}, {v2}}: f10 = {∅} (v1 only, v1 removed), f01 = {∅} (v2 only, v2 removed)
+    // f10 - f01 = {∅} - {∅} = empty -> co-implication holds
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD g = s1 + s2;
+    EXPECT_EQ(g.ImplyChk(1, 2), 0);
+    EXPECT_EQ(g.CoImplyChk(1, 2), 1);
+}

@@ -521,6 +521,24 @@ int bddispoly(bddp f);
  */
 bddp bddswap(bddp f, bddvar v1, bddvar v2);
 
+/**
+ * @brief Check if v1 implies v2 in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v1 First variable number.
+ * @param v2 Second variable number.
+ * @return 1 if every set containing v1 also contains v2, 0 otherwise, -1 on error.
+ */
+int bddimplychk(bddp f, bddvar v1, bddvar v2);
+
+/**
+ * @brief Check co-implication between v1 and v2 in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v1 First variable number.
+ * @param v2 Second variable number.
+ * @return 1 if co-implication holds, 0 otherwise, -1 on error.
+ */
+int bddcoimplychk(bddp f, bddvar v1, bddvar v2);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */
