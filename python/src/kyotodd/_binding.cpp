@@ -28,6 +28,12 @@ PYBIND11_MODULE(_core, m) {
             PyErr_SetString(PyExc_ValueError, e.what());
         } catch (const std::out_of_range& e) {
             PyErr_SetString(PyExc_IndexError, e.what());
+        } catch (const std::logic_error& e) {
+            PyErr_SetString(PyExc_RuntimeError, e.what());
+        } catch (const std::bad_alloc& e) {
+            PyErr_SetString(PyExc_MemoryError, e.what());
+        } catch (const std::exception& e) {
+            PyErr_SetString(PyExc_RuntimeError, e.what());
         }
     });
 
