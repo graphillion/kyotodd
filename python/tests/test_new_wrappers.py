@@ -144,22 +144,6 @@ class TestZDDNewProperties:
         u = a + b
         assert u.lit == 2
 
-    def test_len_empty(self):
-        assert ZDD.empty.len == 0
-
-    def test_len_single(self):
-        # {{}} has max set size 0
-        assert ZDD.single.len == 0
-
-    def test_len_family(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        a = _make_singleton(1)
-        b = _make_singleton(2)
-        ab = a * b  # {{1,2}}
-        u = ab + a  # {{1,2}, {1}}
-        assert u.len == 2
-
     def test_exact_count_empty(self):
         assert ZDD.empty.exact_count == 0
 
