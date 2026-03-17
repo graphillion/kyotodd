@@ -129,6 +129,7 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 - `src/bdd_ops.cpp` — BDD 演算（and, or, xor, ite, cofactor, 量化等）
 - `src/zdd_ops.cpp` — ZDD 基本演算（offset, onset, change, union, intersec, subtract, div, join, meet, delta 等）
 - `src/zdd_adv.cpp` — ZDD 高度演算（disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card 等）
+- `src/zdd_adv2.cpp` — ZDD 追加演算（permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset 等）
 - `src/bdd_io.cpp` — export/import の実装
 - `src/bdd_class.cpp` — BDD/ZDD static const 定義
 - `src/main.cpp` — メインエントリポイント
