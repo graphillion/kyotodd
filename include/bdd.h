@@ -206,6 +206,12 @@ inline ZDD& ZDD::operator&=(const ZDD& other) {
     return *this;
 }
 
+inline ZDD ZDD::Intersec(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddintersec(root, other.root);
+    return z;
+}
+
 inline ZDD ZDD::operator/(const ZDD& other) const {
     ZDD z(0);
     z.root = bdddiv(root, other.root);

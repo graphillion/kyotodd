@@ -369,6 +369,8 @@ public:
     ZDD operator&(const ZDD& other) const;
     /** @brief In-place intersection. */
     ZDD& operator&=(const ZDD& other);
+    /** @brief Intersection with another family. */
+    ZDD Intersec(const ZDD& other) const;
     /** @brief Division (quotient). */
     ZDD operator/(const ZDD& other) const;
     /** @brief In-place division. */

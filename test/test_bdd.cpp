@@ -6845,3 +6845,30 @@ TEST_F(BDDTest, ZDD_LshiftRshiftRoundtrip) {
     ZDD roundtrip = (z << 2) >> 2;
     EXPECT_EQ(roundtrip, z);
 }
+
+// --- ZDD::Intersec ---
+
+TEST_F(BDDTest, ZDD_Intersec_MatchesOperatorAnd) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;  // {{v1}, {v2}}
+
+    EXPECT_EQ(F.Intersec(z_v1), F & z_v1);
+}
+
+TEST_F(BDDTest, ZDD_Intersec_WithSelf) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    EXPECT_EQ(z.Intersec(z), z);
+}
+
+TEST_F(BDDTest, ZDD_Intersec_WithEmpty) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD e(0);
+
+    EXPECT_EQ(z.Intersec(e), e);
+}
