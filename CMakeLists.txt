@@ -17,6 +17,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_ops.cpp
   src/zdd_adv.cpp
   src/zdd_adv2.cpp
+  src/pidd.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -45,5 +46,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(kyotodd_test PRIVATE -Wall -Wextra)
 endif()
 
+add_executable(pidd_test test/test_pidd.cpp)
+target_link_libraries(pidd_test kyotodd_lib GTest::gtest_main)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(pidd_test PRIVATE -Wall -Wextra)
+endif()
+
 include(GoogleTest)
 gtest_discover_tests(kyotodd_test)
+gtest_discover_tests(pidd_test)
