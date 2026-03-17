@@ -424,6 +424,7 @@ void bdddump(bddp f) {
 }
 
 void bddvdump(bddp *p, int n) {
+    if (!p || n <= 0) return;
     // Find effective limit (bddnull acts as sentinel)
     int lim = 0;
     for (int i = 0; i < n; i++) {
