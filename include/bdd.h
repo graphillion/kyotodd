@@ -405,6 +405,12 @@ inline ZDD ZDD::Delta(const ZDD& g) const {
     return z;
 }
 
+inline ZDD ZDD::Support() const {
+    ZDD z(0);
+    z.root = bddsupport(root);
+    return z;
+}
+
 inline bddvar ZDD::Top() const {
     return bddtop(root);
 }

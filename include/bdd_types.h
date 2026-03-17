@@ -533,6 +533,8 @@ public:
      */
     ZDD Delta(const ZDD& g) const;
 
+    /** @brief Compute the support set (bddsupport wrapper). */
+    ZDD Support() const;
     /** @brief Get the top variable number. */
     bddvar Top() const;
     /** @brief Count the number of nodes. */

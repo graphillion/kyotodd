@@ -7140,6 +7140,22 @@ TEST_F(BDDTest, ZDD_TopTerminal) {
     EXPECT_EQ(e.Top(), bddtop(bddempty));
 }
 
+// --- ZDD::Support ---
+
+TEST_F(BDDTest, ZDD_Support) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD sup = z.Support();
+    EXPECT_EQ(sup.GetID(), bddsupport(z.GetID()));
+}
+
+TEST_F(BDDTest, ZDD_SupportTerminal) {
+    ZDD e(0);
+    ZDD sup = e.Support();
+    EXPECT_EQ(sup.GetID(), bddsupport(bddempty));
+}
+
 // --- ZDD::XPrint ---
 
 TEST_F(BDDTest, ZDD_XPrint) {
