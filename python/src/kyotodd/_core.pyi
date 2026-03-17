@@ -774,7 +774,7 @@ def gc_get_threshold() -> float:
     ...
 
 def node_count() -> int:
-    """Return the total number of nodes currently allocated."""
+    """Return the number of used node slots (including dead nodes awaiting GC)."""
     ...
 
 def zdd_random(lev: int, density: int = 50) -> ZDD:

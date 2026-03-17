@@ -65,7 +65,10 @@ Node Statistics
 
 .. py:function:: kyotodd.node_count()
 
-   Return the total number of nodes currently allocated.
+   Return the number of used node slots (including dead nodes awaiting GC).
+
+   This is **not** the initial capacity or the array size — it is the
+   count of node slots that have been occupied at least once.
 
    :rtype: int
 

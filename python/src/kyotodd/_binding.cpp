@@ -111,9 +111,11 @@ PYBIND11_MODULE(_core, m) {
 
     // Node stats
     m.def("node_count", &bddused,
-       "Return the total number of nodes currently allocated.\n\n"
+       "Return the number of used node slots (including dead nodes awaiting GC).\n\n"
+       "This is not the initial capacity or the array size -- it is the\n"
+       "count of node slots that have been occupied at least once.\n\n"
        "Returns:\n"
-       "    The node count.\n");
+       "    The used node slot count.\n");
 
     // GC API
     m.def("gc", &bddgc,
