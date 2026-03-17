@@ -6162,9 +6162,12 @@ TEST_F(BDDTest, ReducedFlag_BDD_ID_ValidatesReduced) {
 static std::string capture_stdout(std::function<void()> fn) {
     fflush(stdout);
     int pipefd[2];
-    pipe(pipefd);
+    if (pipe(pipefd) != 0) return "";
     int saved = dup(STDOUT_FILENO);
-    dup2(pipefd[1], STDOUT_FILENO);
+    if (saved < 0) { close(pipefd[0]); close(pipefd[1]); return ""; }
+    if (dup2(pipefd[1], STDOUT_FILENO) < 0) {
+        close(saved); close(pipefd[0]); close(pipefd[1]); return "";
+    }
     close(pipefd[1]);
     fn();
     fflush(stdout);
