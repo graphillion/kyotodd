@@ -50,6 +50,9 @@ static void write_str(std::ostream& strm, const char* s) { strm << s; }
 static bool stream_valid(FILE* strm) { return strm != nullptr; }
 static bool stream_valid(std::ostream&) { return true; }
 
+static bool stream_has_error(FILE* strm) { return std::ferror(strm) != 0; }
+static bool stream_has_error(std::ostream& strm) { return !strm.good(); }
+
 template<typename Stream>
 static void export_core(Stream& strm, const bddp* p, int lim) {
     if (lim <= 0 || !p || !stream_valid(strm)) return;
@@ -117,6 +120,10 @@ static void export_core(Stream& strm, const bddp* p, int lim) {
             std::snprintf(buf, sizeof(buf), "%" PRIu64 "\n", id);
             write_str(strm, buf);
         }
+    }
+
+    if (stream_has_error(strm)) {
+        throw std::runtime_error("bddexport: write error");
     }
 }
 
