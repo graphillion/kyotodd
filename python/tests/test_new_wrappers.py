@@ -286,9 +286,21 @@ class TestZDDImplySet:
         a = _make_singleton(1)
         b = _make_singleton(2)
         ab = a * b  # {{1,2}}
-        # var 1 implies var 2 in {{1,2}}
+        # var 1 implies var 2 in {{1,2}} → result should contain {{2}}
         result = ab.imply_set(1)
         assert result != ZDD.empty
+        # {{2}} should be a subset of the imply set
+        assert (b & result) == b
+
+    def test_imply_set_no_implication(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        a = _make_singleton(1)
+        b = _make_singleton(2)
+        u = a + b  # {{1}, {2}}: var 1 does not always appear with var 2
+        result = u.imply_set(1)
+        # var 2 is NOT implied by var 1 (var 1 appears without var 2)
+        assert (b & result) == ZDD.empty
 
 
 class TestZDDSymGrp:
@@ -300,6 +312,20 @@ class TestZDDSymGrp:
         u = a + b  # {{1}, {2}}: 1 and 2 are symmetric
         result = u.sym_grp()
         assert result != ZDD.empty
+        # Result should contain {{1,2}} as a symmetry group
+        ab = a * b
+        assert (ab & result) == ab
+
+    def test_sym_grp_not_symmetric(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        a = _make_singleton(1)
+        b = _make_singleton(2)
+        ab = a * b
+        u = ab + a  # {{1,2}, {1}}: not symmetric
+        result = u.sym_grp()
+        # {1,2} is not a symmetry group
+        assert (ab & result) == ZDD.empty
 
 
 class TestZDDSymGrpNaive:
@@ -311,6 +337,8 @@ class TestZDDSymGrpNaive:
         u = a + b  # {{1}, {2}}: 1 and 2 are symmetric
         result = u.sym_grp_naive()
         assert result != ZDD.empty
+        # Should agree with sym_grp
+        assert result == u.sym_grp()
 
 
 class TestZDDSymSet:
@@ -322,6 +350,19 @@ class TestZDDSymSet:
         u = a + b  # {{1}, {2}}: symmetric
         result = u.sym_set(1)
         assert result != ZDD.empty
+        # var 2 is symmetric with var 1, so {{2}} should be in the result
+        assert (b & result) == b
+
+    def test_sym_set_not_symmetric(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        a = _make_singleton(1)
+        b = _make_singleton(2)
+        ab = a * b
+        u = ab + a  # {{1,2}, {1}}: not symmetric
+        result = u.sym_set(1)
+        # var 2 is not symmetric with var 1
+        assert (b & result) == ZDD.empty
 
 
 class TestZDDCoImplySet:
@@ -333,6 +374,24 @@ class TestZDDCoImplySet:
         ab = a * b  # {{1,2}}
         result = ab.coimply_set(1)
         assert result != ZDD.empty
+        # var 2 co-implies var 1 (they always appear together)
+        assert (b & result) == b
+
+    def test_coimply_set_consistent_with_chk(self):
+        kyotodd.newvar()
+        kyotodd.newvar()
+        kyotodd.newvar()
+        a = _make_singleton(1)
+        b = _make_singleton(2)
+        c = _make_singleton(3)
+        f = a * b + a * c  # {{1,2},{1,3}}
+        result = f.coimply_set(1)
+        # coimply_chk(1,2)=0 and coimply_chk(1,3)=0 since 2 and 3 don't always co-occur with 1
+        assert f.coimply_chk(1, 2) == 0
+        assert f.coimply_chk(1, 3) == 0
+        # coimply_set should not include vars that fail coimply_chk
+        assert (b & result) == ZDD.empty
+        assert (c & result) == ZDD.empty
 
 
 class TestZDDDivisor:
@@ -347,6 +406,8 @@ class TestZDDDivisor:
         f = (a + b) * c
         d = f.divisor()
         assert d != ZDD.empty
+        # The divisor should actually divide f
+        assert f % d == ZDD.empty
 
 
 # ===== Module-level functions =====
