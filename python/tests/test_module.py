@@ -81,3 +81,34 @@ def test_invalid_var_raises_valueerror():
         x.at0(0)  # var 0 is invalid
     with pytest.raises(ValueError):
         x.at1(999999)  # var out of range
+
+
+def test_finalize_with_live_objects_raises():
+    from kyotodd import BDD
+    kyotodd.newvar()
+    x = BDD.var(1)
+    with pytest.raises(RuntimeError):
+        kyotodd.finalize()
+    del x
+
+
+def test_reinit_with_live_objects_raises():
+    from kyotodd import BDD
+    kyotodd.newvar()
+    x = BDD.var(1)
+    with pytest.raises(RuntimeError):
+        kyotodd.init(256)
+    del x
+
+
+def test_node_max_exhaustion_raises():
+    from kyotodd import BDD
+    kyotodd.init(4, 4)
+    v1 = kyotodd.newvar()
+    v2 = kyotodd.newvar()
+    v3 = kyotodd.newvar()
+    v4 = kyotodd.newvar()
+    with pytest.raises(MemoryError):
+        a = BDD.var(v1) & BDD.var(v2) & BDD.var(v3) & BDD.var(v4)
+        b = BDD.var(v1) | BDD.var(v2) | BDD.var(v3) | BDD.var(v4)
+        c = a ^ b
