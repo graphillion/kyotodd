@@ -31,8 +31,8 @@ the BDD/ZDD class layout and is a significant architectural change.
 - **`bddlshift` / `bddrshift` traverse the BDD twice** (`src/bdd_ops.cpp`).
   Once for `bddsupport_collect` validation, then again for the actual shift.
 
-- **GC mark array uses `uint8_t` per node** (`src/bdd_base.cpp`).
-  A bit vector would reduce memory usage to 1/8.
+- ~~**GC mark array uses `uint8_t` per node** (`src/bdd_base.cpp`).~~
+  Fixed: now uses a `uint64_t` bit vector (1/8 memory usage).
 
 ## Design Decisions (Accepted)
 

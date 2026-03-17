@@ -404,7 +404,7 @@ double bddgc_getthreshold() {
     return bdd_gc_threshold;
 }
 
-static void bddgc_mark(bddp f, uint8_t* marks) {
+static void bddgc_mark(bddp f, uint64_t* marks) {
     std::vector<bddp> stack;
     stack.push_back(f);
     while (!stack.empty()) {
@@ -415,8 +415,10 @@ static void bddgc_mark(bddp f, uint8_t* marks) {
         bddp node_id = cur & ~BDD_COMP_FLAG;
         uint64_t idx = node_id / 2 - 1;
         if (idx >= bdd_node_used) continue;
-        if (marks[idx]) continue;
-        marks[idx] = 1;
+        uint64_t word = idx / 64;
+        uint64_t bit = static_cast<uint64_t>(1) << (idx % 64);
+        if (marks[word] & bit) continue;
+        marks[word] |= bit;
         stack.push_back(node_lo(node_id));
         stack.push_back(node_hi(node_id));
     }
@@ -426,8 +428,9 @@ int bddgc() {
     if (bdd_gc_depth > 0) return 0;
     if (bdd_node_used == 0) return 0;
 
-    // 1. Allocate mark array
-    uint8_t* marks = static_cast<uint8_t*>(std::calloc(bdd_node_used, 1));
+    // 1. Allocate mark bit vector
+    uint64_t mark_words = (bdd_node_used + 63) / 64;
+    uint64_t* marks = static_cast<uint64_t*>(std::calloc(mark_words, sizeof(uint64_t)));
     if (!marks) return 1;
 
     // 2. Mark reachable nodes from all registered roots
@@ -447,7 +450,7 @@ int bddgc() {
     bdd_free_count = 0;
     for (uint64_t i = 0; i < bdd_node_used; i++) {
         bddp node_id = (i + 1) * 2;
-        if (marks[i]) {
+        if (marks[i / 64] & (static_cast<uint64_t>(1) << (i % 64))) {
             // Live node: re-insert into unique table
             bddvar var = node_var(node_id);
             bddp lo = node_lo(node_id);
