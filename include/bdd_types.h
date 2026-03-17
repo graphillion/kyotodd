@@ -448,6 +448,16 @@ public:
     bool operator!=(const ZDD& other) const { return root != other.root; }
 
     /**
+     * @brief Meet operation (intersection of all element pairs).
+     *
+     * For each pair of sets (one from this family, one from @p other),
+     * compute their intersection and collect all results.
+     * @param other Another ZDD family.
+     * @return The resulting ZDD.
+     */
+    ZDD Meet(const ZDD& other) const;
+
+    /**
      * @brief Extract maximal sets (no proper superset in the family).
      * @return A ZDD containing only the maximal sets.
      */

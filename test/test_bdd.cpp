@@ -7821,3 +7821,38 @@ TEST(ZDD_DivisorTest, DivisorDivides) {
     // q * d should give back f (or a subset of f)
     EXPECT_EQ(q * d, f);
 }
+
+// --- ZDD::Meet ---
+
+TEST_F(BDDTest, ZDD_Meet_MatchesFreeFunction) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;  // {{v1}, {v2}}
+
+    EXPECT_EQ(F.Meet(z_v1), ZDD_Meet(F, z_v1));
+}
+
+TEST_F(BDDTest, ZDD_Meet_WithSelf) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    EXPECT_EQ(z.Meet(z), z);
+}
+
+TEST_F(BDDTest, ZDD_Meet_WithEmpty) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD e(0);
+
+    EXPECT_EQ(z.Meet(e), e);
+}
+
+TEST_F(BDDTest, ZDD_Meet_WithSingle) {
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD s(1);  // {{}}
+
+    EXPECT_EQ(z_v1.Meet(s), s);
+}
