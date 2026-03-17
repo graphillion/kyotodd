@@ -47,7 +47,8 @@ int BDD_RecurCount = 0;
 int bdd_gc_depth = 0;
 static bddp bdd_free_list = 0;
 static uint64_t bdd_free_count = 0;
-static double bdd_gc_threshold = 0.9;
+static const double BDD_GC_THRESHOLD_DEFAULT = 0.9;
+static double bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
 
 // Sentinel for 2-operand cache entries' h field.
 // Must differ from any valid bddp used as h in 3-operand entries.
@@ -201,6 +202,7 @@ void bddfinal() {
     bdd_gc_depth = 0;
     bdd_free_list = 0;
     bdd_free_count = 0;
+    bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
     gc_roots().clear();
 }
 
