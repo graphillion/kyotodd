@@ -48,6 +48,9 @@ PYBIND11_MODULE(_core, m) {
         g_initialized = true;
     }, py::arg("node_count") = 256, py::arg("node_max") = UINT64_MAX,
        "Initialize the BDD library.\n\n"
+       "If not called explicitly, the library is auto-initialized with default\n"
+       "parameters (node_count=256, node_max=unlimited) on first use. Call this\n"
+       "function before any operations if you need to set custom limits.\n\n"
        "Raises RuntimeError if called while BDD/ZDD objects exist.\n\n"
        "Args:\n"
        "    node_count: Initial number of node slots to allocate (default: 256).\n"
