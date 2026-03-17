@@ -113,6 +113,8 @@ static const uint8_t BDD_OP_CLOSURE = 32;
 static const uint8_t BDD_OP_CARD = 33;
 static const uint8_t BDD_OP_LIT = 34;
 static const uint8_t BDD_OP_LEN = 35;
+static const uint8_t BDD_OP_SMOOTH = 36;
+static const uint8_t BDD_OP_SPREAD = 37;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -283,6 +285,25 @@ public:
     void XPrint0() const;
     /** @brief Print BDD graph (bddgraph wrapper). */
     void XPrint() const;
+    /**
+     * @brief Swap variables v1 and v2 in the BDD.
+     * @param v1 First variable number.
+     * @param v2 Second variable number.
+     * @return The BDD with v1 and v2 swapped.
+     */
+    BDD Swap(bddvar v1, bddvar v2) const;
+    /**
+     * @brief Smooth (existential quantification) of variable v.
+     * @param v Variable number to quantify out.
+     * @return The BDD with variable v existentially quantified.
+     */
+    BDD Smooth(bddvar v) const;
+    /**
+     * @brief Spread variable values to neighboring k levels.
+     * @param k Number of levels to spread (must be >= 0).
+     * @return The BDD with values spread by k levels.
+     */
+    BDD Spread(int k) const;
     /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.

@@ -148,6 +148,33 @@ inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
     return b;
 }
 
+inline BDD BDD::Swap(bddvar v1, bddvar v2) const {
+    if (v1 == v2) return *this;
+    BDD fx0 = At0(v1);
+    BDD fx1 = At1(v1);
+    BDD fx0_y0 = fx0.At0(v2);
+    BDD fx0_y1 = fx0.At1(v2);
+    BDD fx1_y0 = fx1.At0(v2);
+    BDD fx1_y1 = fx1.At1(v2);
+    BDD xv1 = BDDvar(v1);
+    BDD xv2 = BDDvar(v2);
+    BDD hi = (~xv2 & fx0_y1) | (xv2 & fx1_y1);
+    BDD lo = (~xv2 & fx0_y0) | (xv2 & fx1_y0);
+    return (xv1 & hi) | (~xv1 & lo);
+}
+
+inline BDD BDD::Smooth(bddvar v) const {
+    BDD b(0);
+    b.root = bddsmooth(root, v);
+    return b;
+}
+
+inline BDD BDD::Spread(int k) const {
+    BDD b(0);
+    b.root = bddspread(root, k);
+    return b;
+}
+
 inline void BDD::Export(FILE* strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);

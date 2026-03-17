@@ -846,3 +846,90 @@ static bddp bddcofactor_rec(bddp f, bddp g) {
     bddwcache(BDD_OP_COFACTOR, f, g, result);
     return result;
 }
+
+// --- bddsmooth ---
+
+static bddp bddsmooth_rec(bddp f, bddvar v) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+
+    bddvar t = node_var(f);
+    bddvar t_level = var2level[t];
+    bddvar v_level = var2level[v];
+
+    if (t_level < v_level) return f;
+
+    bddp cached = bddrcache(BDD_OP_SMOOTH, f, static_cast<bddp>(v));
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+    bddp result;
+    if (t == v) {
+        // Quantify: f|_{v=0} | f|_{v=1}
+        result = bddnot(bddand_rec(bddnot(f_lo), bddnot(f_hi)));
+    } else {
+        bddp lo = bddsmooth_rec(f_lo, v);
+        bddp hi = bddsmooth_rec(f_hi, v);
+        result = getnode(t, lo, hi);
+    }
+
+    bddwcache(BDD_OP_SMOOTH, f, static_cast<bddp>(v), result);
+    return result;
+}
+
+bddp bddsmooth(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddsmooth: var out of range");
+    }
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddsmooth_rec(f, v); });
+}
+
+// --- bddspread ---
+
+static bddp bddspread_rec(bddp f, int k) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+    if (k == 0) return f;
+
+    bddp cached = bddrcache(BDD_OP_SPREAD, f, static_cast<bddp>(k));
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bddvar t = node_var(f);
+    bddp f_lo = node_lo(f);
+    bddp f_hi = node_hi(f);
+    if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+    bddp f0_spread_k = bddspread_rec(f_lo, k);
+    bddp f1_spread_k = bddspread_rec(f_hi, k);
+    bddp f0_spread_k1 = bddspread_rec(f_lo, k - 1);
+    bddp f1_spread_k1 = bddspread_rec(f_hi, k - 1);
+
+    // lo = f0.Spread(k) | f1.Spread(k-1)
+    bddp lo = bddnot(bddand_rec(bddnot(f0_spread_k), bddnot(f1_spread_k1)));
+    // hi = f1.Spread(k) | f0.Spread(k-1)
+    bddp hi = bddnot(bddand_rec(bddnot(f1_spread_k), bddnot(f0_spread_k1)));
+
+    bddp result = getnode(t, lo, hi);
+
+    bddwcache(BDD_OP_SPREAD, f, static_cast<bddp>(k), result);
+    return result;
+}
+
+bddp bddspread(bddp f, int k) {
+    if (f == bddnull) return bddnull;
+    if (k < 0) {
+        throw std::invalid_argument("bddspread: k must be >= 0");
+    }
+    if (k == 0) return f;
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
+}

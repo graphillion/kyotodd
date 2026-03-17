@@ -5356,6 +5356,157 @@ TEST_F(BDDTest, BDDClassPrintConstant) {
     EXPECT_NE(out.find("Size:0"), std::string::npos);
 }
 
+// --- BDD::Swap ---
+
+TEST_F(BDDTest, BDDClassSwapSameVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    EXPECT_EQ(a.Swap(v1, v1), a);
+}
+
+TEST_F(BDDTest, BDDClassSwapSimple) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Swap(v1, v2) on x1 should give x2
+    BDD swapped = a.Swap(v1, v2);
+    EXPECT_EQ(swapped, BDDvar(v2));
+}
+
+TEST_F(BDDTest, BDDClassSwapAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD c = BDDvar(v3);
+    // f = v1 & v2, swap(v1, v3) should give v3 & v2
+    BDD f = a & b;
+    BDD swapped = f.Swap(v1, v3);
+    EXPECT_EQ(swapped, c & b);
+}
+
+TEST_F(BDDTest, BDDClassSwapSymmetric) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+    // Swapping twice should restore original
+    EXPECT_EQ(f.Swap(v1, v2).Swap(v1, v2), f);
+}
+
+TEST_F(BDDTest, BDDClassSwapCommutative) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) | ~BDDvar(v2);
+    // Swap(v1,v2) == Swap(v2,v1)
+    EXPECT_EQ(f.Swap(v1, v2), f.Swap(v2, v1));
+}
+
+// --- BDD::Smooth ---
+
+TEST_F(BDDTest, BDDClassSmoothConstant) {
+    bddvar v1 = BDD_NewVar();
+    EXPECT_EQ(BDD::True.Smooth(v1), BDD::True);
+    EXPECT_EQ(BDD::False.Smooth(v1), BDD::False);
+}
+
+TEST_F(BDDTest, BDDClassSmoothSingleVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // ∃v1. v1 = true
+    EXPECT_EQ(a.Smooth(v1), BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSmoothNotInBDD) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // ∃v2. v1 = v1  (v2 not in BDD)
+    EXPECT_EQ(a.Smooth(v2), a);
+}
+
+TEST_F(BDDTest, BDDClassSmoothAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    // ∃v1. (v1 ∧ v2) = v2
+    EXPECT_EQ(f.Smooth(v1), b);
+}
+
+TEST_F(BDDTest, BDDClassSmoothMatchesExist) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    BDD f = (BDDvar(v1) & BDDvar(v2)) | BDDvar(v3);
+    // Smooth(v) should be the same as Exist(v)
+    EXPECT_EQ(f.Smooth(v1), f.Exist(v1));
+    EXPECT_EQ(f.Smooth(v2), f.Exist(v2));
+    EXPECT_EQ(f.Smooth(v3), f.Exist(v3));
+}
+
+// --- BDD::Spread ---
+
+TEST_F(BDDTest, BDDClassSpreadZero) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Spread(0) = identity
+    EXPECT_EQ(a.Spread(0), a);
+}
+
+TEST_F(BDDTest, BDDClassSpreadConstant) {
+    bddvar v1 = BDD_NewVar();
+    EXPECT_EQ(BDD::True.Spread(1), BDD::True);
+    EXPECT_EQ(BDD::False.Spread(1), BDD::False);
+}
+
+TEST_F(BDDTest, BDDClassSpreadNegativeThrows) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    EXPECT_THROW(a.Spread(-1), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDDClassSpreadSingleVar) {
+    bddvar v1 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    // Spread(1) on v1: at node v1, f0=false, f1=true
+    // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
+    // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
+    // getnode(v1, true, true) = true (reduced)
+    EXPECT_EQ(a.Spread(1), BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSpreadTwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    // f = v1, Spread(1): at top variable v2 (or v1 depending on ordering),
+    // the 0-branch and 1-branch mix via OR
+    // For a single variable f = v1 with 2 vars:
+    // BDD has top = v2 (higher level), At0(v2) = v1, At1(v2) = v1
+    // Wait, v1 doesn't depend on v2, so the BDD just has v1 at its node.
+    // Actually the BDD of v1 only has one node with var v1.
+    // Spread(1) decomposes by v1: f0 = false, f1 = true
+    // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
+    // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
+    // result = getnode(v1, true, true) = true
+    // So Spread(1) on a single var BDD with >1 vars defined = true
+    BDD result = a.Spread(1);
+    EXPECT_EQ(result, BDD::True);
+}
+
+TEST_F(BDDTest, BDDClassSpreadAnd) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+    // Spread should make result >= f (more true values)
+    // f => Spread(f, k) for all k >= 0
+    BDD spread1 = f.Spread(1);
+    EXPECT_EQ(f.Imply(spread1), 1);
+}
+
 TEST_F(BDDTest, BDDClassXPrint0) {
     BDD f = BDDvar(BDD_NewVar());
     EXPECT_THROW(f.XPrint0(), std::logic_error);
