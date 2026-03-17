@@ -118,15 +118,15 @@ class TestZDDShift:
 
 class TestZDDNewProperties:
     def test_size_empty(self):
-        assert ZDD.empty.size == 0
+        assert ZDD.empty.raw_size == 0
 
     def test_size_single(self):
-        assert ZDD.single.size == 0
+        assert ZDD.single.raw_size == 0
 
     def test_size_family(self):
         kyotodd.newvar()
         a = _make_singleton(1)
-        assert a.size == 1
+        assert a.raw_size == 1
 
     def test_lit_empty(self):
         assert ZDD.empty.lit == 0

@@ -251,7 +251,7 @@ class BDD:
         ...
 
     @property
-    def size(self) -> int:
+    def raw_size(self) -> int:
         """The number of nodes in the DAG of this BDD."""
         ...
     @property
@@ -705,7 +705,7 @@ class ZDD:
         """The raw node ID of this ZDD."""
         ...
     @property
-    def size(self) -> int:
+    def raw_size(self) -> int:
         """The number of nodes in the DAG of this ZDD."""
         ...
     @property

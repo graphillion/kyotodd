@@ -107,15 +107,15 @@ class TestBDDProperties:
         assert isinstance(nid, int)
 
     def test_size_false(self):
-        assert BDD.false_.size == 0
+        assert BDD.false_.raw_size == 0
 
     def test_size_true(self):
-        assert BDD.true_.size == 0
+        assert BDD.true_.raw_size == 0
 
     def test_size_var(self):
         kyotodd.newvar()
         x = BDD.var(1)
-        assert x.size == 1
+        assert x.raw_size == 1
 
     def test_top_var(self):
         kyotodd.newvar()
@@ -305,7 +305,7 @@ class TestBDDMethods:
     def test_size_complex(self):
         x, y, z = self._make_vars()
         f = (x & y) | z
-        assert f.size >= 2  # at least 2 nodes
+        assert f.raw_size >= 2  # at least 2 nodes
 
     def test_top_var_and(self):
         x, y, _ = self._make_vars()

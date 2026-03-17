@@ -444,7 +444,7 @@ ZDD Class
 
       The raw node ID of this ZDD.
 
-   .. py:property:: size
+   .. py:property:: raw_size
       :type: int
 
       The number of nodes in the DAG of this ZDD.
