@@ -457,12 +457,18 @@ int bddimply(bddp f, bddp g) {
 
 static void bddsupport_collect(bddp f, std::unordered_set<bddvar>& vars,
                                std::unordered_set<bddp>& visited) {
-    if (f & BDD_CONST_FLAG) return;
-    bddp node = f & ~BDD_COMP_FLAG;
-    if (!visited.insert(node).second) return;
-    vars.insert(node_var(node));
-    bddsupport_collect(node_lo(node), vars, visited);
-    bddsupport_collect(node_hi(node), vars, visited);
+    std::vector<bddp> stack;
+    stack.push_back(f);
+    while (!stack.empty()) {
+        bddp cur = stack.back();
+        stack.pop_back();
+        if (cur & BDD_CONST_FLAG) continue;
+        bddp node = cur & ~BDD_COMP_FLAG;
+        if (!visited.insert(node).second) continue;
+        vars.insert(node_var(node));
+        stack.push_back(node_lo(node));
+        stack.push_back(node_hi(node));
+    }
 }
 
 bddp bddsupport(bddp f) {
