@@ -354,7 +354,7 @@ PYBIND11_MODULE(_core, m) {
         .def("__truediv__",  [](const ZDD& a, const ZDD& b) { return a / b; },
              "Division (quotient): self / other.")
         .def("__mod__",      [](const ZDD& a, const ZDD& b) { return a % b; },
-             "Remainder: self %% other.")
+             "Remainder: self % other.")
         .def("__iadd__",     [](ZDD& a, const ZDD& b) -> ZDD& { a += b; return a; },
              py::return_value_policy::reference_internal,
              "In-place union.")
