@@ -182,8 +182,9 @@ ZDD Class
 
       Joint join.
 
-      For each pair (A, B) where A is in this family and B is in *g*,
-      include A | B in the result (regardless of overlap).
+      For each pair (A, B) where A is in this family and B is in *g*
+      with A & B non-empty, include A | B in the result.
+      Pairs with no overlap are excluded.
 
       :param ZDD g: The other family.
       :return: The resulting ZDD.

@@ -111,7 +111,7 @@ Cross-Product Operations
    # Disjoint product: A∪B only when A∩B = ∅
    disj = F.disjoin(G)
 
-   # Joint join: A∪B regardless of overlap
+   # Joint join: A∪B for overlapping pairs (A∩B ≠ ∅)
    jj = F.jointjoin(G)
 
    # Delta: symmetric difference A△B for each pair

@@ -548,8 +548,9 @@ public:
     /**
      * @brief Joint join of two families.
      *
-     * For each pair (A, B) where A is in this family and B is in @p g,
-     * include A ∪ B in the result (regardless of overlap).
+     * For each pair (A, B) where A is in this family and B is in @p g
+     * with A ∩ B ≠ ∅, include A ∪ B in the result.
+     * Pairs with no overlap are excluded.
      * @param g The other family.
      * @return The resulting ZDD.
      */

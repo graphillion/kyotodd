@@ -491,8 +491,9 @@ PYBIND11_MODULE(_core, m) {
              "    The resulting ZDD.\n")
         .def("jointjoin", &ZDD::Jointjoin, py::arg("g"),
              "Joint join of two families.\n\n"
-             "For each pair (A, B), include A | B in the result\n"
-             "regardless of overlap.\n\n"
+             "For each pair (A, B) with A & B non-empty,\n"
+             "include A | B in the result.\n"
+             "Pairs with no overlap are excluded.\n\n"
              "Args:\n"
              "    g: The other family.\n\n"
              "Returns:\n"

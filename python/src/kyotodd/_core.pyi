@@ -524,8 +524,9 @@ class ZDD:
     def jointjoin(self, g: ZDD) -> ZDD:
         """Joint join of two families.
 
-        For each pair (A, B), include A | B in the result
-        regardless of overlap.
+        For each pair (A, B) with A & B non-empty,
+        include A | B in the result.
+        Pairs with no overlap are excluded.
 
         Args:
             g: The other family.

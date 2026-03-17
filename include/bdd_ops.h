@@ -367,8 +367,8 @@ bddp bdddisjoin(bddp f, bddp g);
 /**
  * @brief Joint join of two ZDD families.
  *
- * For each pair (A, B) where A ∈ f and B ∈ g, include A ∪ B in the result
- * (regardless of whether A and B overlap).
+ * For each pair (A, B) where A ∈ f and B ∈ g with A ∩ B ≠ ∅,
+ * include A ∪ B in the result. Pairs with no overlap are excluded.
  *
  * @param f First family.
  * @param g Second family.
