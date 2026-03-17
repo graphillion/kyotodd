@@ -233,7 +233,7 @@ bddp bddspread(bddp f, int k);
 bddp bddoffset(bddp f, bddvar var);
 
 /**
- * @brief ZDD onset: select sets containing variable @p var, then remove @p var.
+ * @brief ZDD onset: select sets containing variable @p var (var is kept in the result).
  *
  * Returns the subfamily of sets that contain @p var, with @p var removed
  * from each set.

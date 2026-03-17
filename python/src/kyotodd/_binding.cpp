@@ -393,13 +393,13 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    The resulting ZDD.\n")
         .def("onset", &ZDD::OnSet, py::arg("v"),
-             "Select sets containing variable v, then remove v.\n\n"
+             "Select sets containing variable v (v is kept in the result).\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
         .def("onset0", &ZDD::OnSet0, py::arg("v"),
-             "Select sets NOT containing variable v (same as offset).\n\n"
+             "Select sets containing variable v, then remove v (1-cofactor).\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"
              "Returns:\n"
