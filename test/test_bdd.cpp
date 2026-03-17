@@ -7898,3 +7898,33 @@ TEST_F(BDDTest, ZDD_Meet_WithSingle) {
 
     EXPECT_EQ(z_v1.Meet(s), s);
 }
+
+// --- bddimport invalid input tests ---
+
+TEST_F(BDDTest, ImportEmptyStream) {
+    std::istringstream empty("");
+    bddp p = bddnull;
+    int ret = bddimport(empty, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
+TEST_F(BDDTest, ImportMalformedHeader) {
+    std::istringstream bad("garbage data\n");
+    bddp p = bddnull;
+    int ret = bddimport(bad, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
+TEST_F(BDDTest, ImportMissingNodeSection) {
+    std::istringstream bad("_i 2\n_o 1\n_n 1\n");
+    bddp p = bddnull;
+    int ret = bddimport(bad, &p, 1);
+    EXPECT_LT(ret, 0);
+}
+
+TEST_F(BDDTest, ImportzEmptyStream) {
+    std::istringstream empty("");
+    bddp p = bddnull;
+    int ret = bddimportz(empty, &p, 1);
+    EXPECT_LT(ret, 0);
+}
