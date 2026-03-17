@@ -410,7 +410,7 @@ public:
      */
     ZDD OnSet(bddvar var) const;
     /**
-     * @brief Select sets NOT containing variable @p var (same as Offset).
+     * @brief Select sets containing variable @p var and remove @p var from them (same as OnSet with var removed).
      * @param var Variable number.
      * @return The resulting ZDD.
      */
