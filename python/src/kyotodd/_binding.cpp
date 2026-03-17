@@ -341,6 +341,8 @@ PYBIND11_MODULE(_core, m) {
         }, "Return string representation: ZDD(node_id=...).")
 
         // Operators
+        .def("__invert__", [](const ZDD& a) { return ~a; },
+             "Complement: toggle empty set membership (~self).")
         .def("__add__",      [](const ZDD& a, const ZDD& b) { return a + b; },
              "Union: self + other.")
         .def("__sub__",      [](const ZDD& a, const ZDD& b) { return a - b; },

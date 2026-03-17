@@ -207,6 +207,12 @@ inline void BDD::XPrint() const {
 
 // ZDD member functions
 
+inline ZDD ZDD::operator~() const {
+    ZDD z(0);
+    z.root = bddnot(root);
+    return z;
+}
+
 inline ZDD ZDD::Change(bddvar var) const {
     ZDD z(0);
     z.root = bddchange(root, var);

@@ -452,6 +452,8 @@ public:
     ZDD operator>>(bddvar s) const;
     /** @brief In-place right shift. */
     ZDD& operator>>=(bddvar s);
+    /** @brief Complement: toggle empty set membership in the family. */
+    ZDD operator~() const;
     /** @brief Equality comparison by node ID. */
     bool operator==(const ZDD& other) const { return root == other.root; }
     /** @brief Inequality comparison by node ID. */
