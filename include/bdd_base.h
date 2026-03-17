@@ -211,6 +211,17 @@ BDD BDDvar(bddvar v);
  */
 ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
 
+/**
+ * @brief Read the operation cache and return the result as a ZDD.
+ *
+ * Wrapper around bddrcache. Returns ZDD::Null on cache miss.
+ * @param op Operation code.
+ * @param f First operand (raw node ID).
+ * @param g Second operand (raw node ID).
+ * @return The cached ZDD, or ZDD::Null if not found.
+ */
+ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g);
+
 bddp bddrcache(uint8_t op, bddp f, bddp g);
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);

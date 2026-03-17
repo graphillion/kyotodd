@@ -6722,3 +6722,36 @@ TEST_F(BDDTest, ZDD_ImportFilePtrVector) {
     EXPECT_EQ(v[0].GetID(), z_v1);
     EXPECT_EQ(v[1].GetID(), z_v2);
 }
+
+// --- BDD_CacheZDD ---
+
+TEST_F(BDDTest, BDD_CacheZDD_Miss) {
+    bddvar v1 = bddnewvar();
+    bddp p1 = getznode(v1, bddempty, bddsingle);
+    // No prior write: should return ZDD::Null
+    EXPECT_EQ(BDD_CacheZDD(BDD_OP_UNION, p1, p1), ZDD::Null);
+}
+
+TEST_F(BDDTest, BDD_CacheZDD_Hit) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp result = bddunion(z_v1, z_v2);
+
+    bddwcache(BDD_OP_UNION, z_v1, z_v2, result);
+    ZDD cached = BDD_CacheZDD(BDD_OP_UNION, z_v1, z_v2);
+    EXPECT_EQ(cached.GetID(), result);
+}
+
+TEST_F(BDDTest, BDD_CacheZDD_DifferentOpMiss) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp result = bddunion(z_v1, z_v2);
+
+    bddwcache(BDD_OP_UNION, z_v1, z_v2, result);
+    // Different op should miss
+    EXPECT_EQ(BDD_CacheZDD(BDD_OP_INTERSEC, z_v1, z_v2), ZDD::Null);
+}

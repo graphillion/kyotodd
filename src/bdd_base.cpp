@@ -687,6 +687,11 @@ ZDD ZDD_Meet(const ZDD& f, const ZDD& g) {
     return z;
 }
 
+ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g) {
+    bddp r = bddrcache(op, f, g);
+    return ZDD_ID(r);
+}
+
 // Obsolete: BDD and ZDD share the same node table, so node-level type
 // distinction is not possible. Retained for API compatibility.
 int bddisbdd(bddp f) {
