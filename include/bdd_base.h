@@ -22,6 +22,15 @@ int bddinit(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX);
 inline int BDD_Init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) { return bddinit(node_count, node_max); }
 
 /**
+ * @brief Finalize the BDD library and release all resources.
+ *
+ * Frees all allocated memory (nodes, unique tables, cache) and clears
+ * all GC roots. Safe to call multiple times or before bddinit().
+ * Any existing BDD/ZDD node IDs become invalid after this call.
+ */
+void bddfinal();
+
+/**
  * @brief Create a new Boolean variable.
  *
  * Allocates a new variable with the next sequential variable number.

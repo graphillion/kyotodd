@@ -47,6 +47,13 @@ PYBIND11_MODULE(_core, m) {
        "    node_count: Initial number of node slots to allocate (default: 256).\n"
        "    node_max: Maximum number of node slots allowed (default: unlimited).\n");
 
+    m.def("finalize", []() {
+        bddfinal();
+        g_initialized = false;
+    }, "Finalize the BDD library and release all resources.\n\n"
+       "Clears all GC roots and frees all nodes. Safe to call multiple\n"
+       "times. Any existing BDD/ZDD objects become invalid after this call.\n");
+
     // Variable management
     m.def("newvar", []() -> bddvar {
         ensure_init();

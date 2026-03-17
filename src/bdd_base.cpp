@@ -175,15 +175,13 @@ static void unique_table_resize(BddUniqueTable* t) {
 }
 
 // --- Public API ---
-int bddinit(uint64_t node_count, uint64_t node_max) {
-    // Free previous allocations if re-initializing
+void bddfinal() {
     std::free(bdd_nodes);
     bdd_nodes = nullptr;
     std::free(var2level);
     var2level = nullptr;
     std::free(level2var);
     level2var = nullptr;
-    // Free unique tables
     for (bddvar i = 1; i <= bdd_varcount; i++) {
         std::free(bdd_unique_tables[i].slots);
     }
@@ -193,17 +191,19 @@ int bddinit(uint64_t node_count, uint64_t node_max) {
     bdd_cache = nullptr;
     bdd_cache_size = 0;
 
-    // Reset variable state
     bdd_varcount = 0;
     var_capacity = 0;
     bdd_node_used = 0;
 
-    // Reset GC state
     BDD_RecurCount = 0;
     bdd_gc_depth = 0;
     bdd_free_list = 0;
     bdd_free_count = 0;
     gc_roots().clear();
+}
+
+int bddinit(uint64_t node_count, uint64_t node_max) {
+    bddfinal();
 
     if (node_count == 0) node_count = 1;
     if (node_max == 0) node_max = 1;
