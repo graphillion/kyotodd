@@ -20,11 +20,37 @@ static void export_collect(bddp f, std::unordered_set<bddp>& visited,
                            std::vector<bddp>& order) {
     if (f == bddnull) return;
     if (f & BDD_CONST_FLAG) return;
-    bddp node = f & ~BDD_COMP_FLAG;
-    if (!visited.insert(node).second) return;
-    export_collect(node_lo(node), visited, order);
-    export_collect(node_hi(node), visited, order);
-    order.push_back(node);
+    bddp root = f & ~BDD_COMP_FLAG;
+    if (!visited.insert(root).second) return;
+    // Iterative post-order DFS using explicit stack.
+    // Stack entries: (node, expanded). When expanded=false, push children
+    // first; when expanded=true, emit the node.
+    std::vector<std::pair<bddp, bool>> stack;
+    stack.push_back(std::make_pair(root, false));
+    while (!stack.empty()) {
+        auto& top = stack.back();
+        if (top.second) {
+            order.push_back(top.first);
+            stack.pop_back();
+            continue;
+        }
+        top.second = true;
+        bddp node = top.first;
+        bddp hi = node_hi(node);
+        if (!(hi & BDD_CONST_FLAG) && hi != bddnull) {
+            bddp hi_node = hi & ~BDD_COMP_FLAG;
+            if (visited.insert(hi_node).second) {
+                stack.push_back(std::make_pair(hi_node, false));
+            }
+        }
+        bddp lo = node_lo(node);
+        if (!(lo & BDD_CONST_FLAG) && lo != bddnull) {
+            bddp lo_node = lo & ~BDD_COMP_FLAG;
+            if (visited.insert(lo_node).second) {
+                stack.push_back(std::make_pair(lo_node, false));
+            }
+        }
+    }
 }
 
 // Format an arc value as a string for the export file.
