@@ -4775,10 +4775,11 @@ TEST_F(BDDTest, BddClosureSingle) {
 }
 
 TEST_F(BDDTest, BddClosureSingleton) {
-    // closure({{v1}}) = {{v1}}
+    // closure({{v1}}) = {{v1}, ∅}
     bddvar v1 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    EXPECT_EQ(bddclosure(z_v1), z_v1);
+    bddp expected = bddunion(z_v1, bddsingle);
+    EXPECT_EQ(bddclosure(z_v1), expected);
 }
 
 TEST_F(BDDTest, BddClosureTwoSets) {
@@ -4793,27 +4794,31 @@ TEST_F(BDDTest, BddClosureTwoSets) {
 }
 
 TEST_F(BDDTest, BddClosureSubsets) {
-    // closure({{v1}, {v1,v2}}) = {{v1}, {v1,v2}}
-    // ({v1} ∩ {v1,v2} = {v1} already in F)
+    // closure({{v1}, {v1,v2}}) = {{v1,v2}, {v1}, {v2}, ∅}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     bddp F = bddunion(z_v1, z_v1v2);
-    EXPECT_EQ(bddclosure(F), F);
+    bddp expected = bddunion(bddunion(z_v1v2, bddunion(z_v1, z_v2)), bddsingle);
+    EXPECT_EQ(bddclosure(F), expected);
 }
 
 TEST_F(BDDTest, BddClosureThreeSets) {
-    // closure({{v1,v2}, {v2,v3}}) = {{v1,v2}, {v2,v3}, {v2}}
-    // ({v1,v2} ∩ {v2,v3} = {v2})
+    // closure({{v1,v2}, {v2,v3}}) = {{v1,v2}, {v2,v3}, {v1}, {v2}, {v3}, ∅}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v3 = getznode(v3, bddempty, bddsingle);
     bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
     bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1v2, z_v2v3);
-    bddp expected = bddunion(bddunion(z_v1v2, z_v2v3), z_v2);
+    bddp expected = bddunion(bddunion(bddunion(z_v1v2, z_v2v3),
+                              bddunion(z_v1, bddunion(z_v2, z_v3))),
+                              bddsingle);
     EXPECT_EQ(bddclosure(F), expected);
 }
 

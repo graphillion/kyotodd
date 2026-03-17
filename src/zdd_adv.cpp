@@ -596,9 +596,9 @@ static bddp bddclosure_rec(bddp f) {
     // F₀ = offset(F, v), F₁ = onset0(F, v)
     bddp C0 = bddclosure_rec(f_lo);
     bddp C1 = bddclosure_rec(f_hi);
-    // lo: closure(F₀) ∪ meet(closure(F₀), closure(F₁))
-    // bddunion, bddmeet are cross-file: use public wrappers
-    bddp lo = bddunion(C0, bddmeet(C0, C1));
+    // lo: closure(F₀) ∪ closure(F₁)
+    // bddunion is cross-file: use public wrapper
+    bddp lo = bddunion(C0, C1);
     // hi: closure(F₁)
     bddp hi = C1;
     bddp result = getznode(f_var, lo, hi);
