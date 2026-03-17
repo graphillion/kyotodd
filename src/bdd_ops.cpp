@@ -444,9 +444,14 @@ int bddimply(bddp f, bddp g) {
     }
 
     // Both branches must satisfy the implication
-    int result = bddimply(f_lo, g_lo) && bddimply(f_hi, g_hi);
+    int r_lo = bddimply(f_lo, g_lo);
+    if (r_lo != 1) {
+        if (r_lo == 0) bddwcache(BDD_OP_IMPLY, f, g, bddfalse);
+        return r_lo;  // propagate 0 or -1
+    }
+    int result = bddimply(f_hi, g_hi);
 
-    bddwcache(BDD_OP_IMPLY, f, g, result ? bddtrue : bddfalse);
+    if (result >= 0) bddwcache(BDD_OP_IMPLY, f, g, result ? bddtrue : bddfalse);
     return result;
 }
 
