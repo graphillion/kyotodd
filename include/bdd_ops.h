@@ -245,7 +245,7 @@ bddp bddoffset(bddp f, bddvar var);
 bddp bddonset(bddp f, bddvar var);
 
 /**
- * @brief ZDD onset0: select sets NOT containing variable @p var (same as offset).
+ * @brief ZDD onset0: select sets containing variable @p var and remove @p var (1-cofactor).
  * @param f A ZDD node ID.
  * @param var Variable number.
  * @return The resulting ZDD.
