@@ -594,15 +594,21 @@ TEST_F(BDDTest, BddLevOfVarAfterNewVarOfLev) {
     EXPECT_EQ(bddvaroflev(3), v2);
 }
 
+TEST_F(BDDTest, BddLevOfVarZero) {
+    EXPECT_EQ(bddlevofvar(0), 0u);
+}
+
 TEST_F(BDDTest, BddLevOfVarInvalidRange) {
     BDD_NewVar();
-    EXPECT_THROW(bddlevofvar(0), std::invalid_argument);
     EXPECT_THROW(bddlevofvar(2), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddVarOfLevZero) {
+    EXPECT_EQ(bddvaroflev(0), 0u);
 }
 
 TEST_F(BDDTest, BddVarOfLevInvalidRange) {
     BDD_NewVar();
-    EXPECT_THROW(bddvaroflev(0), std::invalid_argument);
     EXPECT_THROW(bddvaroflev(2), std::invalid_argument);
 }
 

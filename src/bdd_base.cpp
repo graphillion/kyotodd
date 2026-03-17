@@ -331,14 +331,16 @@ bddvar bddnewvaroflev(bddvar lev) {
 }
 
 bddvar bddlevofvar(bddvar var) {
-    if (var < 1 || var > bdd_varcount) {
+    if (var == 0) return 0;
+    if (var > bdd_varcount) {
         throw std::invalid_argument("bddlevofvar: var out of range");
     }
     return var2level[var];
 }
 
 bddvar bddvaroflev(bddvar lev) {
-    if (lev < 1 || lev > bdd_varcount) {
+    if (lev == 0) return 0;
+    if (lev > bdd_varcount) {
         throw std::invalid_argument("bddvaroflev: lev out of range");
     }
     return level2var[lev];

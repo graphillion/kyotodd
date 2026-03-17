@@ -160,7 +160,7 @@ inline void BDD::Export(std::ostream& strm) const {
 
 inline void BDD::Print() const {
     bddvar v = bddtop(root);
-    bddvar lev = (v == 0) ? 0 : bddlevofvar(v);
+    bddvar lev = bddlevofvar(v);
     std::cout << "[ " << root
               << " Var:" << v << "(" << lev << ")"
               << " Size:" << bddsize(root)
