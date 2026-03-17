@@ -136,6 +136,10 @@ public:
     /** @brief Get the raw node ID. */
     bddp GetID() const { return root; }
 
+    /** @brief Default constructor. Constructs a false BDD. */
+    BDD() : root(bddfalse) {
+        bddgc_protect(&root);
+    }
     /**
      * @brief Construct a BDD from an integer value.
      * @param val 0 for false, 1 for true, negative for null.

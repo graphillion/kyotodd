@@ -57,6 +57,11 @@ TEST_F(BDDTest, RecurLimitAndCount) {
 
 // --- BDD/ZDD constructors ---
 
+TEST_F(BDDTest, BDDDefaultConstructor) {
+    BDD f;
+    EXPECT_EQ(f.GetID(), bddfalse);
+}
+
 TEST_F(BDDTest, BDDConstructor) {
     BDD f(0);
     BDD t(1);
