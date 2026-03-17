@@ -20,28 +20,28 @@ typedef uint64_t bddp;
 typedef uint32_t bddvar;
 
 /** @brief Constant flag (bit 47). When set, the node ID represents a terminal node. */
-static const bddp BDD_CONST_FLAG = UINT64_C(0x800000000000);  // bit 47: constant flag
+static constexpr bddp BDD_CONST_FLAG = UINT64_C(0x800000000000);  // bit 47: constant flag
 /** @brief Complement flag (bit 0). When set, the edge is a complement (negated) edge. */
-static const bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);  // bit 0: complement flag
+static constexpr bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);  // bit 0: complement flag
 
 /** @brief Maximum variable number (31-bit). */
-static const bddvar bddvarmax = (UINT32_C(1) << (sizeof(uint64_t) * 8 - BDD_NODE_VAR_SHIFT)) - 1;
+static constexpr bddvar bddvarmax = (UINT32_C(1) << (sizeof(uint64_t) * 8 - BDD_NODE_VAR_SHIFT)) - 1;
 /** @brief Maximum constant value for terminal nodes (47-bit). */
-static const bddp bddvalmax = BDD_CONST_FLAG - 1;
+static constexpr bddp bddvalmax = BDD_CONST_FLAG - 1;
 
 /** @brief Constant false (0-terminal) for BDD. */
-static const bddp bddfalse  = BDD_CONST_FLAG | 0;  // 0-terminal
+static constexpr bddp bddfalse  = BDD_CONST_FLAG | 0;  // 0-terminal
 /** @brief Empty family (0-terminal) for ZDD. Alias of bddfalse. */
-static const bddp bddempty  = BDD_CONST_FLAG | 0;  // 0-terminal (ZDD alias)
+static constexpr bddp bddempty  = BDD_CONST_FLAG | 0;  // 0-terminal (ZDD alias)
 /** @brief Constant true (1-terminal) for BDD. */
-static const bddp bddtrue   = BDD_CONST_FLAG | 1;  // 1-terminal
+static constexpr bddp bddtrue   = BDD_CONST_FLAG | 1;  // 1-terminal
 /** @brief Unit family {∅} (1-terminal) for ZDD. Alias of bddtrue. */
-static const bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
+static constexpr bddp bddsingle = BDD_CONST_FLAG | 1;  // 1-terminal (ZDD alias)
 /** @brief Null (error) node ID. Returned on invalid operations. */
-static const bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
+static constexpr bddp bddnull   = UINT64_C(0x7FFFFFFFFFFF);  // error
 
 /** @brief Maximum recursion depth for recursive operations. */
-#define BDD_RecurLimit 8192
+static constexpr int BDD_RecurLimit = 8192;
 /** @brief Current recursion depth counter. */
 extern int BDD_RecurCount;
 
