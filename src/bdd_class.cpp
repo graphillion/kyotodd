@@ -1,6 +1,4 @@
-#include "bdd_types.h"
-#include "bdd_base.h"
-#include <iostream>
+#include "bdd.h"
 #include <stdexcept>
 
 const BDD BDD::False(0);
