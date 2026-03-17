@@ -5,6 +5,7 @@
 #include "bdd_base.h"
 #include "bdd_ops.h"
 #include "bdd_io.h"
+#include <iostream>
 
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
@@ -155,6 +156,16 @@ inline void BDD::Export(FILE* strm) const {
 inline void BDD::Export(std::ostream& strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
+}
+
+inline void BDD::Print() const {
+    bddvar v = bddtop(root);
+    bddvar lev = (v == 0) ? 0 : bddlevofvar(v);
+    std::cout << "[ " << root
+              << " Var:" << v << "(" << lev << ")"
+              << " Size:" << bddsize(root)
+              << " ]";
+    std::cout.flush();
 }
 
 inline void BDD::XPrint0() const {

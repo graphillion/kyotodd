@@ -277,6 +277,8 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Print BDD summary (ID, Var, Level, Size) to stdout. */
+    void Print() const;
     /** @brief Print BDD graph (bddgraph0 wrapper). */
     void XPrint0() const;
     /** @brief Print BDD graph (bddgraph wrapper). */

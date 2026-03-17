@@ -5315,6 +5315,41 @@ TEST_F(BDDTest, BDDClassIte) {
     EXPECT_EQ(r2.GetID(), (a | b).GetID());
 }
 
+TEST_F(BDDTest, BDDClassPrint) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD f = BDDvar(v1) & BDDvar(v2);
+
+    // Capture stdout
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    f.Print();
+    std::cout.rdbuf(old);
+
+    std::string out = oss.str();
+    bddvar top = bddtop(f.GetID());
+
+    // Build expected string
+    std::ostringstream expected;
+    expected << "[ " << f.GetID()
+             << " Var:" << top << "(" << bddlevofvar(top) << ")"
+             << " Size:" << bddsize(f.GetID())
+             << " ]";
+    EXPECT_EQ(out, expected.str());
+}
+
+TEST_F(BDDTest, BDDClassPrintConstant) {
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    BDD::False.Print();
+    std::cout.rdbuf(old);
+
+    // Constant: Var:0(0) Size:0
+    std::string out = oss.str();
+    EXPECT_NE(out.find("Var:0(0)"), std::string::npos);
+    EXPECT_NE(out.find("Size:0"), std::string::npos);
+}
+
 TEST_F(BDDTest, BDDClassXPrint0) {
     BDD f = BDDvar(BDD_NewVar());
     EXPECT_THROW(f.XPrint0(), std::logic_error);
