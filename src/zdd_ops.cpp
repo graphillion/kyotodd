@@ -779,3 +779,13 @@ bddp bddremainder(bddp f, bddp g) {
         return bddsubtract_rec(f, j);
     });
 }
+
+ZDD ZDD_Random(int lev, int density) {
+    if (lev <= 0) {
+        return (std::rand() % 100 < density) ? ZDD(1) : ZDD(0);
+    }
+    bddvar v = bddvaroflev(lev);
+    ZDD lo = ZDD_Random(lev - 1, density);
+    ZDD hi = ZDD_Random(lev - 1, density).Change(v);
+    return lo + hi;
+}

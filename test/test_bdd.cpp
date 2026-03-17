@@ -6755,3 +6755,48 @@ TEST_F(BDDTest, BDD_CacheZDD_DifferentOpMiss) {
     // Different op should miss
     EXPECT_EQ(BDD_CacheZDD(BDD_OP_INTERSEC, z_v1, z_v2), ZDD::Null);
 }
+
+// --- ZDD_Random ---
+
+TEST_F(BDDTest, ZDD_Random_Lev0_Density0) {
+    // density=0: always empty
+    ZDD z = ZDD_Random(0, 0);
+    EXPECT_EQ(z, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_Random_Lev0_Density100) {
+    // density=100: always single
+    ZDD z = ZDD_Random(0, 100);
+    EXPECT_EQ(z, ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_Random_ReturnsValidZDD) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::srand(42);
+    ZDD z = ZDD_Random(3, 50);
+    // Result must be a valid ZDD (not null)
+    EXPECT_NE(z, ZDD::Null);
+}
+
+TEST_F(BDDTest, ZDD_Random_Density0_AlwaysEmpty) {
+    bddnewvar();
+    bddnewvar();
+    // density=0: all terminals are 0, result is empty family
+    ZDD z = ZDD_Random(2, 0);
+    EXPECT_EQ(z, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_Random_DifferentSeedsGiveDifferentResults) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::srand(1);
+    ZDD z1 = ZDD_Random(3, 50);
+    std::srand(999);
+    ZDD z2 = ZDD_Random(3, 50);
+    // Very unlikely to be equal with different seeds
+    // (not guaranteed, but extremely improbable for 3 vars)
+    EXPECT_NE(z1.GetID(), z2.GetID());
+}

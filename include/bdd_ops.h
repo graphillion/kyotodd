@@ -493,4 +493,16 @@ bigint::BigInt bddexactcount(bddp f);
  */
 char *bddcardmp16(bddp f, char *s);
 
+/**
+ * @brief Generate a random ZDD over the lowest @p lev levels.
+ *
+ * Recursively builds a random family of sets. Each terminal is
+ * independently set to 1 with probability @p density / 100.
+ *
+ * @param lev Number of variable levels to use (1..bdd_varcount).
+ * @param density Probability (0–100) for each terminal to be 1. Default 50.
+ * @return A random ZDD.
+ */
+ZDD ZDD_Random(int lev, int density = 50);
+
 #endif
