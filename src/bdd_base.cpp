@@ -517,6 +517,43 @@ static void bddsize_traverse(bddp f, std::unordered_set<bddp>& visited) {
     }
 }
 
+static void bddplainsize_traverse(bddp f, bool is_zdd,
+                                   std::unordered_set<bddp>& visited) {
+    std::vector<bddp> stack;
+    stack.push_back(f);
+    while (!stack.empty()) {
+        bddp cur = stack.back();
+        stack.pop_back();
+        if (cur == bddnull) continue;
+        if (cur & BDD_CONST_FLAG) continue;
+        // Key includes complement bit: different complement = different plain node
+        if (!visited.insert(cur).second) continue;
+
+        bddp base = cur & ~BDD_COMP_FLAG;
+        bool comp = cur & BDD_COMP_FLAG;
+
+        bddp lo = node_lo(base);
+        bddp hi = node_hi(base);
+
+        if (comp) {
+            lo ^= BDD_COMP_FLAG;
+            if (!is_zdd) {
+                hi ^= BDD_COMP_FLAG;
+            }
+        }
+
+        stack.push_back(lo);
+        stack.push_back(hi);
+    }
+}
+
+uint64_t bddplainsize(bddp f, bool is_zdd) {
+    if (f == bddnull) return 0;
+    std::unordered_set<bddp> visited;
+    bddplainsize_traverse(f, is_zdd, visited);
+    return visited.size();
+}
+
 uint64_t bddsize(bddp f) {
     if (f == bddnull) return 0;
     std::unordered_set<bddp> visited;

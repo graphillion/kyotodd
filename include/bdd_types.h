@@ -292,6 +292,8 @@ public:
      * @return The DAG node count.
      */
     uint64_t Size() const;
+    /** @brief Return the number of nodes without complement edge sharing. */
+    uint64_t plain_size() const;
     /** @brief Export to a FILE stream. */
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
@@ -568,6 +570,8 @@ public:
     bddvar Top() const;
     /** @brief Count the number of nodes. */
     uint64_t Size() const;
+    /** @brief Return the number of nodes without complement edge sharing. */
+    uint64_t plain_size() const;
     /** @brief Count the total number of literals across all sets. */
     uint64_t Lit() const;
     /** @brief Return the maximum set size in the family. */

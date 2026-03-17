@@ -116,6 +116,20 @@ uint64_t bddused();
 uint64_t bddsize(bddp f);
 
 /**
+ * @brief Return the number of nodes without complement edge sharing.
+ *
+ * Counts nodes as if complement edges were expanded into separate nodes.
+ * A node reached via a complement edge is counted as distinct from the
+ * same node reached without complement.
+ *
+ * @param f A node ID.
+ * @param is_zdd true for ZDD complement semantics (complement only on lo),
+ *               false for BDD semantics (complement on both lo and hi).
+ * @return The plain (unfolded) DAG node count.
+ */
+uint64_t bddplainsize(bddp f, bool is_zdd);
+
+/**
  * @brief Return the total number of nodes in multiple DAGs (array version).
  *
  * Counts shared nodes only once.

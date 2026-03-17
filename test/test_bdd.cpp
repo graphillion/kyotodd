@@ -8226,3 +8226,70 @@ TEST_F(BDDTest, BddinitWithLiveObjectsThrows) {
         (void)x;
     }
 }
+
+// --- bddplainsize / plain_size ---
+
+TEST_F(BDDTest, PlainSize_Terminals) {
+    EXPECT_EQ(bddplainsize(bddfalse, false), 0u);
+    EXPECT_EQ(bddplainsize(bddtrue, false), 0u);
+    EXPECT_EQ(bddplainsize(bddnull, false), 0u);
+    EXPECT_EQ(bddplainsize(bddempty, true), 0u);
+    EXPECT_EQ(bddplainsize(bddsingle, true), 0u);
+}
+
+TEST_F(BDDTest, PlainSize_BDD_NoComplement) {
+    // A single variable BDD (no complement edges) should have same plain_size and Size
+    bddvar v = bddnewvar();
+    BDD x = BDDvar(v);
+    EXPECT_EQ(x.plain_size(), x.Size());
+}
+
+TEST_F(BDDTest, PlainSize_BDD_WithComplement) {
+    // ~x uses a complement edge, so plain_size should be >= Size
+    bddvar v = bddnewvar();
+    BDD x = BDDvar(v);
+    BDD nx = ~x;
+    // x and ~x share the same physical node, so Size is 1 for both
+    EXPECT_EQ(x.Size(), 1u);
+    EXPECT_EQ(nx.Size(), 1u);
+    // plain_size of ~x: the root is complemented, so both children are
+    // flipped. This may create a distinct logical node.
+    EXPECT_GE(nx.plain_size(), nx.Size());
+}
+
+TEST_F(BDDTest, PlainSize_BDD_Complex) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;     // AND: no complement edges needed
+    BDD g = ~(a & b);  // NAND: complement at root
+    // NAND has same physical nodes as AND, but plain_size may differ
+    EXPECT_EQ(f.Size(), g.Size());
+    EXPECT_GE(g.plain_size(), g.Size());
+}
+
+TEST_F(BDDTest, PlainSize_ZDD_NoComplement) {
+    bddvar v = bddnewvar();
+    bddp z = bddchange(bddsingle, v);  // {{v}}
+    EXPECT_EQ(bddplainsize(z, true), bddsize(z));
+}
+
+TEST_F(BDDTest, PlainSize_ZDD_WithComplement) {
+    bddvar v = bddnewvar();
+    bddp z = bddchange(bddsingle, v);  // {{v}}
+    bddp nz = z ^ BDD_COMP_FLAG;       // complement edge
+    // ZDD complement only affects lo child
+    EXPECT_GE(bddplainsize(nz, true), bddsize(nz));
+}
+
+TEST_F(BDDTest, PlainSize_ZDD_MemberFunction) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD b = ZDD_ID(bddchange(bddsingle, v2));
+    ZDD u = a + b;  // {{v1}, {v2}}
+    EXPECT_GE(u.plain_size(), 1u);
+    // plain_size >= Size always
+    EXPECT_GE(u.plain_size(), u.Size());
+}

@@ -149,6 +149,10 @@ inline uint64_t BDD::Size() const {
     return bddsize(root);
 }
 
+inline uint64_t BDD::plain_size() const {
+    return bddplainsize(root, false);
+}
+
 inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
     BDD b(0);
     b.root = bddite(f.root, g.root, h.root);
@@ -436,6 +440,10 @@ inline bddvar ZDD::Top() const {
 
 inline uint64_t ZDD::Size() const {
     return bddsize(root);
+}
+
+inline uint64_t ZDD::plain_size() const {
+    return bddplainsize(root, true);
 }
 
 inline uint64_t ZDD::Lit() const {
