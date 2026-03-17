@@ -33,10 +33,16 @@ PYBIND11_MODULE(_core, m) {
 
     // Initialization
     m.def("init", [](uint64_t node_count, uint64_t node_max) {
+        if (g_initialized && bddgc_rootcount() > 0) {
+            throw std::runtime_error(
+                "init(): cannot re-initialize while BDD/ZDD objects exist. "
+                "Delete all BDD/ZDD objects first.");
+        }
         bddinit(node_count, node_max);
         g_initialized = true;
     }, py::arg("node_count") = 256, py::arg("node_max") = UINT64_MAX,
        "Initialize the BDD library.\n\n"
+       "Raises RuntimeError if called while BDD/ZDD objects exist.\n\n"
        "Args:\n"
        "    node_count: Initial number of node slots to allocate (default: 256).\n"
        "    node_max: Maximum number of node slots allowed (default: unlimited).\n");

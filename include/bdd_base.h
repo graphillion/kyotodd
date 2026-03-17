@@ -274,6 +274,11 @@ double bddgc_getthreshold();
  */
 uint64_t bddlive();
 
+/**
+ * @brief Return the number of registered GC root pointers.
+ */
+uint64_t bddgc_rootcount();
+
 // Obsolete: always throws. Retained for API compatibility.
 /** @brief @deprecated Always throws. Use BDD/ZDD class types instead. */
 int bddisbdd(bddp f);

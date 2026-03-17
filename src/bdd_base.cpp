@@ -390,6 +390,10 @@ void bddgc_unprotect(bddp* p) {
     gc_roots().erase(p);
 }
 
+uint64_t bddgc_rootcount() {
+    return gc_roots().size();
+}
+
 void bddgc_setthreshold(double threshold) {
     bdd_gc_threshold = threshold;
 }
