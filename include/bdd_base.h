@@ -231,9 +231,13 @@ ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
  */
 ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g);
 
+/** @brief Read 2-operand cache. @return Cached result, or bddnull on miss. */
 bddp bddrcache(uint8_t op, bddp f, bddp g);
+/** @brief Write 2-operand cache entry. */
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
+/** @brief Read 3-operand cache. @return Cached result, or bddnull on miss. */
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);
+/** @brief Write 3-operand cache entry. */
 void bddwcache3(uint8_t op, bddp f, bddp g, bddp h, bddp result);
 
 /**
