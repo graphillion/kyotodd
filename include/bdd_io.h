@@ -9,34 +9,38 @@
 /**
  * @brief Export BDD/ZDD nodes to a FILE stream (array version).
  *
- * Writes the DAG structure of the first @p lim nodes in @p p to the stream
- * in a text format that can be read back by bddimport.
+ * Writes the DAG structure of nodes in @p p to the stream in a text format
+ * that can be read back by bddimport. A @c bddnull entry acts as a
+ * sentinel: export stops at the first @c bddnull, so only elements before
+ * it are written.
  *
  * @param strm Output FILE stream.
- * @param p Array of node IDs to export.
- * @param lim Number of nodes in the array.
+ * @param p Array of node IDs to export. @c bddnull terminates the array.
+ * @param lim Maximum number of elements to scan in @p p.
  */
 void bddexport(FILE* strm, const bddp* p, int lim);
 
 /**
  * @brief Export BDD/ZDD nodes to a FILE stream (vector version).
  * @param strm Output FILE stream.
- * @param v Vector of node IDs to export.
+ * @param v Vector of node IDs to export. @c bddnull terminates the sequence.
  */
 void bddexport(FILE* strm, const std::vector<bddp>& v);
 
 /**
  * @brief Export BDD/ZDD nodes to an output stream (array version).
+ *
+ * @copydetails bddexport(FILE*, const bddp*, int)
  * @param strm Output stream.
- * @param p Array of node IDs to export.
- * @param lim Number of nodes in the array.
+ * @param p Array of node IDs to export. @c bddnull terminates the array.
+ * @param lim Maximum number of elements to scan in @p p.
  */
 void bddexport(std::ostream& strm, const bddp* p, int lim);
 
 /**
  * @brief Export BDD/ZDD nodes to an output stream (vector version).
  * @param strm Output stream.
- * @param v Vector of node IDs to export.
+ * @param v Vector of node IDs to export. @c bddnull terminates the sequence.
  */
 void bddexport(std::ostream& strm, const std::vector<bddp>& v);
 
@@ -154,8 +158,13 @@ void bdddump(bddp f);
 
 /**
  * @brief Dump the internal structure of multiple BDD/ZDDs to stdout.
- * @param p Array of node IDs to dump.
- * @param n Number of elements in the array.
+ *
+ * A @c bddnull entry acts as a sentinel: only elements before the first
+ * @c bddnull are dumped as nodes, and roots are printed up to and
+ * including that @c bddnull.
+ *
+ * @param p Array of node IDs to dump. @c bddnull terminates the array.
+ * @param n Maximum number of elements to scan in @p p.
  */
 void bddvdump(bddp *p, int n);
 
