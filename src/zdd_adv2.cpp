@@ -348,3 +348,138 @@ bddp bddsymgrpnaive(bddp f) {
         return result;
     });
 }
+
+// --- Helper: convert support to family of singletons ---
+
+static bddp support_to_singletons(bddp f) {
+    std::vector<bddvar> vars = bddsupport_vec(f);
+    bddp result = bddempty;
+    for (bddvar v : vars) {
+        result = bddunion(result, bddchange(bddsingle, v));
+    }
+    return result;
+}
+
+// --- bddsymset ---
+
+static bddp bddsymset_rec(bddp f0, bddp f1);
+
+bddp bddsymset(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddsymset: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        bddp f0 = bddoffset(f, v);
+        bddp f1 = bddonset0(f, v);
+        return bddsymset_rec(f0, f1);
+    });
+}
+
+static bddp bddsymset_rec(bddp f0, bddp f1) {
+    BDD_RecurGuard guard;
+
+    if (f1 == bddempty) return bddempty;
+    if (f1 == bddsingle && (f0 & BDD_CONST_FLAG)) return bddempty;
+
+    bddp cached = bddrcache(BDD_OP_SYMSET, f0, f1);
+    if (cached != bddnull) return cached;
+
+    // Find top variable among f0 and f1
+    bddvar f0_top = bddtop(f0);
+    bddvar f1_top = bddtop(f1);
+    bddvar f0_level = (f0_top == 0) ? 0 : var2level[f0_top];
+    bddvar f1_level = (f1_top == 0) ? 0 : var2level[f1_top];
+    bddvar t = (f0_level > f1_level) ? f0_top : f1_top;
+
+    // Decompose f0 and f1 at t
+    bddp f00 = bddoffset(f0, t);
+    bddp f01 = bddonset0(f0, t);
+    bddp f10 = bddoffset(f1, t);
+    bddp f11 = bddonset0(f1, t);
+
+    bddp result;
+    if (f11 == bddempty) {
+        result = bddsubtract(bddsymset_rec(f00, f10),
+                             support_to_singletons(f01));
+    } else if (f10 == bddempty) {
+        result = bddsubtract(bddsymset_rec(f01, f11),
+                             support_to_singletons(f00));
+    } else {
+        result = bddintersec(bddsymset_rec(f00, f10),
+                             bddsymset_rec(f01, f11));
+    }
+
+    // Check if t itself is symmetric: f10 == f01
+    if (f10 == f01) {
+        result = bddunion(result, bddchange(bddsingle, t));
+    }
+
+    bddwcache(BDD_OP_SYMSET, f0, f1, result);
+    return result;
+}
+
+// --- bddcoimplyset ---
+
+static bddp bddcoimplyset_rec(bddp f0, bddp f1);
+
+bddp bddcoimplyset(bddp f, bddvar v) {
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddcoimplyset: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        bddp f0 = bddoffset(f, v);
+        bddp f1 = bddonset0(f, v);
+        if (f1 == bddempty) {
+            // v not in any set -> vacuous truth: all support variables
+            return support_to_singletons(f);
+        }
+        return bddcoimplyset_rec(f0, f1);
+    });
+}
+
+static bddp bddcoimplyset_rec(bddp f0, bddp f1) {
+    BDD_RecurGuard guard;
+
+    if (f1 == bddempty) return bddempty;
+    if (f1 == bddsingle && (f0 & BDD_CONST_FLAG)) return bddempty;
+
+    bddp cached = bddrcache(BDD_OP_COIMPLYSET, f0, f1);
+    if (cached != bddnull) return cached;
+
+    // Find top variable among f0 and f1
+    bddvar f0_top = bddtop(f0);
+    bddvar f1_top = bddtop(f1);
+    bddvar f0_level = (f0_top == 0) ? 0 : var2level[f0_top];
+    bddvar f1_level = (f1_top == 0) ? 0 : var2level[f1_top];
+    bddvar t = (f0_level > f1_level) ? f0_top : f1_top;
+
+    // Decompose f0 and f1 at t
+    bddp f00 = bddoffset(f0, t);
+    bddp f01 = bddonset0(f0, t);
+    bddp f10 = bddoffset(f1, t);
+    bddp f11 = bddonset0(f1, t);
+
+    bddp result;
+    if (f11 == bddempty) {
+        result = bddcoimplyset_rec(f00, f10);
+    } else if (f10 == bddempty) {
+        result = bddcoimplyset_rec(f01, f11);
+    } else {
+        result = bddintersec(bddcoimplyset_rec(f00, f10),
+                             bddcoimplyset_rec(f01, f11));
+    }
+
+    // Check co-implication for t: f10 ⊆ f01
+    if (bddsubtract(f10, f01) == bddempty) {
+        result = bddunion(result, bddchange(bddsingle, t));
+    }
+
+    bddwcache(BDD_OP_COIMPLYSET, f0, f1, result);
+    return result;
+}

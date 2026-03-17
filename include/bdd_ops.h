@@ -585,6 +585,22 @@ bddp bddsymgrp(bddp f);
  */
 bddp bddsymgrpnaive(bddp f);
 
+/**
+ * @brief Find all variables symmetric with v in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v Variable number.
+ * @return A ZDD (single set) of variables symmetric with v.
+ */
+bddp bddsymset(bddp f, bddvar v);
+
+/**
+ * @brief Find all variables in co-implication relation with v.
+ * @param f A ZDD node ID.
+ * @param v Variable number.
+ * @return A ZDD (single set) of variables co-implied by v.
+ */
+bddp bddcoimplyset(bddp f, bddvar v);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

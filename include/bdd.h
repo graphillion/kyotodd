@@ -436,4 +436,16 @@ inline ZDD ZDD::SymGrpNaive() const {
     return z;
 }
 
+inline ZDD ZDD::SymSet(int v) const {
+    ZDD z(0);
+    z.root = bddsymset(root, v);
+    return z;
+}
+
+inline ZDD ZDD::CoImplySet(int v) const {
+    ZDD z(0);
+    z.root = bddcoimplyset(root, v);
+    return z;
+}
+
 #endif

@@ -7461,3 +7461,85 @@ TEST(ZDD_SymGrpNaiveTest, ConsistentWithSymGrp) {
     // For this case, naive should also have {v1,v2} and {v3,v4} (no singletons since all are in groups)
     EXPECT_EQ(grp, naive);
 }
+
+// --- bddsymset / ZDD::SymSet ---
+
+TEST(ZDD_SymSetTest, Basic) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: v1 and v2 are symmetric -> SymSet(v1) = {{v2}}
+    ZDD f = ZDD::Single.Change(1) + ZDD::Single.Change(2);
+    ZDD expected = ZDD::Single.Change(2);
+    EXPECT_EQ(f.SymSet(1), expected);
+    EXPECT_EQ(f.SymSet(2), ZDD::Single.Change(1));
+}
+
+TEST(ZDD_SymSetTest, ConsistentWithSymChk) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v1, v4}, {v2, v3}, {v2, v4}}
+    ZDD f = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(1).Change(4)
+          + ZDD::Single.Change(2).Change(3) + ZDD::Single.Change(2).Change(4);
+
+    // For each variable v, SymSet(v) should contain exactly those w where SymChk(v, w)==1
+    for (int v = 1; v <= 4; v++) {
+        ZDD sset = f.SymSet(v);
+        for (int w = 1; w <= 4; w++) {
+            if (w == v) continue;
+            ZDD sw = ZDD::Single.Change(w);
+            bool in_sset = ((sset & sw) != ZDD::Empty);
+            bool chk = (f.SymChk(v, w) == 1);
+            EXPECT_EQ(in_sset, chk) << "v=" << v << " w=" << w;
+        }
+    }
+}
+
+TEST(ZDD_SymSetTest, IntermediateVariables) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v3}, {v2, v3}}: v1 and v2 are symmetric
+    ZDD f = ZDD::Single.Change(1).Change(3) + ZDD::Single.Change(2).Change(3);
+    EXPECT_EQ(f.SymSet(1), ZDD::Single.Change(2));
+    EXPECT_EQ(f.SymSet(2), ZDD::Single.Change(1));
+}
+
+// --- bddcoimplyset / ZDD::CoImplySet ---
+
+TEST(ZDD_CoImplySetTest, Basic) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}, {v3}}: v1 co-implies v2 (ImplyChk is true, so CoImply is also true)
+    ZDD f = ZDD::Single.Change(1).Change(2) + ZDD::Single.Change(3);
+    ZDD cset = f.CoImplySet(1);
+    // v2 should be in co-imply set
+    EXPECT_NE(cset & ZDD::Single.Change(2), ZDD::Empty);
+}
+
+TEST(ZDD_CoImplySetTest, ConsistentWithCoImplyChk) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: v1 co-implies v2 (f10={∅}, f01={∅}, f10-f01=empty)
+    ZDD f = ZDD::Single.Change(1) + ZDD::Single.Change(2);
+    ZDD cset = f.CoImplySet(1);
+
+    for (int w = 2; w <= 5; w++) {
+        ZDD sw = ZDD::Single.Change(w);
+        bool in_cset = ((cset & sw) != ZDD::Empty);
+        bool chk = (f.CoImplyChk(1, w) == 1);
+        EXPECT_EQ(in_cset, chk) << "w=" << w;
+    }
+}
+
+TEST(ZDD_CoImplySetTest, TerminalCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(bddcoimplyset(bddnull, 1), bddnull);
+    EXPECT_EQ(bddcoimplyset(bddempty, 1), bddempty);
+    EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
+}

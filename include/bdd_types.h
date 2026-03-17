@@ -534,6 +534,10 @@ public:
     ZDD SymGrp() const;
     /** @brief Find symmetry groups (naive, includes size 1). */
     ZDD SymGrpNaive() const;
+    /** @brief Find all variables symmetric with v. */
+    ZDD SymSet(int v) const;
+    /** @brief Find all variables in co-implication with v. */
+    ZDD CoImplySet(int v) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
