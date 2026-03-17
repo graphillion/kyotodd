@@ -6599,3 +6599,64 @@ TEST_F(BDDTest, BddpushVarOutOfRange) {
     EXPECT_THROW(bddpush(bddsingle, 0), std::invalid_argument);
     EXPECT_THROW(bddpush(bddsingle, bdd_varcount + 1), std::invalid_argument);
 }
+
+// --- ZDD_Meet ---
+
+TEST_F(BDDTest, ZDD_MeetTerminalCases) {
+    ZDD e(0);  // empty
+    ZDD s(1);  // single
+
+    EXPECT_EQ(ZDD_Meet(e, e), e);
+    EXPECT_EQ(ZDD_Meet(e, s), e);
+    EXPECT_EQ(ZDD_Meet(s, e), e);
+    EXPECT_EQ(ZDD_Meet(s, s), s);
+}
+
+TEST_F(BDDTest, ZDD_MeetWithSingle) {
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));  // {{v1}}
+    ZDD s(1);
+
+    EXPECT_EQ(ZDD_Meet(s, z_v1), s);
+    EXPECT_EQ(ZDD_Meet(z_v1, s), s);
+}
+
+TEST_F(BDDTest, ZDD_MeetSameFamily) {
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    EXPECT_EQ(ZDD_Meet(z_v1, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDD_MeetDisjointSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD s(1);
+
+    // {{v1}} ⊓ {{v2}} = {∅}
+    EXPECT_EQ(ZDD_Meet(z_v1, z_v2), s);
+}
+
+TEST_F(BDDTest, ZDD_MeetOverlapping) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+
+    // {{v1,v2}} ⊓ {{v1}} = {{v1}}
+    EXPECT_EQ(ZDD_Meet(z_v1v2, z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDD_MeetCommutativity) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+
+    ZDD F = z_v1 + z_v1v2;
+
+    EXPECT_EQ(ZDD_Meet(F, z_v2), ZDD_Meet(z_v2, F));
+}
