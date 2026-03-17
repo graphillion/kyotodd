@@ -99,3 +99,18 @@ Garbage Collection
 
    :return: The current threshold value.
    :rtype: float
+
+Random Generation
+-----------------
+
+.. py:function:: kyotodd.zdd_random(lev, density=50)
+
+   Generate a random ZDD over the lowest *lev* levels.
+
+   Recursively builds a random family of sets. Each terminal is
+   independently set to 1 with probability *density* / 100.
+
+   :param int lev: Number of variable levels to use.
+   :param int density: Probability (0--100) for each terminal to be 1 (default: 50).
+   :return: A random ZDD.
+   :rtype: ZDD

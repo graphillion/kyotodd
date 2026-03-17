@@ -48,7 +48,45 @@ Unary Operations
 .. doxygenfunction:: bddminhit
 .. doxygenfunction:: bddclosure
 
+Push
+----
+
+.. doxygenfunction:: bddpush
+
 Counting
 --------
 
 .. doxygenfunction:: bddcard
+.. doxygenfunction:: bddlit
+.. doxygenfunction:: bddlen
+.. doxygenfunction:: bddexactcount
+.. doxygenfunction:: bddcardmp16
+
+Random Generation
+-----------------
+
+.. doxygenfunction:: ZDD_Random
+
+Variable Analysis
+-----------------
+
+.. doxygenfunction:: bddispoly
+.. doxygenfunction:: bddswapz
+.. doxygenfunction:: bddimplychk
+.. doxygenfunction:: bddcoimplychk
+.. doxygenfunction:: bddpermitsym
+.. doxygenfunction:: bddalways
+.. doxygenfunction:: bddsymchk
+.. doxygenfunction:: bddimplyset
+.. doxygenfunction:: bddsymgrp
+.. doxygenfunction:: bddsymgrpnaive
+.. doxygenfunction:: bddsymset
+.. doxygenfunction:: bddcoimplyset
+.. doxygenfunction:: bdddivisor
+
+LCM Algorithms
+--------------
+
+.. doxygenfunction:: ZDD_LCM_A
+.. doxygenfunction:: ZDD_LCM_C
+.. doxygenfunction:: ZDD_LCM_M

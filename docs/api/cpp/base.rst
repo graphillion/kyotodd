@@ -33,9 +33,12 @@ Node Creation
 
 .. doxygenfunction:: getnode
 .. doxygenfunction:: getznode
+.. doxygenfunction:: bddconst
 .. doxygenfunction:: bddprime
 .. doxygenfunction:: BDD_ID
+.. doxygenfunction:: ZDD_ID
 .. doxygenfunction:: BDDvar
+.. doxygenfunction:: ZDD_Meet
 
 Garbage Collection
 ------------------
@@ -46,6 +49,11 @@ Garbage Collection
 .. doxygenfunction:: bddgc_setthreshold
 .. doxygenfunction:: bddgc_getthreshold
 .. doxygenfunction:: bddlive
+
+Validation
+----------
+
+.. doxygenfunction:: bdd_check_reduced
 
 Deprecated
 ----------

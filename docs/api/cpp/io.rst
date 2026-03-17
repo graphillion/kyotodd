@@ -24,3 +24,17 @@ Import (ZDD)
 .. doxygenfunction:: bddimportz(FILE *strm, std::vector< bddp > &v)
 .. doxygenfunction:: bddimportz(std::istream &strm, bddp *p, int lim)
 .. doxygenfunction:: bddimportz(std::istream &strm, std::vector< bddp > &v)
+
+Import (ZDD objects)
+--------------------
+
+.. doxygenfunction:: ZDD_Import(FILE *strm)
+.. doxygenfunction:: ZDD_Import(FILE *strm, std::vector< ZDD > &v)
+.. doxygenfunction:: ZDD_Import(std::istream &strm)
+.. doxygenfunction:: ZDD_Import(std::istream &strm, std::vector< ZDD > &v)
+
+Debug Dump
+----------
+
+.. doxygenfunction:: bdddump
+.. doxygenfunction:: bddvdump

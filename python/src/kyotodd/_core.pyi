@@ -204,6 +204,40 @@ class BDD:
         """
         ...
 
+    def swap(self, v1: int, v2: int) -> BDD:
+        """Swap variables v1 and v2 in the BDD.
+
+        Args:
+            v1: First variable number.
+            v2: Second variable number.
+
+        Returns:
+            The BDD with v1 and v2 swapped.
+        """
+        ...
+
+    def smooth(self, v: int) -> BDD:
+        """Smooth (existential quantification) of variable v.
+
+        Args:
+            v: Variable number to quantify out.
+
+        Returns:
+            The resulting BDD.
+        """
+        ...
+
+    def spread(self, k: int) -> BDD:
+        """Spread variable values to neighboring k levels.
+
+        Args:
+            k: Number of levels to spread (must be >= 0).
+
+        Returns:
+            The resulting BDD.
+        """
+        ...
+
     def export_str(self) -> str:
         """Export this BDD to a string representation."""
         ...
@@ -323,6 +357,18 @@ class ZDD:
         ...
     def __imod__(self, other: ZDD) -> ZDD:
         """In-place remainder."""
+        ...
+    def __lshift__(self, s: int) -> ZDD:
+        """Left shift: increase variable numbers by s."""
+        ...
+    def __rshift__(self, s: int) -> ZDD:
+        """Right shift: decrease variable numbers by s."""
+        ...
+    def __ilshift__(self, s: int) -> ZDD:
+        """In-place left shift."""
+        ...
+    def __irshift__(self, s: int) -> ZDD:
+        """In-place right shift."""
         ...
     def __eq__(self, other: object) -> bool:
         """Equality comparison by node ID."""
@@ -500,6 +546,114 @@ class ZDD:
         """
         ...
 
+    def always(self) -> ZDD:
+        """Find elements common to ALL sets in the family."""
+        ...
+
+    def permit_sym(self, n: int) -> ZDD:
+        """Symmetric permit: keep sets with at most n elements.
+
+        Args:
+            n: Maximum number of elements.
+
+        Returns:
+            A ZDD containing only sets with <= n elements.
+        """
+        ...
+
+    def swap(self, v1: int, v2: int) -> ZDD:
+        """Swap two variables in the family.
+
+        Args:
+            v1: First variable number.
+            v2: Second variable number.
+
+        Returns:
+            A ZDD with v1 and v2 swapped.
+        """
+        ...
+
+    def imply_chk(self, v1: int, v2: int) -> int:
+        """Check if v1 implies v2 in the family.
+
+        Args:
+            v1: First variable number.
+            v2: Second variable number.
+
+        Returns:
+            1 if every set containing v1 also contains v2, 0 otherwise.
+        """
+        ...
+
+    def coimply_chk(self, v1: int, v2: int) -> int:
+        """Check co-implication between v1 and v2 in the family.
+
+        Args:
+            v1: First variable number.
+            v2: Second variable number.
+
+        Returns:
+            1 if co-implication holds, 0 otherwise.
+        """
+        ...
+
+    def sym_chk(self, v1: int, v2: int) -> int:
+        """Check if two variables are symmetric in the family.
+
+        Args:
+            v1: First variable number.
+            v2: Second variable number.
+
+        Returns:
+            1 if symmetric, 0 if not.
+        """
+        ...
+
+    def imply_set(self, v: int) -> ZDD:
+        """Find all variables implied by v in the family.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A ZDD (family of singletons) of variables that v implies.
+        """
+        ...
+
+    def sym_grp(self) -> ZDD:
+        """Find all symmetry groups (size >= 2) in the family."""
+        ...
+
+    def sym_grp_naive(self) -> ZDD:
+        """Find all symmetry groups (naive method, includes size 1)."""
+        ...
+
+    def sym_set(self, v: int) -> ZDD:
+        """Find all variables symmetric with v in the family.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A ZDD (single set) of variables symmetric with v.
+        """
+        ...
+
+    def coimply_set(self, v: int) -> ZDD:
+        """Find all variables in co-implication relation with v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A ZDD (single set) of variables co-implied by v.
+        """
+        ...
+
+    def divisor(self) -> ZDD:
+        """Find a non-trivial divisor of the family (as polynomial)."""
+        ...
+
     def export_str(self) -> str:
         """Export this ZDD to a string representation."""
         ...
@@ -517,12 +671,36 @@ class ZDD:
         """The number of sets in the family (cardinality)."""
         ...
     @property
+    def exact_count(self) -> int:
+        """The number of sets in the family (arbitrary precision Python int)."""
+        ...
+    @property
     def top_var(self) -> int:
         """The top (root) variable number of this ZDD."""
         ...
     @property
     def node_id(self) -> int:
         """The raw node ID of this ZDD."""
+        ...
+    @property
+    def size(self) -> int:
+        """The number of nodes in the DAG of this ZDD."""
+        ...
+    @property
+    def lit(self) -> int:
+        """The total literal count across all sets in the family."""
+        ...
+    @property
+    def len(self) -> int:
+        """The maximum set size in the family."""
+        ...
+    @property
+    def is_poly(self) -> int:
+        """1 if the family has >= 2 sets, 0 otherwise."""
+        ...
+    @property
+    def support(self) -> ZDD:
+        """The support set as a ZDD."""
         ...
 
 
@@ -592,4 +770,16 @@ def gc_get_threshold() -> float:
 
 def node_count() -> int:
     """Return the total number of nodes currently allocated."""
+    ...
+
+def zdd_random(lev: int, density: int = 50) -> ZDD:
+    """Generate a random ZDD over the lowest lev levels.
+
+    Args:
+        lev: Number of variable levels to use.
+        density: Probability (0-100) for each terminal to be 1 (default: 50).
+
+    Returns:
+        A random ZDD.
+    """
     ...

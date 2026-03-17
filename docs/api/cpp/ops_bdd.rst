@@ -50,3 +50,18 @@ Variable Shifting
 
 .. doxygenfunction:: bddlshift
 .. doxygenfunction:: bddrshift
+
+Variable Swapping
+-----------------
+
+.. doxygenfunction:: bddswap
+
+Smoothing
+---------
+
+.. doxygenfunction:: bddsmooth
+
+Spreading
+---------
+
+.. doxygenfunction:: bddspread

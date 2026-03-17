@@ -237,6 +237,34 @@ BDD Class
       :rtype: BDD
       :raises RuntimeError: If import fails or file cannot be opened.
 
+   Variable Operations
+   -------------------
+
+   .. py:method:: swap(v1, v2)
+
+      Swap variables *v1* and *v2* in the BDD.
+
+      :param int v1: First variable number.
+      :param int v2: Second variable number.
+      :return: The BDD with *v1* and *v2* swapped.
+      :rtype: BDD
+
+   .. py:method:: smooth(v)
+
+      Smooth (existential quantification) of variable *v*.
+
+      :param int v: Variable number to quantify out.
+      :return: The resulting BDD.
+      :rtype: BDD
+
+   .. py:method:: spread(k)
+
+      Spread variable values to neighboring *k* levels.
+
+      :param int k: Number of levels to spread (must be >= 0).
+      :return: The resulting BDD.
+      :rtype: BDD
+
    Properties
    ----------
 

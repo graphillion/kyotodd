@@ -84,6 +84,20 @@ ZDD Class
       :param ZDD other: Right operand.
       :rtype: ZDD
 
+   .. py:method:: __lshift__(s)
+
+      Left shift: increase variable numbers by *s*. ``self << s``.
+
+      :param int s: Number of positions to shift.
+      :rtype: ZDD
+
+   .. py:method:: __rshift__(s)
+
+      Right shift: decrease variable numbers by *s*. ``self >> s``.
+
+      :param int s: Number of positions to shift.
+      :rtype: ZDD
+
    .. py:method:: __iadd__(other)
                    __isub__(other)
                    __iand__(other)
@@ -91,6 +105,8 @@ ZDD Class
                    __imul__(other)
                    __itruediv__(other)
                    __imod__(other)
+                   __ilshift__(s)
+                   __irshift__(s)
 
       In-place variants of the above operators.
 
@@ -255,6 +271,105 @@ ZDD Class
       :return: A ZDD representing the downward closure.
       :rtype: ZDD
 
+   Variable Analysis
+   -----------------
+
+   .. py:method:: always()
+
+      Find elements common to ALL sets in the family.
+
+      :return: A ZDD representing the single set of always-present variables.
+      :rtype: ZDD
+
+   .. py:method:: permit_sym(n)
+
+      Symmetric permit: keep sets with at most *n* elements.
+
+      :param int n: Maximum number of elements.
+      :return: A ZDD containing only sets with <= *n* elements.
+      :rtype: ZDD
+
+   .. py:method:: swap(v1, v2)
+
+      Swap two variables in the family.
+
+      :param int v1: First variable number.
+      :param int v2: Second variable number.
+      :return: A ZDD with *v1* and *v2* swapped.
+      :rtype: ZDD
+
+   .. py:method:: imply_chk(v1, v2)
+
+      Check if *v1* implies *v2* in the family.
+
+      :param int v1: First variable number.
+      :param int v2: Second variable number.
+      :return: 1 if every set containing *v1* also contains *v2*, 0 otherwise.
+      :rtype: int
+
+   .. py:method:: coimply_chk(v1, v2)
+
+      Check co-implication between *v1* and *v2* in the family.
+
+      :param int v1: First variable number.
+      :param int v2: Second variable number.
+      :return: 1 if co-implication holds, 0 otherwise.
+      :rtype: int
+
+   .. py:method:: sym_chk(v1, v2)
+
+      Check if two variables are symmetric in the family.
+
+      :param int v1: First variable number.
+      :param int v2: Second variable number.
+      :return: 1 if symmetric, 0 if not.
+      :rtype: int
+
+   .. py:method:: imply_set(v)
+
+      Find all variables implied by *v* in the family.
+
+      :param int v: Variable number.
+      :return: A ZDD (family of singletons) of variables that *v* implies.
+      :rtype: ZDD
+
+   .. py:method:: sym_grp()
+
+      Find all symmetry groups (size >= 2) in the family.
+
+      :return: A ZDD family where each set is a symmetry group.
+      :rtype: ZDD
+
+   .. py:method:: sym_grp_naive()
+
+      Find all symmetry groups (naive method, includes size 1).
+
+      :return: A ZDD family where each set is a symmetry group.
+      :rtype: ZDD
+
+   .. py:method:: sym_set(v)
+
+      Find all variables symmetric with *v* in the family.
+
+      :param int v: Variable number.
+      :return: A ZDD (single set) of variables symmetric with *v*.
+      :rtype: ZDD
+
+   .. py:method:: coimply_set(v)
+
+      Find all variables in co-implication relation with *v*.
+
+      :param int v: Variable number.
+      :return: A ZDD (single set) of variables co-implied by *v*.
+      :rtype: ZDD
+
+   .. py:method:: divisor()
+
+      Find a non-trivial divisor of the family (as polynomial).
+
+      :return: A ZDD representing a divisor.
+      :rtype: ZDD
+
    Counting
    --------
 
@@ -262,6 +377,11 @@ ZDD Class
       :type: int
 
       The number of sets in the family (cardinality).
+
+   .. py:property:: exact_count
+      :type: int
+
+      The number of sets in the family (arbitrary precision Python int).
 
    I/O
    ---
@@ -305,7 +425,32 @@ ZDD Class
 
       The raw node ID of this ZDD.
 
+   .. py:property:: size
+      :type: int
+
+      The number of nodes in the DAG of this ZDD.
+
    .. py:property:: top_var
       :type: int
 
       The top (root) variable number of this ZDD.
+
+   .. py:property:: lit
+      :type: int
+
+      The total literal count across all sets in the family.
+
+   .. py:property:: len
+      :type: int
+
+      The maximum set size in the family.
+
+   .. py:property:: is_poly
+      :type: int
+
+      1 if the family has >= 2 sets, 0 otherwise.
+
+   .. py:property:: support
+      :type: ZDD
+
+      The support set as a ZDD.
