@@ -49,6 +49,11 @@ static bddp bdd_free_list = 0;
 static uint64_t bdd_free_count = 0;
 static double bdd_gc_threshold = 0.9;
 
+// Sentinel for 2-operand cache entries' h field.
+// Must differ from any valid bddp used as h in 3-operand entries.
+// No valid bddp equals 0 (nodes start at 2, constants have bit 47 set).
+static const uint64_t BDD_CACHE_H_UNUSED = 0;
+
 // --- Hash function (splitmix64 style) ---
 static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
     uint64_t k = lo ^ (hi * UINT64_C(0x9E3779B97F4A7C15));
@@ -90,7 +95,7 @@ bddp bddrcache(uint8_t op, bddp f, bddp g) {
     uint64_t idx = cache_hash(op, f, g);
     BddCacheEntry& e = bdd_cache[idx];
     uint64_t fop = (static_cast<uint64_t>(op) << 48) | f;
-    if (e.fop == fop && e.g == g && e.h == 0) {
+    if (e.fop == fop && e.g == g && e.h == BDD_CACHE_H_UNUSED) {
         return e.result;
     }
     return bddnull;
@@ -102,7 +107,7 @@ void bddwcache(uint8_t op, bddp f, bddp g, bddp result) {
     BddCacheEntry& e = bdd_cache[idx];
     e.fop = (static_cast<uint64_t>(op) << 48) | f;
     e.g = g;
-    e.h = 0;
+    e.h = BDD_CACHE_H_UNUSED;
     e.result = result;
 }
 
