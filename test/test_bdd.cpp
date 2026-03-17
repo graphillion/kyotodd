@@ -5885,7 +5885,9 @@ TEST_F(BDDTest, GCDepthPreventsCollection) {
     uint64_t live_before = bddlive();
     EXPECT_GT(live_before, 0u);
 
-    // Simulate being inside an operation (depth > 0)
+    // NOTE: Directly manipulating internal bdd_gc_depth to test GC guard behavior.
+    // This couples the test to the implementation detail that bddgc() is a no-op
+    // when bdd_gc_depth > 0.
     extern int bdd_gc_depth;
     bdd_gc_depth = 1;
     bddgc();
