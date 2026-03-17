@@ -512,6 +512,15 @@ ZDD ZDD_Random(int lev, int density = 50);
  */
 int bddispoly(bddp f);
 
+/**
+ * @brief Swap two variables in a ZDD family.
+ * @param f A ZDD node ID.
+ * @param v1 First variable number.
+ * @param v2 Second variable number.
+ * @return A ZDD with v1 and v2 swapped.
+ */
+bddp bddswap(bddp f, bddvar v1, bddvar v2);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

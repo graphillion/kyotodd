@@ -7024,3 +7024,73 @@ TEST(ZDD_IsPolyTest, ClassWrapper) {
     ZDD f = s1 + s2;
     EXPECT_EQ(f.IsPoly(), 1);
 }
+
+// --- bddswap / ZDD::Swap ---
+
+TEST(ZDD_SwapTest, SameVariable) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    ZDD s1 = ZDD::Single.Change(1);
+    EXPECT_EQ(s1.Swap(1, 1), s1);
+}
+
+TEST(ZDD_SwapTest, SwapSingletons) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {v1} swapped(1,2) = {v2}
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    EXPECT_EQ(s1.Swap(1, 2), s2);
+    EXPECT_EQ(s2.Swap(1, 2), s1);
+}
+
+TEST(ZDD_SwapTest, BothPresent) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2}} swapped(1,2) = {{v1, v2}} (unchanged)
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    EXPECT_EQ(s12.Swap(1, 2), s12);
+}
+
+TEST(ZDD_SwapTest, MixedFamily) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2, v3}} swapped(1,2) = {{v2}, {v1, v3}}
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s23 = ZDD::Single.Change(2).Change(3);
+    ZDD f = s1 + s23;
+
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD s13 = ZDD::Single.Change(1).Change(3);
+    ZDD expected = s2 + s13;
+
+    EXPECT_EQ(f.Swap(1, 2), expected);
+}
+
+TEST(ZDD_SwapTest, TerminalCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // Empty family: swap is still empty
+    EXPECT_EQ(bddswap(bddempty, 1, 2), bddempty);
+    // Single family {∅}: no variables, swap is identity
+    EXPECT_EQ(bddswap(bddsingle, 1, 2), bddsingle);
+    // Null -> null
+    EXPECT_EQ(bddswap(bddnull, 1, 2), bddnull);
+}
+
+TEST(ZDD_SwapTest, Involution) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // Swap is an involution: swap(swap(f, v1, v2), v1, v2) == f
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s23 = ZDD::Single.Change(2).Change(3);
+    ZDD f = s1 + s23;
+
+    EXPECT_EQ(f.Swap(1, 2).Swap(1, 2), f);
+}

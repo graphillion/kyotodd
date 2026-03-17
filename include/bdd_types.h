@@ -516,6 +516,8 @@ public:
 
     /** @brief Check if the family is a polynomial (has ≥ 2 sets). */
     int IsPoly() const;
+    /** @brief Swap two variables in the family. */
+    ZDD Swap(int v1, int v2) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

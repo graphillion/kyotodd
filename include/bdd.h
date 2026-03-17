@@ -388,4 +388,10 @@ inline int ZDD::IsPoly() const {
     return bddispoly(root);
 }
 
+inline ZDD ZDD::Swap(int v1, int v2) const {
+    ZDD z(0);
+    z.root = bddswap(root, v1, v2);
+    return z;
+}
+
 #endif
