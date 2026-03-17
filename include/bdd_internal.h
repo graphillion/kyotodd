@@ -107,4 +107,65 @@ inline bddp node_hi(bddp node_id) {
     return n.data[1] & BDD_NODE_HI_MASK;
 }
 
+// --- Common lshift/rshift recursive templates ---
+// MakeNode: bddp(bddvar, bddp, bddp) — getnode or getznode
+
+template<typename MakeNode>
+bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(op, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
+    if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+    }
+    bddvar new_level = static_cast<bddvar>(new_level64);
+    while (bdd_varcount < new_level) {
+        bddnewvar();
+    }
+    bddvar target_var = level2var[new_level];
+
+    bddp lo = bdd_lshift_core(node_lo(fn), shift, op, make_node);
+    bddp hi = bdd_lshift_core(node_hi(fn), shift, op, make_node);
+
+    bddp result = make_node(target_var, lo, hi);
+
+    bddwcache(op, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
+template<typename MakeNode>
+bddp bdd_rshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
+    BDD_RecurGuard guard;
+    if (f & BDD_CONST_FLAG) return f;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(op, fn, static_cast<bddp>(shift));
+    if (cached != bddnull) return comp ? bddnot(cached) : cached;
+
+    bddvar v = node_var(fn);
+    bddvar lev = var2level[v];
+    if (lev <= shift) {
+        throw std::invalid_argument("bddrshift: shifted level underflows");
+    }
+    bddvar target_var = level2var[lev - shift];
+
+    bddp lo = bdd_rshift_core(node_lo(fn), shift, op, make_node);
+    bddp hi = bdd_rshift_core(node_hi(fn), shift, op, make_node);
+
+    bddp result = make_node(target_var, lo, hi);
+
+    bddwcache(op, fn, static_cast<bddp>(shift), result);
+    return comp ? bddnot(result) : result;
+}
+
 #endif

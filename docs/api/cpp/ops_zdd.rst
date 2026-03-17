@@ -53,6 +53,12 @@ Push
 
 .. doxygenfunction:: bddpush
 
+Variable Shifting
+-----------------
+
+.. doxygenfunction:: bddlshiftz
+.. doxygenfunction:: bddrshiftz
+
 Counting
 --------
 

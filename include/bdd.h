@@ -55,23 +55,23 @@ inline BDD BDD::operator~() const {
 
 inline BDD BDD::operator<<(bddvar shift) const {
     BDD b(0);
-    b.root = bddlshift(root, shift);
+    b.root = bddlshiftb(root, shift);
     return b;
 }
 
 inline BDD& BDD::operator<<=(bddvar shift) {
-    root = bddlshift(root, shift);
+    root = bddlshiftb(root, shift);
     return *this;
 }
 
 inline BDD BDD::operator>>(bddvar shift) const {
     BDD b(0);
-    b.root = bddrshift(root, shift);
+    b.root = bddrshiftb(root, shift);
     return b;
 }
 
 inline BDD& BDD::operator>>=(bddvar shift) {
-    root = bddrshift(root, shift);
+    root = bddrshiftb(root, shift);
     return *this;
 }
 
@@ -322,23 +322,23 @@ inline ZDD& ZDD::operator%=(const ZDD& other) {
 
 inline ZDD ZDD::operator<<(bddvar s) const {
     ZDD z(0);
-    z.root = bddlshift(root, s);
+    z.root = bddlshiftz(root, s);
     return z;
 }
 
 inline ZDD& ZDD::operator<<=(bddvar s) {
-    root = bddlshift(root, s);
+    root = bddlshiftz(root, s);
     return *this;
 }
 
 inline ZDD ZDD::operator>>(bddvar s) const {
     ZDD z(0);
-    z.root = bddrshift(root, s);
+    z.root = bddrshiftz(root, s);
     return z;
 }
 
 inline ZDD& ZDD::operator>>=(bddvar s) {
-    root = bddrshift(root, s);
+    root = bddrshiftz(root, s);
     return *this;
 }
 

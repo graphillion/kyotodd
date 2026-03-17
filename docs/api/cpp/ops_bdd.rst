@@ -48,8 +48,8 @@ Quantification
 Variable Shifting
 -----------------
 
-.. doxygenfunction:: bddlshift
-.. doxygenfunction:: bddrshift
+.. doxygenfunction:: bddlshiftb
+.. doxygenfunction:: bddrshiftb
 
 Variable Swapping
 -----------------

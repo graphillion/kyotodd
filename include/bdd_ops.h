@@ -168,6 +168,22 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
 bddp bddunivvar(bddp f, bddvar v);
 
 /**
+ * @brief BDD left shift: rename variable i to variable i+shift for all variables.
+ * @param f A BDD node ID.
+ * @param shift The number of positions to shift.
+ * @return The resulting BDD.
+ */
+bddp bddlshiftb(bddp f, bddvar shift);
+
+/**
+ * @brief BDD right shift: rename variable i to variable i-shift for all variables.
+ * @param f A BDD node ID.
+ * @param shift The number of positions to shift.
+ * @return The resulting BDD.
+ */
+bddp bddrshiftb(bddp f, bddvar shift);
+
+/**
  * @brief Generalized cofactor of @p f by @p g.
  *
  * Computes the constrain (generalized cofactor) of f with respect to g.
@@ -451,13 +467,23 @@ bddp bddpush(bddp f, bddvar v);
  * @param shift The number of positions to shift.
  * @return The resulting ZDD.
  */
-bddp bddlshift(bddp f, bddvar shift);
+bddp bddlshiftz(bddp f, bddvar shift);
 
 /**
  * @brief ZDD right shift: rename variable i to variable i-shift for all variables.
  * @param f A ZDD node ID.
  * @param shift The number of positions to shift.
  * @return The resulting ZDD.
+ */
+bddp bddrshiftz(bddp f, bddvar shift);
+
+/**
+ * @brief @deprecated Use bddlshiftb or bddlshiftz instead.
+ */
+bddp bddlshift(bddp f, bddvar shift);
+
+/**
+ * @brief @deprecated Use bddrshiftb or bddrshiftz instead.
  */
 bddp bddrshift(bddp f, bddvar shift);
 

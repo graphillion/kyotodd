@@ -379,14 +379,14 @@ TEST_F(BDDTest, OperatorLshift) {
     (void)BDD_NewVar();
     BDD a = BDDvar(v1);
     BDD c = a << 1;
-    EXPECT_EQ(c.GetID(), bddlshift(a.GetID(), 1));
+    EXPECT_EQ(c.GetID(), bddlshiftb(a.GetID(), 1));
 }
 
 TEST_F(BDDTest, OperatorLshiftAssign) {
     bddvar v1 = BDD_NewVar();
     (void)BDD_NewVar();
     BDD a = BDDvar(v1);
-    bddp expected = bddlshift(a.GetID(), 1);
+    bddp expected = bddlshiftb(a.GetID(), 1);
     a <<= 1;
     EXPECT_EQ(a.GetID(), expected);
 }
@@ -396,14 +396,14 @@ TEST_F(BDDTest, OperatorRshift) {
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
     BDD c = a >> 1;
-    EXPECT_EQ(c.GetID(), bddrshift(a.GetID(), 1));
+    EXPECT_EQ(c.GetID(), bddrshiftb(a.GetID(), 1));
 }
 
 TEST_F(BDDTest, OperatorRshiftAssign) {
     (void)BDD_NewVar();
     bddvar v2 = BDD_NewVar();
     BDD a = BDDvar(v2);
-    bddp expected = bddrshift(a.GetID(), 1);
+    bddp expected = bddrshiftb(a.GetID(), 1);
     a >>= 1;
     EXPECT_EQ(a.GetID(), expected);
 }
@@ -1585,18 +1585,18 @@ TEST_F(BDDTest, BddCofactorComplex) {
     EXPECT_LE(bddsize(result), bddsize(f));
 }
 
-// --- bddlshift ---
+// --- bddlshiftb ---
 
 TEST_F(BDDTest, BddLshiftTerminals) {
-    EXPECT_EQ(bddlshift(bddfalse, 1), bddfalse);
-    EXPECT_EQ(bddlshift(bddtrue, 1), bddtrue);
-    EXPECT_EQ(bddlshift(bddfalse, 5), bddfalse);
+    EXPECT_EQ(bddlshiftb(bddfalse, 1), bddfalse);
+    EXPECT_EQ(bddlshiftb(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddlshiftb(bddfalse, 5), bddfalse);
 }
 
 TEST_F(BDDTest, BddLshiftZero) {
     bddvar v = BDD_NewVar();
     bddp p = bddprime(v);
-    EXPECT_EQ(bddlshift(p, 0), p);
+    EXPECT_EQ(bddlshiftb(p, 0), p);
 }
 
 TEST_F(BDDTest, BddLshiftSingleVar) {
@@ -1605,7 +1605,7 @@ TEST_F(BDDTest, BddLshiftSingleVar) {
     bddp p1 = bddprime(v1);
     bddp p2 = bddprime(v2);
     // level 1 + 1 = level 2 -> v2
-    EXPECT_EQ(bddlshift(p1, 1), p2);
+    EXPECT_EQ(bddlshiftb(p1, 1), p2);
 }
 
 TEST_F(BDDTest, BddLshiftComplement) {
@@ -1613,7 +1613,7 @@ TEST_F(BDDTest, BddLshiftComplement) {
     bddvar v2 = BDD_NewVar();  // level 2
     bddp p1 = bddprime(v1);
     bddp p2 = bddprime(v2);
-    EXPECT_EQ(bddlshift(bddnot(p1), 1), bddnot(p2));
+    EXPECT_EQ(bddlshiftb(bddnot(p1), 1), bddnot(p2));
 }
 
 TEST_F(BDDTest, BddLshiftTwoVars) {
@@ -1624,7 +1624,7 @@ TEST_F(BDDTest, BddLshiftTwoVars) {
     bddp p2 = bddprime(v2);
     bddp p3 = bddprime(v3);
     // v1 & v2, shift 1: level 1->2(v2), level 2->3(v3) => v2 & v3
-    EXPECT_EQ(bddlshift(bddand(p1, p2), 1), bddand(p2, p3));
+    EXPECT_EQ(bddlshiftb(bddand(p1, p2), 1), bddand(p2, p3));
 }
 
 TEST_F(BDDTest, BddLshiftAutoNewVar) {
@@ -1633,7 +1633,7 @@ TEST_F(BDDTest, BddLshiftAutoNewVar) {
     bddp p2 = bddprime(v2);
     EXPECT_EQ(bddvarused(), 2u);
     // Shift v2 (level 2) by 1 -> level 3, doesn't exist yet
-    bddp result = bddlshift(p2, 1);
+    bddp result = bddlshiftb(p2, 1);
     EXPECT_EQ(bddvarused(), 3u);
     bddvar v3 = bddvaroflev(3);
     EXPECT_EQ(result, bddprime(v3));
@@ -1644,7 +1644,7 @@ TEST_F(BDDTest, BddLshiftAutoNewVarMultiple) {
     bddp p1 = bddprime(v1);
     EXPECT_EQ(bddvarused(), 1u);
     // Shift v1 (level 1) by 3 -> level 4, need vars at levels 2,3,4
-    bddp result = bddlshift(p1, 3);
+    bddp result = bddlshiftb(p1, 3);
     EXPECT_EQ(bddvarused(), 4u);
     bddvar v4 = bddvaroflev(4);
     EXPECT_EQ(result, bddprime(v4));
@@ -1660,7 +1660,7 @@ TEST_F(BDDTest, BddLshiftPreservesOr) {
     bddp p3 = bddprime(v3);
     bddp p4 = bddprime(v4);
     // v1 | v2, shift 2: level 1->3(v3), level 2->4(v4) => v3 | v4
-    EXPECT_EQ(bddlshift(bddor(p1, p2), 2), bddor(p3, p4));
+    EXPECT_EQ(bddlshiftb(bddor(p1, p2), 2), bddor(p3, p4));
 }
 
 TEST_F(BDDTest, BddLshiftPreservesXor) {
@@ -1672,20 +1672,20 @@ TEST_F(BDDTest, BddLshiftPreservesXor) {
     bddp p2 = bddprime(v2);
     bddp p3 = bddprime(v3);
     bddp p4 = bddprime(v4);
-    EXPECT_EQ(bddlshift(bddxor(p1, p2), 2), bddxor(p3, p4));
+    EXPECT_EQ(bddlshiftb(bddxor(p1, p2), 2), bddxor(p3, p4));
 }
 
-// --- bddrshift ---
+// --- bddrshiftb ---
 
 TEST_F(BDDTest, BddRshiftTerminals) {
-    EXPECT_EQ(bddrshift(bddfalse, 1), bddfalse);
-    EXPECT_EQ(bddrshift(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddrshiftb(bddfalse, 1), bddfalse);
+    EXPECT_EQ(bddrshiftb(bddtrue, 1), bddtrue);
 }
 
 TEST_F(BDDTest, BddRshiftZero) {
     bddvar v = BDD_NewVar();
     bddp p = bddprime(v);
-    EXPECT_EQ(bddrshift(p, 0), p);
+    EXPECT_EQ(bddrshiftb(p, 0), p);
 }
 
 TEST_F(BDDTest, BddRshiftSingleVar) {
@@ -1694,7 +1694,7 @@ TEST_F(BDDTest, BddRshiftSingleVar) {
     bddp p1 = bddprime(v1);
     bddp p2 = bddprime(v2);
     // level 2 - 1 = level 1 -> v1
-    EXPECT_EQ(bddrshift(p2, 1), p1);
+    EXPECT_EQ(bddrshiftb(p2, 1), p1);
 }
 
 TEST_F(BDDTest, BddRshiftComplement) {
@@ -1702,7 +1702,7 @@ TEST_F(BDDTest, BddRshiftComplement) {
     bddvar v2 = BDD_NewVar();  // level 2
     bddp p1 = bddprime(v1);
     bddp p2 = bddprime(v2);
-    EXPECT_EQ(bddrshift(bddnot(p2), 1), bddnot(p1));
+    EXPECT_EQ(bddrshiftb(bddnot(p2), 1), bddnot(p1));
 }
 
 TEST_F(BDDTest, BddRshiftTwoVars) {
@@ -1713,7 +1713,7 @@ TEST_F(BDDTest, BddRshiftTwoVars) {
     bddp p2 = bddprime(v2);
     bddp p3 = bddprime(v3);
     // v2 & v3, shift 1: level 2->1(v1), level 3->2(v2) => v1 & v2
-    EXPECT_EQ(bddrshift(bddand(p2, p3), 1), bddand(p1, p2));
+    EXPECT_EQ(bddrshiftb(bddand(p2, p3), 1), bddand(p1, p2));
 }
 
 TEST_F(BDDTest, BddRshiftPreservesOr) {
@@ -1726,7 +1726,7 @@ TEST_F(BDDTest, BddRshiftPreservesOr) {
     bddp p3 = bddprime(v3);
     bddp p4 = bddprime(v4);
     // v3 | v4, shift 2: level 3->1(v1), level 4->2(v2) => v1 | v2
-    EXPECT_EQ(bddrshift(bddor(p3, p4), 2), bddor(p1, p2));
+    EXPECT_EQ(bddrshiftb(bddor(p3, p4), 2), bddor(p1, p2));
 }
 
 TEST_F(BDDTest, BddRshiftPreservesXor) {
@@ -1738,7 +1738,7 @@ TEST_F(BDDTest, BddRshiftPreservesXor) {
     bddp p2 = bddprime(v2);
     bddp p3 = bddprime(v3);
     bddp p4 = bddprime(v4);
-    EXPECT_EQ(bddrshift(bddxor(p3, p4), 2), bddxor(p1, p2));
+    EXPECT_EQ(bddrshiftb(bddxor(p3, p4), 2), bddxor(p1, p2));
 }
 
 TEST_F(BDDTest, BddRshiftInvertsLshift) {
@@ -1749,7 +1749,7 @@ TEST_F(BDDTest, BddRshiftInvertsLshift) {
     bddp p2 = bddprime(v2);
     bddp f = bddand(p1, p2);
     // lshift then rshift should be identity
-    EXPECT_EQ(bddrshift(bddlshift(f, 1), 1), f);
+    EXPECT_EQ(bddrshiftb(bddlshiftb(f, 1), 1), f);
 }
 
 TEST_F(BDDTest, BddRshiftTooLarge) {
@@ -1757,12 +1757,19 @@ TEST_F(BDDTest, BddRshiftTooLarge) {
     bddvar v2 = BDD_NewVar();  // level 2
     bddp p1 = bddprime(v1);
     // v1 is at level 1, shift 1 would go to level 0 (invalid)
-    EXPECT_THROW(bddrshift(p1, 1), std::invalid_argument);
+    EXPECT_THROW(bddrshiftb(p1, 1), std::invalid_argument);
     // v1 at level 1, shift 2 also invalid
-    EXPECT_THROW(bddrshift(p1, 2), std::invalid_argument);
+    EXPECT_THROW(bddrshiftb(p1, 2), std::invalid_argument);
     // v2 at level 2, shift 2 also invalid (level 0)
     bddp p2 = bddprime(v2);
-    EXPECT_THROW(bddrshift(p2, 2), std::invalid_argument);
+    EXPECT_THROW(bddrshiftb(p2, 2), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddLshiftRshiftDeprecated) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_THROW(bddlshift(p1, 1), std::logic_error);
+    EXPECT_THROW(bddrshift(p1, 1), std::logic_error);
 }
 
 // --- bdduniv ---
@@ -5070,8 +5077,10 @@ TEST_F(BDDTest, BddNullPropagatesThroughBddOps) {
     EXPECT_EQ(bdduniv(bddnull, f), bddnull);
 
     // shift
-    EXPECT_EQ(bddlshift(bddnull, 1), bddnull);
-    EXPECT_EQ(bddrshift(bddnull, 1), bddnull);
+    EXPECT_EQ(bddlshiftb(bddnull, 1), bddnull);
+    EXPECT_EQ(bddrshiftb(bddnull, 1), bddnull);
+    EXPECT_EQ(bddlshiftz(bddnull, 1), bddnull);
+    EXPECT_EQ(bddrshiftz(bddnull, 1), bddnull);
 
     // support
     EXPECT_EQ(bddsupport(bddnull), bddnull);
@@ -7151,14 +7160,14 @@ TEST_F(BDDTest, ZDD_OperatorLshift) {
     bddnewvar();
     ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));  // {{v1}}
     ZDD shifted = z << 1;
-    EXPECT_EQ(shifted.GetID(), bddlshift(z.GetID(), 1));
+    EXPECT_EQ(shifted.GetID(), bddlshiftz(z.GetID(), 1));
 }
 
 TEST_F(BDDTest, ZDD_OperatorLshiftAssign) {
     bddvar v1 = bddnewvar();
     bddnewvar();
     ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    bddp expected = bddlshift(z.GetID(), 1);
+    bddp expected = bddlshiftz(z.GetID(), 1);
     z <<= 1;
     EXPECT_EQ(z.GetID(), expected);
 }
@@ -7168,14 +7177,14 @@ TEST_F(BDDTest, ZDD_OperatorRshift) {
     bddvar v2 = bddnewvar();
     ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));  // {{v2}}
     ZDD shifted = z >> 1;
-    EXPECT_EQ(shifted.GetID(), bddrshift(z.GetID(), 1));
+    EXPECT_EQ(shifted.GetID(), bddrshiftz(z.GetID(), 1));
 }
 
 TEST_F(BDDTest, ZDD_OperatorRshiftAssign) {
     bddnewvar();
     bddvar v2 = bddnewvar();
     ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));
-    bddp expected = bddrshift(z.GetID(), 1);
+    bddp expected = bddrshiftz(z.GetID(), 1);
     z >>= 1;
     EXPECT_EQ(z.GetID(), expected);
 }

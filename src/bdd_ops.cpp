@@ -682,6 +682,36 @@ bddp bddunivvar(bddp f, bddvar v) {
     return bdduniv(f, bddprime(v));
 }
 
+bddp bddlshiftb(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTB, getnode);
+    });
+}
+
+bddp bddrshiftb(bddp f, bddvar shift) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+    if (shift == 0) return f;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTB, getnode);
+    });
+}
+
+bddp bddlshift(bddp f, bddvar shift) {
+    (void)f; (void)shift;
+    throw std::logic_error("bddlshift is no longer supported. Use bddlshiftb (BDD) or bddlshiftz (ZDD).");
+}
+
+bddp bddrshift(bddp f, bddvar shift) {
+    (void)f; (void)shift;
+    throw std::logic_error("bddrshift is no longer supported. Use bddrshiftb (BDD) or bddrshiftz (ZDD).");
+}
+
 static bddp bddcofactor_rec(bddp f, bddp g);
 
 bddp bddcofactor(bddp f, bddp g) {

@@ -122,6 +122,10 @@ static const uint8_t BDD_OP_SMOOTH = 41;
 static const uint8_t BDD_OP_SPREAD = 42;
 static const uint8_t BDD_OP_SWAP = 43;
 static const uint8_t BDD_OP_REMAINDER = 44;
+static const uint8_t BDD_OP_LSHIFTB = 45;
+static const uint8_t BDD_OP_RSHIFTB = 46;
+static const uint8_t BDD_OP_LSHIFTZ = 47;
+static const uint8_t BDD_OP_RSHIFTZ = 48;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
