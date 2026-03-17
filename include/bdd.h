@@ -408,4 +408,10 @@ inline ZDD ZDD::PermitSym(int n) const {
     return z;
 }
 
+inline ZDD ZDD::Always() const {
+    ZDD z(0);
+    z.root = bddalways(root);
+    return z;
+}
+
 #endif

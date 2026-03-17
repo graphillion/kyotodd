@@ -524,6 +524,8 @@ public:
     int CoImplyChk(int v1, int v2) const;
     /** @brief Keep sets with at most n elements. */
     ZDD PermitSym(int n) const;
+    /** @brief Find elements common to all sets in the family. */
+    ZDD Always() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

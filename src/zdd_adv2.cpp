@@ -125,3 +125,44 @@ static bddp bddpermitsym_rec(bddp f, int n) {
     bddwcache(BDD_OP_PERMITSYM, f, static_cast<bddp>(n), result);
     return result;
 }
+
+// --- bddalways ---
+
+static bddp bddalways_rec(bddp f);
+
+bddp bddalways(bddp f) {
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    return bdd_gc_guard([&]() -> bddp { return bddalways_rec(f); });
+}
+
+static bddp bddalways_rec(bddp f) {
+    BDD_RecurGuard guard;
+
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    bddp cached = bddrcache(BDD_OP_ALWAYS, f, 0);
+    if (cached != bddnull) return cached;
+
+    bddvar t = bddtop(f);
+    bddp f1 = bddonset0(f, t);
+    bddp f0 = bddoffset(f, t);
+
+    bddp h = bddalways_rec(f1);
+    bddp result;
+
+    if (f0 == bddempty) {
+        // All sets contain t -> add {t} to h
+        result = bddunion(h, bddchange(bddsingle, t));
+    } else if (h != bddempty) {
+        // Some sets don't contain t; intersect with always(f0)
+        result = bddintersec(h, bddalways_rec(f0));
+    } else {
+        // h is empty -> result is empty
+        result = bddempty;
+    }
+
+    bddwcache(BDD_OP_ALWAYS, f, 0, result);
+    return result;
+}

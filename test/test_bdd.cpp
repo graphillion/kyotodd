@@ -7222,3 +7222,61 @@ TEST(ZDD_PermitSymTest, FilterBySize) {
     // n=10: all (n >= max size)
     EXPECT_EQ(f.PermitSym(10), f);
 }
+
+// --- bddalways / ZDD::Always ---
+
+TEST(ZDD_AlwaysTest, TerminalCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(bddnull, bddalways(bddnull));
+    // Empty family: no sets -> no common elements
+    EXPECT_EQ(bddempty, bddalways(bddempty));
+    // {∅}: empty set has no elements -> Always = ∅
+    EXPECT_EQ(bddempty, bddalways(bddsingle));
+}
+
+TEST(ZDD_AlwaysTest, AllSetsContainVariable) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v1, v2}}: v1 is in all sets -> Always = {v1}
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD f = s1 + s12;
+    ZDD expected = ZDD::Single.Change(1);  // {v1}
+    EXPECT_EQ(f.Always(), expected);
+}
+
+TEST(ZDD_AlwaysTest, NoCommonVariable) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v2}}: no common variable -> Always = ∅
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD f = s1 + s2;
+    EXPECT_EQ(f.Always(), ZDD::Empty);
+}
+
+TEST(ZDD_AlwaysTest, MultipleCommonVariables) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1, v2, v3}, {v1, v2, v4}}: v1 and v2 are common
+    // Always returns family of singletons: {{v1}, {v2}}
+    ZDD s123 = ZDD::Single.Change(1).Change(2).Change(3);
+    ZDD s124 = ZDD::Single.Change(1).Change(2).Change(4);
+    ZDD f = s123 + s124;
+    ZDD expected = ZDD::Single.Change(1) + ZDD::Single.Change(2);
+    EXPECT_EQ(f.Always(), expected);
+}
+
+TEST(ZDD_AlwaysTest, WithEmptySet) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {∅, {v1}}: ∅ has no elements -> Always = ∅
+    ZDD f = ZDD::Single + ZDD::Single.Change(1);
+    EXPECT_EQ(f.Always(), ZDD::Empty);
+}

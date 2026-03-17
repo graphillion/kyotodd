@@ -547,6 +547,13 @@ int bddcoimplychk(bddp f, bddvar v1, bddvar v2);
  */
 bddp bddpermitsym(bddp f, int n);
 
+/**
+ * @brief Find elements common to ALL sets in a ZDD family.
+ * @param f A ZDD node ID.
+ * @return A ZDD representing the single set of always-present variables.
+ */
+bddp bddalways(bddp f);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */
