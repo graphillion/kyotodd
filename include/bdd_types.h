@@ -346,6 +346,10 @@ public:
     /** @brief Get the raw node ID. */
     bddp GetID() const { return root; }
 
+    /** @brief Default constructor: empty family. */
+    ZDD() : root(bddempty) {
+        bddgc_protect(&root);
+    }
     /**
      * @brief Construct a ZDD from an integer value.
      * @param val 0 for empty family, 1 for unit family {∅}, negative for null.
