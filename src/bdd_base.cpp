@@ -395,6 +395,8 @@ uint64_t bddgc_rootcount() {
 }
 
 void bddgc_setthreshold(double threshold) {
+    if (threshold < 0.0) threshold = 0.0;
+    if (threshold > 1.0) threshold = 1.0;
     bdd_gc_threshold = threshold;
 }
 
