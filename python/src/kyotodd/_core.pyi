@@ -381,6 +381,20 @@ class ZDD:
         """
         ...
 
+    def meet(self, other: ZDD) -> ZDD:
+        """Meet operation (intersection of all element pairs).
+
+        For each pair of sets (one from this family, one from other),
+        compute their intersection and collect all results.
+
+        Args:
+            other: Another ZDD family.
+
+        Returns:
+            The resulting ZDD.
+        """
+        ...
+
     def maximal(self) -> ZDD:
         """Extract maximal sets (no proper superset in the family)."""
         ...

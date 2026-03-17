@@ -367,6 +367,14 @@ PYBIND11_MODULE(_core, m) {
              "    v: Variable number.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
+        .def("meet", &ZDD::Meet, py::arg("other"),
+             "Meet operation (intersection of all element pairs).\n\n"
+             "For each pair of sets (one from this family, one from other),\n"
+             "compute their intersection and collect all results.\n\n"
+             "Args:\n"
+             "    other: Another ZDD family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("maximal", &ZDD::Maximal,
              "Extract maximal sets (no proper superset in the family).\n\n"
              "Returns:\n"
