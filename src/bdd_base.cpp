@@ -178,21 +178,24 @@ static void unique_table_resize(BddUniqueTable* t) {
 int bddinit(uint64_t node_count, uint64_t node_max) {
     // Free previous allocations if re-initializing
     std::free(bdd_nodes);
+    bdd_nodes = nullptr;
     std::free(var2level);
+    var2level = nullptr;
     std::free(level2var);
+    level2var = nullptr;
     // Free unique tables
     for (bddvar i = 1; i <= bdd_varcount; i++) {
         std::free(bdd_unique_tables[i].slots);
     }
     std::free(bdd_unique_tables);
+    bdd_unique_tables = nullptr;
     std::free(bdd_cache);
+    bdd_cache = nullptr;
+    bdd_cache_size = 0;
 
     // Reset variable state
-    var2level = nullptr;
-    level2var = nullptr;
     bdd_varcount = 0;
     var_capacity = 0;
-    bdd_unique_tables = nullptr;
     bdd_node_used = 0;
 
     // Reset GC state
