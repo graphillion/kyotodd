@@ -17,6 +17,7 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/bdd_ops.cpp
     ${KYOTODD_ROOT}/src/zdd_ops.cpp
     ${KYOTODD_ROOT}/src/zdd_adv.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv2.cpp
 )
 
 pybind11_add_module(_core

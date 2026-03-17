@@ -104,6 +104,17 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    The current threshold value.\n");
 
+    m.def("zdd_random", [](int lev, int density) -> ZDD {
+        ensure_init();
+        return ZDD_Random(lev, density);
+    }, py::arg("lev"), py::arg("density") = 50,
+       "Generate a random ZDD over the lowest lev levels.\n\n"
+       "Args:\n"
+       "    lev: Number of variable levels to use.\n"
+       "    density: Probability (0-100) for each terminal to be 1 (default: 50).\n\n"
+       "Returns:\n"
+       "    A random ZDD.\n");
+
     // BDD class
     py::class_<BDD>(m, "BDD",
         "A Binary Decision Diagram representing a Boolean function.\n\n"
@@ -259,6 +270,26 @@ PYBIND11_MODULE(_core, m) {
            "    The reconstructed BDD.\n\n"
            "Raises:\n"
            "    RuntimeError: If import fails or file cannot be opened.\n")
+
+        .def("swap", &BDD::Swap, py::arg("v1"), py::arg("v2"),
+             "Swap variables v1 and v2 in the BDD.\n\n"
+             "Args:\n"
+             "    v1: First variable number.\n"
+             "    v2: Second variable number.\n\n"
+             "Returns:\n"
+             "    The BDD with v1 and v2 swapped.\n")
+        .def("smooth", &BDD::Smooth, py::arg("v"),
+             "Smooth (existential quantification) of variable v.\n\n"
+             "Args:\n"
+             "    v: Variable number to quantify out.\n\n"
+             "Returns:\n"
+             "    The resulting BDD.\n")
+        .def("spread", &BDD::Spread, py::arg("k"),
+             "Spread variable values to neighboring k levels.\n\n"
+             "Args:\n"
+             "    k: Number of levels to spread (must be >= 0).\n\n"
+             "Returns:\n"
+             "    The resulting BDD.\n")
 
         .def_property_readonly("node_id", [](const BDD& b) { return b.GetID(); },
              "The raw node ID of this BDD.")
@@ -431,6 +462,89 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
+        .def("always", &ZDD::Always,
+             "Find elements common to ALL sets in the family.\n\n"
+             "Returns:\n"
+             "    A ZDD representing the single set of always-present variables.\n")
+        .def("permit_sym", &ZDD::PermitSym, py::arg("n"),
+             "Symmetric permit: keep sets with at most n elements.\n\n"
+             "Args:\n"
+             "    n: Maximum number of elements.\n\n"
+             "Returns:\n"
+             "    A ZDD containing only sets with <= n elements.\n")
+        .def("swap", &ZDD::Swap, py::arg("v1"), py::arg("v2"),
+             "Swap two variables in the family.\n\n"
+             "Args:\n"
+             "    v1: First variable number.\n"
+             "    v2: Second variable number.\n\n"
+             "Returns:\n"
+             "    A ZDD with v1 and v2 swapped.\n")
+        .def("imply_chk", &ZDD::ImplyChk, py::arg("v1"), py::arg("v2"),
+             "Check if v1 implies v2 in the family.\n\n"
+             "Args:\n"
+             "    v1: First variable number.\n"
+             "    v2: Second variable number.\n\n"
+             "Returns:\n"
+             "    1 if every set containing v1 also contains v2, 0 otherwise.\n")
+        .def("coimply_chk", &ZDD::CoImplyChk, py::arg("v1"), py::arg("v2"),
+             "Check co-implication between v1 and v2 in the family.\n\n"
+             "Args:\n"
+             "    v1: First variable number.\n"
+             "    v2: Second variable number.\n\n"
+             "Returns:\n"
+             "    1 if co-implication holds, 0 otherwise.\n")
+        .def("sym_chk", &ZDD::SymChk, py::arg("v1"), py::arg("v2"),
+             "Check if two variables are symmetric in the family.\n\n"
+             "Args:\n"
+             "    v1: First variable number.\n"
+             "    v2: Second variable number.\n\n"
+             "Returns:\n"
+             "    1 if symmetric, 0 if not.\n")
+        .def("imply_set", &ZDD::ImplySet, py::arg("v"),
+             "Find all variables implied by v in the family.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A ZDD (family of singletons) of variables that v implies.\n")
+        .def("sym_grp", &ZDD::SymGrp,
+             "Find all symmetry groups (size >= 2) in the family.\n\n"
+             "Returns:\n"
+             "    A ZDD family where each set is a symmetry group.\n")
+        .def("sym_grp_naive", &ZDD::SymGrpNaive,
+             "Find all symmetry groups (naive method, includes size 1).\n\n"
+             "Returns:\n"
+             "    A ZDD family where each set is a symmetry group.\n")
+        .def("sym_set", &ZDD::SymSet, py::arg("v"),
+             "Find all variables symmetric with v in the family.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A ZDD (single set) of variables symmetric with v.\n")
+        .def("coimply_set", &ZDD::CoImplySet, py::arg("v"),
+             "Find all variables in co-implication relation with v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A ZDD (single set) of variables co-implied by v.\n")
+        .def("divisor", &ZDD::Divisor,
+             "Find a non-trivial divisor of the family (as polynomial).\n\n"
+             "Returns:\n"
+             "    A ZDD representing a divisor.\n")
+        .def("__bool__", [](const ZDD&) -> bool {
+            throw py::type_error(
+                "ZDD cannot be converted to bool. "
+                "Use == ZDD.empty or == ZDD.single instead.");
+        })
+        .def("__lshift__", [](const ZDD& a, int s) { return a << s; },
+             "Left shift: increase variable numbers by s.")
+        .def("__rshift__", [](const ZDD& a, int s) { return a >> s; },
+             "Right shift: decrease variable numbers by s.")
+        .def("__ilshift__", [](ZDD& a, int s) -> ZDD& { a <<= s; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place left shift.")
+        .def("__irshift__", [](ZDD& a, int s) -> ZDD& { a >>= s; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place right shift.")
 
         // I/O
         .def("export_str", [](const ZDD& z) -> std::string {
@@ -484,8 +598,23 @@ PYBIND11_MODULE(_core, m) {
 
         .def_property_readonly("card", &ZDD::Card,
              "The number of sets in the family (cardinality).")
+        .def_property_readonly("exact_count", [](const ZDD& z) -> py::int_ {
+            bigint::BigInt bi = z.ExactCount();
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, "The number of sets in the family (arbitrary precision Python int).")
         .def_property_readonly("node_id", [](const ZDD& z) { return z.GetID(); },
              "The raw node ID of this ZDD.")
+        .def_property_readonly("size", &ZDD::Size,
+             "The number of nodes in the DAG of this ZDD.")
+        .def_property_readonly("lit", &ZDD::Lit,
+             "The total literal count across all sets in the family.")
+        .def_property_readonly("len", &ZDD::Len,
+             "The maximum set size in the family.")
+        .def_property_readonly("is_poly", &ZDD::IsPoly,
+             "1 if the family has >= 2 sets, 0 otherwise.")
+        .def_property_readonly("support", [](const ZDD& z) { return z.Support(); },
+             "The support set as a ZDD.")
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.GetID());
         }, "The top (root) variable number of this ZDD.")

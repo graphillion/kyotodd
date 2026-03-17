@@ -14,6 +14,7 @@ from kyotodd._core import (
     live_nodes,
     gc_set_threshold,
     gc_get_threshold,
+    zdd_random,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "live_nodes",
     "gc_set_threshold",
     "gc_get_threshold",
+    "zdd_random",
 ]
