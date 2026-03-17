@@ -6800,3 +6800,48 @@ TEST_F(BDDTest, ZDD_Random_DifferentSeedsGiveDifferentResults) {
     // (not guaranteed, but extremely improbable for 3 vars)
     EXPECT_NE(z1.GetID(), z2.GetID());
 }
+
+// --- ZDD operator<< / operator<<= / operator>> / operator>>= ---
+
+TEST_F(BDDTest, ZDD_OperatorLshift) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));  // {{v1}}
+    ZDD shifted = z << 1;
+    EXPECT_EQ(shifted.GetID(), bddlshift(z.GetID(), 1));
+}
+
+TEST_F(BDDTest, ZDD_OperatorLshiftAssign) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    bddp expected = bddlshift(z.GetID(), 1);
+    z <<= 1;
+    EXPECT_EQ(z.GetID(), expected);
+}
+
+TEST_F(BDDTest, ZDD_OperatorRshift) {
+    bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));  // {{v2}}
+    ZDD shifted = z >> 1;
+    EXPECT_EQ(shifted.GetID(), bddrshift(z.GetID(), 1));
+}
+
+TEST_F(BDDTest, ZDD_OperatorRshiftAssign) {
+    bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    bddp expected = bddrshift(z.GetID(), 1);
+    z >>= 1;
+    EXPECT_EQ(z.GetID(), expected);
+}
+
+TEST_F(BDDTest, ZDD_LshiftRshiftRoundtrip) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD roundtrip = (z << 2) >> 2;
+    EXPECT_EQ(roundtrip, z);
+}

@@ -385,6 +385,14 @@ public:
     ZDD operator%(const ZDD& other) const;
     /** @brief In-place remainder. */
     ZDD& operator%=(const ZDD& other);
+    /** @brief Left shift (increase variable numbers by @p s). */
+    ZDD operator<<(int s) const;
+    /** @brief In-place left shift. */
+    ZDD& operator<<=(int s);
+    /** @brief Right shift (decrease variable numbers by @p s). */
+    ZDD operator>>(int s) const;
+    /** @brief In-place right shift. */
+    ZDD& operator>>=(int s);
     /** @brief Equality comparison by node ID. */
     bool operator==(const ZDD& other) const { return root == other.root; }
     /** @brief Inequality comparison by node ID. */

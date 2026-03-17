@@ -250,6 +250,28 @@ inline ZDD& ZDD::operator%=(const ZDD& other) {
     return *this;
 }
 
+inline ZDD ZDD::operator<<(int s) const {
+    ZDD z(0);
+    z.root = bddlshift(root, s);
+    return z;
+}
+
+inline ZDD& ZDD::operator<<=(int s) {
+    root = bddlshift(root, s);
+    return *this;
+}
+
+inline ZDD ZDD::operator>>(int s) const {
+    ZDD z(0);
+    z.root = bddrshift(root, s);
+    return z;
+}
+
+inline ZDD& ZDD::operator>>=(int s) {
+    root = bddrshift(root, s);
+    return *this;
+}
+
 // ZDD high-level member functions
 
 inline ZDD ZDD::Maximal() const {
