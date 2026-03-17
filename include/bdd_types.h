@@ -549,6 +549,8 @@ public:
     void Export(std::ostream& strm) const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
     void Print() const;
+    /** @brief Print ZDD graph (bddgraph wrapper). */
+    void XPrint() const;
     /** @brief Print in PLA format. */
     void PrintPla() const;
     /** @brief Adjust ZDD to a given number of levels. */

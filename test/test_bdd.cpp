@@ -7140,6 +7140,13 @@ TEST_F(BDDTest, ZDD_TopTerminal) {
     EXPECT_EQ(e.Top(), bddtop(bddempty));
 }
 
+// --- ZDD::XPrint ---
+
+TEST_F(BDDTest, ZDD_XPrint) {
+    ZDD z = ZDD_ID(getznode(bddnewvar(), bddempty, bddsingle));
+    EXPECT_THROW(z.XPrint(), std::logic_error);
+}
+
 // --- ZDD::Size ---
 
 TEST_F(BDDTest, ZDD_Size) {
