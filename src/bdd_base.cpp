@@ -193,7 +193,9 @@ void bddfinal() {
 
     bdd_varcount = 0;
     var_capacity = 0;
+    bdd_node_count = 0;
     bdd_node_used = 0;
+    bdd_node_max = 0;
 
     BDD_RecurCount = 0;
     bdd_gc_depth = 0;
