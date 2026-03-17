@@ -403,6 +403,8 @@ int bddimply(bddp f, bddp g) {
     if (f == g) return 1;          // f implies f
     if (f == bddnot(g)) return 0;  // f=1 => g=0
 
+    BDD_RecurGuard guard;
+
     // Cache lookup (store result as bddtrue/bddfalse)
     bddp cached = bddrcache(BDD_OP_IMPLY, f, g);
     if (cached != bddnull) return cached == bddtrue ? 1 : 0;
