@@ -539,6 +539,14 @@ int bddimplychk(bddp f, bddvar v1, bddvar v2);
  */
 int bddcoimplychk(bddp f, bddvar v1, bddvar v2);
 
+/**
+ * @brief Symmetric permit: keep sets with at most n elements.
+ * @param f A ZDD node ID.
+ * @param n Maximum number of elements.
+ * @return A ZDD containing only sets with ≤ n elements.
+ */
+bddp bddpermitsym(bddp f, int n);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

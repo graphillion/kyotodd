@@ -7178,3 +7178,47 @@ TEST(ZDD_CoImplyChkTest, CoImplicationHoldsButNotImplication) {
     EXPECT_EQ(g.ImplyChk(1, 2), 0);
     EXPECT_EQ(g.CoImplyChk(1, 2), 1);
 }
+
+// --- bddpermitsym / ZDD::PermitSym ---
+
+TEST(ZDD_PermitSymTest, TerminalCases) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(bddpermitsym(bddnull, 3), bddnull);
+    EXPECT_EQ(bddpermitsym(bddempty, 3), bddempty);
+    EXPECT_EQ(bddpermitsym(bddsingle, 3), bddsingle);
+}
+
+TEST(ZDD_PermitSymTest, NZero) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // n=0: only keep ∅ if present
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD f = ZDD::Single + s1;  // {∅, {v1}}
+    EXPECT_EQ(f.PermitSym(0), ZDD::Single);  // only ∅
+
+    // n=0 on family without ∅
+    EXPECT_EQ(s1.PermitSym(0), ZDD::Empty);
+}
+
+TEST(ZDD_PermitSymTest, FilterBySize) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // {{v1}, {v1,v2}, {v1,v2,v3}}
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD s123 = ZDD::Single.Change(1).Change(2).Change(3);
+    ZDD f = s1 + s12 + s123;
+
+    // n=1: only {v1}
+    EXPECT_EQ(f.PermitSym(1), s1);
+    // n=2: {v1} and {v1,v2}
+    EXPECT_EQ(f.PermitSym(2), s1 + s12);
+    // n=3: all
+    EXPECT_EQ(f.PermitSym(3), f);
+    // n=10: all (n >= max size)
+    EXPECT_EQ(f.PermitSym(10), f);
+}

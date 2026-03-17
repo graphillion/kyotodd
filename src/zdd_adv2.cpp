@@ -88,3 +88,40 @@ int bddcoimplychk(bddp f, bddvar v1, bddvar v2) {
     });
     return (int)r;
 }
+
+// --- bddpermitsym ---
+
+static bddp bddpermitsym_rec(bddp f, int n);
+
+bddp bddpermitsym(bddp f, int n) {
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    if (n < 1) return bddintersec(f, bddsingle);
+    if (f & BDD_CONST_FLAG) return f;
+
+    return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
+}
+
+static bddp bddpermitsym_rec(bddp f, int n) {
+    BDD_RecurGuard guard;
+
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    if (n < 1) return bddintersec(f, bddsingle);
+    if (f & BDD_CONST_FLAG) return f;
+
+    bddp cached = bddrcache(BDD_OP_PERMITSYM, f, static_cast<bddp>(n));
+    if (cached != bddnull) return cached;
+
+    bddvar top = bddtop(f);
+    bddp f1 = bddonset0(f, top);
+    bddp f0 = bddoffset(f, top);
+
+    bddp r1 = bddchange(bddpermitsym_rec(f1, n - 1), top);
+    bddp r0 = bddpermitsym_rec(f0, n);
+    bddp result = bddunion(r1, r0);
+
+    bddwcache(BDD_OP_PERMITSYM, f, static_cast<bddp>(n), result);
+    return result;
+}

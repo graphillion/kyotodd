@@ -402,4 +402,10 @@ inline int ZDD::CoImplyChk(int v1, int v2) const {
     return bddcoimplychk(root, v1, v2);
 }
 
+inline ZDD ZDD::PermitSym(int n) const {
+    ZDD z(0);
+    z.root = bddpermitsym(root, n);
+    return z;
+}
+
 #endif

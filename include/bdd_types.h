@@ -522,6 +522,8 @@ public:
     int ImplyChk(int v1, int v2) const;
     /** @brief Check co-implication between v1 and v2. */
     int CoImplyChk(int v1, int v2) const;
+    /** @brief Keep sets with at most n elements. */
+    ZDD PermitSym(int n) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
