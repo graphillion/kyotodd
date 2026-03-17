@@ -500,6 +500,10 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
+    void Print() const;
+    /** @brief Print in PLA format. */
+    void PrintPla() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
