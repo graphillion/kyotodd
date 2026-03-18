@@ -143,6 +143,8 @@ void bddgc_protect(bddp* p);
 void bddgc_unprotect(bddp* p);
 /// @endcond
 
+#include "dd_base.h"
+
 /**
  * @brief A Binary Decision Diagram (BDD) node.
  *
@@ -150,49 +152,34 @@ void bddgc_unprotect(bddp* p);
  * edges. Each BDD object holds a single root node ID and is automatically
  * protected from garbage collection during its lifetime.
  */
-class BDD {
+class BDD : public DDBase {
     /// @cond INTERNAL
     friend BDD BDD_ID(bddp p);
     /// @endcond
 
-    bddp root;  /**< @brief The root node ID of this BDD. */
-
 public:
     /** @brief Get the raw node ID. */
-    bddp GetID() const { return root; }
+    bddp GetID() const { return get_id(); }
 
     /** @brief Default constructor. Constructs a false BDD. */
-    BDD() : root(bddfalse) {
-        bddgc_protect(&root);
-    }
+    BDD() : DDBase() {}
     /**
      * @brief Construct a BDD from an integer value.
      * @param val 0 for false, 1 for true, negative for null.
      */
-    explicit BDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddfalse : bddtrue) {
-        bddgc_protect(&root);
-    }
+    explicit BDD(int val) : DDBase(val) {}
     /** @brief Copy constructor. */
-    BDD(const BDD& other) : root(other.root) {
-        bddgc_protect(&root);
-    }
+    BDD(const BDD& other) : DDBase(other) {}
     /** @brief Move constructor. */
-    BDD(BDD&& other) : root(other.root) {
-        bddgc_protect(&root);
-        other.root = bddnull;
-    }
-    ~BDD() {
-        bddgc_unprotect(&root);
-    }
+    BDD(BDD&& other) : DDBase(std::move(other)) {}
     /** @brief Copy assignment operator. */
     BDD& operator=(const BDD& other) {
-        root = other.root;
+        DDBase::operator=(other);
         return *this;
     }
     /** @brief Move assignment operator. */
     BDD& operator=(BDD&& other) {
-        root = other.root;
-        other.root = bddnull;
+        DDBase::operator=(std::move(other));
         return *this;
     }
 
@@ -294,14 +281,13 @@ public:
      */
     int Imply(const BDD& g) const;
     /** @brief Get the top variable number. */
-    bddvar Top() const;
+    bddvar Top() const { return top(); }
+    using DDBase::raw_size;
     /**
      * @brief Return the number of nodes in this BDD (with complement edge sharing).
      * @deprecated Use raw_size() or plain_size() instead.
      */
-    uint64_t Size() const;
-    /** @brief Return the number of nodes in this BDD (with complement edge sharing). */
-    uint64_t raw_size() const;
+    uint64_t Size() const { return raw_size(); }
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
     /** @brief Return the shared node count across multiple BDDs (with complement edge sharing). */

@@ -15,6 +15,10 @@
 #include "bigint.hpp"
 #include <iostream>
 
+// DDBase inline definitions (bddtop/bddsize declared in bdd_base.h)
+inline bddvar DDBase::top() const { return bddtop(root); }
+inline uint64_t DDBase::raw_size() const { return bddsize(root); }
+
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
     b.root = bddand(root, other.root);
@@ -146,14 +150,6 @@ inline int BDD::Imply(const BDD& g) const {
     return bddimply(root, g.root);
 }
 
-inline uint64_t BDD::Size() const {
-    return bddsize(root);
-}
-
-inline uint64_t BDD::raw_size() const {
-    return bddsize(root);
-}
-
 inline uint64_t BDD::plain_size() const {
     return bddplainsize(root, false);
 }
@@ -212,10 +208,6 @@ inline void BDD::Export(FILE* strm) const {
 inline void BDD::Export(std::ostream& strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
-}
-
-inline bddvar BDD::Top() const {
-    return bddtop(root);
 }
 
 inline void BDD::Print() const {
