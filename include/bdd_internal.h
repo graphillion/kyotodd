@@ -82,7 +82,8 @@ inline bool node_is_reduced(bddp node_id) {
 
 // Check if a bddp (node ID or terminal) is reduced
 inline bool bddp_is_reduced(bddp p) {
-    if (p & BDD_CONST_FLAG) return true;          // terminals are always reduced
+    if (p == bddnull) return false;                // bddnull is not a real node
+    if (p & BDD_CONST_FLAG) return true;           // terminals are always reduced
     return node_is_reduced(p & ~BDD_COMP_FLAG);    // strip complement flag
 }
 
