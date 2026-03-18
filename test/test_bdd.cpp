@@ -7062,6 +7062,165 @@ TEST_F(BDDTest, UniformSample_RequiresMemo) {
     EXPECT_TRUE(memo.stored());
 }
 
+// --- BDD::uniform_sample tests ---
+
+TEST_F(BDDTest, BDD_UniformSample_Basic) {
+    // f = x1 OR x2, n=2: satisfying assignments = {01, 10, 11}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a | b;  // x1 OR x2
+    BddCountMemo memo(f, 2);
+
+    std::mt19937_64 rng(42);
+    std::set<std::vector<bddvar>> seen;
+    for (int i = 0; i < 300; i++) {
+        auto s = f.uniform_sample(rng, 2, memo);
+        // Each sample must be a valid satisfying assignment
+        // At least one of v1, v2 must be in the result
+        std::set<bddvar> vars(s.begin(), s.end());
+        EXPECT_TRUE(vars.count(v1) > 0 || vars.count(v2) > 0);
+        std::vector<bddvar> sorted_s = s;
+        std::sort(sorted_s.begin(), sorted_s.end());
+        seen.insert(sorted_s);
+    }
+    // All 3 satisfying assignments should be reachable
+    EXPECT_EQ(seen.size(), 3u);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_SingleSolution) {
+    // f = x1 AND x2, n=2: only satisfying assignment is {x1=1, x2=1}
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    BddCountMemo memo(f, 2);
+
+    std::mt19937_64 rng(42);
+    for (int i = 0; i < 50; i++) {
+        auto s = f.uniform_sample(rng, 2, memo);
+        ASSERT_EQ(s.size(), 2u);
+        std::set<bddvar> vars(s.begin(), s.end());
+        EXPECT_TRUE(vars.count(v1) > 0);
+        EXPECT_TRUE(vars.count(v2) > 0);
+    }
+}
+
+TEST_F(BDDTest, BDD_UniformSample_AllTrue) {
+    // f = bddtrue, n=3: all 8 assignments satisfy
+    bddnewvar(); bddnewvar(); bddnewvar();
+    BDD f = BDD::True;
+    BddCountMemo memo(f, 3);
+
+    std::mt19937_64 rng(42);
+    // Count how many times each variable appears in 1000 samples
+    int counts[4] = {};  // counts[1], counts[2], counts[3]
+    const int N = 3000;
+    for (int i = 0; i < N; i++) {
+        auto s = f.uniform_sample(rng, 3, memo);
+        for (bddvar v : s) {
+            ASSERT_GE(v, 1u);
+            ASSERT_LE(v, 3u);
+            counts[v]++;
+        }
+    }
+    // Each variable should appear ~50% of the time
+    for (int v = 1; v <= 3; v++) {
+        double ratio = static_cast<double>(counts[v]) / N;
+        EXPECT_GT(ratio, 0.45);
+        EXPECT_LT(ratio, 0.55);
+    }
+}
+
+TEST_F(BDDTest, BDD_UniformSample_SkippedVariables) {
+    // f depends only on x1, n=3: x2 and x3 are skipped (don't care)
+    // f = x1: satisfying = {x1=1, x2=?, x3=?} → 4 assignments
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD f = BDDvar(v1);
+    BddCountMemo memo(f, 3);
+
+    std::mt19937_64 rng(42);
+    bool v2_seen = false, v3_seen = false;
+    for (int i = 0; i < 200; i++) {
+        auto s = f.uniform_sample(rng, 3, memo);
+        // v1 must always be present
+        std::set<bddvar> vars(s.begin(), s.end());
+        EXPECT_TRUE(vars.count(v1) > 0);
+        if (vars.count(v2) > 0) v2_seen = true;
+        if (vars.count(v3) > 0) v3_seen = true;
+    }
+    // Skipped variables should appear in some samples
+    EXPECT_TRUE(v2_seen);
+    EXPECT_TRUE(v3_seen);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_ThrowsOnFalse) {
+    BDD f = BDD::False;
+    BddCountMemo memo(f, 2);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.uniform_sample(rng, 2, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_ThrowsOnNull) {
+    BDD f = BDD::Null;
+    BddCountMemo memo(f, 2);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.uniform_sample(rng, 2, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_MemoMismatch) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD f1 = BDDvar(v1);
+    BDD f2 = BDDvar(v2);
+    BddCountMemo memo(f1, 2);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f2.uniform_sample(rng, 2, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_NMismatch) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    BDD f = BDDvar(v1);
+    BddCountMemo memo(f, 2);
+    std::mt19937_64 rng(42);
+    // memo was created with n=2, but calling with n=3
+    EXPECT_THROW(f.uniform_sample(rng, 3, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_UniformSample_PopulatesMemo) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    BddCountMemo memo(f, 1);
+    EXPECT_FALSE(memo.stored());
+
+    std::mt19937_64 rng(42);
+    f.uniform_sample(rng, 1, memo);
+    EXPECT_TRUE(memo.stored());
+}
+
+TEST_F(BDDTest, BDD_UniformSample_LevelDescending) {
+    // Verify result is in decreasing level order
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD f = BDD::True;
+    BddCountMemo memo(f, 3);
+
+    std::mt19937_64 rng(42);
+    for (int i = 0; i < 100; i++) {
+        auto s = f.uniform_sample(rng, 3, memo);
+        // Check that levels are strictly decreasing
+        for (std::size_t j = 1; j < s.size(); j++) {
+            EXPECT_GT(bddlevofvar(s[j-1]), bddlevofvar(s[j]));
+        }
+    }
+}
+
 // --- bddcardmp16 tests ---
 
 TEST_F(BDDTest, Bddcardmp16_Terminals) {
