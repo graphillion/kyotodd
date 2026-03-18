@@ -22,9 +22,6 @@ BddCountMemo::BddCountMemo(bddp f, bddvar n) : f_(f), n_(n), stored_(false), map
 BddCountMemo::BddCountMemo(const BDD& f, bddvar n) : f_(f.get_id()), n_(n), stored_(false), map_() {}
 
 bigint::BigInt ZDD::exact_count() const {
-    if (count_memo_) {
-        return bddexactcount(root, *count_memo_);
-    }
     return bddexactcount(root);
 }
 
@@ -39,17 +36,6 @@ bigint::BigInt ZDD::exact_count(ZddCountMemo& memo) const {
     bigint::BigInt result = bddexactcount(root, memo.map());
     memo.mark_stored();
     return result;
-}
-
-bigint::BigInt ZDD::exact_count(bool save_memo) {
-    if (count_memo_) {
-        return bddexactcount(root, *count_memo_);
-    }
-    if (save_memo) {
-        count_memo_ = std::make_shared<CountMemoMap>();
-        return bddexactcount(root, *count_memo_);
-    }
-    return bddexactcount(root);
 }
 
 std::vector<bddvar> ZDD::uniform_sample_impl(

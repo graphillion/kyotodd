@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <functional>
 #include <iosfwd>
-#include <memory>
 #include <unordered_map>
 #include <vector>
 #include "bdd_node.h"
@@ -17,8 +16,6 @@ typedef uint64_t bddp;
 
 /** @brief Memo table for exact counting (maps node ID to BigInt cardinality). */
 typedef std::unordered_map<bddp, bigint::BigInt> CountMemoMap;
-/** @brief Shared pointer to a count memo table. */
-typedef std::shared_ptr<CountMemoMap> BddCountMemoPtr;
 
 /** @brief Variable number type (31-bit value stored in uint32_t).
  *
@@ -430,14 +427,9 @@ class ZDD : public DDBase {
     friend ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
     /// @endcond
 
-    BddCountMemoPtr count_memo_;  /**< @brief Cached exact_count memo table. */
-
 public:
     /** @brief Get the raw node ID. */
     bddp GetID() const { return get_id(); }
-
-    /** @brief Get the cached exact_count memo (may be null). */
-    const BddCountMemoPtr& count_memo() const { return count_memo_; }
 
     /** @brief Default constructor: empty family. */
     ZDD() : DDBase() {}
@@ -446,24 +438,6 @@ public:
      * @param val 0 for empty family, 1 for unit family {∅}, negative for null.
      */
     explicit ZDD(int val) : DDBase(val) {}
-    /** @brief Copy constructor. */
-    ZDD(const ZDD& other) : DDBase(other), count_memo_(other.count_memo_) {}
-    /** @brief Move constructor. */
-    ZDD(ZDD&& other)
-        : DDBase(std::move(other))
-        , count_memo_(std::move(other.count_memo_)) {}
-    /** @brief Copy assignment operator. */
-    ZDD& operator=(const ZDD& other) {
-        DDBase::operator=(other);
-        count_memo_ = other.count_memo_;
-        return *this;
-    }
-    /** @brief Move assignment operator. */
-    ZDD& operator=(ZDD&& other) {
-        DDBase::operator=(std::move(other));
-        count_memo_ = std::move(other.count_memo_);
-        return *this;
-    }
 
     /**
      * @brief Toggle membership of variable @p var in all sets.
@@ -602,12 +576,6 @@ public:
      * @return The cardinality of the family as a BigInt.
      */
     bigint::BigInt exact_count(ZddCountMemo& memo) const;
-    /**
-     * @brief Count the number of sets in the family (arbitrary precision).
-     * @param save_memo If true, save the memo table for reuse in future calls.
-     * @return The cardinality of the family as a BigInt.
-     */
-    bigint::BigInt exact_count(bool save_memo);
     /**
      * @brief Uniformly sample one set from the family at random.
      *
