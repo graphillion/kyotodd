@@ -130,6 +130,30 @@ uint64_t bddsize(bddp f);
 uint64_t bddplainsize(bddp f, bool is_zdd);
 
 /**
+ * @brief Return the total number of shared nodes across multiple DAGs.
+ *
+ * Counts physical nodes shared across all roots only once
+ * (with complement edge sharing).
+ *
+ * @param v Vector of root node IDs.
+ * @return The combined DAG node count.
+ */
+uint64_t bddrawsize(const std::vector<bddp>& v);
+
+/**
+ * @brief Return the total number of nodes across multiple DAGs
+ *        without complement edge sharing.
+ *
+ * Counts nodes as if complement edges were expanded. Shared plain
+ * nodes across roots are counted only once.
+ *
+ * @param v Vector of root node IDs.
+ * @param is_zdd true for ZDD complement semantics, false for BDD.
+ * @return The combined plain DAG node count.
+ */
+uint64_t bddplainsize(const std::vector<bddp>& v, bool is_zdd);
+
+/**
  * @brief Return the total number of nodes in multiple DAGs (array version).
  *
  * Counts shared nodes only once.

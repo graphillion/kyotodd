@@ -157,6 +157,20 @@ inline uint64_t BDD::plain_size() const {
     return bddplainsize(root, false);
 }
 
+inline uint64_t BDD::raw_size(const std::vector<BDD>& v) {
+    std::vector<bddp> roots;
+    roots.reserve(v.size());
+    for (const auto& b : v) roots.push_back(b.GetID());
+    return bddrawsize(roots);
+}
+
+inline uint64_t BDD::plain_size(const std::vector<BDD>& v) {
+    std::vector<bddp> roots;
+    roots.reserve(v.size());
+    for (const auto& b : v) roots.push_back(b.GetID());
+    return bddplainsize(roots, false);
+}
+
 inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
     BDD b(0);
     b.root = bddite(f.root, g.root, h.root);
@@ -452,6 +466,20 @@ inline uint64_t ZDD::raw_size() const {
 
 inline uint64_t ZDD::plain_size() const {
     return bddplainsize(root, true);
+}
+
+inline uint64_t ZDD::raw_size(const std::vector<ZDD>& v) {
+    std::vector<bddp> roots;
+    roots.reserve(v.size());
+    for (const auto& z : v) roots.push_back(z.GetID());
+    return bddrawsize(roots);
+}
+
+inline uint64_t ZDD::plain_size(const std::vector<ZDD>& v) {
+    std::vector<bddp> roots;
+    roots.reserve(v.size());
+    for (const auto& z : v) roots.push_back(z.GetID());
+    return bddplainsize(roots, true);
 }
 
 inline uint64_t ZDD::Lit() const {

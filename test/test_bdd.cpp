@@ -8293,3 +8293,71 @@ TEST_F(BDDTest, PlainSize_ZDD_MemberFunction) {
     // plain_size >= Size always
     EXPECT_GE(u.plain_size(), u.Size());
 }
+
+// --- bddrawsize / bddplainsize (vector) ---
+
+TEST_F(BDDTest, RawSize_Vector_BDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    BDD g = a | b;
+    // Shared count should be <= sum of individual counts
+    std::vector<BDD> vec = {f, g};
+    EXPECT_LE(BDD::raw_size(vec), f.raw_size() + g.raw_size());
+    // Shared count >= max of individual counts
+    EXPECT_GE(BDD::raw_size(vec),
+              std::max(f.raw_size(), g.raw_size()));
+}
+
+TEST_F(BDDTest, RawSize_Vector_ZDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD b = ZDD_ID(bddchange(bddsingle, v2));
+    ZDD u = a + b;
+    ZDD c = a * b;
+    std::vector<ZDD> vec = {u, c};
+    EXPECT_LE(ZDD::raw_size(vec), u.raw_size() + c.raw_size());
+    EXPECT_GE(ZDD::raw_size(vec),
+              std::max(u.raw_size(), c.raw_size()));
+}
+
+TEST_F(BDDTest, PlainSize_Vector_BDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    BDD g = ~(a & b);
+    std::vector<BDD> vec = {f, g};
+    EXPECT_GE(BDD::plain_size(vec), BDD::raw_size(vec));
+}
+
+TEST_F(BDDTest, PlainSize_Vector_ZDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD b = ZDD_ID(bddchange(bddsingle, v2));
+    ZDD u = a + b;
+    ZDD c = a * b;
+    std::vector<ZDD> vec = {u, c};
+    EXPECT_GE(ZDD::plain_size(vec), ZDD::raw_size(vec));
+}
+
+TEST_F(BDDTest, RawSize_Vector_Empty) {
+    std::vector<BDD> empty_bdd;
+    EXPECT_EQ(BDD::raw_size(empty_bdd), 0u);
+    std::vector<ZDD> empty_zdd;
+    EXPECT_EQ(ZDD::raw_size(empty_zdd), 0u);
+}
+
+TEST_F(BDDTest, RawSize_Vector_bddp) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp g = bddor(bddprime(v1), bddprime(v2));
+    std::vector<bddp> vec = {f, g};
+    EXPECT_LE(bddrawsize(vec), bddsize(f) + bddsize(g));
+}

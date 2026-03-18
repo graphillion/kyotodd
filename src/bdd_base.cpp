@@ -554,6 +554,22 @@ uint64_t bddplainsize(bddp f, bool is_zdd) {
     return visited.size();
 }
 
+uint64_t bddrawsize(const std::vector<bddp>& v) {
+    std::unordered_set<bddp> visited;
+    for (size_t i = 0; i < v.size(); i++) {
+        bddsize_traverse(v[i], visited);
+    }
+    return visited.size();
+}
+
+uint64_t bddplainsize(const std::vector<bddp>& v, bool is_zdd) {
+    std::unordered_set<bddp> visited;
+    for (size_t i = 0; i < v.size(); i++) {
+        bddplainsize_traverse(v[i], is_zdd, visited);
+    }
+    return visited.size();
+}
+
 uint64_t bddsize(bddp f) {
     if (f == bddnull) return 0;
     std::unordered_set<bddp> visited;

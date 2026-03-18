@@ -296,6 +296,10 @@ public:
     uint64_t raw_size() const;
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
+    /** @brief Return the shared node count across multiple BDDs (with complement edge sharing). */
+    static uint64_t raw_size(const std::vector<BDD>& v);
+    /** @brief Return the shared node count across multiple BDDs (without complement edge sharing). */
+    static uint64_t plain_size(const std::vector<BDD>& v);
     /** @brief Export to a FILE stream. */
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
@@ -579,6 +583,10 @@ public:
     uint64_t raw_size() const;
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
+    /** @brief Return the shared node count across multiple ZDDs (with complement edge sharing). */
+    static uint64_t raw_size(const std::vector<ZDD>& v);
+    /** @brief Return the shared node count across multiple ZDDs (without complement edge sharing). */
+    static uint64_t plain_size(const std::vector<ZDD>& v);
     /** @brief Count the total number of literals across all sets. */
     uint64_t Lit() const;
     /** @brief Return the maximum set size in the family. */
