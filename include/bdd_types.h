@@ -517,6 +517,11 @@ public:
      */
     uint64_t Card() const;
     /**
+     * @brief Count the number of sets in the family (double approximation).
+     * @return The cardinality of the family as a double.
+     */
+    double count() const;
+    /**
      * @brief Count the number of sets in the family (arbitrary precision).
      * @return The cardinality of the family as a BigInt.
      */

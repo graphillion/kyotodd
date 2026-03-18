@@ -503,6 +503,17 @@ bddp bddrshift(bddp f, bddvar shift);
 uint64_t bddcard(bddp f);
 
 /**
+ * @brief Count the number of sets in a ZDD family (double approximation).
+ *
+ * Returns the cardinality as a double. For families whose cardinality
+ * exceeds the precision of double (~2^53), the result is approximate.
+ *
+ * @param f A ZDD node ID.
+ * @return The cardinality of the family as a double.
+ */
+double bddcount(bddp f);
+
+/**
  * @brief Return the total literal count of a ZDD family.
  *
  * Sums the sizes of all sets in the family represented by @p f.

@@ -6574,6 +6574,80 @@ TEST_F(BDDTest, Bddlen_Complement) {
     EXPECT_EQ(bddlen(f), bddlen(bddnot(f)));
 }
 
+// --- bddcount tests ---
+
+TEST_F(BDDTest, BddCount_Terminals) {
+    EXPECT_DOUBLE_EQ(bddcount(bddempty), 0.0);
+    EXPECT_DOUBLE_EQ(bddcount(bddsingle), 1.0);
+    EXPECT_DOUBLE_EQ(bddcount(bddnull), 0.0);
+}
+
+TEST_F(BDDTest, BddCount_SingleVariable) {
+    bddnewvar();
+    bddp x1 = bddprime(1);
+    EXPECT_DOUBLE_EQ(bddcount(x1), 1.0);
+}
+
+TEST_F(BDDTest, BddCount_Union) {
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp f = bddunion(x1, x2);
+    EXPECT_DOUBLE_EQ(bddcount(f), 2.0);
+}
+
+TEST_F(BDDTest, BddCount_PowerSet) {
+    // Power set of 3 variables = 2^3 = 8 sets
+    bddnewvar(); bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp x3 = bddprime(3);
+    bddp f = bddunion(x1, x2);
+    f = bddunion(f, x3);
+    f = bddunion(f, bddchange(x1, 2));
+    f = bddunion(f, bddchange(x1, 3));
+    f = bddunion(f, bddchange(x2, 3));
+    f = bddunion(f, bddchange(bddchange(x1, 2), 3));
+    f = bddunion(f, bddsingle);
+    EXPECT_DOUBLE_EQ(bddcount(f), 8.0);
+}
+
+TEST_F(BDDTest, BddCount_Complement) {
+    bddnewvar(); bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    EXPECT_DOUBLE_EQ(bddcount(x1), 1.0);
+    EXPECT_DOUBLE_EQ(bddcount(bddnot(x1)), 2.0);
+
+    EXPECT_DOUBLE_EQ(bddcount(bddsingle), 1.0);
+    EXPECT_DOUBLE_EQ(bddcount(bddnot(bddsingle)), 0.0);
+
+    EXPECT_DOUBLE_EQ(bddcount(bddempty), 0.0);
+    EXPECT_DOUBLE_EQ(bddcount(bddnot(bddempty)), 1.0);
+}
+
+TEST_F(BDDTest, BddCount_MatchesCard) {
+    bddnewvar(); bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp x3 = bddprime(3);
+    bddp f = bddunion(x1, bddunion(x2, x3));
+    f = bddunion(f, bddchange(x1, 2));
+    EXPECT_DOUBLE_EQ(bddcount(f), static_cast<double>(bddcard(f)));
+    EXPECT_DOUBLE_EQ(bddcount(bddnot(f)), static_cast<double>(bddcard(bddnot(f))));
+}
+
+TEST_F(BDDTest, BddCount_ZDDClassMethod) {
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp f = bddunion(x1, bddunion(x2, bddsingle));
+
+    ZDD zf = ZDD_ID(f);
+    EXPECT_DOUBLE_EQ(zf.count(), 3.0);
+    EXPECT_DOUBLE_EQ(ZDD::Empty.count(), 0.0);
+    EXPECT_DOUBLE_EQ(ZDD::Single.count(), 1.0);
+}
+
 // --- bddexactcount tests ---
 
 TEST_F(BDDTest, BddExactCount_Terminals) {

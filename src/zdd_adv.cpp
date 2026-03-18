@@ -744,6 +744,44 @@ uint64_t bddlen(bddp f) {
     return result;
 }
 
+static double bddcount_rec(
+    bddp f, std::unordered_map<bddp, double>& memo) {
+    if (f == bddempty) return 0.0;
+    if (f == bddsingle) return 1.0;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = memo.find(f_raw);
+    double count;
+    if (it != memo.end()) {
+        count = it->second;
+    } else {
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        count = bddcount_rec(lo, memo) + bddcount_rec(hi, memo);
+
+        memo[f_raw] = count;
+    }
+
+    if (comp) {
+        if (zdd_has_empty(f_raw)) {
+            count -= 1.0;
+        } else {
+            count += 1.0;
+        }
+    }
+
+    return count;
+}
+
+double bddcount(bddp f) {
+    if (f == bddnull) return 0.0;
+    std::unordered_map<bddp, double> memo;
+    return bddcount_rec(f, memo);
+}
+
 static bigint::BigInt bddexactcount_rec(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
     // Terminal cases
