@@ -29,6 +29,9 @@ endif()
 add_executable(kyotodd src/main.cpp)
 target_link_libraries(kyotodd kyotodd_lib)
 
+add_executable(bddqueen app/BDDQueen/bddqueen.cpp)
+target_link_libraries(bddqueen kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
