@@ -512,6 +512,7 @@ public:
     ZDD Closure() const;
     /**
      * @brief Count the number of sets in the family.
+     * @deprecated Use count() or exact_count() instead.
      * @return The cardinality of the family.
      */
     uint64_t Card() const;
@@ -591,7 +592,10 @@ public:
     uint64_t Lit() const;
     /** @brief Return the maximum set size in the family. */
     uint64_t Len() const;
-    /** @brief Return the cardinality as a hexadecimal string. */
+    /**
+     * @brief Return the cardinality as a hexadecimal string.
+     * @deprecated Use count() or exact_count() instead.
+     */
     char* CardMP16(char* s) const;
     /** @brief Export to a FILE stream. */
     void Export(FILE* strm) const;

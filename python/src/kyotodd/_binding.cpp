@@ -646,7 +646,8 @@ PYBIND11_MODULE(_core, m) {
            "    RuntimeError: If import fails or file cannot be opened.\n")
 
         .def_property_readonly("card", &ZDD::Card,
-             "The number of sets in the family (cardinality).")
+             "The number of sets in the family (cardinality).\n\n"
+             ".. deprecated:: Use count or exact_count instead.")
         .def_property_readonly("exact_count", [](const ZDD& z) -> py::int_ {
             bigint::BigInt bi = z.exact_count();
             std::string s = bi.to_string();

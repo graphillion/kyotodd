@@ -494,8 +494,8 @@ bddp bddrshift(bddp f, bddvar shift);
 /**
  * @brief Count the number of sets in a ZDD family.
  *
- * Saturates at (2^39 - 1) for very large families. Use bddexactcard()
- * or bddexactcardmp16() for exact results beyond this limit.
+ * @deprecated Use bddexactcount() instead.
+ * Saturates at (2^39 - 1) for very large families.
  *
  * @param f A ZDD node ID.
  * @return The cardinality of the family, or (2^39 - 1) if saturated.
@@ -544,6 +544,7 @@ bigint::BigInt bddexactcount(bddp f);
 /**
  * @brief Count the number of sets in a ZDD family as a hex string.
  *
+ * @deprecated Use bddexactcount() instead.
  * Legacy compatibility wrapper around bddexactcount.
  * Returns the cardinality as an uppercase hexadecimal string with no
  * leading zeros.
