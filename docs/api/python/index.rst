@@ -9,3 +9,4 @@ Python API
    zdd
    pidd
    rotpidd
+   seqbdd

@@ -10,4 +10,5 @@ C++ API
    ops_zdd
    ops_pidd
    ops_rotpidd
+   ops_seqbdd
    io
