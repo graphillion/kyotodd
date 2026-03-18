@@ -592,4 +592,13 @@ std::vector<bddvar> ZDD::uniform_sample(RNG& rng, ZddCountMemo& memo) {
         }, memo);
 }
 
+template<typename RNG>
+std::vector<bddvar> BDD::uniform_sample(RNG& rng, bddvar n, BddCountMemo& memo) {
+    return uniform_sample_impl(
+        [&rng](const bigint::BigInt& upper) {
+            return bigint::uniform_random(upper, rng);
+        },
+        n, memo);
+}
+
 #endif

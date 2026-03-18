@@ -88,6 +88,84 @@ std::vector<bddvar> ZDD::uniform_sample_impl(
     return result;
 }
 
+std::vector<bddvar> BDD::uniform_sample_impl(
+        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
+        bddvar n, BddCountMemo& memo) {
+    if (root == bddfalse || root == bddnull) {
+        throw std::invalid_argument(
+            "uniform_sample: cannot sample from unsatisfiable function");
+    }
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "uniform_sample: memo was created for a different BDD");
+    }
+    if (memo.n() != n) {
+        throw std::invalid_argument(
+            "uniform_sample: memo was created with a different n");
+    }
+
+    // Ensure memo is populated
+    if (!memo.stored()) {
+        exact_count(n, memo);
+    }
+
+    std::vector<bddvar> result;
+    bddp f = root;
+    bddvar current_level = n;
+    const bigint::BigInt two(2);
+    const bigint::BigInt zero(0);
+
+    while (!(f & BDD_CONST_FLAG)) {
+        // BDD complement semantics: complement toggles both lo and hi
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddvar node_level = var2level[var];
+
+        // Randomly assign skipped variables (current_level down to node_level+1)
+        for (bddvar lev = current_level; lev > node_level; --lev) {
+            if (rand_func(two) != zero) {
+                result.push_back(bddvaroflev(lev));
+            }
+        }
+
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        if (comp) {
+            lo = bddnot(lo);
+            hi = bddnot(hi);
+        }
+
+        bigint::BigInt count_lo = bddexactcount(lo, n, memo.map());
+        bigint::BigInt count_hi = bddexactcount(hi, n, memo.map());
+        bigint::BigInt total = count_lo + count_hi;
+
+        bigint::BigInt r = rand_func(total);
+
+        if (r < count_lo) {
+            f = lo;
+        } else {
+            result.push_back(var);
+            f = hi;
+        }
+
+        current_level = node_level - 1;
+    }
+
+    // Terminal reached: randomly assign remaining levels
+    if (f == bddtrue) {
+        for (bddvar lev = current_level; lev > 0; --lev) {
+            if (rand_func(two) != zero) {
+                result.push_back(bddvaroflev(lev));
+            }
+        }
+    }
+
+    return result;
+}
+
 void ZDD::Print() const {
     bddvar v = Top();
     std::cout << "[ " << GetID()
