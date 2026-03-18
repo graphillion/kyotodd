@@ -16,9 +16,9 @@ namespace bigint { class BigInt; }
 typedef uint64_t bddp;
 
 /** @brief Memo table for exact counting (maps node ID to BigInt cardinality). */
-typedef std::unordered_map<bddp, bigint::BigInt> BddCountMemo;
+typedef std::unordered_map<bddp, bigint::BigInt> CountMemoMap;
 /** @brief Shared pointer to a count memo table. */
-typedef std::shared_ptr<BddCountMemo> BddCountMemoPtr;
+typedef std::shared_ptr<CountMemoMap> BddCountMemoPtr;
 
 /** @brief Variable number type (31-bit value stored in uint32_t).
  *

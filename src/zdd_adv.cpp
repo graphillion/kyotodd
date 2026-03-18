@@ -829,7 +829,7 @@ bigint::BigInt bddexactcount(bddp f) {
     return bddexactcount_rec(f, memo);
 }
 
-bigint::BigInt bddexactcount(bddp f, BddCountMemo& memo) {
+bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo) {
     if (f == bddnull) return bigint::BigInt(0);
     return bddexactcount_rec(f, memo);
 }

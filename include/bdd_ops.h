@@ -563,7 +563,7 @@ bigint::BigInt bddexactcount(bddp f);
  * @param memo The memo table to use and populate.
  * @return The cardinality of the family as a BigInt.
  */
-bigint::BigInt bddexactcount(bddp f, BddCountMemo& memo);
+bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo);
 
 /**
  * @brief Count the number of sets in a ZDD family as a hex string.

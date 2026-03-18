@@ -23,7 +23,7 @@ bigint::BigInt ZDD::exact_count(bool save_memo) {
         return bddexactcount(root, *count_memo_);
     }
     if (save_memo) {
-        count_memo_ = std::make_shared<BddCountMemo>();
+        count_memo_ = std::make_shared<CountMemoMap>();
         return bddexactcount(root, *count_memo_);
     }
     return bddexactcount(root);
