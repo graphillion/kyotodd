@@ -648,7 +648,7 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("card", &ZDD::Card,
              "The number of sets in the family (cardinality).")
         .def_property_readonly("exact_count", [](const ZDD& z) -> py::int_ {
-            bigint::BigInt bi = z.ExactCount();
+            bigint::BigInt bi = z.exact_count();
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "The number of sets in the family (arbitrary precision Python int).")

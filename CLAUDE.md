@@ -8,6 +8,10 @@
 - Always write tests after implementing a feature.
 - Do not remove or modify existing comments in the code unless explicitly asked to do so.
 
+## Naming conventions
+
+- New C++/Python member functions and methods must use lowercase snake_case (e.g. `exact_count`, `raw_size`).
+
 ## Build
 
 - Build system: CMake

@@ -400,7 +400,7 @@ inline uint64_t ZDD::Card() const {
     return bddcard(root);
 }
 
-inline bigint::BigInt ZDD::ExactCount() const {
+inline bigint::BigInt ZDD::exact_count() const {
     return bddexactcount(root);
 }
 

@@ -519,7 +519,7 @@ public:
      * @brief Count the number of sets in the family (arbitrary precision).
      * @return The cardinality of the family as a BigInt.
      */
-    bigint::BigInt ExactCount() const;
+    bigint::BigInt exact_count() const;
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.

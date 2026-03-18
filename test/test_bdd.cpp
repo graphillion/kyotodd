@@ -6689,9 +6689,9 @@ TEST_F(BDDTest, BddExactCount_ZDDClassMethod) {
     bddp f = bddunion(bddunion(bddsingle, z1), z2);
 
     ZDD zf = ZDD_ID(f);
-    EXPECT_EQ(zf.ExactCount(), bigint::BigInt(3));
-    EXPECT_EQ(ZDD::Empty.ExactCount(), bigint::BigInt(0));
-    EXPECT_EQ(ZDD::Single.ExactCount(), bigint::BigInt(1));
+    EXPECT_EQ(zf.exact_count(), bigint::BigInt(3));
+    EXPECT_EQ(ZDD::Empty.exact_count(), bigint::BigInt(0));
+    EXPECT_EQ(ZDD::Single.exact_count(), bigint::BigInt(1));
 }
 
 TEST_F(BDDTest, BddExactCount_PowerSet65_Exceeds2pow64) {
