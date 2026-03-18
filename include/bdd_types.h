@@ -401,6 +401,32 @@ public:
      */
     bigint::BigInt exact_count(bddvar n, BddCountMemo& memo) const;
     /**
+     * @brief Uniformly sample one satisfying assignment at random.
+     *
+     * Each satisfying assignment in {0,1}^n is selected with equal
+     * probability. Variables assigned to 1 are returned in decreasing
+     * level order. Populates the memo if not already stored.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param rng The random number generator.
+     * @param n The number of Boolean variables.
+     * @param memo A BddCountMemo created for this BDD and n.
+     * @return The sampled assignment as a vector of variables set to 1.
+     */
+    template<typename RNG>
+    std::vector<bddvar> uniform_sample(RNG& rng, bddvar n, BddCountMemo& memo);
+
+    /// @cond INTERNAL
+    /// Internal: traverse BDD and collect sampled variables using
+    /// a function that generates uniform random BigInts.
+    /// @param rand_func A callable taking BigInt upper → BigInt in [0, upper).
+    /// @param n The number of Boolean variables.
+    /// @param memo A BddCountMemo created for this BDD and n.
+    std::vector<bddvar> uniform_sample_impl(
+        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
+        bddvar n, BddCountMemo& memo);
+    /// @endcond
+    /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.
      * @param g Then-branch BDD.
