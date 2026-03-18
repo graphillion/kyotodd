@@ -5,6 +5,7 @@
 #include "bdd.h"
 #include "pidd.h"
 #include "rotpidd.h"
+#include "seqbdd.h"
 
 namespace py = pybind11;
 
@@ -978,5 +979,122 @@ PYBIND11_MODULE(_core, m) {
              "The number of permutations in the set.")
         .def_property_readonly("zdd", &RotPiDD::GetZDD,
              "The internal ZDD representation.")
+    ;
+
+    // ================================================================
+    // SeqBDD class
+    // ================================================================
+
+    py::class_<SeqBDD>(m, "SeqBDD",
+        "A Sequence BDD representing sets of sequences.\n\n"
+        "Uses ZDD internally to compactly represent ordered sequences\n"
+        "where the same symbol may appear multiple times.")
+        .def(py::init([](int val) {
+            ensure_init();
+            return SeqBDD(val);
+        }), py::arg("val") = 0,
+           "Construct a SeqBDD.\n\n"
+           "Args:\n"
+           "    val: 0 for empty set, 1 for {epsilon}, negative for null.\n")
+
+        .def("__eq__", [](const SeqBDD& a, const SeqBDD& b) { return a == b; })
+        .def("__ne__", [](const SeqBDD& a, const SeqBDD& b) { return a != b; })
+        .def("__hash__", [](const SeqBDD& a) {
+            return std::hash<uint64_t>()(a.get_zdd().GetID());
+        })
+        .def("__repr__", [](const SeqBDD& a) {
+            return "SeqBDD(card=" + std::to_string(a.card()) + ")";
+        })
+        .def("__str__", [](const SeqBDD& a) {
+            return a.seq_str();
+        })
+        .def("__bool__", [](const SeqBDD&) -> bool {
+            throw py::type_error(
+                "SeqBDD cannot be converted to bool. "
+                "Use == SeqBDD(0) or == SeqBDD(1) instead.");
+        })
+
+        // Set operations
+        .def("__and__", [](const SeqBDD& a, const SeqBDD& b) { return a & b; },
+             "Intersection: ``self & other``.")
+        .def("__add__", [](const SeqBDD& a, const SeqBDD& b) { return a + b; },
+             "Union: ``self + other``.")
+        .def("__sub__", [](const SeqBDD& a, const SeqBDD& b) { return a - b; },
+             "Difference: ``self - other``.")
+        .def("__mul__", [](const SeqBDD& a, const SeqBDD& b) { return a * b; },
+             "Concatenation: ``self * other``.")
+        .def("__truediv__", [](const SeqBDD& a, const SeqBDD& b) { return a / b; },
+             "Left quotient: ``self / other``.")
+        .def("__mod__", [](const SeqBDD& a, const SeqBDD& b) { return a % b; },
+             "Left remainder: ``self % other``.")
+
+        // In-place operations
+        .def("__iand__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a &= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__iadd__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a += b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__isub__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a -= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__imul__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a *= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__itruediv__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a /= b; return a; },
+             py::return_value_policy::reference_internal)
+        .def("__imod__", [](SeqBDD& a, const SeqBDD& b) -> SeqBDD& { a %= b; return a; },
+             py::return_value_policy::reference_internal)
+
+        // Node operations
+        .def("off_set", &SeqBDD::off_set, py::arg("v"),
+             "Remove sequences starting with variable v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A SeqBDD without sequences starting with v.\n")
+        .def("on_set0", &SeqBDD::on_set0, py::arg("v"),
+             "Extract sequences starting with v, removing the leading v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A SeqBDD of suffixes after stripping the leading v.\n")
+        .def("on_set", &SeqBDD::on_set, py::arg("v"),
+             "Extract sequences starting with v, keeping v.\n\n"
+             "Args:\n"
+             "    v: Variable number.\n\n"
+             "Returns:\n"
+             "    A SeqBDD of sequences that start with v.\n")
+        .def("push", &SeqBDD::push, py::arg("v"),
+             "Prepend variable v to all sequences.\n\n"
+             "Args:\n"
+             "    v: Variable number to prepend.\n\n"
+             "Returns:\n"
+             "    A SeqBDD with v prepended to every sequence.\n")
+
+        // Properties
+        .def_property_readonly("top", &SeqBDD::top,
+             "The variable number of the root node.")
+        .def_property_readonly("size", &SeqBDD::size,
+             "The number of nodes in the internal ZDD.")
+        .def_property_readonly("card", &SeqBDD::card,
+             "The number of sequences in the set.")
+        .def_property_readonly("lit", &SeqBDD::lit,
+             "Total symbol count across all sequences.")
+        .def_property_readonly("len", &SeqBDD::len,
+             "Length of the longest sequence.")
+        .def_property_readonly("zdd", &SeqBDD::get_zdd,
+             "The internal ZDD representation.")
+
+        // Static methods
+        .def_static("from_list", [](std::vector<int> vars) -> SeqBDD {
+            ensure_init();
+            SeqBDD result(1);
+            for (auto it = vars.rbegin(); it != vars.rend(); ++it) {
+                result = result.push(*it);
+            }
+            return result;
+        }, py::arg("vars"),
+           "Create a SeqBDD representing a single sequence.\n\n"
+           "Args:\n"
+           "    vars: List of variable numbers for the sequence.\n\n"
+           "Returns:\n"
+           "    A SeqBDD containing the single sequence.\n")
     ;
 }
