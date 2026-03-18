@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <iosfwd>
+#include <memory>
+#include <unordered_map>
 #include <vector>
 #include "bdd_node.h"
 
@@ -11,6 +13,11 @@ namespace bigint { class BigInt; }
 
 /** @brief DD node ID type (48-bit value stored in uint64_t). */
 typedef uint64_t bddp;
+
+/** @brief Memo table for exact counting (maps node ID to BigInt cardinality). */
+typedef std::unordered_map<bddp, bigint::BigInt> BddCountMemo;
+/** @brief Shared pointer to a count memo table. */
+typedef std::shared_ptr<BddCountMemo> BddCountMemoPtr;
 
 /** @brief Variable number type (31-bit value stored in uint32_t).
  *
@@ -357,10 +364,14 @@ class ZDD {
     /// @endcond
 
     bddp root;  /**< @brief The root node ID of this ZDD. */
+    BddCountMemoPtr count_memo_;  /**< @brief Cached exact_count memo table. */
 
 public:
     /** @brief Get the raw node ID. */
     bddp GetID() const { return root; }
+
+    /** @brief Get the cached exact_count memo (may be null). */
+    const BddCountMemoPtr& count_memo() const { return count_memo_; }
 
     /** @brief Default constructor: empty family. */
     ZDD() : root(bddempty) {
@@ -374,11 +385,11 @@ public:
         bddgc_protect(&root);
     }
     /** @brief Copy constructor. */
-    ZDD(const ZDD& other) : root(other.root) {
+    ZDD(const ZDD& other) : root(other.root), count_memo_(other.count_memo_) {
         bddgc_protect(&root);
     }
     /** @brief Move constructor. */
-    ZDD(ZDD&& other) : root(other.root) {
+    ZDD(ZDD&& other) : root(other.root), count_memo_(std::move(other.count_memo_)) {
         bddgc_protect(&root);
         other.root = bddnull;
     }
@@ -388,11 +399,13 @@ public:
     /** @brief Copy assignment operator. */
     ZDD& operator=(const ZDD& other) {
         root = other.root;
+        count_memo_ = other.count_memo_;
         return *this;
     }
     /** @brief Move assignment operator. */
     ZDD& operator=(ZDD&& other) {
         root = other.root;
+        count_memo_ = std::move(other.count_memo_);
         other.root = bddnull;
         return *this;
     }
@@ -526,6 +539,12 @@ public:
      * @return The cardinality of the family as a BigInt.
      */
     bigint::BigInt exact_count() const;
+    /**
+     * @brief Count the number of sets in the family (arbitrary precision).
+     * @param save_memo If true, save the memo table for reuse in future calls.
+     * @return The cardinality of the family as a BigInt.
+     */
+    bigint::BigInt exact_count(bool save_memo);
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.

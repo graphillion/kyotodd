@@ -404,10 +404,6 @@ inline double ZDD::count() const {
     return bddcount(root);
 }
 
-inline bigint::BigInt ZDD::exact_count() const {
-    return bddexactcount(root);
-}
-
 inline ZDD ZDD::Restrict(const ZDD& g) const {
     ZDD z(0);
     z.root = bddrestrict(root, g.root);

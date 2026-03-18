@@ -6858,6 +6858,99 @@ TEST_F(BDDTest, BddExactCount_PowerSet200_Complement) {
     bddgc_unprotect(&f);
 }
 
+// --- exact_count memo tests ---
+
+TEST_F(BDDTest, ExactCount_SaveMemo) {
+    bddnewvar(); bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp x3 = bddprime(3);
+    bddp f = bddunion(x1, bddunion(x2, x3));
+
+    ZDD zf = ZDD_ID(f);
+    // No memo initially
+    EXPECT_EQ(zf.count_memo(), nullptr);
+
+    // Call with save_memo=true
+    bigint::BigInt c1 = zf.exact_count(true);
+    EXPECT_EQ(c1, bigint::BigInt(3));
+    EXPECT_NE(zf.count_memo(), nullptr);
+    EXPECT_FALSE(zf.count_memo()->empty());
+
+    // Second call reuses memo (same result)
+    bigint::BigInt c2 = zf.exact_count();
+    EXPECT_EQ(c2, bigint::BigInt(3));
+}
+
+TEST_F(BDDTest, ExactCount_MemoSharedOnCopy) {
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp f = bddunion(x1, x2);
+
+    ZDD zf = ZDD_ID(f);
+    zf.exact_count(true);
+
+    // Copy shares memo
+    ZDD zg = zf;
+    EXPECT_EQ(zg.count_memo(), zf.count_memo());
+    EXPECT_EQ(zg.exact_count(), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, ExactCount_MemoMovedOnMove) {
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp f = bddunion(x1, x2);
+
+    ZDD zf = ZDD_ID(f);
+    zf.exact_count(true);
+    BddCountMemoPtr memo_ptr = zf.count_memo();
+
+    ZDD zg = std::move(zf);
+    EXPECT_EQ(zg.count_memo(), memo_ptr);
+    EXPECT_EQ(zg.exact_count(), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, ExactCount_NoMemoByDefault) {
+    bddnewvar();
+    bddp x1 = bddprime(1);
+
+    ZDD zf = ZDD_ID(x1);
+    zf.exact_count();
+    EXPECT_EQ(zf.count_memo(), nullptr);
+
+    zf.exact_count(false);
+    EXPECT_EQ(zf.count_memo(), nullptr);
+}
+
+TEST_F(BDDTest, ExactCount_ConstZDDWorks) {
+    bddnewvar();
+    bddp x1 = bddprime(1);
+
+    const ZDD zf = ZDD_ID(x1);
+    EXPECT_EQ(zf.exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ExactCount_MemoOnAssignment) {
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+
+    ZDD zf = ZDD_ID(x1);
+    zf.exact_count(true);
+    EXPECT_NE(zf.count_memo(), nullptr);
+
+    // Assignment replaces memo
+    ZDD zg = ZDD_ID(bddunion(x1, x2));
+    zg.exact_count(true);
+    BddCountMemoPtr memo_g = zg.count_memo();
+
+    zf = zg;
+    EXPECT_EQ(zf.count_memo(), memo_g);
+    EXPECT_EQ(zf.exact_count(), bigint::BigInt(2));
+}
+
 // --- bddcardmp16 tests ---
 
 TEST_F(BDDTest, Bddcardmp16_Terminals) {

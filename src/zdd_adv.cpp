@@ -829,6 +829,11 @@ bigint::BigInt bddexactcount(bddp f) {
     return bddexactcount_rec(f, memo);
 }
 
+bigint::BigInt bddexactcount(bddp f, BddCountMemo& memo) {
+    if (f == bddnull) return bigint::BigInt(0);
+    return bddexactcount_rec(f, memo);
+}
+
 // Legacy compatibility wrapper: returns cardinality as uppercase hex string.
 char *bddcardmp16(bddp f, char *s) {
     std::string hex = bddexactcount(f).to_hex_upper();

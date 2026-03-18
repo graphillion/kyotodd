@@ -1,4 +1,5 @@
 #include "bdd.h"
+#include "bigint.hpp"
 #include <stdexcept>
 
 const BDD BDD::False(0);
@@ -8,6 +9,24 @@ const BDD BDD::Null(-1);
 const ZDD ZDD::Empty(0);
 const ZDD ZDD::Single(1);
 const ZDD ZDD::Null(-1);
+
+bigint::BigInt ZDD::exact_count() const {
+    if (count_memo_) {
+        return bddexactcount(root, *count_memo_);
+    }
+    return bddexactcount(root);
+}
+
+bigint::BigInt ZDD::exact_count(bool save_memo) {
+    if (count_memo_) {
+        return bddexactcount(root, *count_memo_);
+    }
+    if (save_memo) {
+        count_memo_ = std::make_shared<BddCountMemo>();
+        return bddexactcount(root, *count_memo_);
+    }
+    return bddexactcount(root);
+}
 
 void ZDD::Print() const {
     bddvar v = Top();

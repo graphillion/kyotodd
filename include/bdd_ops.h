@@ -553,6 +553,19 @@ uint64_t bddlen(bddp f);
 bigint::BigInt bddexactcount(bddp f);
 
 /**
+ * @brief Count the number of sets in a ZDD family (arbitrary precision),
+ *        using an external memo table.
+ *
+ * The memo table is both read and written: entries already present are
+ * reused, and newly computed entries are added.
+ *
+ * @param f A ZDD node ID.
+ * @param memo The memo table to use and populate.
+ * @return The cardinality of the family as a BigInt.
+ */
+bigint::BigInt bddexactcount(bddp f, BddCountMemo& memo);
+
+/**
  * @brief Count the number of sets in a ZDD family as a hex string.
  *
  * @deprecated Use bddexactcount() instead.
