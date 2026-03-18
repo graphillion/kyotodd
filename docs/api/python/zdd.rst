@@ -449,6 +449,11 @@ ZDD Class
 
       The number of nodes in the DAG of this ZDD.
 
+   .. py:property:: size
+      :type: int
+
+      The number of nodes without complement edge sharing.
+
    .. py:property:: top_var
       :type: int
 
