@@ -961,3 +961,123 @@ bddp bddspread(bddp f, int k) {
 
     return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
 }
+
+// --- BDD satisfiability counting ---
+
+static double bddcount_bdd_rec(
+    bddp f, bddvar n, std::unordered_map<bddp, double>& memo) {
+    if (f == bddfalse) return 0.0;
+    if (f == bddtrue) return 1.0;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = memo.find(f_raw);
+    double count;
+    if (it != memo.end()) {
+        count = it->second;
+    } else {
+        bddvar var = node_var(f_raw);
+        if (var > n) {
+            throw std::invalid_argument(
+                "bddcount: BDD contains variable > n");
+        }
+        bddvar f_level = var2level[var];
+
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0
+            : var2level[node_var(lo)];
+        bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
+            : var2level[node_var(hi & ~BDD_COMP_FLAG)];
+
+        double lo_count = bddcount_bdd_rec(lo, n, memo);
+        double hi_count = bddcount_bdd_rec(hi, n, memo);
+
+        count = ldexp(lo_count, f_level - 1 - lo_level)
+              + ldexp(hi_count, f_level - 1 - hi_level);
+
+        memo[f_raw] = count;
+    }
+
+    if (comp) {
+        bddvar f_level = var2level[node_var(f_raw)];
+        count = ldexp(1.0, f_level) - count;
+    }
+
+    return count;
+}
+
+double bddcount(bddp f, bddvar n) {
+    if (f == bddnull) return 0.0;
+    if (f == bddfalse) return 0.0;
+    if (f == bddtrue) return ldexp(1.0, n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    std::unordered_map<bddp, double> memo;
+    double inner = bddcount_bdd_rec(f, n, memo);
+    return ldexp(inner, n - top_level);
+}
+
+static bigint::BigInt bddexactcount_bdd_rec(
+    bddp f, bddvar n,
+    std::unordered_map<bddp, bigint::BigInt>& memo) {
+    if (f == bddfalse) return bigint::BigInt(0);
+    if (f == bddtrue) return bigint::BigInt(1);
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = memo.find(f_raw);
+    bigint::BigInt count;
+    if (it != memo.end()) {
+        count = it->second;
+    } else {
+        bddvar var = node_var(f_raw);
+        if (var > n) {
+            throw std::invalid_argument(
+                "bddexactcount: BDD contains variable > n");
+        }
+        bddvar f_level = var2level[var];
+
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0
+            : var2level[node_var(lo)];
+        bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
+            : var2level[node_var(hi & ~BDD_COMP_FLAG)];
+
+        bigint::BigInt lo_count = bddexactcount_bdd_rec(lo, n, memo);
+        bigint::BigInt hi_count = bddexactcount_bdd_rec(hi, n, memo);
+
+        count = (lo_count << static_cast<std::size_t>(f_level - 1 - lo_level))
+              + (hi_count << static_cast<std::size_t>(f_level - 1 - hi_level));
+
+        memo[f_raw] = count;
+    }
+
+    if (comp) {
+        bddvar f_level = var2level[node_var(f_raw)];
+        count = (bigint::BigInt(1) << static_cast<std::size_t>(f_level))
+              - count;
+    }
+
+    return count;
+}
+
+bigint::BigInt bddexactcount(bddp f, bddvar n) {
+    if (f == bddnull) return bigint::BigInt(0);
+    if (f == bddfalse) return bigint::BigInt(0);
+    if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    std::unordered_map<bddp, bigint::BigInt> memo;
+    bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
+    return inner << static_cast<std::size_t>(n - top_level);
+}

@@ -196,6 +196,14 @@ inline BDD BDD::Spread(int k) const {
     return b;
 }
 
+inline double BDD::count(bddvar n) const {
+    return bddcount(root, n);
+}
+
+inline bigint::BigInt BDD::exact_count(bddvar n) const {
+    return bddexactcount(root, n);
+}
+
 inline void BDD::Export(FILE* strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);

@@ -338,6 +338,26 @@ public:
      */
     BDD Spread(int k) const;
     /**
+     * @brief Count the number of satisfying assignments (double approximation).
+     *
+     * Returns the number of assignments in {0,1}^n that satisfy this
+     * Boolean function. Variables 1..n not appearing in the BDD are
+     * treated as don't-cares.
+     *
+     * @param n The number of Boolean variables.
+     * @return The satisfying assignment count as a double.
+     */
+    double count(bddvar n) const;
+    /**
+     * @brief Count the number of satisfying assignments (arbitrary precision).
+     *
+     * Same as count(n) but returns an exact BigInt result.
+     *
+     * @param n The number of Boolean variables.
+     * @return The satisfying assignment count as a BigInt.
+     */
+    bigint::BigInt exact_count(bddvar n) const;
+    /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.
      * @param g Then-branch BDD.

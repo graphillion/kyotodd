@@ -583,6 +583,36 @@ bigint::BigInt bddexactcount(bddp f, BddCountMemo& memo);
  */
 char *bddcardmp16(bddp f, char *s);
 
+// BDD satisfiability counting
+
+/**
+ * @brief Count the number of satisfying assignments of a BDD.
+ *
+ * Given a BDD representing a Boolean function f over variables 1..n,
+ * returns the number of assignments (x1,...,xn) in {0,1}^n where
+ * f(x1,...,xn) = 1.
+ *
+ * Variables numbered 1..n that do not appear in the BDD are treated
+ * as don't-cares (each doubles the count). Throws std::invalid_argument
+ * if any BDD node has a variable number > n.
+ *
+ * @param f A BDD node ID.
+ * @param n The number of variables (1..n).
+ * @return The satisfying assignment count as a double.
+ */
+double bddcount(bddp f, bddvar n);
+
+/**
+ * @brief Count the number of satisfying assignments of a BDD (exact).
+ *
+ * Same as bddcount(bddp, bddvar) but returns an exact BigInt result.
+ *
+ * @param f A BDD node ID.
+ * @param n The number of variables (1..n).
+ * @return The satisfying assignment count as a BigInt.
+ */
+bigint::BigInt bddexactcount(bddp f, bddvar n);
+
 /**
  * @brief Generate a random ZDD over the lowest @p lev levels.
  *
