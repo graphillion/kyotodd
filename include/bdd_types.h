@@ -435,6 +435,32 @@ public:
      */
     static BDD Ite(const BDD& f, const BDD& g, const BDD& h);
 
+    /** @brief Get the raw 0-child (lo) node ID without complement resolution. */
+    static bddp raw_child0(bddp f);
+    /** @brief Get the raw 1-child (hi) node ID without complement resolution. */
+    static bddp raw_child1(bddp f);
+    /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
+    static bddp raw_child(bddp f, int child);
+    /** @brief Get the 0-child (lo) node ID with complement edge resolution. */
+    static bddp child0(bddp f);
+    /** @brief Get the 1-child (hi) node ID with complement edge resolution. */
+    static bddp child1(bddp f);
+    /** @brief Get the child node ID by index (0 or 1) with complement edge resolution. */
+    static bddp child(bddp f, int child);
+
+    /** @brief Get the raw 0-child (lo) as a BDD without complement resolution. */
+    BDD raw_child0() const;
+    /** @brief Get the raw 1-child (hi) as a BDD without complement resolution. */
+    BDD raw_child1() const;
+    /** @brief Get the raw child by index (0 or 1) as a BDD without complement resolution. */
+    BDD raw_child(int child) const;
+    /** @brief Get the 0-child (lo) as a BDD with complement edge resolution. */
+    BDD child0() const;
+    /** @brief Get the 1-child (hi) as a BDD with complement edge resolution. */
+    BDD child1() const;
+    /** @brief Get the child by index (0 or 1) as a BDD with complement edge resolution. */
+    BDD child(int child) const;
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */
@@ -741,6 +767,32 @@ public:
     ZDD CoImplySet(bddvar v) const;
     /** @brief Find a non-trivial divisor of the family. */
     ZDD Divisor() const;
+
+    /** @brief Get the raw 0-child (lo) node ID without complement resolution. */
+    static bddp raw_child0(bddp f);
+    /** @brief Get the raw 1-child (hi) node ID without complement resolution. */
+    static bddp raw_child1(bddp f);
+    /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
+    static bddp raw_child(bddp f, int child);
+    /** @brief Get the 0-child (lo) node ID with complement edge resolution (ZDD semantics). */
+    static bddp child0(bddp f);
+    /** @brief Get the 1-child (hi) node ID with complement edge resolution (ZDD semantics). */
+    static bddp child1(bddp f);
+    /** @brief Get the child node ID by index (0 or 1) with complement edge resolution (ZDD semantics). */
+    static bddp child(bddp f, int child);
+
+    /** @brief Get the raw 0-child (lo) as a ZDD without complement resolution. */
+    ZDD raw_child0() const;
+    /** @brief Get the raw 1-child (hi) as a ZDD without complement resolution. */
+    ZDD raw_child1() const;
+    /** @brief Get the raw child by index (0 or 1) as a ZDD without complement resolution. */
+    ZDD raw_child(int child) const;
+    /** @brief Get the 0-child (lo) as a ZDD with complement edge resolution (ZDD semantics). */
+    ZDD child0() const;
+    /** @brief Get the 1-child (hi) as a ZDD with complement edge resolution (ZDD semantics). */
+    ZDD child1() const;
+    /** @brief Get the child by index (0 or 1) as a ZDD with complement edge resolution (ZDD semantics). */
+    ZDD child(int child) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

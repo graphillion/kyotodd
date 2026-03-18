@@ -12,6 +12,7 @@
 #include "bdd_base.h"
 #include "bdd_ops.h"
 #include "bdd_io.h"
+#include "bdd_internal.h"
 #include "bigint.hpp"
 #include <iostream>
 
@@ -243,6 +244,94 @@ inline void BDD::XPrint0() const {
 
 inline void BDD::XPrint() const {
     bddgraph(root);
+}
+
+// BDD child accessor functions (static versions returning bddp)
+
+inline bddp BDD::raw_child0(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child0: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child0: terminal node");
+    return node_lo(f);
+}
+
+inline bddp BDD::raw_child1(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child1: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child1: terminal node");
+    return node_hi(f);
+}
+
+inline bddp BDD::raw_child(bddp f, int child) {
+    if (child == 0) return raw_child0(f);
+    if (child == 1) return raw_child1(f);
+    throw std::invalid_argument("raw_child: child must be 0 or 1");
+}
+
+inline bddp BDD::child0(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("child0: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("child0: terminal node");
+    bddp lo = node_lo(f);
+    if (f & BDD_COMP_FLAG) lo = bddnot(lo);
+    return lo;
+}
+
+inline bddp BDD::child1(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("child1: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("child1: terminal node");
+    bddp hi = node_hi(f);
+    if (f & BDD_COMP_FLAG) hi = bddnot(hi);
+    return hi;
+}
+
+inline bddp BDD::child(bddp f, int child) {
+    if (child == 0) return child0(f);
+    if (child == 1) return child1(f);
+    throw std::invalid_argument("child: child must be 0 or 1");
+}
+
+// BDD child accessor functions (member versions returning BDD)
+
+inline BDD BDD::raw_child0() const {
+    BDD b(0);
+    b.root = BDD::raw_child0(root);
+    return b;
+}
+
+inline BDD BDD::raw_child1() const {
+    BDD b(0);
+    b.root = BDD::raw_child1(root);
+    return b;
+}
+
+inline BDD BDD::raw_child(int child) const {
+    BDD b(0);
+    b.root = BDD::raw_child(root, child);
+    return b;
+}
+
+inline BDD BDD::child0() const {
+    BDD b(0);
+    b.root = BDD::child0(root);
+    return b;
+}
+
+inline BDD BDD::child1() const {
+    BDD b(0);
+    b.root = BDD::child1(root);
+    return b;
+}
+
+inline BDD BDD::child(int child) const {
+    BDD b(0);
+    b.root = BDD::child(root, child);
+    return b;
 }
 
 // ZDD member functions
@@ -581,6 +670,92 @@ inline ZDD ZDD::CoImplySet(bddvar v) const {
 inline ZDD ZDD::Divisor() const {
     ZDD z(0);
     z.root = bdddivisor(root);
+    return z;
+}
+
+// ZDD child accessor functions (static versions returning bddp)
+
+inline bddp ZDD::raw_child0(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child0: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child0: terminal node");
+    return node_lo(f);
+}
+
+inline bddp ZDD::raw_child1(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child1: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child1: terminal node");
+    return node_hi(f);
+}
+
+inline bddp ZDD::raw_child(bddp f, int child) {
+    if (child == 0) return raw_child0(f);
+    if (child == 1) return raw_child1(f);
+    throw std::invalid_argument("raw_child: child must be 0 or 1");
+}
+
+inline bddp ZDD::child0(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("child0: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("child0: terminal node");
+    bddp lo = node_lo(f);
+    if (f & BDD_COMP_FLAG) lo = bddnot(lo);
+    return lo;
+}
+
+inline bddp ZDD::child1(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("child1: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("child1: terminal node");
+    return node_hi(f);
+}
+
+inline bddp ZDD::child(bddp f, int child) {
+    if (child == 0) return child0(f);
+    if (child == 1) return child1(f);
+    throw std::invalid_argument("child: child must be 0 or 1");
+}
+
+// ZDD child accessor functions (member versions returning ZDD)
+
+inline ZDD ZDD::raw_child0() const {
+    ZDD z(0);
+    z.root = ZDD::raw_child0(root);
+    return z;
+}
+
+inline ZDD ZDD::raw_child1() const {
+    ZDD z(0);
+    z.root = ZDD::raw_child1(root);
+    return z;
+}
+
+inline ZDD ZDD::raw_child(int child) const {
+    ZDD z(0);
+    z.root = ZDD::raw_child(root, child);
+    return z;
+}
+
+inline ZDD ZDD::child0() const {
+    ZDD z(0);
+    z.root = ZDD::child0(root);
+    return z;
+}
+
+inline ZDD ZDD::child1() const {
+    ZDD z(0);
+    z.root = ZDD::child1(root);
+    return z;
+}
+
+inline ZDD ZDD::child(int child) const {
+    ZDD z(0);
+    z.root = ZDD::child(root, child);
     return z;
 }
 
