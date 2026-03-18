@@ -6860,9 +6860,9 @@ TEST_F(BDDTest, BddExactCount_PowerSet200_Complement) {
     bddgc_unprotect(&f);
 }
 
-// --- exact_count memo tests ---
+// --- ZddCountMemo tests ---
 
-TEST_F(BDDTest, ExactCount_SaveMemo) {
+TEST_F(BDDTest, ExactCount_ZddCountMemo) {
     bddnewvar(); bddnewvar(); bddnewvar();
     bddp x1 = bddprime(1);
     bddp x2 = bddprime(2);
@@ -6870,60 +6870,45 @@ TEST_F(BDDTest, ExactCount_SaveMemo) {
     bddp f = bddunion(x1, bddunion(x2, x3));
 
     ZDD zf = ZDD_ID(f);
-    // No memo initially
-    EXPECT_EQ(zf.count_memo(), nullptr);
+    ZddCountMemo memo(zf);
+    EXPECT_FALSE(memo.stored());
 
-    // Call with save_memo=true
-    bigint::BigInt c1 = zf.exact_count(true);
+    bigint::BigInt c1 = zf.exact_count(memo);
     EXPECT_EQ(c1, bigint::BigInt(3));
-    EXPECT_NE(zf.count_memo(), nullptr);
-    EXPECT_FALSE(zf.count_memo()->empty());
+    EXPECT_TRUE(memo.stored());
+    EXPECT_FALSE(memo.map().empty());
 
-    // Second call reuses memo (same result)
-    bigint::BigInt c2 = zf.exact_count();
+    // Second call reuses memo
+    bigint::BigInt c2 = zf.exact_count(memo);
     EXPECT_EQ(c2, bigint::BigInt(3));
 }
 
-TEST_F(BDDTest, ExactCount_MemoSharedOnCopy) {
+TEST_F(BDDTest, ZddCountMemo_MismatchThrows) {
     bddnewvar(); bddnewvar();
     bddp x1 = bddprime(1);
     bddp x2 = bddprime(2);
-    bddp f = bddunion(x1, x2);
 
-    ZDD zf = ZDD_ID(f);
-    zf.exact_count(true);
-
-    // Copy shares memo
-    ZDD zg = zf;
-    EXPECT_EQ(zg.count_memo(), zf.count_memo());
-    EXPECT_EQ(zg.exact_count(), bigint::BigInt(2));
+    ZDD zf = ZDD_ID(x1);
+    ZDD zg = ZDD_ID(bddunion(x1, x2));
+    ZddCountMemo memo(zf);
+    EXPECT_THROW(zg.exact_count(memo), std::invalid_argument);
 }
 
-TEST_F(BDDTest, ExactCount_MemoMovedOnMove) {
-    bddnewvar(); bddnewvar();
+TEST_F(BDDTest, ZddCountMemo_FromBddp) {
+    bddnewvar();
     bddp x1 = bddprime(1);
-    bddp x2 = bddprime(2);
-    bddp f = bddunion(x1, x2);
-
-    ZDD zf = ZDD_ID(f);
-    zf.exact_count(true);
-    BddCountMemoPtr memo_ptr = zf.count_memo();
-
-    ZDD zg = std::move(zf);
-    EXPECT_EQ(zg.count_memo(), memo_ptr);
-    EXPECT_EQ(zg.exact_count(), bigint::BigInt(2));
+    ZddCountMemo memo(x1);
+    ZDD zf = ZDD_ID(x1);
+    EXPECT_EQ(zf.exact_count(memo), bigint::BigInt(1));
+    EXPECT_TRUE(memo.stored());
 }
 
-TEST_F(BDDTest, ExactCount_NoMemoByDefault) {
+TEST_F(BDDTest, ExactCount_NoMemo) {
     bddnewvar();
     bddp x1 = bddprime(1);
 
     ZDD zf = ZDD_ID(x1);
-    zf.exact_count();
-    EXPECT_EQ(zf.count_memo(), nullptr);
-
-    zf.exact_count(false);
-    EXPECT_EQ(zf.count_memo(), nullptr);
+    EXPECT_EQ(zf.exact_count(), bigint::BigInt(1));
 }
 
 TEST_F(BDDTest, ExactCount_ConstZDDWorks) {
@@ -6934,23 +6919,36 @@ TEST_F(BDDTest, ExactCount_ConstZDDWorks) {
     EXPECT_EQ(zf.exact_count(), bigint::BigInt(1));
 }
 
-TEST_F(BDDTest, ExactCount_MemoOnAssignment) {
-    bddnewvar(); bddnewvar();
-    bddp x1 = bddprime(1);
-    bddp x2 = bddprime(2);
+// --- BddCountMemo tests ---
 
-    ZDD zf = ZDD_ID(x1);
-    zf.exact_count(true);
-    EXPECT_NE(zf.count_memo(), nullptr);
+TEST_F(BDDTest, BddCountMemo_Basic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    BddCountMemo memo(f, 2);
+    EXPECT_FALSE(memo.stored());
+    EXPECT_EQ(f.exact_count(2, memo), bigint::BigInt(1));
+    EXPECT_TRUE(memo.stored());
+    // Second call reuses memo
+    EXPECT_EQ(f.exact_count(2, memo), bigint::BigInt(1));
+}
 
-    // Assignment replaces memo
-    ZDD zg = ZDD_ID(bddunion(x1, x2));
-    zg.exact_count(true);
-    BddCountMemoPtr memo_g = zg.count_memo();
+TEST_F(BDDTest, BddCountMemo_MismatchThrows) {
+    bddvar v1 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = ~a;
+    BddCountMemo memo(a, 1);
+    EXPECT_THROW(b.exact_count(1, memo), std::invalid_argument);
+}
 
-    zf = zg;
-    EXPECT_EQ(zf.count_memo(), memo_g);
-    EXPECT_EQ(zf.exact_count(), bigint::BigInt(2));
+TEST_F(BDDTest, BddCountMemo_NMismatchThrows) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    BDD a = BDDvar(v1);
+    BddCountMemo memo(a, 1);
+    EXPECT_THROW(a.exact_count(2, memo), std::invalid_argument);
 }
 
 // --- uniform_sample tests ---
@@ -6958,8 +6956,9 @@ TEST_F(BDDTest, ExactCount_MemoOnAssignment) {
 TEST_F(BDDTest, UniformSample_SingleSet) {
     // Family = {{}} (just the empty set)
     ZDD zf = ZDD::Single;
+    ZddCountMemo memo(zf);
     std::mt19937_64 rng(42);
-    auto s = zf.uniform_sample(rng);
+    auto s = zf.uniform_sample(rng, memo);
     EXPECT_TRUE(s.empty());
 }
 
@@ -6968,16 +6967,18 @@ TEST_F(BDDTest, UniformSample_SingletonSet) {
     bddnewvar();
     bddp x1 = bddprime(1);
     ZDD zf = ZDD_ID(x1);
+    ZddCountMemo memo(zf);
     std::mt19937_64 rng(42);
-    auto s = zf.uniform_sample(rng);
+    auto s = zf.uniform_sample(rng, memo);
     ASSERT_EQ(s.size(), 1u);
     EXPECT_EQ(s[0], 1u);
 }
 
 TEST_F(BDDTest, UniformSample_EmptyFamilyThrows) {
     ZDD zf = ZDD::Empty;
+    ZddCountMemo memo(zf);
     std::mt19937_64 rng(42);
-    EXPECT_THROW(zf.uniform_sample(rng), std::invalid_argument);
+    EXPECT_THROW(zf.uniform_sample(rng, memo), std::invalid_argument);
 }
 
 TEST_F(BDDTest, UniformSample_AllSetsReachable) {
@@ -6988,11 +6989,12 @@ TEST_F(BDDTest, UniformSample_AllSetsReachable) {
     bddp x12 = bddchange(x1, 2);
     bddp f = bddunion(x1, bddunion(x2, x12));
     ZDD zf = ZDD_ID(f);
+    ZddCountMemo memo(zf);
 
     std::mt19937_64 rng(123);
     std::set<std::vector<bddvar>> seen;
     for (int i = 0; i < 300; i++) {
-        auto s = zf.uniform_sample(rng);
+        auto s = zf.uniform_sample(rng, memo);
         std::sort(s.begin(), s.end());
         seen.insert(s);
     }
@@ -7010,12 +7012,13 @@ TEST_F(BDDTest, UniformSample_Uniformity) {
     bddp x2 = bddprime(2);
     bddp f = bddunion(x1, x2);
     ZDD zf = ZDD_ID(f);
+    ZddCountMemo memo(zf);
 
     std::mt19937_64 rng(456);
     int count1 = 0;
     const int N = 10000;
     for (int i = 0; i < N; i++) {
-        auto s = zf.uniform_sample(rng);
+        auto s = zf.uniform_sample(rng, memo);
         ASSERT_EQ(s.size(), 1u);
         if (s[0] == 1) count1++;
     }
@@ -7031,13 +7034,14 @@ TEST_F(BDDTest, UniformSample_WithComplement) {
     bddp x1 = bddprime(1);
     bddp f = bddnot(x1);  // complement
     ZDD zf = ZDD_ID(f);
+    ZddCountMemo memo(zf);
 
     EXPECT_EQ(zf.exact_count(), bigint::BigInt(2));
 
     std::mt19937_64 rng(789);
     std::set<std::vector<bddvar>> seen;
     for (int i = 0; i < 200; i++) {
-        auto s = zf.uniform_sample(rng);
+        auto s = zf.uniform_sample(rng, memo);
         seen.insert(s);
     }
     EXPECT_EQ(seen.size(), 2u);
@@ -7046,15 +7050,16 @@ TEST_F(BDDTest, UniformSample_WithComplement) {
     EXPECT_TRUE(seen.count({1}) > 0);
 }
 
-TEST_F(BDDTest, UniformSample_PopulatesMemo) {
+TEST_F(BDDTest, UniformSample_RequiresMemo) {
     bddnewvar();
     bddp x1 = bddprime(1);
     ZDD zf = ZDD_ID(x1);
-    EXPECT_EQ(zf.count_memo(), nullptr);
+    ZddCountMemo memo(zf);
+    EXPECT_FALSE(memo.stored());
 
     std::mt19937_64 rng(42);
-    zf.uniform_sample(rng);
-    EXPECT_NE(zf.count_memo(), nullptr);
+    zf.uniform_sample(rng, memo);
+    EXPECT_TRUE(memo.stored());
 }
 
 // --- bddcardmp16 tests ---
