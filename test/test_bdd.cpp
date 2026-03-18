@@ -2,6 +2,8 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include <algorithm>
+#include <random>
 #include <sstream>
 #include <unordered_set>
 
@@ -6949,6 +6951,110 @@ TEST_F(BDDTest, ExactCount_MemoOnAssignment) {
     zf = zg;
     EXPECT_EQ(zf.count_memo(), memo_g);
     EXPECT_EQ(zf.exact_count(), bigint::BigInt(2));
+}
+
+// --- uniform_sample tests ---
+
+TEST_F(BDDTest, UniformSample_SingleSet) {
+    // Family = {{}} (just the empty set)
+    ZDD zf = ZDD::Single;
+    std::mt19937_64 rng(42);
+    auto s = zf.uniform_sample(rng);
+    EXPECT_TRUE(s.empty());
+}
+
+TEST_F(BDDTest, UniformSample_SingletonSet) {
+    // Family = {{1}}
+    bddnewvar();
+    bddp x1 = bddprime(1);
+    ZDD zf = ZDD_ID(x1);
+    std::mt19937_64 rng(42);
+    auto s = zf.uniform_sample(rng);
+    ASSERT_EQ(s.size(), 1u);
+    EXPECT_EQ(s[0], 1u);
+}
+
+TEST_F(BDDTest, UniformSample_EmptyFamilyThrows) {
+    ZDD zf = ZDD::Empty;
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(zf.uniform_sample(rng), std::invalid_argument);
+}
+
+TEST_F(BDDTest, UniformSample_AllSetsReachable) {
+    // Family = {{1}, {2}, {1,2}}  (3 sets)
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp x12 = bddchange(x1, 2);
+    bddp f = bddunion(x1, bddunion(x2, x12));
+    ZDD zf = ZDD_ID(f);
+
+    std::mt19937_64 rng(123);
+    std::set<std::vector<bddvar>> seen;
+    for (int i = 0; i < 300; i++) {
+        auto s = zf.uniform_sample(rng);
+        std::sort(s.begin(), s.end());
+        seen.insert(s);
+    }
+    EXPECT_EQ(seen.size(), 3u);
+    EXPECT_TRUE(seen.count({1}) > 0);
+    EXPECT_TRUE(seen.count({2}) > 0);
+    std::vector<bddvar> v12 = {1, 2};
+    EXPECT_TRUE(seen.count(v12) > 0);
+}
+
+TEST_F(BDDTest, UniformSample_Uniformity) {
+    // Family = {{1}, {2}} — each should appear ~50%
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp x2 = bddprime(2);
+    bddp f = bddunion(x1, x2);
+    ZDD zf = ZDD_ID(f);
+
+    std::mt19937_64 rng(456);
+    int count1 = 0;
+    const int N = 10000;
+    for (int i = 0; i < N; i++) {
+        auto s = zf.uniform_sample(rng);
+        ASSERT_EQ(s.size(), 1u);
+        if (s[0] == 1) count1++;
+    }
+    // Should be roughly 50%, allow generous margin
+    double ratio = static_cast<double>(count1) / N;
+    EXPECT_GT(ratio, 0.45);
+    EXPECT_LT(ratio, 0.55);
+}
+
+TEST_F(BDDTest, UniformSample_WithComplement) {
+    // bddnot({{1}}) toggles empty set membership: {{1}} → {{}, {1}}
+    bddnewvar(); bddnewvar();
+    bddp x1 = bddprime(1);
+    bddp f = bddnot(x1);  // complement
+    ZDD zf = ZDD_ID(f);
+
+    EXPECT_EQ(zf.exact_count(), bigint::BigInt(2));
+
+    std::mt19937_64 rng(789);
+    std::set<std::vector<bddvar>> seen;
+    for (int i = 0; i < 200; i++) {
+        auto s = zf.uniform_sample(rng);
+        seen.insert(s);
+    }
+    EXPECT_EQ(seen.size(), 2u);
+    // Should contain {} and {1}
+    EXPECT_TRUE(seen.count({}) > 0);
+    EXPECT_TRUE(seen.count({1}) > 0);
+}
+
+TEST_F(BDDTest, UniformSample_PopulatesMemo) {
+    bddnewvar();
+    bddp x1 = bddprime(1);
+    ZDD zf = ZDD_ID(x1);
+    EXPECT_EQ(zf.count_memo(), nullptr);
+
+    std::mt19937_64 rng(42);
+    zf.uniform_sample(rng);
+    EXPECT_NE(zf.count_memo(), nullptr);
 }
 
 // --- bddcardmp16 tests ---

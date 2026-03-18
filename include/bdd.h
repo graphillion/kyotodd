@@ -12,6 +12,7 @@
 #include "bdd_base.h"
 #include "bdd_ops.h"
 #include "bdd_io.h"
+#include "bigint.hpp"
 #include <iostream>
 
 inline BDD BDD::operator&(const BDD& other) const {
@@ -576,6 +577,14 @@ inline ZDD ZDD::Divisor() const {
     ZDD z(0);
     z.root = bdddivisor(root);
     return z;
+}
+
+template<typename RNG>
+std::vector<bddvar> ZDD::uniform_sample(RNG& rng) {
+    return uniform_sample_impl(
+        [&rng](const bigint::BigInt& upper) {
+            return bigint::uniform_random(upper, rng);
+        });
 }
 
 #endif

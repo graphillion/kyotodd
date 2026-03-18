@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <iosfwd>
 #include <memory>
 #include <unordered_map>
@@ -545,6 +546,26 @@ public:
      * @return The cardinality of the family as a BigInt.
      */
     bigint::BigInt exact_count(bool save_memo);
+    /**
+     * @brief Uniformly sample one set from the family at random.
+     *
+     * Each set in the family is selected with equal probability.
+     * Populates the exact_count memo if not already present.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param rng The random number generator.
+     * @return The sampled set as a sorted vector of variable numbers.
+     */
+    template<typename RNG>
+    std::vector<bddvar> uniform_sample(RNG& rng);
+
+    /// @cond INTERNAL
+    /// Internal: traverse ZDD and collect sampled variables using
+    /// a function that generates uniform random BigInts.
+    /// @param rand_func A callable taking BigInt upper → BigInt in [0, upper).
+    std::vector<bddvar> uniform_sample_impl(
+        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func);
+    /// @endcond
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.
