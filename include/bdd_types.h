@@ -288,10 +288,12 @@ public:
     /** @brief Get the top variable number. */
     bddvar Top() const;
     /**
-     * @brief Return the number of nodes in this BDD.
-     * @return The DAG node count.
+     * @brief Return the number of nodes in this BDD (with complement edge sharing).
+     * @deprecated Use raw_size() or plain_size() instead.
      */
     uint64_t Size() const;
+    /** @brief Return the number of nodes in this BDD (with complement edge sharing). */
+    uint64_t raw_size() const;
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
     /** @brief Export to a FILE stream. */
@@ -568,8 +570,13 @@ public:
     ZDD Support() const;
     /** @brief Get the top variable number. */
     bddvar Top() const;
-    /** @brief Count the number of nodes. */
+    /**
+     * @brief Count the number of nodes (with complement edge sharing).
+     * @deprecated Use raw_size() or plain_size() instead.
+     */
     uint64_t Size() const;
+    /** @brief Return the number of nodes (with complement edge sharing). */
+    uint64_t raw_size() const;
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
     /** @brief Count the total number of literals across all sets. */

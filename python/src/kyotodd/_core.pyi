@@ -255,7 +255,7 @@ class BDD:
         """The number of nodes in the DAG of this BDD."""
         ...
     @property
-    def size(self) -> int:
+    def plain_size(self) -> int:
         """The number of nodes without complement edge sharing."""
         ...
     @property
@@ -713,7 +713,7 @@ class ZDD:
         """The number of nodes in the DAG of this ZDD."""
         ...
     @property
-    def size(self) -> int:
+    def plain_size(self) -> int:
         """The number of nodes without complement edge sharing."""
         ...
     @property

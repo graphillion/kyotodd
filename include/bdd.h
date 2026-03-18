@@ -149,6 +149,10 @@ inline uint64_t BDD::Size() const {
     return bddsize(root);
 }
 
+inline uint64_t BDD::raw_size() const {
+    return bddsize(root);
+}
+
 inline uint64_t BDD::plain_size() const {
     return bddplainsize(root, false);
 }
@@ -439,6 +443,10 @@ inline bddvar ZDD::Top() const {
 }
 
 inline uint64_t ZDD::Size() const {
+    return bddsize(root);
+}
+
+inline uint64_t ZDD::raw_size() const {
     return bddsize(root);
 }
 

@@ -278,7 +278,7 @@ BDD Class
 
       The number of nodes in the DAG of this BDD.
 
-   .. py:property:: size
+   .. py:property:: plain_size
       :type: int
 
       The number of nodes without complement edge sharing.

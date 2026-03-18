@@ -328,9 +328,9 @@ PYBIND11_MODULE(_core, m) {
 
         .def_property_readonly("node_id", [](const BDD& b) { return b.GetID(); },
              "The raw node ID of this BDD.")
-        .def_property_readonly("raw_size", &BDD::Size,
+        .def_property_readonly("raw_size", &BDD::raw_size,
              "The number of nodes in the DAG of this BDD.")
-        .def_property_readonly("size", &BDD::plain_size,
+        .def_property_readonly("plain_size", &BDD::plain_size,
              "The number of nodes without complement edge sharing.")
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
             return bddtop(b.GetID());
@@ -654,9 +654,9 @@ PYBIND11_MODULE(_core, m) {
         }, "The number of sets in the family (arbitrary precision Python int).")
         .def_property_readonly("node_id", [](const ZDD& z) { return z.GetID(); },
              "The raw node ID of this ZDD.")
-        .def_property_readonly("raw_size", &ZDD::Size,
+        .def_property_readonly("raw_size", &ZDD::raw_size,
              "The number of nodes in the DAG of this ZDD.")
-        .def_property_readonly("size", &ZDD::plain_size,
+        .def_property_readonly("plain_size", &ZDD::plain_size,
              "The number of nodes without complement edge sharing.")
         .def_property_readonly("lit", &ZDD::Lit,
              "The total literal count across all sets in the family.")
