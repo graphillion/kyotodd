@@ -8634,3 +8634,156 @@ TEST_F(BDDTest, RawSize_Vector_bddp) {
     std::vector<bddp> vec = {f, g};
     EXPECT_LE(bddrawsize(vec), bddsize(f) + bddsize(g));
 }
+
+// --- BDD satisfiability counting (double) ---
+
+TEST_F(BDDTest, BDDCount_False) {
+    EXPECT_EQ(bddcount(bddfalse, (bddvar)0), 0.0);
+    EXPECT_EQ(bddcount(bddfalse, (bddvar)3), 0.0);
+}
+
+TEST_F(BDDTest, BDDCount_True) {
+    EXPECT_EQ(bddcount(bddtrue, (bddvar)0), 1.0);
+    EXPECT_EQ(bddcount(bddtrue, (bddvar)3), 8.0);
+    EXPECT_EQ(bddcount(bddtrue, (bddvar)10), 1024.0);
+}
+
+TEST_F(BDDTest, BDDCount_SingleVar) {
+    bddvar v1 = bddnewvar();
+    bddp x1 = bddprime(v1);
+    EXPECT_EQ(bddcount(x1, (bddvar)1), 1.0);
+    bddnewvar(); bddnewvar();
+    EXPECT_EQ(bddcount(x1, (bddvar)3), 4.0);
+}
+
+TEST_F(BDDTest, BDDCount_NotVar) {
+    bddvar v1 = bddnewvar();
+    bddp x1 = bddprime(v1);
+    bddp not_x1 = bddnot(x1);
+    EXPECT_EQ(bddcount(not_x1, (bddvar)1), 1.0);
+    bddnewvar(); bddnewvar();
+    EXPECT_EQ(bddcount(not_x1, (bddvar)3), 4.0);
+}
+
+TEST_F(BDDTest, BDDCount_And) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    EXPECT_EQ(bddcount(f, (bddvar)2), 1.0);
+}
+
+TEST_F(BDDTest, BDDCount_Or) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddor(bddprime(v1), bddprime(v2));
+    EXPECT_EQ(bddcount(f, (bddvar)2), 3.0);
+}
+
+TEST_F(BDDTest, BDDCount_Xor) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddxor(bddprime(v1), bddprime(v2));
+    EXPECT_EQ(bddcount(f, (bddvar)2), 2.0);
+}
+
+TEST_F(BDDTest, BDDCount_DontCareGap) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v3));
+    EXPECT_EQ(bddcount(f, (bddvar)3), 2.0);
+}
+
+TEST_F(BDDTest, BDDCount_VarGtN_Error) {
+    bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp x2 = bddprime(v2);
+    EXPECT_THROW(bddcount(x2, (bddvar)1), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDDCount_Null) {
+    EXPECT_EQ(bddcount(bddnull, (bddvar)3), 0.0);
+}
+
+TEST_F(BDDTest, BDDCount_ComplementSymmetry) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddor(bddprime(v2), bddprime(v3)));
+    bddp nf = bddnot(f);
+    EXPECT_EQ(bddcount(f, (bddvar)3) + bddcount(nf, (bddvar)3), 8.0);
+}
+
+// --- BDD satisfiability counting (exact) ---
+
+TEST_F(BDDTest, BDDExactCount_False) {
+    EXPECT_EQ(bddexactcount(bddfalse, (bddvar)0), bigint::BigInt(0));
+    EXPECT_EQ(bddexactcount(bddfalse, (bddvar)3), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, BDDExactCount_True) {
+    EXPECT_EQ(bddexactcount(bddtrue, (bddvar)0), bigint::BigInt(1));
+    EXPECT_EQ(bddexactcount(bddtrue, (bddvar)3), bigint::BigInt(8));
+}
+
+TEST_F(BDDTest, BDDExactCount_And) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    EXPECT_EQ(bddexactcount(f, (bddvar)2), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, BDDExactCount_Or) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddor(bddprime(v1), bddprime(v2));
+    EXPECT_EQ(bddexactcount(f, (bddvar)2), bigint::BigInt(3));
+}
+
+TEST_F(BDDTest, BDDExactCount_NotOr) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp f = bddnot(bddor(bddprime(v1), bddprime(v2)));
+    EXPECT_EQ(bddexactcount(f, (bddvar)2), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, BDDExactCount_ComplementSymmetry) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v2));
+    bddp nf = bddnot(f);
+    bigint::BigInt cf = bddexactcount(f, (bddvar)3);
+    bigint::BigInt cnf = bddexactcount(nf, (bddvar)3);
+    EXPECT_EQ(cf + cnf, bigint::BigInt(8));
+}
+
+TEST_F(BDDTest, BDDExactCount_DontCareGap) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddp f = bddand(bddprime(v1), bddprime(v3));
+    EXPECT_EQ(bddexactcount(f, (bddvar)3), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, BDDExactCount_VarGtN_Error) {
+    bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddp x2 = bddprime(v2);
+    EXPECT_THROW(bddexactcount(x2, (bddvar)1), std::invalid_argument);
+}
+
+// --- BDD class count/exact_count ---
+
+TEST_F(BDDTest, BDDCount_ClassMethod) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    EXPECT_EQ(f.count(2), 1.0);
+    EXPECT_EQ(f.exact_count(2), bigint::BigInt(1));
+    BDD nf = ~f;
+    EXPECT_EQ(nf.count(2), 3.0);
+    EXPECT_EQ(nf.exact_count(2), bigint::BigInt(3));
+}
