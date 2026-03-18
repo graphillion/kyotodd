@@ -28,6 +28,19 @@ bigint::BigInt ZDD::exact_count() const {
     return bddexactcount(root);
 }
 
+bigint::BigInt ZDD::exact_count(ZddCountMemo& memo) const {
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "exact_count: memo was created for a different ZDD");
+    }
+    if (memo.stored()) {
+        return bddexactcount(root, memo.map());
+    }
+    bigint::BigInt result = bddexactcount(root, memo.map());
+    memo.mark_stored();
+    return result;
+}
+
 bigint::BigInt ZDD::exact_count(bool save_memo) {
     if (count_memo_) {
         return bddexactcount(root, *count_memo_);

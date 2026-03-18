@@ -395,6 +395,15 @@ public:
      */
     bigint::BigInt exact_count(bddvar n) const;
     /**
+     * @brief Count the number of satisfying assignments (arbitrary precision),
+     *        using an external memo.
+     *
+     * @param n The number of Boolean variables.
+     * @param memo A BddCountMemo created for this BDD and n.
+     * @return The satisfying assignment count as a BigInt.
+     */
+    bigint::BigInt exact_count(bddvar n, BddCountMemo& memo) const;
+    /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.
      * @param g Then-branch BDD.
@@ -585,6 +594,14 @@ public:
      * @return The cardinality of the family as a BigInt.
      */
     bigint::BigInt exact_count() const;
+    /**
+     * @brief Count the number of sets in the family (arbitrary precision),
+     *        using an external memo.
+     *
+     * @param memo A ZddCountMemo created for this ZDD.
+     * @return The cardinality of the family as a BigInt.
+     */
+    bigint::BigInt exact_count(ZddCountMemo& memo) const;
     /**
      * @brief Count the number of sets in the family (arbitrary precision).
      * @param save_memo If true, save the memo table for reuse in future calls.

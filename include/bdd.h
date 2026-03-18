@@ -200,6 +200,23 @@ inline bigint::BigInt BDD::exact_count(bddvar n) const {
     return bddexactcount(root, n);
 }
 
+inline bigint::BigInt BDD::exact_count(bddvar n, BddCountMemo& memo) const {
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "exact_count: memo was created for a different BDD");
+    }
+    if (memo.n() != n) {
+        throw std::invalid_argument(
+            "exact_count: memo was created with a different n");
+    }
+    if (memo.stored()) {
+        return bddexactcount(root, n, memo.map());
+    }
+    bigint::BigInt result = bddexactcount(root, n, memo.map());
+    memo.mark_stored();
+    return result;
+}
+
 inline void BDD::Export(FILE* strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
