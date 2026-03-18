@@ -824,3 +824,372 @@ def zdd_random(lev: int, density: int = 50) -> ZDD:
         A random ZDD.
     """
     ...
+
+
+# ================================================================
+# PiDD
+# ================================================================
+
+def pidd_newvar() -> int:
+    """Create a new PiDD variable (extend permutation size by 1).
+
+    Returns:
+        The new permutation size.
+    """
+    ...
+
+def pidd_var_used() -> int:
+    """Return the current PiDD permutation size."""
+    ...
+
+
+class PiDD:
+    """A Permutation Decision Diagram based on adjacent transpositions.
+
+    Represents a set of permutations using a ZDD, where each variable
+    corresponds to an adjacent transposition Swap(x, y).
+    """
+
+    def __init__(self, val: int = 0) -> None:
+        """Construct a PiDD from an integer value.
+
+        Args:
+            val: 0 for empty set, 1 for {identity}, negative for null.
+        """
+        ...
+
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+    def __repr__(self) -> str: ...
+
+    def __and__(self, other: PiDD) -> PiDD:
+        """Intersection: self & other."""
+        ...
+    def __add__(self, other: PiDD) -> PiDD:
+        """Union: self + other."""
+        ...
+    def __sub__(self, other: PiDD) -> PiDD:
+        """Difference: self - other."""
+        ...
+    def __mul__(self, other: PiDD) -> PiDD:
+        """Composition: self * other."""
+        ...
+    def __truediv__(self, other: PiDD) -> PiDD:
+        """Division: self / other."""
+        ...
+    def __mod__(self, other: PiDD) -> PiDD:
+        """Remainder: self % other."""
+        ...
+    def __iand__(self, other: PiDD) -> PiDD:
+        """In-place intersection."""
+        ...
+    def __iadd__(self, other: PiDD) -> PiDD:
+        """In-place union."""
+        ...
+    def __isub__(self, other: PiDD) -> PiDD:
+        """In-place difference."""
+        ...
+    def __imul__(self, other: PiDD) -> PiDD:
+        """In-place composition."""
+        ...
+
+    def swap(self, u: int, v: int) -> PiDD:
+        """Apply transposition Swap(u, v) to all permutations.
+
+        Args:
+            u: First position.
+            v: Second position.
+
+        Returns:
+            A new PiDD with the transposition applied.
+        """
+        ...
+
+    def cofact(self, u: int, v: int) -> PiDD:
+        """Extract permutations where position u has value v.
+
+        Args:
+            u: Position to check.
+            v: Required value at position u.
+
+        Returns:
+            A PiDD of sub-permutations satisfying the condition.
+        """
+        ...
+
+    def odd(self) -> PiDD:
+        """Extract odd permutations from the set."""
+        ...
+
+    def even(self) -> PiDD:
+        """Extract even permutations from the set."""
+        ...
+
+    def swap_bound(self, n: int) -> PiDD:
+        """Apply symmetric constraint (PermitSym) to the internal ZDD.
+
+        Args:
+            n: Constraint parameter.
+
+        Returns:
+            A PiDD with the constraint applied.
+        """
+        ...
+
+    @property
+    def top_x(self) -> int:
+        """The x coordinate of the top variable."""
+        ...
+    @property
+    def top_y(self) -> int:
+        """The y coordinate of the top variable."""
+        ...
+    @property
+    def top_lev(self) -> int:
+        """The BDD level of the top variable."""
+        ...
+    @property
+    def size(self) -> int:
+        """The number of nodes in the internal ZDD."""
+        ...
+    @property
+    def card(self) -> int:
+        """The number of permutations in the set."""
+        ...
+    @property
+    def zdd(self) -> ZDD:
+        """The internal ZDD representation."""
+        ...
+
+
+# ================================================================
+# RotPiDD
+# ================================================================
+
+def rotpidd_newvar() -> int:
+    """Create a new RotPiDD variable (extend permutation size by 1).
+
+    Returns:
+        The new permutation size.
+    """
+    ...
+
+def rotpidd_var_used() -> int:
+    """Return the current RotPiDD permutation size."""
+    ...
+
+def rotpidd_from_perm(perm: List[int]) -> RotPiDD:
+    """Create a RotPiDD from a permutation vector.
+
+    The vector is automatically normalized to [1..n].
+
+    Args:
+        perm: A list of integers representing a permutation.
+
+    Returns:
+        A RotPiDD containing the single permutation.
+    """
+    ...
+
+
+class RotPiDD:
+    """A Rotational Permutation Decision Diagram.
+
+    Represents a set of permutations using a ZDD, where each variable
+    corresponds to a left rotation LeftRot(x, y).
+    """
+
+    def __init__(self, val: int = 0) -> None:
+        """Construct a RotPiDD from an integer value.
+
+        Args:
+            val: 0 for empty set, 1 for {identity}, negative for null.
+        """
+        ...
+
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+    def __repr__(self) -> str: ...
+
+    def __and__(self, other: RotPiDD) -> RotPiDD:
+        """Intersection: self & other."""
+        ...
+    def __add__(self, other: RotPiDD) -> RotPiDD:
+        """Union: self + other."""
+        ...
+    def __sub__(self, other: RotPiDD) -> RotPiDD:
+        """Difference: self - other."""
+        ...
+    def __mul__(self, other: RotPiDD) -> RotPiDD:
+        """Composition: self * other."""
+        ...
+    def __iand__(self, other: RotPiDD) -> RotPiDD:
+        """In-place intersection."""
+        ...
+    def __iadd__(self, other: RotPiDD) -> RotPiDD:
+        """In-place union."""
+        ...
+    def __isub__(self, other: RotPiDD) -> RotPiDD:
+        """In-place difference."""
+        ...
+    def __imul__(self, other: RotPiDD) -> RotPiDD:
+        """In-place composition."""
+        ...
+
+    def left_rot(self, u: int, v: int) -> RotPiDD:
+        """Apply left rotation LeftRot(u, v) to all permutations.
+
+        Left-rotates positions v, v+1, ..., u cyclically.
+
+        Args:
+            u: Upper position.
+            v: Lower position.
+
+        Returns:
+            A new RotPiDD with the rotation applied.
+        """
+        ...
+
+    def swap(self, a: int, b: int) -> RotPiDD:
+        """Swap positions a and b in all permutations.
+
+        Args:
+            a: First position.
+            b: Second position.
+
+        Returns:
+            A new RotPiDD with the swap applied.
+        """
+        ...
+
+    def reverse(self, l: int, r: int) -> RotPiDD:
+        """Reverse positions l..r in all permutations.
+
+        Args:
+            l: Left position.
+            r: Right position.
+
+        Returns:
+            A new RotPiDD with the reversal applied.
+        """
+        ...
+
+    def cofact(self, u: int, v: int) -> RotPiDD:
+        """Extract permutations where position u has value v.
+
+        Args:
+            u: Position to check.
+            v: Required value at position u.
+
+        Returns:
+            A RotPiDD of sub-permutations satisfying the condition.
+        """
+        ...
+
+    def odd(self) -> RotPiDD:
+        """Extract odd permutations from the set."""
+        ...
+
+    def even(self) -> RotPiDD:
+        """Extract even permutations from the set."""
+        ...
+
+    def rot_bound(self, n: int) -> RotPiDD:
+        """Apply symmetric constraint (PermitSym) to the internal ZDD.
+
+        Args:
+            n: Constraint parameter.
+
+        Returns:
+            A RotPiDD with the constraint applied.
+        """
+        ...
+
+    def order(self, a: int, b: int) -> RotPiDD:
+        """Extract permutations where pi(a) < pi(b).
+
+        Args:
+            a: First position.
+            b: Second position.
+
+        Returns:
+            A RotPiDD containing only permutations satisfying the order.
+        """
+        ...
+
+    def inverse(self) -> RotPiDD:
+        """Compute the inverse of each permutation in the set."""
+        ...
+
+    def insert(self, p: int, v: int) -> RotPiDD:
+        """Insert value v at position p in each permutation.
+
+        Args:
+            p: Insertion position.
+            v: Value to insert.
+
+        Returns:
+            A RotPiDD with the element inserted.
+        """
+        ...
+
+    def remove_max(self, k: int) -> RotPiDD:
+        """Remove variables with size >= k from each permutation.
+
+        Args:
+            k: Threshold.
+
+        Returns:
+            A RotPiDD with large variables removed.
+        """
+        ...
+
+    def normalize(self, k: int) -> RotPiDD:
+        """Remove variables with x > k by projecting them out.
+
+        Args:
+            k: Upper bound for retained variables.
+
+        Returns:
+            A normalized RotPiDD.
+        """
+        ...
+
+    def extract_one(self) -> RotPiDD:
+        """Extract a single permutation from the set."""
+        ...
+
+    def to_perms(self) -> List[List[int]]:
+        """Convert to a list of permutation vectors.
+
+        Returns:
+            A list of lists, each representing a permutation as [1..n].
+        """
+        ...
+
+    @property
+    def top_x(self) -> int:
+        """The x coordinate of the top variable."""
+        ...
+    @property
+    def top_y(self) -> int:
+        """The y coordinate of the top variable."""
+        ...
+    @property
+    def top_lev(self) -> int:
+        """The BDD level of the top variable."""
+        ...
+    @property
+    def size(self) -> int:
+        """The number of nodes in the internal ZDD."""
+        ...
+    @property
+    def card(self) -> int:
+        """The number of permutations in the set."""
+        ...
+    @property
+    def zdd(self) -> ZDD:
+        """The internal ZDD representation."""
+        ...

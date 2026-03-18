@@ -3,14 +3,30 @@
 #include <sstream>
 #include <fstream>
 #include "bdd.h"
+#include "pidd.h"
+#include "rotpidd.h"
 
 namespace py = pybind11;
 
 static bool g_initialized = false;
 
+static void reset_pidd_globals() {
+    if (PiDD_XOfLev) { delete[] PiDD_XOfLev; PiDD_XOfLev = 0; }
+    PiDD_TopVar = 0;
+    PiDD_VarTableSize = 16;
+}
+
+static void reset_rotpidd_globals() {
+    if (RotPiDD_XOfLev) { delete[] RotPiDD_XOfLev; RotPiDD_XOfLev = 0; }
+    RotPiDD_TopVar = 0;
+    RotPiDD_VarTableSize = 16;
+}
+
 static void ensure_init() {
     if (!g_initialized) {
         bddinit(256, UINT64_MAX);
+        reset_pidd_globals();
+        reset_rotpidd_globals();
         g_initialized = true;
     }
 }
@@ -49,6 +65,8 @@ PYBIND11_MODULE(_core, m) {
                 "Delete all BDD/ZDD objects first.");
         }
         bddinit(node_count, node_max);
+        reset_pidd_globals();
+        reset_rotpidd_globals();
         g_initialized = true;
     }, py::arg("node_count") = 256, py::arg("node_max") = UINT64_MAX,
        "Initialize the BDD library.\n\n"
@@ -328,9 +346,9 @@ PYBIND11_MODULE(_core, m) {
 
         .def_property_readonly("node_id", [](const BDD& b) { return b.GetID(); },
              "The raw node ID of this BDD.")
-        .def_property_readonly("raw_size", &BDD::raw_size,
+        .def_property_readonly("raw_size", [](const BDD& b) { return b.raw_size(); },
              "The number of nodes in the DAG of this BDD.")
-        .def_property_readonly("plain_size", &BDD::plain_size,
+        .def_property_readonly("plain_size", [](const BDD& b) { return b.plain_size(); },
              "The number of nodes without complement edge sharing.")
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
             return bddtop(b.GetID());
@@ -655,9 +673,9 @@ PYBIND11_MODULE(_core, m) {
         }, "The number of sets in the family (arbitrary precision Python int).")
         .def_property_readonly("node_id", [](const ZDD& z) { return z.GetID(); },
              "The raw node ID of this ZDD.")
-        .def_property_readonly("raw_size", &ZDD::raw_size,
+        .def_property_readonly("raw_size", [](const ZDD& z) { return z.raw_size(); },
              "The number of nodes in the DAG of this ZDD.")
-        .def_property_readonly("plain_size", &ZDD::plain_size,
+        .def_property_readonly("plain_size", [](const ZDD& z) { return z.plain_size(); },
              "The number of nodes without complement edge sharing.")
         .def_property_readonly("lit", &ZDD::Lit,
              "The total literal count across all sets in the family.")
@@ -670,5 +688,295 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.GetID());
         }, "The top (root) variable number of this ZDD.")
+    ;
+
+    // ================================================================
+    // PiDD class
+    // ================================================================
+
+    m.def("pidd_newvar", []() -> int {
+        ensure_init();
+        return PiDD_NewVar();
+    }, "Create a new PiDD variable (extend permutation size by 1).\n\n"
+       "Returns:\n"
+       "    The new permutation size.\n");
+
+    m.def("pidd_var_used", &PiDD_VarUsed,
+       "Return the current PiDD permutation size.\n\n"
+       "Returns:\n"
+       "    The number of PiDD variables created so far.\n");
+
+    py::class_<PiDD>(m, "PiDD",
+        "A Permutation Decision Diagram based on adjacent transpositions.\n\n"
+        "Represents a set of permutations using a ZDD, where each variable\n"
+        "corresponds to an adjacent transposition Swap(x, y).")
+        .def(py::init([](int val) {
+            ensure_init();
+            return PiDD(val);
+        }), py::arg("val") = 0,
+           "Construct a PiDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for empty set, 1 for {identity}, negative for null.\n")
+
+        .def("__eq__", [](const PiDD& a, const PiDD& b) { return a == b; },
+             "Equality comparison.")
+        .def("__ne__", [](const PiDD& a, const PiDD& b) { return a != b; },
+             "Inequality comparison.")
+        .def("__hash__", [](const PiDD& a) {
+            return std::hash<uint64_t>()(a.GetZDD().GetID());
+        }, "Hash based on internal ZDD node ID.")
+        .def("__repr__", [](const PiDD& a) {
+            return "PiDD(card=" + std::to_string(a.Card()) + ")";
+        }, "Return string representation.")
+        .def("__bool__", [](const PiDD&) -> bool {
+            throw py::type_error(
+                "PiDD cannot be converted to bool. "
+                "Use == PiDD(0) or == PiDD(1) instead.");
+        })
+
+        // Set operations
+        .def("__and__", [](const PiDD& a, const PiDD& b) { return a & b; },
+             "Intersection: self & other.")
+        .def("__add__", [](const PiDD& a, const PiDD& b) { return a + b; },
+             "Union: self + other.")
+        .def("__sub__", [](const PiDD& a, const PiDD& b) { return a - b; },
+             "Difference: self - other.")
+        .def("__mul__", [](const PiDD& a, const PiDD& b) { return a * b; },
+             "Composition: self * other.")
+        .def("__truediv__", [](const PiDD& a, const PiDD& b) { return a / b; },
+             "Division: self / other.")
+        .def("__mod__", [](const PiDD& a, const PiDD& b) { return a % b; },
+             "Remainder: self %% other.")
+        .def("__iand__", [](PiDD& a, const PiDD& b) -> PiDD& { a &= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place intersection.")
+        .def("__iadd__", [](PiDD& a, const PiDD& b) -> PiDD& { a += b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place union.")
+        .def("__isub__", [](PiDD& a, const PiDD& b) -> PiDD& { a -= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place difference.")
+        .def("__imul__", [](PiDD& a, const PiDD& b) -> PiDD& { a *= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place composition.")
+
+        // Core operations
+        .def("swap", &PiDD::Swap, py::arg("u"), py::arg("v"),
+             "Apply transposition Swap(u, v) to all permutations in the set.\n\n"
+             "Args:\n"
+             "    u: First position.\n"
+             "    v: Second position.\n\n"
+             "Returns:\n"
+             "    A new PiDD with the transposition applied.\n")
+        .def("cofact", &PiDD::Cofact, py::arg("u"), py::arg("v"),
+             "Extract permutations where position u has value v, removing position u.\n\n"
+             "Args:\n"
+             "    u: Position to check.\n"
+             "    v: Required value at position u.\n\n"
+             "Returns:\n"
+             "    A PiDD of sub-permutations satisfying the condition.\n")
+        .def("odd", &PiDD::Odd,
+             "Extract odd permutations from the set.\n\n"
+             "Returns:\n"
+             "    A PiDD containing only odd permutations.\n")
+        .def("even", &PiDD::Even,
+             "Extract even permutations from the set.\n\n"
+             "Returns:\n"
+             "    A PiDD containing only even permutations.\n")
+        .def("swap_bound", &PiDD::SwapBound, py::arg("n"),
+             "Apply symmetric constraint (PermitSym) to the internal ZDD.\n\n"
+             "Args:\n"
+             "    n: Constraint parameter.\n\n"
+             "Returns:\n"
+             "    A PiDD with the constraint applied.\n")
+
+        // Properties
+        .def_property_readonly("top_x", &PiDD::TopX,
+             "The x coordinate of the top variable.")
+        .def_property_readonly("top_y", &PiDD::TopY,
+             "The y coordinate of the top variable.")
+        .def_property_readonly("top_lev", &PiDD::TopLev,
+             "The BDD level of the top variable.")
+        .def_property_readonly("size", &PiDD::Size,
+             "The number of nodes in the internal ZDD.")
+        .def_property_readonly("card", &PiDD::Card,
+             "The number of permutations in the set.")
+        .def_property_readonly("zdd", &PiDD::GetZDD,
+             "The internal ZDD representation.")
+    ;
+
+    // ================================================================
+    // RotPiDD class
+    // ================================================================
+
+    m.def("rotpidd_newvar", []() -> int {
+        ensure_init();
+        return RotPiDD_NewVar();
+    }, "Create a new RotPiDD variable (extend permutation size by 1).\n\n"
+       "Returns:\n"
+       "    The new permutation size.\n");
+
+    m.def("rotpidd_var_used", &RotPiDD_VarUsed,
+       "Return the current RotPiDD permutation size.\n\n"
+       "Returns:\n"
+       "    The number of RotPiDD variables created so far.\n");
+
+    m.def("rotpidd_from_perm", [](std::vector<int> v) -> RotPiDD {
+        ensure_init();
+        return RotPiDD::VECtoRotPiDD(v);
+    }, py::arg("perm"),
+       "Create a RotPiDD from a permutation vector.\n\n"
+       "The vector is automatically normalized to [1..n].\n\n"
+       "Args:\n"
+       "    perm: A list of integers representing a permutation.\n\n"
+       "Returns:\n"
+       "    A RotPiDD containing the single permutation.\n");
+
+    py::class_<RotPiDD>(m, "RotPiDD",
+        "A Rotational Permutation Decision Diagram.\n\n"
+        "Represents a set of permutations using a ZDD, where each variable\n"
+        "corresponds to a left rotation LeftRot(x, y).")
+        .def(py::init([](int val) {
+            ensure_init();
+            return RotPiDD(val);
+        }), py::arg("val") = 0,
+           "Construct a RotPiDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for empty set, 1 for {identity}, negative for null.\n")
+
+        .def("__eq__", [](const RotPiDD& a, const RotPiDD& b) { return a == b; },
+             "Equality comparison.")
+        .def("__ne__", [](const RotPiDD& a, const RotPiDD& b) { return a != b; },
+             "Inequality comparison.")
+        .def("__hash__", [](const RotPiDD& a) {
+            return std::hash<uint64_t>()(a.GetZDD().GetID());
+        }, "Hash based on internal ZDD node ID.")
+        .def("__repr__", [](const RotPiDD& a) {
+            return "RotPiDD(card=" + std::to_string(a.Card()) + ")";
+        }, "Return string representation.")
+        .def("__bool__", [](const RotPiDD&) -> bool {
+            throw py::type_error(
+                "RotPiDD cannot be converted to bool. "
+                "Use == RotPiDD(0) or == RotPiDD(1) instead.");
+        })
+
+        // Set operations
+        .def("__and__", [](const RotPiDD& a, const RotPiDD& b) { return a & b; },
+             "Intersection: self & other.")
+        .def("__add__", [](const RotPiDD& a, const RotPiDD& b) { return a + b; },
+             "Union: self + other.")
+        .def("__sub__", [](const RotPiDD& a, const RotPiDD& b) { return a - b; },
+             "Difference: self - other.")
+        .def("__mul__", [](const RotPiDD& a, const RotPiDD& b) { return a * b; },
+             "Composition: self * other.")
+        .def("__iand__", [](RotPiDD& a, const RotPiDD& b) -> RotPiDD& { a &= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place intersection.")
+        .def("__iadd__", [](RotPiDD& a, const RotPiDD& b) -> RotPiDD& { a += b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place union.")
+        .def("__isub__", [](RotPiDD& a, const RotPiDD& b) -> RotPiDD& { a -= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place difference.")
+        .def("__imul__", [](RotPiDD& a, const RotPiDD& b) -> RotPiDD& { a *= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place composition.")
+
+        // Core operations
+        .def("left_rot", &RotPiDD::LeftRot, py::arg("u"), py::arg("v"),
+             "Apply left rotation LeftRot(u, v) to all permutations.\n\n"
+             "Left-rotates positions v, v+1, ..., u cyclically.\n\n"
+             "Args:\n"
+             "    u: Upper position (u > v for non-trivial rotation).\n"
+             "    v: Lower position.\n\n"
+             "Returns:\n"
+             "    A new RotPiDD with the rotation applied.\n")
+        .def("swap", &RotPiDD::Swap, py::arg("a"), py::arg("b"),
+             "Swap positions a and b in all permutations.\n\n"
+             "Args:\n"
+             "    a: First position.\n"
+             "    b: Second position.\n\n"
+             "Returns:\n"
+             "    A new RotPiDD with the swap applied.\n")
+        .def("reverse", &RotPiDD::Reverse, py::arg("l"), py::arg("r"),
+             "Reverse positions l..r in all permutations.\n\n"
+             "Args:\n"
+             "    l: Left position.\n"
+             "    r: Right position.\n\n"
+             "Returns:\n"
+             "    A new RotPiDD with the reversal applied.\n")
+        .def("cofact", &RotPiDD::Cofact, py::arg("u"), py::arg("v"),
+             "Extract permutations where position u has value v.\n\n"
+             "Args:\n"
+             "    u: Position to check.\n"
+             "    v: Required value at position u.\n\n"
+             "Returns:\n"
+             "    A RotPiDD of sub-permutations satisfying the condition.\n")
+        .def("odd", &RotPiDD::Odd,
+             "Extract odd permutations from the set.\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing only odd permutations.\n")
+        .def("even", &RotPiDD::Even,
+             "Extract even permutations from the set.\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing only even permutations.\n")
+        .def("rot_bound", &RotPiDD::RotBound, py::arg("n"),
+             "Apply symmetric constraint (PermitSym) to the internal ZDD.\n\n"
+             "Args:\n"
+             "    n: Constraint parameter.\n\n"
+             "Returns:\n"
+             "    A RotPiDD with the constraint applied.\n")
+        .def("order", &RotPiDD::Order, py::arg("a"), py::arg("b"),
+             "Extract permutations where pi(a) < pi(b).\n\n"
+             "Args:\n"
+             "    a: First position.\n"
+             "    b: Second position.\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing only permutations satisfying the order.\n")
+        .def("inverse", &RotPiDD::Inverse,
+             "Compute the inverse of each permutation in the set.\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing the inverse permutations.\n")
+        .def("insert", &RotPiDD::Insert, py::arg("p"), py::arg("v"),
+             "Insert value v at position p in each permutation.\n\n"
+             "Args:\n"
+             "    p: Insertion position.\n"
+             "    v: Value to insert.\n\n"
+             "Returns:\n"
+             "    A RotPiDD with the element inserted.\n")
+        .def("remove_max", &RotPiDD::RemoveMax, py::arg("k"),
+             "Remove variables with size >= k from each permutation.\n\n"
+             "Args:\n"
+             "    k: Threshold.\n\n"
+             "Returns:\n"
+             "    A RotPiDD with large variables removed.\n")
+        .def("normalize", &RotPiDD::normalizeRotPiDD, py::arg("k"),
+             "Remove variables with x > k by projecting them out.\n\n"
+             "Args:\n"
+             "    k: Upper bound for retained variables.\n\n"
+             "Returns:\n"
+             "    A normalized RotPiDD.\n")
+        .def("extract_one", &RotPiDD::Extract_One,
+             "Extract a single permutation from the set.\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing exactly one permutation.\n")
+        .def("to_perms", &RotPiDD::RotPiDDToVectorOfPerms,
+             "Convert to a list of permutation vectors.\n\n"
+             "Returns:\n"
+             "    A list of lists, each representing a permutation as [1..n].\n")
+
+        // Properties
+        .def_property_readonly("top_x", &RotPiDD::TopX,
+             "The x coordinate of the top variable.")
+        .def_property_readonly("top_y", &RotPiDD::TopY,
+             "The y coordinate of the top variable.")
+        .def_property_readonly("top_lev", &RotPiDD::TopLev,
+             "The BDD level of the top variable.")
+        .def_property_readonly("size", &RotPiDD::Size,
+             "The number of nodes in the internal ZDD.")
+        .def_property_readonly("card", &RotPiDD::Card,
+             "The number of permutations in the set.")
+        .def_property_readonly("zdd", &RotPiDD::GetZDD,
+             "The internal ZDD representation.")
     ;
 }

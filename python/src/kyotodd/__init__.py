@@ -3,6 +3,8 @@
 from kyotodd._core import (
     BDD,
     ZDD,
+    PiDD,
+    RotPiDD,
     init,
     finalize,
     newvar,
@@ -16,11 +18,18 @@ from kyotodd._core import (
     gc_set_threshold,
     gc_get_threshold,
     zdd_random,
+    pidd_newvar,
+    pidd_var_used,
+    rotpidd_newvar,
+    rotpidd_var_used,
+    rotpidd_from_perm,
 )
 
 __all__ = [
     "BDD",
     "ZDD",
+    "PiDD",
+    "RotPiDD",
     "init",
     "finalize",
     "newvar",
@@ -34,4 +43,9 @@ __all__ = [
     "gc_set_threshold",
     "gc_get_threshold",
     "zdd_random",
+    "pidd_newvar",
+    "pidd_var_used",
+    "rotpidd_newvar",
+    "rotpidd_var_used",
+    "rotpidd_from_perm",
 ]

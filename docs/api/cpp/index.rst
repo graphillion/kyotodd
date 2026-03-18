@@ -8,4 +8,6 @@ C++ API
    base
    ops_bdd
    ops_zdd
+   ops_pidd
+   ops_rotpidd
    io

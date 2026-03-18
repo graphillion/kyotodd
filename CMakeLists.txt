@@ -18,6 +18,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_adv.cpp
   src/zdd_adv2.cpp
   src/pidd.cpp
+  src/rotpidd.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -64,7 +65,14 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(pidd_test PRIVATE -Wall -Wextra)
   endif()
 
+  add_executable(rotpidd_test test/test_rotpidd.cpp)
+  target_link_libraries(rotpidd_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(rotpidd_test PRIVATE -Wall -Wextra)
+  endif()
+
   include(GoogleTest)
   gtest_discover_tests(kyotodd_test)
   gtest_discover_tests(pidd_test)
+  gtest_discover_tests(rotpidd_test)
 endif()

@@ -7,7 +7,9 @@ INPUT                  = ../include/bdd_types.h \
                          ../include/bdd_base.h \
                          ../include/bdd_ops.h \
                          ../include/bdd_io.h \
-                         ../include/bdd.h
+                         ../include/bdd.h \
+                         ../include/pidd.h \
+                         ../include/rotpidd.h
 
 RECURSIVE              = NO
 FILE_PATTERNS          = *.h

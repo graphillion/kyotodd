@@ -7,3 +7,5 @@ Python API
    functions
    bdd
    zdd
+   pidd
+   rotpidd
