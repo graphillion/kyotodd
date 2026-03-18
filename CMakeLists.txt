@@ -32,6 +32,12 @@ target_link_libraries(kyotodd kyotodd_lib)
 add_executable(bddqueen app/BDDQueen/bddqueen.cpp)
 target_link_libraries(bddqueen kyotodd_lib)
 
+add_executable(bddqueen_BDD app/BDDQueen/bddqueen_BDD.cpp)
+target_link_libraries(bddqueen_BDD kyotodd_lib)
+
+add_executable(bddqueen_ZDD app/BDDQueen/bddqueen_ZDD.cpp)
+target_link_libraries(bddqueen_ZDD kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
