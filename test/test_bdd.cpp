@@ -8937,6 +8937,248 @@ TEST_F(BDDTest, BDDExactCount_VarGtN_Error) {
     EXPECT_THROW(bddexactcount(x2, (bddvar)1), std::invalid_argument);
 }
 
+// --- BDD/ZDD child accessor functions ---
+
+// BDD raw_child0/1: basic node
+TEST_F(BDDTest, BDD_RawChild_BasicNode) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    // BDDvar(v1) creates node with lo=bddfalse, hi=bddtrue
+    EXPECT_EQ(f.raw_child0().GetID(), bddfalse);
+    EXPECT_EQ(f.raw_child1().GetID(), bddtrue);
+    // raw_child(int) should match
+    EXPECT_EQ(f.raw_child(0).GetID(), bddfalse);
+    EXPECT_EQ(f.raw_child(1).GetID(), bddtrue);
+}
+
+// BDD raw_child: complement node returns stored values (not resolved)
+TEST_F(BDDTest, BDD_RawChild_ComplementNode) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    BDD nf = ~f;
+    // raw_child ignores complement bit, returns stored lo/hi
+    EXPECT_EQ(nf.raw_child0().GetID(), bddfalse);
+    EXPECT_EQ(nf.raw_child1().GetID(), bddtrue);
+}
+
+// BDD child0/1: basic node (no complement)
+TEST_F(BDDTest, BDD_Child_BasicNode) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    // No complement on root, so child == raw_child
+    EXPECT_EQ(f.child0().GetID(), bddfalse);
+    EXPECT_EQ(f.child1().GetID(), bddtrue);
+    EXPECT_EQ(f.child(0).GetID(), bddfalse);
+    EXPECT_EQ(f.child(1).GetID(), bddtrue);
+}
+
+// BDD child0/1: complement node (both children flipped)
+TEST_F(BDDTest, BDD_Child_ComplementNode) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    BDD nf = ~f;
+    // BDD complement: both lo and hi get flipped
+    EXPECT_EQ(nf.child0().GetID(), bddtrue);
+    EXPECT_EQ(nf.child1().GetID(), bddfalse);
+    EXPECT_EQ(nf.child(0).GetID(), bddtrue);
+    EXPECT_EQ(nf.child(1).GetID(), bddfalse);
+}
+
+// BDD child: multi-variable node
+TEST_F(BDDTest, BDD_Child_MultiVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;  // v1 AND v2
+    // Top variable is v2 (higher level = closer to root).
+    // lo = restrict v2=0: v1 AND 0 = false
+    // hi = restrict v2=1: v1 AND 1 = v1
+    EXPECT_EQ(f.child0(), BDD::False);
+    EXPECT_EQ(f.child1(), a);
+}
+
+// BDD child: complement of multi-variable node
+TEST_F(BDDTest, BDD_Child_ComplementMultiVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+    BDD nf = ~f;
+    // ~(v1 AND v2): complement flips both children
+    EXPECT_EQ(nf.child0(), BDD::True);
+    EXPECT_EQ(nf.child1(), ~a);
+}
+
+// BDD static versions match member versions
+TEST_F(BDDTest, BDD_StaticChild_MatchesMember) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD f = BDDvar(v1) | BDDvar(v2);
+    bddp fid = f.GetID();
+    EXPECT_EQ(BDD::raw_child0(fid), f.raw_child0().GetID());
+    EXPECT_EQ(BDD::raw_child1(fid), f.raw_child1().GetID());
+    EXPECT_EQ(BDD::raw_child(fid, 0), f.raw_child(0).GetID());
+    EXPECT_EQ(BDD::raw_child(fid, 1), f.raw_child(1).GetID());
+    EXPECT_EQ(BDD::child0(fid), f.child0().GetID());
+    EXPECT_EQ(BDD::child1(fid), f.child1().GetID());
+    EXPECT_EQ(BDD::child(fid, 0), f.child(0).GetID());
+    EXPECT_EQ(BDD::child(fid, 1), f.child(1).GetID());
+}
+
+// BDD child: terminal node throws
+TEST_F(BDDTest, BDD_Child_TerminalThrows) {
+    EXPECT_THROW(BDD::raw_child0(bddfalse), std::invalid_argument);
+    EXPECT_THROW(BDD::raw_child1(bddtrue), std::invalid_argument);
+    EXPECT_THROW(BDD::child0(bddfalse), std::invalid_argument);
+    EXPECT_THROW(BDD::child1(bddtrue), std::invalid_argument);
+    EXPECT_THROW(BDD::child(bddfalse, 0), std::invalid_argument);
+    EXPECT_THROW(BDD::raw_child(bddtrue, 1), std::invalid_argument);
+    // Member versions on terminal BDD
+    BDD f(0);  // false
+    EXPECT_THROW(f.child0(), std::invalid_argument);
+    EXPECT_THROW(f.raw_child1(), std::invalid_argument);
+}
+
+// BDD child: bddnull throws
+TEST_F(BDDTest, BDD_Child_NullThrows) {
+    EXPECT_THROW(BDD::raw_child0(bddnull), std::invalid_argument);
+    EXPECT_THROW(BDD::raw_child1(bddnull), std::invalid_argument);
+    EXPECT_THROW(BDD::child0(bddnull), std::invalid_argument);
+    EXPECT_THROW(BDD::child1(bddnull), std::invalid_argument);
+    // Member version
+    BDD n(-1);  // null
+    EXPECT_THROW(n.child0(), std::invalid_argument);
+    EXPECT_THROW(n.raw_child0(), std::invalid_argument);
+}
+
+// BDD child(int): invalid argument throws
+TEST_F(BDDTest, BDD_Child_InvalidArgThrows) {
+    bddvar v1 = bddnewvar();
+    BDD f = BDDvar(v1);
+    bddp fid = f.GetID();
+    EXPECT_THROW(BDD::child(fid, 2), std::invalid_argument);
+    EXPECT_THROW(BDD::child(fid, -1), std::invalid_argument);
+    EXPECT_THROW(BDD::raw_child(fid, 2), std::invalid_argument);
+    EXPECT_THROW(BDD::raw_child(fid, -1), std::invalid_argument);
+    EXPECT_THROW(f.child(2), std::invalid_argument);
+    EXPECT_THROW(f.raw_child(-1), std::invalid_argument);
+}
+
+// ZDD raw_child0/1: basic node
+TEST_F(BDDTest, ZDD_RawChild_BasicNode) {
+    bddvar v1 = bddnewvar();
+    // {{v1}} = getznode(v1, bddempty, bddsingle)
+    ZDD f = ZDD::Single.Change(v1);
+    // Change creates a node with lo=bddempty, hi=bddsingle
+    EXPECT_EQ(f.raw_child0().GetID(), bddempty);
+    EXPECT_EQ(f.raw_child1().GetID(), bddsingle);
+    EXPECT_EQ(f.raw_child(0).GetID(), bddempty);
+    EXPECT_EQ(f.raw_child(1).GetID(), bddsingle);
+}
+
+// ZDD raw_child: complement node returns stored values
+TEST_F(BDDTest, ZDD_RawChild_ComplementNode) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1);
+    ZDD nf = ~f;
+    // raw_child ignores complement, returns stored lo/hi
+    EXPECT_EQ(nf.raw_child0().GetID(), bddempty);
+    EXPECT_EQ(nf.raw_child1().GetID(), bddsingle);
+}
+
+// ZDD child0/1: basic node (no complement)
+TEST_F(BDDTest, ZDD_Child_BasicNode) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1);
+    EXPECT_EQ(f.child0().GetID(), bddempty);
+    EXPECT_EQ(f.child1().GetID(), bddsingle);
+    EXPECT_EQ(f.child(0).GetID(), bddempty);
+    EXPECT_EQ(f.child(1).GetID(), bddsingle);
+}
+
+// ZDD child0/1: complement node (ZDD semantics: only lo flipped)
+TEST_F(BDDTest, ZDD_Child_ComplementNode) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1);
+    ZDD nf = ~f;
+    // ZDD complement: only lo is flipped, hi stays
+    EXPECT_EQ(nf.child0().GetID(), bddnot(bddempty));  // lo flipped
+    EXPECT_EQ(nf.child1().GetID(), bddsingle);          // hi unchanged
+}
+
+// ZDD child: multi-variable node
+TEST_F(BDDTest, ZDD_Child_MultiVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1, v2}} = Single.Change(v1).Change(v2)
+    ZDD f = ZDD::Single.Change(v1).Change(v2);
+    // Top variable is v2 (higher level = closer to root)
+    // child0 = empty, child1 = {{v1}} = Single.Change(v1)
+    EXPECT_EQ(f.child0(), ZDD::Empty);
+    EXPECT_EQ(f.child1(), ZDD::Single.Change(v1));
+}
+
+// ZDD child: complement semantics differ from BDD
+TEST_F(BDDTest, ZDD_Child_ComplementSemanticsDifferFromBDD) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1);
+    ZDD nf = ~f;
+    // ZDD: hi is NOT flipped (unlike BDD)
+    // raw hi = bddsingle, child1 should also be bddsingle
+    EXPECT_EQ(nf.child1().GetID(), nf.raw_child1().GetID());
+    // But lo IS flipped
+    EXPECT_NE(nf.child0().GetID(), nf.raw_child0().GetID());
+    EXPECT_EQ(nf.child0().GetID(), bddnot(nf.raw_child0().GetID()));
+}
+
+// ZDD static versions match member versions
+TEST_F(BDDTest, ZDD_StaticChild_MatchesMember) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1) + ZDD::Single.Change(v2);
+    bddp fid = f.GetID();
+    EXPECT_EQ(ZDD::raw_child0(fid), f.raw_child0().GetID());
+    EXPECT_EQ(ZDD::raw_child1(fid), f.raw_child1().GetID());
+    EXPECT_EQ(ZDD::raw_child(fid, 0), f.raw_child(0).GetID());
+    EXPECT_EQ(ZDD::raw_child(fid, 1), f.raw_child(1).GetID());
+    EXPECT_EQ(ZDD::child0(fid), f.child0().GetID());
+    EXPECT_EQ(ZDD::child1(fid), f.child1().GetID());
+    EXPECT_EQ(ZDD::child(fid, 0), f.child(0).GetID());
+    EXPECT_EQ(ZDD::child(fid, 1), f.child(1).GetID());
+}
+
+// ZDD child: terminal node throws
+TEST_F(BDDTest, ZDD_Child_TerminalThrows) {
+    EXPECT_THROW(ZDD::raw_child0(bddempty), std::invalid_argument);
+    EXPECT_THROW(ZDD::raw_child1(bddsingle), std::invalid_argument);
+    EXPECT_THROW(ZDD::child0(bddempty), std::invalid_argument);
+    EXPECT_THROW(ZDD::child1(bddsingle), std::invalid_argument);
+    ZDD e(0);  // empty
+    EXPECT_THROW(e.child0(), std::invalid_argument);
+    EXPECT_THROW(e.raw_child1(), std::invalid_argument);
+}
+
+// ZDD child: bddnull throws
+TEST_F(BDDTest, ZDD_Child_NullThrows) {
+    EXPECT_THROW(ZDD::raw_child0(bddnull), std::invalid_argument);
+    EXPECT_THROW(ZDD::child0(bddnull), std::invalid_argument);
+    ZDD n(-1);  // null
+    EXPECT_THROW(n.child0(), std::invalid_argument);
+}
+
+// ZDD child(int): invalid argument throws
+TEST_F(BDDTest, ZDD_Child_InvalidArgThrows) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::Single.Change(v1);
+    bddp fid = f.GetID();
+    EXPECT_THROW(ZDD::child(fid, 2), std::invalid_argument);
+    EXPECT_THROW(ZDD::raw_child(fid, -1), std::invalid_argument);
+    EXPECT_THROW(f.child(3), std::invalid_argument);
+    EXPECT_THROW(f.raw_child(-1), std::invalid_argument);
+}
+
 // --- BDD class count/exact_count ---
 
 TEST_F(BDDTest, BDDCount_ClassMethod) {
