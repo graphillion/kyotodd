@@ -202,6 +202,18 @@ bddp getnode(bddvar var, bddp lo, bddp hi);
 bddp getznode(bddvar var, bddp lo, bddp hi);
 
 /**
+ * @brief Allocate a raw node slot from the node array.
+ *
+ * Uses the free list first, then extends the array, then grows via realloc,
+ * and finally triggers GC as a last resort. The caller is responsible for
+ * writing node data via node_write().
+ *
+ * @return An even node ID (>= 2) for the allocated slot.
+ * @throws std::overflow_error If the node table is exhausted.
+ */
+bddp allocate_node();
+
+/**
  * @brief Create a terminal node with the given constant value.
  *
  * @param val The constant value (0 or 1).

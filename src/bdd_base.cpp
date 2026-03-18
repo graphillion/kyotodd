@@ -474,11 +474,14 @@ int bddgc() {
     for (uint64_t i = 0; i < bdd_node_used; i++) {
         bddp node_id = (i + 1) * 2;
         if (marks[i / 64] & (static_cast<uint64_t>(1) << (i % 64))) {
-            // Live node: re-insert into unique table
-            bddvar var = node_var(node_id);
-            bddp lo = node_lo(node_id);
-            bddp hi = node_hi(node_id);
-            BDD_UniqueTableInsert(var, lo, hi, node_id);
+            // Live node: re-insert into unique table (reduced nodes only;
+            // unreduced nodes are not stored in the unique table)
+            if (node_is_reduced(node_id)) {
+                bddvar var = node_var(node_id);
+                bddp lo = node_lo(node_id);
+                bddp hi = node_hi(node_id);
+                BDD_UniqueTableInsert(var, lo, hi, node_id);
+            }
         } else {
             // Dead node: add to free list
             bdd_nodes[i].data[0] = bdd_free_list;
@@ -641,7 +644,7 @@ static void node_array_grow() {
     bdd_node_count = new_count;
 }
 
-static bddp allocate_node() {
+bddp allocate_node() {
     // 1. Free list
     if (bdd_free_list != 0) {
         bddp node_id = bdd_free_list;
