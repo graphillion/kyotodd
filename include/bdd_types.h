@@ -364,56 +364,44 @@ public:
  * Each ZDD object holds a single root node ID and is automatically
  * protected from garbage collection during its lifetime.
  */
-class ZDD {
+class ZDD : public DDBase {
     /// @cond INTERNAL
     friend ZDD ZDD_ID(bddp p);
     friend ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
     /// @endcond
 
-    bddp root;  /**< @brief The root node ID of this ZDD. */
     BddCountMemoPtr count_memo_;  /**< @brief Cached exact_count memo table. */
 
 public:
     /** @brief Get the raw node ID. */
-    bddp GetID() const { return root; }
+    bddp GetID() const { return get_id(); }
 
     /** @brief Get the cached exact_count memo (may be null). */
     const BddCountMemoPtr& count_memo() const { return count_memo_; }
 
     /** @brief Default constructor: empty family. */
-    ZDD() : root(bddempty) {
-        bddgc_protect(&root);
-    }
+    ZDD() : DDBase() {}
     /**
      * @brief Construct a ZDD from an integer value.
      * @param val 0 for empty family, 1 for unit family {∅}, negative for null.
      */
-    explicit ZDD(int val) : root(val < 0 ? bddnull : val == 0 ? bddempty : bddsingle) {
-        bddgc_protect(&root);
-    }
+    explicit ZDD(int val) : DDBase(val) {}
     /** @brief Copy constructor. */
-    ZDD(const ZDD& other) : root(other.root), count_memo_(other.count_memo_) {
-        bddgc_protect(&root);
-    }
+    ZDD(const ZDD& other) : DDBase(other), count_memo_(other.count_memo_) {}
     /** @brief Move constructor. */
-    ZDD(ZDD&& other) : root(other.root), count_memo_(std::move(other.count_memo_)) {
-        bddgc_protect(&root);
-        other.root = bddnull;
-    }
-    ~ZDD() {
-        bddgc_unprotect(&root);
-    }
+    ZDD(ZDD&& other)
+        : DDBase(std::move(other))
+        , count_memo_(std::move(other.count_memo_)) {}
     /** @brief Copy assignment operator. */
     ZDD& operator=(const ZDD& other) {
-        root = other.root;
+        DDBase::operator=(other);
         count_memo_ = other.count_memo_;
         return *this;
     }
     /** @brief Move assignment operator. */
     ZDD& operator=(ZDD&& other) {
-        root = other.root;
+        DDBase::operator=(std::move(other));
         count_memo_ = std::move(other.count_memo_);
-        other.root = bddnull;
         return *this;
     }
 
@@ -625,14 +613,13 @@ public:
     /** @brief Compute the support set (bddsupport wrapper). */
     ZDD Support() const;
     /** @brief Get the top variable number. */
-    bddvar Top() const;
+    bddvar Top() const { return top(); }
     /**
      * @brief Count the number of nodes (with complement edge sharing).
      * @deprecated Use raw_size() or plain_size() instead.
      */
-    uint64_t Size() const;
-    /** @brief Return the number of nodes (with complement edge sharing). */
-    uint64_t raw_size() const;
+    uint64_t Size() const { return raw_size(); }
+    using DDBase::raw_size;
     /** @brief Return the number of nodes without complement edge sharing. */
     uint64_t plain_size() const;
     /** @brief Return the shared node count across multiple ZDDs (with complement edge sharing). */

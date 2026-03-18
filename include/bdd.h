@@ -453,18 +453,6 @@ inline ZDD ZDD::Support() const {
     return z;
 }
 
-inline bddvar ZDD::Top() const {
-    return bddtop(root);
-}
-
-inline uint64_t ZDD::Size() const {
-    return bddsize(root);
-}
-
-inline uint64_t ZDD::raw_size() const {
-    return bddsize(root);
-}
-
 inline uint64_t ZDD::plain_size() const {
     return bddplainsize(root, true);
 }
