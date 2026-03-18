@@ -10,7 +10,7 @@
 #include <vector>
 #include "bdd_node.h"
 
-namespace bigint { class BigInt; }
+#include "bigint.hpp"
 
 /** @brief DD node ID type (48-bit value stored in uint64_t). */
 typedef uint64_t bddp;
@@ -144,6 +144,57 @@ void bddgc_unprotect(bddp* p);
 /// @endcond
 
 #include "dd_base.h"
+
+class BDD;
+class ZDD;
+
+/**
+ * @brief Memo for ZDD exact counting, associated with a specific ZDD root.
+ *
+ * Stores the memo table for bddexactcount results. Once populated via
+ * exact_count(), the memo is marked as stored and never changed.
+ */
+class ZddCountMemo {
+public:
+    explicit ZddCountMemo(bddp f);
+    ZddCountMemo(const ZDD& f);
+
+    bddp f() const { return f_; }
+    bool stored() const { return stored_; }
+    CountMemoMap& map() { return map_; }
+    const CountMemoMap& map() const { return map_; }
+    void mark_stored() { stored_ = true; }
+
+private:
+    bddp f_;
+    bool stored_;
+    CountMemoMap map_;
+};
+
+/**
+ * @brief Memo for BDD exact counting, associated with a specific BDD root and variable count.
+ *
+ * Stores the memo table for bddexactcount results. Once populated via
+ * exact_count(), the memo is marked as stored and never changed.
+ */
+class BddCountMemo {
+public:
+    BddCountMemo(bddp f, bddvar n);
+    BddCountMemo(const BDD& f, bddvar n);
+
+    bddp f() const { return f_; }
+    bddvar n() const { return n_; }
+    bool stored() const { return stored_; }
+    CountMemoMap& map() { return map_; }
+    const CountMemoMap& map() const { return map_; }
+    void mark_stored() { stored_ = true; }
+
+private:
+    bddp f_;
+    bddvar n_;
+    bool stored_;
+    CountMemoMap map_;
+};
 
 /**
  * @brief A Binary Decision Diagram (BDD) node.

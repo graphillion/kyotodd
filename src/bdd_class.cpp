@@ -11,6 +11,16 @@ const ZDD ZDD::Empty(0);
 const ZDD ZDD::Single(1);
 const ZDD ZDD::Null(-1);
 
+// --- ZddCountMemo constructors ---
+
+ZddCountMemo::ZddCountMemo(bddp f) : f_(f), stored_(false), map_() {}
+ZddCountMemo::ZddCountMemo(const ZDD& f) : f_(f.get_id()), stored_(false), map_() {}
+
+// --- BddCountMemo constructors ---
+
+BddCountMemo::BddCountMemo(bddp f, bddvar n) : f_(f), n_(n), stored_(false), map_() {}
+BddCountMemo::BddCountMemo(const BDD& f, bddvar n) : f_(f.get_id()), n_(n), stored_(false), map_() {}
+
 bigint::BigInt ZDD::exact_count() const {
     if (count_memo_) {
         return bddexactcount(root, *count_memo_);
