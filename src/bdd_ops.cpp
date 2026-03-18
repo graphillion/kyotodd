@@ -1081,3 +1081,15 @@ bigint::BigInt bddexactcount(bddp f, bddvar n) {
     bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
     return inner << static_cast<std::size_t>(n - top_level);
 }
+
+bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
+    if (f == bddnull) return bigint::BigInt(0);
+    if (f == bddfalse) return bigint::BigInt(0);
+    if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
+    return inner << static_cast<std::size_t>(n - top_level);
+}

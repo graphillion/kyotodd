@@ -614,6 +614,20 @@ double bddcount(bddp f, bddvar n);
 bigint::BigInt bddexactcount(bddp f, bddvar n);
 
 /**
+ * @brief Count the number of satisfying assignments of a BDD (exact),
+ *        using an external memo table.
+ *
+ * Same as bddexactcount(bddp, bddvar) but uses and populates an external
+ * memo table for caching intermediate results.
+ *
+ * @param f A BDD node ID.
+ * @param n The number of variables (1..n).
+ * @param memo The memo table to use and populate.
+ * @return The satisfying assignment count as a BigInt.
+ */
+bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo);
+
+/**
  * @brief Generate a random ZDD over the lowest @p lev levels.
  *
  * Recursively builds a random family of sets. Each terminal is
