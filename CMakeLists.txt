@@ -19,6 +19,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_adv2.cpp
   src/pidd.cpp
   src/rotpidd.cpp
+  src/seqbdd.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
