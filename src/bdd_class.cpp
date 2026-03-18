@@ -53,15 +53,20 @@ bigint::BigInt ZDD::exact_count(bool save_memo) {
 }
 
 std::vector<bddvar> ZDD::uniform_sample_impl(
-        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func) {
+        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
+        ZddCountMemo& memo) {
     if (root == bddempty || root == bddnull) {
         throw std::invalid_argument(
             "uniform_sample: cannot sample from empty family");
     }
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "uniform_sample: memo was created for a different ZDD");
+    }
 
     // Ensure memo is populated
-    if (!count_memo_) {
-        exact_count(true);
+    if (!memo.stored()) {
+        exact_count(memo);
     }
 
     std::vector<bddvar> result;
@@ -80,8 +85,8 @@ std::vector<bddvar> ZDD::uniform_sample_impl(
             lo = bddnot(lo);
         }
 
-        bigint::BigInt count_lo = bddexactcount(lo, *count_memo_);
-        bigint::BigInt count_hi = bddexactcount(hi, *count_memo_);
+        bigint::BigInt count_lo = bddexactcount(lo, memo.map());
+        bigint::BigInt count_hi = bddexactcount(hi, memo.map());
         bigint::BigInt total = count_lo + count_hi;
 
         bigint::BigInt r = rand_func(total);

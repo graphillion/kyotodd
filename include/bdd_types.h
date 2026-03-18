@@ -612,21 +612,24 @@ public:
      * @brief Uniformly sample one set from the family at random.
      *
      * Each set in the family is selected with equal probability.
-     * Populates the exact_count memo if not already present.
+     * Populates the memo if not already stored.
      *
      * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
      * @param rng The random number generator.
+     * @param memo A ZddCountMemo created for this ZDD.
      * @return The sampled set as a sorted vector of variable numbers.
      */
     template<typename RNG>
-    std::vector<bddvar> uniform_sample(RNG& rng);
+    std::vector<bddvar> uniform_sample(RNG& rng, ZddCountMemo& memo);
 
     /// @cond INTERNAL
     /// Internal: traverse ZDD and collect sampled variables using
     /// a function that generates uniform random BigInts.
     /// @param rand_func A callable taking BigInt upper → BigInt in [0, upper).
+    /// @param memo A ZddCountMemo created for this ZDD.
     std::vector<bddvar> uniform_sample_impl(
-        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func);
+        std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
+        ZddCountMemo& memo);
     /// @endcond
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.

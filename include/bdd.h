@@ -585,11 +585,11 @@ inline ZDD ZDD::Divisor() const {
 }
 
 template<typename RNG>
-std::vector<bddvar> ZDD::uniform_sample(RNG& rng) {
+std::vector<bddvar> ZDD::uniform_sample(RNG& rng, ZddCountMemo& memo) {
     return uniform_sample_impl(
         [&rng](const bigint::BigInt& upper) {
             return bigint::uniform_random(upper, rng);
-        });
+        }, memo);
 }
 
 #endif
