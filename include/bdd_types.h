@@ -31,6 +31,8 @@ static constexpr bddp BDD_COMP_FLAG  = UINT64_C(0x000000000001);  // bit 0: comp
 
 /** @brief Maximum variable number (31-bit). */
 static constexpr bddvar bddvarmax = (UINT32_C(1) << (sizeof(uint64_t) * 8 - BDD_NODE_VAR_SHIFT)) - 1;
+static constexpr bddvar BDD_MaxVar = bddvarmax;
+static constexpr bddp BDD_MaxNode = BDD_CONST_FLAG / 2 - 2;
 /** @brief Maximum constant value for terminal nodes (47-bit). */
 static constexpr bddp bddvalmax = BDD_CONST_FLAG - 1;
 

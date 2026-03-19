@@ -53,9 +53,6 @@ bddvar bddnewvar();
  */
 std::vector<bddvar> bddnewvar(int n);
 
-/** @brief Create a new variable (alias of bddnewvar()). */
-inline bddvar BDD_NewVar() { return bddnewvar(); }
-
 /**
  * @brief Create a new variable at a specific level.
  *
@@ -86,6 +83,29 @@ bddvar bddvaroflev(bddvar lev);
  * @return The total number of variables.
  */
 bddvar bddvarused();
+
+/**
+ * @brief Return the highest level currently in use.
+ * @return The maximum level (equal to the number of variables).
+ */
+bddvar bddtoplev();
+
+/** @brief Create a new variable (alias of bddnewvar()). */
+inline bddvar BDD_NewVar() { return bddnewvar(); }
+/** @brief Create a new variable at a specific level (alias of bddnewvaroflev()). */
+inline bddvar BDD_NewVarOfLev(bddvar lev) { return bddnewvaroflev(lev); }
+/** @brief Return the level of the given variable (alias of bddlevofvar()). */
+inline bddvar BDD_LevOfVar(bddvar var) { return bddlevofvar(var); }
+/** @brief Return the variable at the given level (alias of bddvaroflev()). */
+inline bddvar BDD_VarOfLev(bddvar lev) { return bddvaroflev(lev); }
+/** @brief Return the number of variables created so far (alias of bddvarused()). */
+inline bddvar BDD_VarUsed() { return bddvarused(); }
+/** @brief Return the highest level currently in use (alias of bddtoplev()). */
+inline bddvar BDD_TopLev() { return bddtoplev(); }
+/** @brief Return the number of nodes currently in use (alias of bddused()). */
+uint64_t BDD_Used();
+/** @brief Manually invoke garbage collection (alias of bddgc()). */
+int BDD_GC();
 
 /**
  * @brief Return the top (highest-level) variable of a node.

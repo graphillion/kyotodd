@@ -390,6 +390,10 @@ bddvar bddvarused() {
     return bdd_varcount;
 }
 
+bddvar bddtoplev() {
+    return bdd_varcount;
+}
+
 bddvar bddtop(bddp f) {
     if (f == bddnull) {
         throw std::invalid_argument("bddtop: bddnull");
@@ -853,6 +857,14 @@ ZDD ZDD_ID(bddp p) {
     ZDD z(0);
     z.root = p;
     return z;
+}
+
+uint64_t BDD_Used() {
+    return bddused();
+}
+
+int BDD_GC() {
+    return bddgc();
 }
 
 BDD BDDvar(bddvar v) {
