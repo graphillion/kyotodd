@@ -819,8 +819,16 @@ bddp bddconst(uint64_t val) {
 }
 
 bddp bddprime(bddvar v) {
-    if (v < 1 || v > bdd_varcount) {
+    if (v < 1) {
         throw std::invalid_argument("bddprime: var out of range");
+    }
+    if (v > 65536) {
+        throw std::invalid_argument(
+            "bddprime: auto-expansion beyond 2^16 variables is not supported");
+    }
+    // Auto-expand variables if needed
+    while (bdd_varcount < v) {
+        bddnewvar();
     }
     return getnode(v, bddfalse, bddtrue);
 }

@@ -15,6 +15,32 @@ BDD BDD::prime_not(bddvar v) {
     return BDD_ID(bddnot(bddprime(v)));
 }
 
+BDD BDD::cube(const std::vector<int>& lits) {
+    bddp f = bddtrue;
+    for (int lit : lits) {
+        if (lit == 0) {
+            throw std::invalid_argument("BDD::cube: literal 0 is not allowed");
+        }
+        bddp l = bddprime(static_cast<bddvar>(lit < 0 ? -lit : lit));
+        if (lit < 0) l = bddnot(l);
+        f = bddand(f, l);
+    }
+    return BDD_ID(f);
+}
+
+BDD BDD::clause(const std::vector<int>& lits) {
+    bddp f = bddfalse;
+    for (int lit : lits) {
+        if (lit == 0) {
+            throw std::invalid_argument("BDD::clause: literal 0 is not allowed");
+        }
+        bddp l = bddprime(static_cast<bddvar>(lit < 0 ? -lit : lit));
+        if (lit < 0) l = bddnot(l);
+        f = bddor(f, l);
+    }
+    return BDD_ID(f);
+}
+
 const ZDD ZDD::Empty(0);
 const ZDD ZDD::Single(1);
 const ZDD ZDD::Null(-1);

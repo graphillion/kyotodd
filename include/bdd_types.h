@@ -470,6 +470,11 @@ public:
     /** @brief Return the BDD representing ¬v (negative literal). */
     static BDD prime_not(bddvar v);
 
+    /** @brief Return the conjunction of literals (DIMACS sign convention: positive = var, negative = ¬var). */
+    static BDD cube(const std::vector<int>& lits);
+    /** @brief Return the disjunction of literals (DIMACS sign convention: positive = var, negative = ¬var). */
+    static BDD clause(const std::vector<int>& lits);
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */

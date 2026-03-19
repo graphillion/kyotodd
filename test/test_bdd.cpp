@@ -169,6 +169,62 @@ TEST_F(BDDTest, BDD_PrimeNot) {
     EXPECT_EQ(b, ~p);
 }
 
+// --- BDD::cube / BDD::clause ---
+
+TEST_F(BDDTest, BDD_Cube_Empty) {
+    // Empty cube → true
+    BDD f = BDD::cube({});
+    EXPECT_EQ(f, BDD::True);
+}
+
+TEST_F(BDDTest, BDD_Cube_SinglePositive) {
+    BDD f = BDD::cube({1});
+    EXPECT_EQ(f, BDD::prime(1));
+}
+
+TEST_F(BDDTest, BDD_Cube_SingleNegative) {
+    BDD f = BDD::cube({-1});
+    EXPECT_EQ(f, BDD::prime_not(1));
+}
+
+TEST_F(BDDTest, BDD_Cube_Mixed) {
+    // x1 ∧ ¬x2 ∧ x3
+    BDD f = BDD::cube({1, -2, 3});
+    BDD expected = BDD::prime(1) & BDD::prime_not(2) & BDD::prime(3);
+    EXPECT_EQ(f, expected);
+}
+
+TEST_F(BDDTest, BDD_Clause_Empty) {
+    // Empty clause → false
+    BDD f = BDD::clause({});
+    EXPECT_EQ(f, BDD::False);
+}
+
+TEST_F(BDDTest, BDD_Clause_SinglePositive) {
+    BDD f = BDD::clause({1});
+    EXPECT_EQ(f, BDD::prime(1));
+}
+
+TEST_F(BDDTest, BDD_Clause_SingleNegative) {
+    BDD f = BDD::clause({-2});
+    EXPECT_EQ(f, BDD::prime_not(2));
+}
+
+TEST_F(BDDTest, BDD_Clause_Mixed) {
+    // x1 ∨ ¬x2 ∨ x3
+    BDD f = BDD::clause({1, -2, 3});
+    BDD expected = BDD::prime(1) | BDD::prime_not(2) | BDD::prime(3);
+    EXPECT_EQ(f, expected);
+}
+
+TEST_F(BDDTest, BDD_Cube_ZeroLiteral) {
+    EXPECT_THROW(BDD::cube({0}), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_Clause_ZeroLiteral) {
+    EXPECT_THROW(BDD::clause({0}), std::invalid_argument);
+}
+
 // --- BDD_ID ---
 
 TEST_F(BDDTest, BDD_ID) {
