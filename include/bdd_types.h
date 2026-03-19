@@ -803,6 +803,16 @@ public:
                     const std::string& delim2,
                     const std::vector<std::string>& var_name_map) const;
 
+    /**
+     * @brief Return the family of sets as a string in default format.
+     *
+     * Equivalent to calling print_sets() into a string stream.
+     * Example: "{4,2,1},{3,1},{1},{}"
+     *
+     * @return The formatted string.
+     */
+    std::string to_str() const;
+
     /** @brief Print ZDD graph (bddgraph wrapper). */
     void XPrint() const;
     /** @brief Print in PLA format. */

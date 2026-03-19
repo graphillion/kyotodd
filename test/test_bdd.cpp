@@ -9779,3 +9779,25 @@ TEST_F(BDDTest, ZDD_PrintSets_EmptyDelimiters) {
     e.print_sets(oss, ";", ",");
     EXPECT_EQ(oss.str(), "E");
 }
+
+// --- ZDD::to_str ---
+
+TEST_F(BDDTest, ZDD_ToStr_Null) {
+    ZDD n(-1);
+    EXPECT_EQ(n.to_str(), "N");
+}
+
+TEST_F(BDDTest, ZDD_ToStr_Empty) {
+    ZDD e(0);
+    EXPECT_EQ(e.to_str(), "E");
+}
+
+TEST_F(BDDTest, ZDD_ToStr_Single) {
+    ZDD s(1);
+    EXPECT_EQ(s.to_str(), "{}");
+}
+
+TEST_F(BDDTest, ZDD_ToStr_PowerSet2) {
+    ZDD f = ZDD::power_set(2);
+    EXPECT_EQ(f.to_str(), "{},{1},{2},{2,1}");
+}

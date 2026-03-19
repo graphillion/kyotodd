@@ -2,6 +2,7 @@
 #include "bdd_internal.h"
 #include "bigint.hpp"
 #include <stdexcept>
+#include <sstream>
 
 const BDD BDD::False(0);
 const BDD BDD::True(1);
@@ -376,6 +377,12 @@ void ZDD::print_sets(std::ostream& os, const std::string& delim1,
     std::vector<bddvar> current;
     bool first_set = true;
     print_sets_rec(os, root, current, first_set, delim1, delim2, &var_name_map);
+}
+
+std::string ZDD::to_str() const {
+    std::ostringstream oss;
+    print_sets(oss);
+    return oss.str();
 }
 
 void ZDD::Print() const {
