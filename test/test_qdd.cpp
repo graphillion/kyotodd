@@ -143,6 +143,62 @@ TEST_F(QDDTest, Constants) {
     EXPECT_EQ(QDD::Null.get_id(), bddnull);
 }
 
+// =============================================================
+// QDD::to_bdd() Tests
+// =============================================================
+
+TEST_F(QDDTest, ToBddTerminal) {
+    EXPECT_EQ(QDD::zero().to_bdd().get_id(), bddfalse);
+    EXPECT_EQ(QDD::one().to_bdd().get_id(), bddtrue);
+}
+
+TEST_F(QDDTest, ToBddCollapseLoEqualsHi) {
+    bddvar v1 = bddnewvar();
+
+    // QDD node where lo == hi == false → BDD should collapse to false
+    QDD q = QDD::node(v1, QDD::zero(), QDD::zero());
+    BDD b = q.to_bdd();
+    EXPECT_TRUE(b.is_zero());
+
+    // QDD node where lo == hi == true → BDD should collapse to true
+    QDD q2 = QDD::node(v1, QDD::one(), QDD::one());
+    BDD b2 = q2.to_bdd();
+    EXPECT_TRUE(b2.is_one());
+}
+
+TEST_F(QDDTest, ToBddRoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Build a BDD: v2 -> (v1 ? 1 : 0) for lo, (0) for hi
+    // = v2' & v1
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD original = ~bv2 & bv1;
+
+    // Build the equivalent QDD manually
+    // Level 1 nodes
+    QDD q_lo = QDD::node(v1, QDD::zero(), QDD::one());   // v1
+    QDD q_hi = QDD::node(v1, QDD::zero(), QDD::zero());  // false (identity)
+    // Level 2 root
+    QDD q_root = QDD::node(v2, q_lo, q_hi);
+
+    BDD converted = q_root.to_bdd();
+    EXPECT_EQ(converted.get_id(), original.get_id());
+}
+
+TEST_F(QDDTest, ToBddWithComplement) {
+    bddvar v1 = bddnewvar();
+
+    QDD q = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD qc = ~q;
+    BDD b = qc.to_bdd();
+
+    // ~(v1, 0, 1) = (v1, 1, 0) = ~v1
+    BDD expected = ~BDDvar(v1);
+    EXPECT_EQ(b.get_id(), expected.get_id());
+}
+
 TEST_F(QDDTest, ChildAccessorExceptions) {
     // Terminal
     EXPECT_THROW(QDD::raw_child0(bddfalse), std::invalid_argument);
