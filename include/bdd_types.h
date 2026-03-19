@@ -756,6 +756,53 @@ public:
     void Export(std::ostream& strm) const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
     void Print() const;
+
+    /**
+     * @brief Print the family of sets to an output stream.
+     *
+     * Each set is enclosed in braces and elements are separated by commas.
+     * Sets are separated by commas. Example: {4,2,1},{3,1},{1},{}
+     *
+     * Special cases:
+     * - bddnull (error node): outputs "N"
+     * - bddempty (empty family): outputs "E"
+     *
+     * @param os Output stream.
+     */
+    void print_sets(std::ostream& os) const;
+
+    /**
+     * @brief Print the family of sets with custom delimiters.
+     *
+     * Elements within a set are separated by @p delim2.
+     * Sets are separated by @p delim1.
+     * No outer braces are printed; the caller controls the wrapper.
+     * Example: with delim1="};{" and delim2=",", output is "4,2,1};{3,1};{1};{"
+     *
+     * @param os Output stream.
+     * @param delim1 Delimiter between sets.
+     * @param delim2 Delimiter between elements within a set.
+     */
+    void print_sets(std::ostream& os, const std::string& delim1,
+                    const std::string& delim2) const;
+
+    /**
+     * @brief Print the family of sets with custom delimiters and variable name mapping.
+     *
+     * Same as the delimiter version, but uses @p var_name_map to translate
+     * variable numbers to strings. var_name_map[v] is used for variable v.
+     * If v is out of range or var_name_map[v] is empty, falls back to the
+     * numeric variable number.
+     *
+     * @param os Output stream.
+     * @param delim1 Delimiter between sets.
+     * @param delim2 Delimiter between elements within a set.
+     * @param var_name_map Vector indexed by variable number.
+     */
+    void print_sets(std::ostream& os, const std::string& delim1,
+                    const std::string& delim2,
+                    const std::vector<std::string>& var_name_map) const;
+
     /** @brief Print ZDD graph (bddgraph wrapper). */
     void XPrint() const;
     /** @brief Print in PLA format. */

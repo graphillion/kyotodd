@@ -306,6 +306,78 @@ std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     return result;
 }
 
+static void print_sets_rec(std::ostream& os, bddp f,
+                           std::vector<bddvar>& current,
+                           bool& first_set,
+                           const std::string& delim1,
+                           const std::string& delim2,
+                           const std::vector<std::string>* var_name_map) {
+    if (f == bddempty) return;
+    if (f == bddsingle) {
+        if (!first_set) os << delim1;
+        first_set = false;
+        for (size_t i = 0; i < current.size(); ++i) {
+            if (i > 0) os << delim2;
+            bddvar v = current[i];
+            if (var_name_map && v < var_name_map->size()
+                && !(*var_name_map)[v].empty()) {
+                os << (*var_name_map)[v];
+            } else {
+                os << v;
+            }
+        }
+        return;
+    }
+
+    // ZDD complement semantics: complement toggles lo only
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    if (comp) {
+        lo = bddnot(lo);
+    }
+
+    // 0-edge: sets not containing var
+    print_sets_rec(os, lo, current, first_set, delim1, delim2, var_name_map);
+    // 1-edge: sets containing var
+    current.push_back(var);
+    print_sets_rec(os, hi, current, first_set, delim1, delim2, var_name_map);
+    current.pop_back();
+}
+
+void ZDD::print_sets(std::ostream& os) const {
+    if (root == bddnull) { os << "N"; return; }
+    if (root == bddempty) { os << "E"; return; }
+    std::vector<bddvar> current;
+    bool first_set = true;
+    os << "{";
+    print_sets_rec(os, root, current, first_set, "},{", ",", nullptr);
+    os << "}";
+}
+
+void ZDD::print_sets(std::ostream& os, const std::string& delim1,
+                     const std::string& delim2) const {
+    if (root == bddnull) { os << "N"; return; }
+    if (root == bddempty) { os << "E"; return; }
+    std::vector<bddvar> current;
+    bool first_set = true;
+    print_sets_rec(os, root, current, first_set, delim1, delim2, nullptr);
+}
+
+void ZDD::print_sets(std::ostream& os, const std::string& delim1,
+                     const std::string& delim2,
+                     const std::vector<std::string>& var_name_map) const {
+    if (root == bddnull) { os << "N"; return; }
+    if (root == bddempty) { os << "E"; return; }
+    std::vector<bddvar> current;
+    bool first_set = true;
+    print_sets_rec(os, root, current, first_set, delim1, delim2, &var_name_map);
+}
+
 void ZDD::Print() const {
     bddvar v = Top();
     std::cout << "[ " << GetID()

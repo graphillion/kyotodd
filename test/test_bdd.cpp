@@ -9679,3 +9679,103 @@ TEST_F(BDDTest, ZDD_Enumerate_ConsistentWithCard) {
     auto sets = f.enumerate();
     EXPECT_EQ(static_cast<uint64_t>(sets.size()), f.Card());
 }
+
+// --- ZDD::print_sets ---
+
+TEST_F(BDDTest, ZDD_PrintSets_Null) {
+    ZDD n(-1);
+    std::ostringstream oss;
+    n.print_sets(oss);
+    EXPECT_EQ(oss.str(), "N");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_Empty) {
+    ZDD e(0);
+    std::ostringstream oss;
+    e.print_sets(oss);
+    EXPECT_EQ(oss.str(), "E");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_Single) {
+    ZDD s(1);  // {∅}
+    std::ostringstream oss;
+    s.print_sets(oss);
+    EXPECT_EQ(oss.str(), "{}");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_OneSingleton) {
+    // {{1}}
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.print_sets(oss);
+    EXPECT_EQ(oss.str(), "{1}");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_MultipleElements) {
+    // {{3,2,1}} - single set with 3 elements
+    ZDD f = ZDD::single_set({1, 2, 3});
+    std::ostringstream oss;
+    f.print_sets(oss);
+    EXPECT_EQ(oss.str(), "{3,2,1}");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_PowerSet2) {
+    // power_set(2) = {{},{1},{2},{2,1}} (lo-first order)
+    ZDD f = ZDD::power_set(2);
+    std::ostringstream oss;
+    f.print_sets(oss);
+    EXPECT_EQ(oss.str(), "{},{1},{2},{2,1}");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_CustomDelimiters) {
+    ZDD f = ZDD::power_set(2);
+    std::ostringstream oss;
+    f.print_sets(oss, "};{", ",");
+    EXPECT_EQ(oss.str(), "};{1};{2};{2,1");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_CustomDelimiters2) {
+    ZDD f = ZDD::power_set(2);
+    std::ostringstream oss;
+    f.print_sets(oss, " | ", "-");
+    EXPECT_EQ(oss.str(), " | 1 | 2 | 2-1");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_VarNameMap) {
+    ZDD f = ZDD::single_set({1, 2, 3});
+    std::vector<std::string> names = {"", "a", "b", "c"};
+    std::ostringstream oss;
+    f.print_sets(oss, ",", ",", names);
+    EXPECT_EQ(oss.str(), "c,b,a");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_VarNameMap_Fallback) {
+    ZDD f = ZDD::single_set({1, 2, 3});
+    // var 3 has no mapping (out of range), falls back to number
+    std::vector<std::string> names = {"", "x", "y"};
+    std::ostringstream oss;
+    f.print_sets(oss, ",", ",", names);
+    EXPECT_EQ(oss.str(), "3,y,x");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_ComplementEdge) {
+    // ~ZDD(0) = ~bddempty = {∅}
+    ZDD f = ~ZDD(0);
+    std::ostringstream oss;
+    f.print_sets(oss);
+    EXPECT_EQ(oss.str(), "{}");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_NullDelimiters) {
+    ZDD n(-1);
+    std::ostringstream oss;
+    n.print_sets(oss, ";", ",");
+    EXPECT_EQ(oss.str(), "N");
+}
+
+TEST_F(BDDTest, ZDD_PrintSets_EmptyDelimiters) {
+    ZDD e(0);
+    std::ostringstream oss;
+    e.print_sets(oss, ";", ",");
+    EXPECT_EQ(oss.str(), "E");
+}
