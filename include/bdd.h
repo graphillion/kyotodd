@@ -776,6 +776,25 @@ std::vector<bddvar> BDD::uniform_sample(RNG& rng, bddvar n, BddCountMemo& memo) 
         n, memo);
 }
 
+template<typename RNG>
+ZDD ZDD::random_family(bddvar n, RNG& rng) {
+    // Ensure variables exist
+    while (bdd_varcount < n) {
+        bddnewvar();
+    }
+    std::uniform_int_distribution<int> coin(0, 1);
+    // Recursive lambda: build random family over variables {v, v+1, ..., n}
+    std::function<bddp(bddvar)> build = [&](bddvar v) -> bddp {
+        if (v > n) {
+            return coin(rng) ? bddsingle : bddempty;
+        }
+        bddp lo = build(v + 1);
+        bddp hi = build(v + 1);
+        return getznode(v, lo, hi);
+    };
+    return ZDD_ID(build(1));
+}
+
 #include "unreduced_dd.h"
 #include "qdd.h"
 

@@ -838,6 +838,19 @@ public:
     /** @brief Return the ZDD of all k-element subsets of {1, ..., n}. */
     static ZDD combination(bddvar n, bddvar k);
 
+    /**
+     * @brief Generate a uniformly random family over {1, ..., n}.
+     *
+     * Selects one of the 2^(2^n) possible families uniformly at random.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param n The universe size.
+     * @param rng The random number generator.
+     * @return A ZDD representing the randomly chosen family.
+     */
+    template<typename RNG>
+    static ZDD random_family(bddvar n, RNG& rng);
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

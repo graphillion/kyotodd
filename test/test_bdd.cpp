@@ -9543,6 +9543,60 @@ TEST_F(BDDTest, ZDD_Combination_K1) {
     }
 }
 
+// --- ZDD::random_family ---
+
+TEST_F(BDDTest, ZDD_RandomFamily_Zero) {
+    // n=0: result is either {} or {{∅}}
+    std::mt19937_64 rng(42);
+    bool saw_empty = false, saw_single = false;
+    for (int i = 0; i < 100; ++i) {
+        ZDD f = ZDD::random_family(0, rng);
+        if (f == ZDD::Empty) saw_empty = true;
+        if (f == ZDD::Single) saw_single = true;
+    }
+    EXPECT_TRUE(saw_empty);
+    EXPECT_TRUE(saw_single);
+}
+
+TEST_F(BDDTest, ZDD_RandomFamily_One) {
+    // n=1: 2^(2^1) = 4 possible families: {}, {{1}}, {{∅}}, {{∅},{1}}
+    std::mt19937_64 rng(123);
+    std::set<bddp> seen;
+    for (int i = 0; i < 200; ++i) {
+        ZDD f = ZDD::random_family(1, rng);
+        seen.insert(f.GetID());
+    }
+    EXPECT_EQ(seen.size(), 4u);
+}
+
+TEST_F(BDDTest, ZDD_RandomFamily_ValidSets) {
+    // All sets in the family should only contain variables in {1,...,n}
+    std::mt19937_64 rng(999);
+    bddvar n = 3;
+    for (int i = 0; i < 50; ++i) {
+        ZDD f = ZDD::random_family(n, rng);
+        auto sets = f.enumerate();
+        for (const auto& s : sets) {
+            for (bddvar v : s) {
+                EXPECT_GE(v, 1u);
+                EXPECT_LE(v, n);
+            }
+        }
+    }
+}
+
+TEST_F(BDDTest, ZDD_RandomFamily_CardinalityRange) {
+    // Cardinality should be between 0 and 2^n
+    std::mt19937_64 rng(777);
+    bddvar n = 3;
+    for (int i = 0; i < 50; ++i) {
+        ZDD f = ZDD::random_family(n, rng);
+        double card = f.count();
+        EXPECT_GE(card, 0.0);
+        EXPECT_LE(card, 8.0);  // 2^3 = 8
+    }
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {
