@@ -210,6 +210,14 @@ ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }
 
+ZDD ZDD::power_set(bddvar n) {
+    bddp f = bddsingle;
+    for (bddvar v = 1; v <= n; ++v) {
+        f = bddunion(f, bddchange(f, v));
+    }
+    return ZDD_ID(f);
+}
+
 ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
     bddp f = bddsingle;
     for (bddvar v : vars) {

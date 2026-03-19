@@ -824,6 +824,9 @@ public:
     /** @brief Return the ZDD representing {{v1, v2, ...}} (a family with one set). */
     static ZDD single_set(const std::vector<bddvar>& vars);
 
+    /** @brief Return the ZDD representing the power set of {1, ..., n}. */
+    static ZDD power_set(bddvar n);
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

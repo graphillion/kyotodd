@@ -9355,6 +9355,33 @@ TEST_F(BDDTest, ZDD_SingleSet_MultipleVars) {
     EXPECT_FALSE(f.has_empty());
 }
 
+// --- ZDD::power_set ---
+
+TEST_F(BDDTest, ZDD_PowerSet_Zero) {
+    // power_set(0) → {{∅}}
+    ZDD f = ZDD::power_set(0);
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    EXPECT_TRUE(sets[0].empty());
+}
+
+TEST_F(BDDTest, ZDD_PowerSet_One) {
+    // power_set(1) → {{}, {1}}
+    ZDD f = ZDD::power_set(1);
+    auto sets = f.enumerate();
+    EXPECT_EQ(sets.size(), 2u);
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_PowerSet_Three) {
+    // power_set(3) → 2^3 = 8 sets
+    ZDD f = ZDD::power_set(3);
+    EXPECT_EQ(f.count(), 8.0);
+    EXPECT_TRUE(f.has_empty());
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 8u);
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {
