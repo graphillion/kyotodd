@@ -357,3 +357,55 @@ class TestZDDMethods:
         # {{1}} delta {{2}} = {{1,2}} (sym diff of {1} and {2})
         d = a.delta(b)
         assert d != ZDD.empty
+
+
+class TestZDDPrintSets:
+    def test_null(self):
+        assert ZDD(-1).to_str() == "N"
+        assert ZDD(-1).print_sets() == "N"
+
+    def test_empty(self):
+        assert ZDD(0).to_str() == "E"
+        assert ZDD(0).print_sets() == "E"
+
+    def test_single(self):
+        assert ZDD(1).to_str() == "{}"
+        assert ZDD(1).print_sets() == ""
+
+    def test_one_singleton(self):
+        f = _make_singleton(1)
+        assert f.to_str() == "{1}"
+
+    def test_multiple_elements(self):
+        f = ZDD(1).change(1).change(2).change(3)
+        assert f.to_str() == "{3,2,1}"
+
+    def test_multiple_sets(self):
+        a = ZDD(1)
+        b = a.change(1)
+        c = a.change(2)
+        d = a.change(1).change(2)
+        f = a + b + c + d
+        assert f.to_str() == "{},{1},{2},{2,1}"
+
+    def test_custom_delimiters(self):
+        a = ZDD(1)
+        b = a.change(1)
+        c = a.change(2)
+        d = a.change(1).change(2)
+        f = a + b + c + d
+        assert f.print_sets("};{", ",") == "};{1};{2};{2,1"
+        assert f.print_sets(" | ", "-") == " | 1 | 2 | 2-1"
+
+    def test_var_name_map(self):
+        f = ZDD(1).change(1).change(2).change(3)
+        assert f.print_sets(",", ",", ["", "a", "b", "c"]) == "c,b,a"
+
+    def test_var_name_map_fallback(self):
+        f = ZDD(1).change(1).change(2).change(3)
+        # var 3 out of range, falls back to number
+        assert f.print_sets(",", ",", ["", "x", "y"]) == "3,y,x"
+
+    def test_complement_edge(self):
+        f = ~ZDD(0)
+        assert f.to_str() == "{}"

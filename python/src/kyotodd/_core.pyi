@@ -680,6 +680,43 @@ class ZDD:
         """Find a non-trivial divisor of the family (as polynomial)."""
         ...
 
+    def print_sets(self, delim1: str = "},{", delim2: str = ",",
+                   var_name_map: List[str] = ...) -> str:
+        """Print the family of sets as a string with custom delimiters.
+
+        When called with default arguments, sets are separated by '},{'
+        and elements by ','. The output contains no outer braces;
+        for example: '};{1};{2};{2,1'.
+
+        Special cases:
+            - null ZDD: returns 'N'
+            - empty ZDD: returns 'E'
+
+        Args:
+            delim1: Delimiter between sets (default: '},{').
+            delim2: Delimiter between elements within a set (default: ',').
+            var_name_map: List indexed by variable number for display names.
+
+        Returns:
+            The formatted string.
+        """
+        ...
+
+    def to_str(self) -> str:
+        """Print the family of sets in default format.
+
+        Each set is enclosed in braces, elements separated by commas.
+        Example: '{},{1},{2},{2,1}'
+
+        Special cases:
+            - null ZDD: returns 'N'
+            - empty ZDD: returns 'E'
+
+        Returns:
+            The formatted string.
+        """
+        ...
+
     def export_str(self) -> str:
         """Export this ZDD to a string representation."""
         ...

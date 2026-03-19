@@ -663,6 +663,43 @@ PYBIND11_MODULE(_core, m) {
            "    The reconstructed ZDD.\n\n"
            "Raises:\n"
            "    RuntimeError: If import fails or file cannot be opened.\n")
+        .def("print_sets", [](const ZDD& z,
+                              const std::string& delim1,
+                              const std::string& delim2,
+                              const std::vector<std::string>& var_name_map) -> std::string {
+            std::ostringstream oss;
+            z.print_sets(oss, delim1, delim2, var_name_map);
+            return oss.str();
+        }, py::arg("delim1") = "},{"
+         , py::arg("delim2") = ","
+         , py::arg("var_name_map") = std::vector<std::string>(),
+           "Print the family of sets as a string with custom delimiters.\n\n"
+           "When called with default arguments, sets are separated by '},{'\n"
+           "and elements by ','. The output contains no outer braces;\n"
+           "for example: '};{1};{2};{2,1'.\n\n"
+           "Special cases:\n"
+           "    - null ZDD: returns 'N'\n"
+           "    - empty ZDD: returns 'E'\n\n"
+           "Args:\n"
+           "    delim1: Delimiter between sets (default: '},{').\n"
+           "    delim2: Delimiter between elements within a set (default: ',').\n"
+           "    var_name_map: List indexed by variable number for display names.\n"
+           "        If provided and var_name_map[v] is non-empty, it is used\n"
+           "        instead of the variable number.\n\n"
+           "Returns:\n"
+           "    The formatted string.\n")
+        .def("to_str", [](const ZDD& z) -> std::string {
+            std::ostringstream oss;
+            z.print_sets(oss);
+            return oss.str();
+        }, "Print the family of sets in default format.\n\n"
+           "Each set is enclosed in braces, elements separated by commas.\n"
+           "Example: '{},{1},{2},{2,1}'\n\n"
+           "Special cases:\n"
+           "    - null ZDD: returns 'N'\n"
+           "    - empty ZDD: returns 'E'\n\n"
+           "Returns:\n"
+           "    The formatted string.\n")
 
         .def_property_readonly("card", &ZDD::Card,
              "The number of sets in the family (cardinality).\n\n"
