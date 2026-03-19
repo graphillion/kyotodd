@@ -7,6 +7,14 @@ const BDD BDD::False(0);
 const BDD BDD::True(1);
 const BDD BDD::Null(-1);
 
+BDD BDD::prime(bddvar v) {
+    return BDD_ID(bddprime(v));
+}
+
+BDD BDD::prime_not(bddvar v) {
+    return BDD_ID(bddnot(bddprime(v)));
+}
+
 const ZDD ZDD::Empty(0);
 const ZDD ZDD::Single(1);
 const ZDD ZDD::Null(-1);

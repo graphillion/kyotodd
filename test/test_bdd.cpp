@@ -152,6 +152,23 @@ TEST_F(BDDTest, BDDvar) {
     EXPECT_EQ(b.GetID(), bddprime(v));
 }
 
+// --- BDD::prime / BDD::prime_not ---
+
+TEST_F(BDDTest, BDD_Prime) {
+    bddvar v = BDD_NewVar();
+    BDD b = BDD::prime(v);
+    EXPECT_EQ(b.GetID(), bddprime(v));
+}
+
+TEST_F(BDDTest, BDD_PrimeNot) {
+    bddvar v = BDD_NewVar();
+    BDD b = BDD::prime_not(v);
+    BDD p = BDD::prime(v);
+    EXPECT_EQ(b.GetID(), bddnot(p.GetID()));
+    // prime_not is the complement of prime
+    EXPECT_EQ(b, ~p);
+}
+
 // --- BDD_ID ---
 
 TEST_F(BDDTest, BDD_ID) {

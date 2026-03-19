@@ -465,6 +465,11 @@ public:
     /** @brief Convert to a QDD (quasi-reduced BDD) by inserting lo==hi identity nodes at skipped levels. */
     QDD to_qdd() const;
 
+    /** @brief Return the BDD representing variable v (positive literal). */
+    static BDD prime(bddvar v);
+    /** @brief Return the BDD representing ¬v (negative literal). */
+    static BDD prime_not(bddvar v);
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */
