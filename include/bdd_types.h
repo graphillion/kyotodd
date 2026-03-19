@@ -831,6 +831,10 @@ public:
 
     /** @brief Return the ZDD representing the power set of {1, ..., n}. */
     static ZDD power_set(bddvar n);
+    /** @brief Construct a ZDD from a list of sets (inverse of enumerate). */
+    static ZDD from_sets(const std::vector<std::vector<bddvar>>& sets);
+    /** @brief Return the ZDD of all k-element subsets of {1, ..., n}. */
+    static ZDD combination(bddvar n, bddvar k);
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

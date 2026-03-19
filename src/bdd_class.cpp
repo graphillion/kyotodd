@@ -252,6 +252,45 @@ ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
     return ZDD_ID(f);
 }
 
+ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
+    bddp f = bddempty;
+    for (const auto& s : sets) {
+        bddp t = bddsingle;
+        for (bddvar v : s) {
+            t = bddchange(t, v);
+        }
+        f = bddunion(f, t);
+    }
+    return ZDD_ID(f);
+}
+
+// Recursive helper: all k-element subsets of {v, v+1, ..., n}
+static bddp combination_rec(bddvar v, bddvar n, bddvar k) {
+    if (k == 0) return bddsingle;
+    if (n - v + 1 < k) return bddempty;  // not enough variables left
+    if (n - v + 1 == k) {
+        // must take all remaining variables
+        bddp f = bddsingle;
+        for (bddvar i = v; i <= n; ++i) {
+            f = bddchange(f, i);
+        }
+        return f;
+    }
+    // getznode(v, lo, hi): lo = subsets not containing v, hi = subsets containing v
+    bddp lo = combination_rec(v + 1, n, k);
+    bddp hi = combination_rec(v + 1, n, k - 1);
+    return getznode(v, lo, hi);
+}
+
+ZDD ZDD::combination(bddvar n, bddvar k) {
+    if (k > n) return ZDD::Empty;
+    // Ensure variables exist
+    while (bdd_varcount < n) {
+        bddnewvar();
+    }
+    return ZDD_ID(combination_rec(1, n, k));
+}
+
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;

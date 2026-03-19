@@ -9438,6 +9438,89 @@ TEST_F(BDDTest, ZDD_PowerSet_Three) {
     ASSERT_EQ(sets.size(), 8u);
 }
 
+// --- ZDD::from_sets ---
+
+TEST_F(BDDTest, ZDD_FromSets_Empty) {
+    // No sets → empty family
+    ZDD f = ZDD::from_sets({});
+    EXPECT_EQ(f, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_FromSets_SingleEmpty) {
+    // {{}} → unit family
+    ZDD f = ZDD::from_sets({{}});
+    EXPECT_EQ(f, ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_FromSets_Roundtrip) {
+    // Build a ZDD, enumerate, reconstruct, compare
+    ZDD orig = ZDD::power_set(3);
+    auto sets = orig.enumerate();
+    ZDD rebuilt = ZDD::from_sets(sets);
+    EXPECT_EQ(rebuilt, orig);
+}
+
+TEST_F(BDDTest, ZDD_FromSets_Duplicates) {
+    // Duplicate sets are merged
+    ZDD f = ZDD::from_sets({{1, 2}, {1, 2}, {3}});
+    EXPECT_EQ(f.count(), 2.0);  // {{1,2}, {3}}
+}
+
+// --- ZDD::combination ---
+
+TEST_F(BDDTest, ZDD_Combination_K0) {
+    // C(n, 0) = {{}} for any n
+    ZDD f = ZDD::combination(5, 0);
+    EXPECT_EQ(f, ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_Combination_KGreaterThanN) {
+    // C(3, 5) = empty
+    ZDD f = ZDD::combination(3, 5);
+    EXPECT_EQ(f, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_Combination_KEqN) {
+    // C(3, 3) = {{1,2,3}}
+    ZDD f = ZDD::combination(3, 3);
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    ASSERT_EQ(sets[0].size(), 3u);
+}
+
+TEST_F(BDDTest, ZDD_Combination_3_2) {
+    // C(3, 2) = {{1,2}, {1,3}, {2,3}} → 3 sets
+    ZDD f = ZDD::combination(3, 2);
+    EXPECT_EQ(f.count(), 3.0);
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 3u);
+    for (const auto& s : sets) {
+        EXPECT_EQ(s.size(), 2u);
+    }
+}
+
+TEST_F(BDDTest, ZDD_Combination_5_3) {
+    // C(5, 3) = 10 sets
+    ZDD f = ZDD::combination(5, 3);
+    EXPECT_EQ(f.count(), 10.0);
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 10u);
+    for (const auto& s : sets) {
+        EXPECT_EQ(s.size(), 3u);
+    }
+}
+
+TEST_F(BDDTest, ZDD_Combination_K1) {
+    // C(4, 1) = {{1}, {2}, {3}, {4}} → 4 singletons
+    ZDD f = ZDD::combination(4, 1);
+    EXPECT_EQ(f.count(), 4.0);
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 4u);
+    for (const auto& s : sets) {
+        EXPECT_EQ(s.size(), 1u);
+    }
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {
