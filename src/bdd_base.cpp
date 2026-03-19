@@ -751,6 +751,57 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
+bddp getqnode(bddvar var, bddp lo, bddp hi) {
+    // No jump rule: lo == hi does NOT return lo
+
+    // Level validation: children must be at var's level - 1
+    bddvar expected_child_level = var2level[var] - 1;
+
+    auto child_level = [](bddp child) -> bddvar {
+        if (child & BDD_CONST_FLAG) return 0;  // terminal is level 0
+        return var2level[node_var(child & ~BDD_COMP_FLAG)];
+    };
+
+    bddvar lo_level = child_level(lo);
+    bddvar hi_level = child_level(hi);
+    if (lo_level != expected_child_level || hi_level != expected_child_level) {
+        throw std::invalid_argument("getqnode: child level mismatch");
+    }
+
+    // Complement edge normalization: lo must not be complemented.
+    // BDD semantics: ~(var, lo, hi) = (var, ~lo, ~hi)
+    bool comp = (lo & BDD_COMP_FLAG) != 0;
+    if (comp) {
+        lo = bddnot(lo);
+        hi = bddnot(hi);
+    }
+
+    bddp found = BDD_UniqueTableLookup(var, lo, hi);
+    if (found != 0) {
+        return comp ? bddnot(found) : found;
+    }
+    bddp node_id = allocate_node();
+    node_write(node_id, var, lo, hi);
+    BDD_DEBUG_ASSERT(bddp_is_reduced(lo) && bddp_is_reduced(hi));
+    if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
+        node_set_reduced(node_id);
+    }
+    try {
+        BDD_UniqueTableInsert(var, lo, hi, node_id);
+    } catch (...) {
+        if (node_id / 2 == bdd_node_used) {
+            bdd_node_used--;
+        } else {
+            uint64_t idx = node_id / 2 - 1;
+            bdd_nodes[idx].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
+        throw;
+    }
+    return comp ? bddnot(node_id) : node_id;
+}
+
 bddp bddconst(uint64_t val) {
     if (val > 1) {
         throw std::invalid_argument("bddconst: val must be 0 or 1");

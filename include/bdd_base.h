@@ -202,6 +202,21 @@ bddp getnode(bddvar var, bddp lo, bddp hi);
 bddp getznode(bddvar var, bddp lo, bddp hi);
 
 /**
+ * @brief Create a QDD (quasi-reduced) node with the given variable and children.
+ *
+ * Similar to getnode() but does NOT apply the jump rule (lo == hi does NOT
+ * return lo). Validates that children are at the expected level (var's level - 1,
+ * or terminal at level 0). Uses BDD complement edge normalization.
+ *
+ * @param var Variable number.
+ * @param lo  The low (0-edge) child node ID.
+ * @param hi  The high (1-edge) child node ID.
+ * @return The node ID for the (var, lo, hi) triple.
+ * @throws std::invalid_argument if children are not at the expected level.
+ */
+bddp getqnode(bddvar var, bddp lo, bddp hi);
+
+/**
  * @brief Allocate a raw node slot from the node array.
  *
  * Uses the free list first, then extends the array, then grows via realloc,
