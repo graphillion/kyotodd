@@ -198,6 +198,10 @@ bool ZDD::has_empty() const {
     return bddhasempty(root);
 }
 
+ZDD ZDD::singleton(bddvar v) {
+    return ZDD_ID(bddchange(bddsingle, v));
+}
+
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;

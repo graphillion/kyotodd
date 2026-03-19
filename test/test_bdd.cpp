@@ -9292,6 +9292,25 @@ TEST_F(BDDTest, ZDD_HasEmpty_ComplementEdge) {
     EXPECT_FALSE(bddhasempty(bddnot(u)));  // complement removes ∅
 }
 
+// --- ZDD::singleton ---
+
+TEST_F(BDDTest, ZDD_Singleton) {
+    ZDD s1 = ZDD::singleton(1);
+    auto sets1 = s1.enumerate();
+    ASSERT_EQ(sets1.size(), 1u);
+    ASSERT_EQ(sets1[0].size(), 1u);
+    EXPECT_EQ(sets1[0][0], 1u);
+
+    ZDD s3 = ZDD::singleton(3);
+    auto sets3 = s3.enumerate();
+    ASSERT_EQ(sets3.size(), 1u);
+    ASSERT_EQ(sets3[0].size(), 1u);
+    EXPECT_EQ(sets3[0][0], 3u);
+
+    // singleton should not contain the empty set
+    EXPECT_FALSE(s1.has_empty());
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {

@@ -814,6 +814,9 @@ public:
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
 
+    /** @brief Return the ZDD representing {{v}} (a family with one singleton set). */
+    static ZDD singleton(bddvar v);
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */
