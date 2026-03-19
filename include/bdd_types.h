@@ -144,6 +144,7 @@ void bddgc_unprotect(bddp* p);
 
 class BDD;
 class ZDD;
+class QDD;
 
 /**
  * @brief Memo for ZDD exact counting, associated with a specific ZDD root.

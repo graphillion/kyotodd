@@ -777,5 +777,6 @@ std::vector<bddvar> BDD::uniform_sample(RNG& rng, bddvar n, BddCountMemo& memo) 
 }
 
 #include "unreduced_dd.h"
+#include "qdd.h"
 
 #endif
