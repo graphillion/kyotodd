@@ -166,6 +166,41 @@ std::vector<bddvar> BDD::uniform_sample_impl(
     return result;
 }
 
+static void enumerate_rec(bddp f, std::vector<bddvar>& current,
+                          std::vector<std::vector<bddvar>>& result) {
+    if (f == bddempty) return;
+    if (f == bddsingle) {
+        result.push_back(current);
+        return;
+    }
+
+    // ZDD complement semantics: complement toggles lo only
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    if (comp) {
+        lo = bddnot(lo);
+    }
+
+    // 0-edge: sets not containing var
+    enumerate_rec(lo, current, result);
+    // 1-edge: sets containing var
+    current.push_back(var);
+    enumerate_rec(hi, current, result);
+    current.pop_back();
+}
+
+std::vector<std::vector<bddvar>> ZDD::enumerate() const {
+    std::vector<std::vector<bddvar>> result;
+    std::vector<bddvar> current;
+    enumerate_rec(root, current, result);
+    return result;
+}
+
 void ZDD::Print() const {
     bddvar v = Top();
     std::cout << "[ " << GetID()

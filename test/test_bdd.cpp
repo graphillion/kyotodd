@@ -9193,3 +9193,86 @@ TEST_F(BDDTest, BDDCount_ClassMethod) {
     EXPECT_EQ(nf.count(2), 3.0);
     EXPECT_EQ(nf.exact_count(2), bigint::BigInt(3));
 }
+
+// --- ZDD::enumerate ---
+
+TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {
+    ZDD f(0);  // empty family
+    auto sets = f.enumerate();
+    EXPECT_TRUE(sets.empty());
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_SingleEmptySet) {
+    ZDD f(1);  // { {} }
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    EXPECT_TRUE(sets[0].empty());
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_SingleVariable) {
+    bddvar v = bddnewvar();
+    ZDD f = ZDD_ID(bddchange(bddsingle, v));  // { {v} }
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    ASSERT_EQ(sets[0].size(), 1u);
+    EXPECT_EQ(sets[0][0], v);
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_TwoSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD_ID(bddchange(bddsingle, v1));  // { {v1} }
+    ZDD b = ZDD_ID(bddchange(bddsingle, v2));  // { {v2} }
+    ZDD f = a + b;  // { {v1}, {v2} }
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 2u);
+    // Sort for deterministic comparison
+    std::sort(sets.begin(), sets.end());
+    EXPECT_EQ(sets[0], std::vector<bddvar>({v1}));
+    EXPECT_EQ(sets[1], std::vector<bddvar>({v2}));
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_PowerSet) {
+    // Power set of {v1, v2} = { {}, {v1}, {v2}, {v1,v2} }
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD s1 = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD s2 = ZDD_ID(bddchange(bddsingle, v2));
+    ZDD s12 = s1 * s2;  // join: { {v1, v2} }
+    ZDD f = ZDD(1) + s1 + s2 + s12;
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 4u);
+    std::sort(sets.begin(), sets.end());
+    EXPECT_EQ(sets[0], std::vector<bddvar>({}));
+    EXPECT_EQ(sets[1], std::vector<bddvar>({v1}));
+    EXPECT_EQ(sets[2], std::vector<bddvar>({v2}));
+    std::vector<bddvar> expected12 = {v1, v2};
+    std::sort(expected12.begin(), expected12.end());
+    std::vector<bddvar> got12 = sets[3];
+    std::sort(got12.begin(), got12.end());
+    EXPECT_EQ(got12, expected12);
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_ComplementEdge) {
+    // ~ZDD::Empty = { {} }, ~ZDD::Single = empty
+    ZDD f = ~ZDD(0);  // complement of empty = { {} }
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    EXPECT_TRUE(sets[0].empty());
+
+    ZDD g = ~ZDD(1);  // complement of { {} } = empty
+    auto sets2 = g.enumerate();
+    EXPECT_TRUE(sets2.empty());
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_ConsistentWithCard) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD s1 = ZDD_ID(bddchange(bddsingle, v1));
+    ZDD s2 = ZDD_ID(bddchange(bddsingle, v2));
+    ZDD s3 = ZDD_ID(bddchange(bddsingle, v3));
+    ZDD f = s1 + s2 + s3 + (s1 * s2) + (s2 * s3);
+    auto sets = f.enumerate();
+    EXPECT_EQ(static_cast<uint64_t>(sets.size()), f.Card());
+}

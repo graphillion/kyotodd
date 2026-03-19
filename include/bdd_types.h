@@ -655,6 +655,16 @@ public:
         std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
         ZddCountMemo& memo);
     /// @endcond
+
+    /**
+     * @brief Enumerate all sets in the ZDD family.
+     *
+     * Returns every set in the family as a vector of variable numbers.
+     * Each inner vector is sorted in ascending variable order.
+     *
+     * @return All sets in the family.
+     */
+    std::vector<std::vector<bddvar>> enumerate() const;
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.
