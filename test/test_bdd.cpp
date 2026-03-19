@@ -9311,6 +9311,33 @@ TEST_F(BDDTest, ZDD_Singleton) {
     EXPECT_FALSE(s1.has_empty());
 }
 
+// --- ZDD::single_set ---
+
+TEST_F(BDDTest, ZDD_SingleSet_Empty) {
+    // Empty vars → {{∅}} (unit family)
+    ZDD f = ZDD::single_set({});
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    EXPECT_TRUE(sets[0].empty());
+}
+
+TEST_F(BDDTest, ZDD_SingleSet_OneVar) {
+    // {1} → {{1}}, same as singleton
+    ZDD f = ZDD::single_set({1});
+    ZDD s = ZDD::singleton(1);
+    EXPECT_EQ(f, s);
+}
+
+TEST_F(BDDTest, ZDD_SingleSet_MultipleVars) {
+    // {1, 2, 3} → {{1, 2, 3}}
+    ZDD f = ZDD::single_set({1, 2, 3});
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    std::vector<bddvar> expected = {3, 2, 1};
+    EXPECT_EQ(sets[0], expected);
+    EXPECT_FALSE(f.has_empty());
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {

@@ -816,6 +816,8 @@ public:
 
     /** @brief Return the ZDD representing {{v}} (a family with one singleton set). */
     static ZDD singleton(bddvar v);
+    /** @brief Return the ZDD representing {{v1, v2, ...}} (a family with one set). */
+    static ZDD single_set(const std::vector<bddvar>& vars);
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

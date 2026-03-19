@@ -202,6 +202,14 @@ ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }
 
+ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
+    bddp f = bddsingle;
+    for (bddvar v : vars) {
+        f = bddchange(f, v);
+    }
+    return ZDD_ID(f);
+}
+
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;
