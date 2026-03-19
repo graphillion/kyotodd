@@ -43,6 +43,16 @@ void bddfinal();
  */
 bddvar bddnewvar();
 
+/**
+ * @brief Create multiple new variables at once.
+ *
+ * Calls bddnewvar() @p n times and returns the variable numbers.
+ *
+ * @param n Number of variables to create.
+ * @return A vector of the newly created variable numbers.
+ */
+std::vector<bddvar> bddnewvar(int n);
+
 /** @brief Create a new variable (alias of bddnewvar()). */
 inline bddvar BDD_NewVar() { return bddnewvar(); }
 

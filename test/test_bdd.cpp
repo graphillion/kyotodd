@@ -107,6 +107,23 @@ TEST_F(BDDTest, NewVar) {
     EXPECT_EQ(v3, 3u);
 }
 
+TEST_F(BDDTest, NewVarMultiple) {
+    std::vector<bddvar> vars = bddnewvar(5);
+    EXPECT_EQ(vars.size(), 5u);
+    EXPECT_EQ(vars[0], 1u);
+    EXPECT_EQ(vars[1], 2u);
+    EXPECT_EQ(vars[2], 3u);
+    EXPECT_EQ(vars[3], 4u);
+    EXPECT_EQ(vars[4], 5u);
+    EXPECT_EQ(bddvarused(), 5u);
+}
+
+TEST_F(BDDTest, NewVarMultipleZero) {
+    std::vector<bddvar> vars = bddnewvar(0);
+    EXPECT_EQ(vars.size(), 0u);
+    EXPECT_EQ(bddvarused(), 0u);
+}
+
 // --- bddprime ---
 
 TEST_F(BDDTest, BddPrime) {

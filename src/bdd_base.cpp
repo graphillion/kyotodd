@@ -330,6 +330,15 @@ bddvar bddnewvar() {
     return var;
 }
 
+std::vector<bddvar> bddnewvar(int n) {
+    std::vector<bddvar> vars;
+    vars.reserve(n);
+    for (int i = 0; i < n; i++) {
+        vars.push_back(bddnewvar());
+    }
+    return vars;
+}
+
 bddvar bddnewvaroflev(bddvar lev) {
     if (lev < 1 || lev > bdd_varcount + 1) {
         throw std::invalid_argument("bddnewvaroflev: lev out of range");
