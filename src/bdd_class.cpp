@@ -244,6 +244,14 @@ ZDD ZDD::power_set(bddvar n) {
     return ZDD_ID(f);
 }
 
+ZDD ZDD::power_set(const std::vector<bddvar>& vars) {
+    bddp f = bddsingle;
+    for (bddvar v : vars) {
+        f = bddunion(f, bddchange(f, v));
+    }
+    return ZDD_ID(f);
+}
+
 ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
     bddp f = bddsingle;
     for (bddvar v : vars) {

@@ -9438,6 +9438,28 @@ TEST_F(BDDTest, ZDD_PowerSet_Three) {
     ASSERT_EQ(sets.size(), 8u);
 }
 
+TEST_F(BDDTest, ZDD_PowerSet_Vec_Empty) {
+    // power_set({}) → {{∅}}
+    ZDD f = ZDD::power_set(std::vector<bddvar>{});
+    EXPECT_EQ(f, ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_PowerSet_Vec_SameAsN) {
+    // power_set({1,2,3}) should equal power_set(3)
+    ZDD a = ZDD::power_set(std::vector<bddvar>{1, 2, 3});
+    ZDD b = ZDD::power_set(3);
+    EXPECT_EQ(a, b);
+}
+
+TEST_F(BDDTest, ZDD_PowerSet_Vec_NonContiguous) {
+    // power_set({2, 5}) → {{}, {2}, {5}, {2,5}} = 4 sets
+    ZDD f = ZDD::power_set(std::vector<bddvar>{2, 5});
+    EXPECT_EQ(f.count(), 4.0);
+    EXPECT_TRUE(f.has_empty());
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 4u);
+}
+
 // --- ZDD::from_sets ---
 
 TEST_F(BDDTest, ZDD_FromSets_Empty) {
