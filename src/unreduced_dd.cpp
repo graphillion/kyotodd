@@ -31,28 +31,6 @@ UnreducedBDD UnreducedBDD::node(bddvar var, const UnreducedBDD& lo,
 
 // --- Child accessors (static bddp versions, BDD complement semantics) ---
 
-bddp UnreducedBDD::raw_child0(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child0: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child0: terminal node");
-    return node_lo(f);
-}
-
-bddp UnreducedBDD::raw_child1(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child1: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child1: terminal node");
-    return node_hi(f);
-}
-
-bddp UnreducedBDD::raw_child(bddp f, int child) {
-    if (child == 0) return raw_child0(f);
-    if (child == 1) return raw_child1(f);
-    throw std::invalid_argument("raw_child: child must be 0 or 1");
-}
-
 bddp UnreducedBDD::child0(bddp f) {
     if (f == bddnull)
         throw std::invalid_argument("child0: null node");
@@ -83,19 +61,19 @@ bddp UnreducedBDD::child(bddp f, int child) {
 
 UnreducedBDD UnreducedBDD::raw_child0() const {
     UnreducedBDD r(0);
-    r.root = UnreducedBDD::raw_child0(root);
+    r.root = DDBase::raw_child0(root);
     return r;
 }
 
 UnreducedBDD UnreducedBDD::raw_child1() const {
     UnreducedBDD r(0);
-    r.root = UnreducedBDD::raw_child1(root);
+    r.root = DDBase::raw_child1(root);
     return r;
 }
 
 UnreducedBDD UnreducedBDD::raw_child(int child) const {
     UnreducedBDD r(0);
-    r.root = UnreducedBDD::raw_child(root, child);
+    r.root = DDBase::raw_child(root, child);
     return r;
 }
 
@@ -226,28 +204,6 @@ UnreducedZDD UnreducedZDD::node(bddvar var, const UnreducedZDD& lo,
 
 // --- ZDD Child accessors (static bddp versions, ZDD complement semantics) ---
 
-bddp UnreducedZDD::raw_child0(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child0: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child0: terminal node");
-    return node_lo(f);
-}
-
-bddp UnreducedZDD::raw_child1(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child1: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child1: terminal node");
-    return node_hi(f);
-}
-
-bddp UnreducedZDD::raw_child(bddp f, int child) {
-    if (child == 0) return raw_child0(f);
-    if (child == 1) return raw_child1(f);
-    throw std::invalid_argument("raw_child: child must be 0 or 1");
-}
-
 bddp UnreducedZDD::child0(bddp f) {
     if (f == bddnull)
         throw std::invalid_argument("child0: null node");
@@ -277,19 +233,19 @@ bddp UnreducedZDD::child(bddp f, int child) {
 
 UnreducedZDD UnreducedZDD::raw_child0() const {
     UnreducedZDD r(0);
-    r.root = UnreducedZDD::raw_child0(root);
+    r.root = DDBase::raw_child0(root);
     return r;
 }
 
 UnreducedZDD UnreducedZDD::raw_child1() const {
     UnreducedZDD r(0);
-    r.root = UnreducedZDD::raw_child1(root);
+    r.root = DDBase::raw_child1(root);
     return r;
 }
 
 UnreducedZDD UnreducedZDD::raw_child(int child) const {
     UnreducedZDD r(0);
-    r.root = UnreducedZDD::raw_child(root, child);
+    r.root = DDBase::raw_child(root, child);
     return r;
 }
 

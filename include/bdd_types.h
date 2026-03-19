@@ -436,12 +436,9 @@ public:
      */
     static BDD Ite(const BDD& f, const BDD& g, const BDD& h);
 
-    /** @brief Get the raw 0-child (lo) node ID without complement resolution. */
-    static bddp raw_child0(bddp f);
-    /** @brief Get the raw 1-child (hi) node ID without complement resolution. */
-    static bddp raw_child1(bddp f);
-    /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
-    static bddp raw_child(bddp f, int child);
+    using DDBase::raw_child0;
+    using DDBase::raw_child1;
+    using DDBase::raw_child;
     /** @brief Get the 0-child (lo) node ID with complement edge resolution. */
     static bddp child0(bddp f);
     /** @brief Get the 1-child (hi) node ID with complement edge resolution. */
@@ -849,12 +846,9 @@ public:
     /** @brief Find a non-trivial divisor of the family. */
     ZDD Divisor() const;
 
-    /** @brief Get the raw 0-child (lo) node ID without complement resolution. */
-    static bddp raw_child0(bddp f);
-    /** @brief Get the raw 1-child (hi) node ID without complement resolution. */
-    static bddp raw_child1(bddp f);
-    /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
-    static bddp raw_child(bddp f, int child);
+    using DDBase::raw_child0;
+    using DDBase::raw_child1;
+    using DDBase::raw_child;
     /** @brief Get the 0-child (lo) node ID with complement edge resolution (ZDD semantics). */
     static bddp child0(bddp f);
     /** @brief Get the 1-child (hi) node ID with complement edge resolution (ZDD semantics). */

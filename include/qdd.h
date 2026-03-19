@@ -80,12 +80,9 @@ public:
 
     // --- Child accessors (static bddp versions) ---
 
-    /** @brief Get the raw 0-child (lo) without complement resolution. */
-    static bddp raw_child0(bddp f);
-    /** @brief Get the raw 1-child (hi) without complement resolution. */
-    static bddp raw_child1(bddp f);
-    /** @brief Get the raw child by index (0 or 1) without complement resolution. */
-    static bddp raw_child(bddp f, int child);
+    using DDBase::raw_child0;
+    using DDBase::raw_child1;
+    using DDBase::raw_child;
     /** @brief Get the 0-child (lo) with BDD complement edge resolution. */
     static bddp child0(bddp f);
     /** @brief Get the 1-child (hi) with BDD complement edge resolution. */
@@ -136,28 +133,6 @@ inline QDD QDD::operator~() const {
     return q;
 }
 
-inline bddp QDD::raw_child0(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("QDD::raw_child0: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("QDD::raw_child0: terminal node");
-    return node_lo(f);
-}
-
-inline bddp QDD::raw_child1(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("QDD::raw_child1: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("QDD::raw_child1: terminal node");
-    return node_hi(f);
-}
-
-inline bddp QDD::raw_child(bddp f, int child) {
-    if (child == 0) return raw_child0(f);
-    if (child == 1) return raw_child1(f);
-    throw std::invalid_argument("QDD::raw_child: child must be 0 or 1");
-}
-
 inline bddp QDD::child0(bddp f) {
     if (f == bddnull)
         throw std::invalid_argument("QDD::child0: null node");
@@ -186,19 +161,19 @@ inline bddp QDD::child(bddp f, int child) {
 
 inline QDD QDD::raw_child0() const {
     QDD q(0);
-    q.root = QDD::raw_child0(root);
+    q.root = DDBase::raw_child0(root);
     return q;
 }
 
 inline QDD QDD::raw_child1() const {
     QDD q(0);
-    q.root = QDD::raw_child1(root);
+    q.root = DDBase::raw_child1(root);
     return q;
 }
 
 inline QDD QDD::raw_child(int child) const {
     QDD q(0);
-    q.root = QDD::raw_child(root, child);
+    q.root = DDBase::raw_child(root, child);
     return q;
 }
 

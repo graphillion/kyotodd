@@ -77,6 +77,13 @@ public:
 
     /** @brief Return the number of nodes (with complement edge sharing). */
     uint64_t raw_size() const;  // defined in bdd.h
+
+    /** @brief Get the raw 0-child (lo) node ID without complement resolution. */
+    static bddp raw_child0(bddp f);  // defined in bdd.h
+    /** @brief Get the raw 1-child (hi) node ID without complement resolution. */
+    static bddp raw_child1(bddp f);  // defined in bdd.h
+    /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
+    static bddp raw_child(bddp f, int child);  // defined in bdd.h
 };
 
 #endif

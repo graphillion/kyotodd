@@ -20,6 +20,28 @@
 inline bddvar DDBase::top() const { return bddtop(root); }
 inline uint64_t DDBase::raw_size() const { return bddsize(root); }
 
+inline bddp DDBase::raw_child0(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child0: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child0: terminal node");
+    return node_lo(f);
+}
+
+inline bddp DDBase::raw_child1(bddp f) {
+    if (f == bddnull)
+        throw std::invalid_argument("raw_child1: null node");
+    if (f & BDD_CONST_FLAG)
+        throw std::invalid_argument("raw_child1: terminal node");
+    return node_hi(f);
+}
+
+inline bddp DDBase::raw_child(bddp f, int child) {
+    if (child == 0) return raw_child0(f);
+    if (child == 1) return raw_child1(f);
+    throw std::invalid_argument("raw_child: child must be 0 or 1");
+}
+
 inline BDD BDD::operator&(const BDD& other) const {
     BDD b(0);
     b.root = bddand(root, other.root);
@@ -248,28 +270,6 @@ inline void BDD::XPrint() const {
 
 // BDD child accessor functions (static versions returning bddp)
 
-inline bddp BDD::raw_child0(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child0: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child0: terminal node");
-    return node_lo(f);
-}
-
-inline bddp BDD::raw_child1(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child1: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child1: terminal node");
-    return node_hi(f);
-}
-
-inline bddp BDD::raw_child(bddp f, int child) {
-    if (child == 0) return raw_child0(f);
-    if (child == 1) return raw_child1(f);
-    throw std::invalid_argument("raw_child: child must be 0 or 1");
-}
-
 inline bddp BDD::child0(bddp f) {
     if (f == bddnull)
         throw std::invalid_argument("child0: null node");
@@ -300,19 +300,19 @@ inline bddp BDD::child(bddp f, int child) {
 
 inline BDD BDD::raw_child0() const {
     BDD b(0);
-    b.root = BDD::raw_child0(root);
+    b.root = DDBase::raw_child0(root);
     return b;
 }
 
 inline BDD BDD::raw_child1() const {
     BDD b(0);
-    b.root = BDD::raw_child1(root);
+    b.root = DDBase::raw_child1(root);
     return b;
 }
 
 inline BDD BDD::raw_child(int child) const {
     BDD b(0);
-    b.root = BDD::raw_child(root, child);
+    b.root = DDBase::raw_child(root, child);
     return b;
 }
 
@@ -675,28 +675,6 @@ inline ZDD ZDD::Divisor() const {
 
 // ZDD child accessor functions (static versions returning bddp)
 
-inline bddp ZDD::raw_child0(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child0: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child0: terminal node");
-    return node_lo(f);
-}
-
-inline bddp ZDD::raw_child1(bddp f) {
-    if (f == bddnull)
-        throw std::invalid_argument("raw_child1: null node");
-    if (f & BDD_CONST_FLAG)
-        throw std::invalid_argument("raw_child1: terminal node");
-    return node_hi(f);
-}
-
-inline bddp ZDD::raw_child(bddp f, int child) {
-    if (child == 0) return raw_child0(f);
-    if (child == 1) return raw_child1(f);
-    throw std::invalid_argument("raw_child: child must be 0 or 1");
-}
-
 inline bddp ZDD::child0(bddp f) {
     if (f == bddnull)
         throw std::invalid_argument("child0: null node");
@@ -725,19 +703,19 @@ inline bddp ZDD::child(bddp f, int child) {
 
 inline ZDD ZDD::raw_child0() const {
     ZDD z(0);
-    z.root = ZDD::raw_child0(root);
+    z.root = DDBase::raw_child0(root);
     return z;
 }
 
 inline ZDD ZDD::raw_child1() const {
     ZDD z(0);
-    z.root = ZDD::raw_child1(root);
+    z.root = DDBase::raw_child1(root);
     return z;
 }
 
 inline ZDD ZDD::raw_child(int child) const {
     ZDD z(0);
-    z.root = ZDD::raw_child(root, child);
+    z.root = DDBase::raw_child(root, child);
     return z;
 }
 

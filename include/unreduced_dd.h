@@ -77,12 +77,9 @@ public:
 
     // --- Child accessors (static bddp versions) ---
 
-    /** @brief Get the raw 0-child (lo) without complement resolution. */
-    static bddp raw_child0(bddp f);
-    /** @brief Get the raw 1-child (hi) without complement resolution. */
-    static bddp raw_child1(bddp f);
-    /** @brief Get the raw child by index (0 or 1) without complement resolution. */
-    static bddp raw_child(bddp f, int child);
+    using DDBase::raw_child0;
+    using DDBase::raw_child1;
+    using DDBase::raw_child;
     /** @brief Get the 0-child (lo) with BDD complement edge resolution. */
     static bddp child0(bddp f);
     /** @brief Get the 1-child (hi) with BDD complement edge resolution. */
@@ -221,9 +218,9 @@ public:
 
     // --- Child accessors (static bddp versions) ---
 
-    static bddp raw_child0(bddp f);
-    static bddp raw_child1(bddp f);
-    static bddp raw_child(bddp f, int child);
+    using DDBase::raw_child0;
+    using DDBase::raw_child1;
+    using DDBase::raw_child;
     /** @brief Get 0-child with ZDD complement resolution (only lo affected). */
     static bddp child0(bddp f);
     /** @brief Get 1-child (complement does NOT affect hi in ZDD). */
