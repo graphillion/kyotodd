@@ -47,6 +47,43 @@ BDD QDD::to_bdd() const {
     return BDD_ID(result);
 }
 
+// --- QDD to ZDD conversion ---
+
+static bddp qdd_to_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
+    BDD_RecurGuard guard;
+    if (f == bddfalse) return bddempty;
+    if (f == bddtrue) return bddsingle;
+
+    auto it = memo.find(f);
+    if (it != memo.end())
+        return it->second;
+
+    // Resolve BDD complement to get explicit lo/hi
+    bddp base = f & ~BDD_COMP_FLAG;
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp lo = node_lo(base);
+    bddp hi = node_hi(base);
+    if (comp) {
+        lo = bddnot(lo);
+        hi = bddnot(hi);
+    }
+
+    bddp zlo = qdd_to_zdd_impl(lo, memo);
+    bddp zhi = qdd_to_zdd_impl(hi, memo);
+
+    bddp result = getznode(node_var(base), zlo, zhi);
+    memo[f] = result;
+    return result;
+}
+
+ZDD QDD::to_zdd() const {
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        return qdd_to_zdd_impl(root, memo);
+    });
+    return ZDD_ID(result);
+}
+
 QDD QDD_ID(bddp p) {
     if (p != bddnull && !(p & BDD_CONST_FLAG)) {
         if (!bddp_is_reduced(p)) {

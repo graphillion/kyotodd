@@ -199,6 +199,55 @@ TEST_F(QDDTest, ToBddWithComplement) {
     EXPECT_EQ(b.get_id(), expected.get_id());
 }
 
+// =============================================================
+// QDD::to_zdd() Tests
+// =============================================================
+
+TEST_F(QDDTest, ToZddTerminal) {
+    EXPECT_EQ(QDD::zero().to_zdd().get_id(), bddempty);
+    EXPECT_EQ(QDD::one().to_zdd().get_id(), bddsingle);
+}
+
+TEST_F(QDDTest, ToZddConstantFunction) {
+    bddvar v1 = bddnewvar();
+
+    // QDD: (v1, false, false) → ZDD: empty
+    QDD q_zero = QDD::node(v1, QDD::zero(), QDD::zero());
+    ZDD z = q_zero.to_zdd();
+    EXPECT_EQ(z.get_id(), bddempty);
+
+    // QDD: (v1, true, true) → ZDD: {∅, {v1}} = universe for 1 var
+    QDD q_one = QDD::node(v1, QDD::one(), QDD::one());
+    ZDD z2 = q_one.to_zdd();
+    // This should be the ZDD for "all subsets of {v1}" = {{}, {v1}}
+    EXPECT_FALSE(z2.is_terminal());
+}
+
+TEST_F(QDDTest, ToZddSingleVariable) {
+    bddvar v1 = bddnewvar();
+
+    // QDD for function v1: (v1, false, true)
+    QDD q = QDD::node(v1, QDD::zero(), QDD::one());
+    ZDD z = q.to_zdd();
+
+    // BDD v1 as ZDD = {{v1}}: (v1, empty, single)
+    ZDD expected = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(z.get_id(), expected.get_id());
+}
+
+TEST_F(QDDTest, ToZddWithComplement) {
+    bddvar v1 = bddnewvar();
+
+    // ~(v1, 0, 1) = (v1, 1, 0) = ~v1
+    QDD q = ~QDD::node(v1, QDD::zero(), QDD::one());
+    ZDD z = q.to_zdd();
+
+    // ~v1 as ZDD: the function "not v1" = {∅}
+    // getznode(v1, single, empty) → ZDD zero-suppression: hi==empty → return lo=single
+    // So ZDD for ~v1 is just bddsingle
+    EXPECT_EQ(z.get_id(), bddsingle);
+}
+
 TEST_F(QDDTest, ChildAccessorExceptions) {
     // Terminal
     EXPECT_THROW(QDD::raw_child0(bddfalse), std::invalid_argument);
