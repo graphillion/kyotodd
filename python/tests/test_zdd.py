@@ -39,14 +39,14 @@ class TestZDDConstants:
 
 class TestZDDEquality:
     def test_eq_same(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         a = _make_singleton(1)
         b = _make_singleton(1)
         assert a == b
 
     def test_ne_different(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = _make_singleton(1)
         b = _make_singleton(2)
         assert a != b
@@ -54,19 +54,19 @@ class TestZDDEquality:
 
 class TestZDDHash:
     def test_hashable(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         a = _make_singleton(1)
         assert isinstance(hash(a), int)
 
     def test_equal_objects_same_hash(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         a = _make_singleton(1)
         b = _make_singleton(1)
         assert hash(a) == hash(b)
 
     def test_usable_in_set(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = _make_singleton(1)
         b = _make_singleton(2)
         s = {a, b, _make_singleton(1)}
@@ -82,9 +82,9 @@ class TestZDDRepr:
 
 class TestZDDOperators:
     def _setup(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return _make_singleton(1), _make_singleton(2), _make_singleton(3)
 
     def test_union(self):
@@ -149,8 +149,8 @@ class TestZDDOperators:
 
 class TestZDDCompoundAssignment:
     def _setup(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return _make_singleton(1), _make_singleton(2)
 
     def test_iadd(self):
@@ -206,8 +206,8 @@ class TestZDDProperties:
         assert isinstance(ZDD.empty.node_id, int)
 
     def test_top_var(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = _make_singleton(2)
         assert a.top_var == 2
 
@@ -218,8 +218,8 @@ class TestZDDProperties:
         assert ZDD.single.card == 1
 
     def test_card_family(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = _make_singleton(1)
         b = _make_singleton(2)
         u = a + b  # {{1}, {2}}
@@ -228,9 +228,9 @@ class TestZDDProperties:
 
 class TestZDDMethods:
     def _setup(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return _make_singleton(1), _make_singleton(2), _make_singleton(3)
 
     def test_offset(self):

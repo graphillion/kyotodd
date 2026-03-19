@@ -112,6 +112,11 @@ public:
     /** @brief Convert QDD to canonical ZDD. */
     ZDD to_zdd() const;
 
+    /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss. */
+    static QDD cache_get(uint8_t op, const QDD& f, const QDD& g);
+    /** @brief Write 2-operand cache entry. */
+    static void cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result);
+
     static const QDD False;  /**< @brief Constant false QDD. */
     static const QDD True;   /**< @brief Constant true QDD. */
     static const QDD Null;   /**< @brief Null (error) QDD. */

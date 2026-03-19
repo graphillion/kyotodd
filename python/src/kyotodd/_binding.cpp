@@ -65,7 +65,7 @@ PYBIND11_MODULE(_core, m) {
                 "init(): cannot re-initialize while BDD/ZDD objects exist. "
                 "Delete all BDD/ZDD objects first.");
         }
-        bddinit(node_count, node_max);
+        DDBase::init(node_count, node_max);
         reset_pidd_globals();
         reset_rotpidd_globals();
         g_initialized = true;
@@ -92,14 +92,14 @@ PYBIND11_MODULE(_core, m) {
        "Safe to call multiple times when no objects are alive.\n");
 
     // Variable management
-    m.def("newvar", []() -> bddvar {
+    m.def("new_var", []() -> bddvar {
         ensure_init();
-        return bddnewvar();
+        return DDBase::new_var();
     }, "Create a new variable and return its variable number.\n\n"
        "Returns:\n"
        "    The variable number of the newly created variable.\n");
 
-    m.def("newvar_of_level", [](bddvar lev) -> bddvar {
+    m.def("new_var_of_level", [](bddvar lev) -> bddvar {
         ensure_init();
         return bddnewvaroflev(lev);
     }, py::arg("lev"),
@@ -109,27 +109,27 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    The variable number of the newly created variable.\n");
 
-    m.def("var_count", &bddvarused,
+    m.def("var_count", &DDBase::var_used,
        "Return the number of variables created so far.\n\n"
        "Returns:\n"
        "    The count of variables.\n");
 
-    m.def("level_of_var", &bddlevofvar, py::arg("var"),
-       "Return the level of the given variable.\n\n"
+    m.def("to_level", &DDBase::to_level, py::arg("var"),
+       "Convert a variable number to its level.\n\n"
        "Args:\n"
        "    var: Variable number.\n\n"
        "Returns:\n"
        "    The level of the variable.\n");
 
-    m.def("var_of_level", &bddvaroflev, py::arg("level"),
-       "Return the variable at the given level.\n\n"
+    m.def("to_var", &DDBase::to_var, py::arg("level"),
+       "Convert a level to its variable number.\n\n"
        "Args:\n"
        "    level: Level number.\n\n"
        "Returns:\n"
        "    The variable number at that level.\n");
 
     // Node stats
-    m.def("node_count", &bddused,
+    m.def("node_count", &DDBase::node_count,
        "Return the number of used node slots (including dead nodes awaiting GC).\n\n"
        "This is not the initial capacity or the array size -- it is the\n"
        "count of node slots that have been occupied at least once.\n\n"
@@ -137,7 +137,7 @@ PYBIND11_MODULE(_core, m) {
        "    The used node slot count.\n");
 
     // GC API
-    m.def("gc", &bddgc,
+    m.def("gc", &DDBase::gc,
        "Manually invoke garbage collection.\n\n"
        "Reclaims dead nodes that are no longer referenced.\n");
 

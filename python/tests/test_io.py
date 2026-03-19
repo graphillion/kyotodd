@@ -13,16 +13,16 @@ class TestBDDExportImportStr:
         assert BDD.import_str(s) == BDD.true_
 
     def test_roundtrip_var(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         s = x.export_str()
         result = BDD.import_str(s)
         assert result == x
 
     def test_roundtrip_complex(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         x, y, z = BDD.var(1), BDD.var(2), BDD.var(3)
         f = (x & y) | (~x & z)
         s = f.export_str()
@@ -30,7 +30,7 @@ class TestBDDExportImportStr:
         assert result == f
 
     def test_export_str_not_empty(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         s = x.export_str()
         assert len(s) > 0
@@ -38,8 +38,8 @@ class TestBDDExportImportStr:
 
 class TestBDDExportImportFile:
     def test_roundtrip_file(self, tmp_path):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         x, y = BDD.var(1), BDD.var(2)
         f = x & y
         path = str(tmp_path / "bdd.txt")
@@ -62,8 +62,8 @@ class TestZDDExportImportStr:
         assert ZDD.import_str(s) == ZDD.single
 
     def test_roundtrip_family(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = ZDD(1).change(1)  # {{1}}
         b = ZDD(1).change(2)  # {{2}}
         f = a + b  # {{1}, {2}}
@@ -72,9 +72,9 @@ class TestZDDExportImportStr:
         assert result == f
 
     def test_roundtrip_complex(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = ZDD(1).change(1)
         b = ZDD(1).change(2)
         c = ZDD(1).change(3)
@@ -86,8 +86,8 @@ class TestZDDExportImportStr:
 
 class TestZDDExportImportFile:
     def test_roundtrip_file(self, tmp_path):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         a = ZDD(1).change(1)
         b = ZDD(1).change(2)
         f = a + b

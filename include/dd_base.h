@@ -4,6 +4,16 @@
 // This header is included by bdd_types.h after type/constant definitions.
 // Do NOT include this header directly; include bdd_types.h or bdd.h instead.
 
+// Forward declarations (defined in bdd_base.h)
+int bddinit(uint64_t node_count, uint64_t node_max);
+bddvar bddnewvar();
+bddvar bddnewvaroflev(bddvar lev);
+bddvar bddlevofvar(bddvar var);
+bddvar bddvaroflev(bddvar lev);
+bddvar bddvarused();
+uint64_t bddused();
+int bddgc();
+
 /**
  * @brief Base class for decision diagram types (BDD, ZDD).
  *
@@ -60,6 +70,41 @@ protected:
     }
 
 public:
+    /** @brief Initialize the BDD library (alias of bddinit()). */
+    static int init(uint64_t node_count = 256, uint64_t node_max = UINT64_MAX) {
+        return bddinit(node_count, node_max);
+    }
+
+    /** @brief Create a new variable.
+     *  @param reverse If true, insert at level 1 (reverses var/lev ordering).
+     */
+    static bddvar new_var(bool reverse = false) {
+        return reverse ? bddnewvaroflev(1) : bddnewvar();
+    }
+
+    /** @brief Create n new variables and return their variable numbers.
+     *  @param reverse If true, insert each at level 1 (reverses var/lev ordering).
+     */
+    static std::vector<bddvar> new_var(int n, bool reverse = false) {
+        std::vector<bddvar> vars(n);
+        for (int i = 0; i < n; ++i)
+            vars[i] = reverse ? bddnewvaroflev(1) : bddnewvar();
+        return vars;
+    }
+
+    /** @brief Return the number of variables created so far (alias of bddvarused()). */
+    static bddvar var_used() { return bddvarused(); }
+    /** @brief Return the number of nodes currently in use (alias of bddused()). */
+    static uint64_t node_count() { return bddused(); }
+    /** @brief Manually invoke garbage collection (alias of bddgc()). */
+    static int gc() { return bddgc(); }
+
+    /** @brief Convert a variable number to its level (alias of bddlevofvar()). */
+    static bddvar to_level(bddvar var) { return bddlevofvar(var); }
+
+    /** @brief Convert a level to its variable number (alias of bddvaroflev()). */
+    static bddvar to_var(bddvar lev) { return bddvaroflev(lev); }
+
     /** @brief Get the raw node ID. */
     bddp get_id() const { return root; }
 

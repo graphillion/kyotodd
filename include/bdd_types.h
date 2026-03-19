@@ -474,6 +474,11 @@ public:
     /** @brief Return the disjunction of literals (DIMACS sign convention: positive = var, negative = ¬var). */
     static BDD clause(const std::vector<int>& lits);
 
+    /** @brief Read 2-operand cache and return as BDD. Returns BDD::Null on miss. */
+    static BDD cache_get(uint8_t op, const BDD& f, const BDD& g);
+    /** @brief Write 2-operand cache entry. */
+    static void cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result);
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */
@@ -903,6 +908,11 @@ public:
      */
     template<typename RNG>
     static ZDD random_family(bddvar n, RNG& rng);
+
+    /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss. */
+    static ZDD cache_get(uint8_t op, const ZDD& f, const ZDD& g);
+    /** @brief Write 2-operand cache entry. */
+    static void cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result);
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

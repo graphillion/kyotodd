@@ -877,9 +877,30 @@ ZDD ZDD_Meet(const ZDD& f, const ZDD& g) {
     return z;
 }
 
+BDD BDD_CacheBDD(uint8_t op, bddp f, bddp g) {
+    bddp r = bddrcache(op, f, g);
+    return BDD_ID(r);
+}
+
 ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g) {
     bddp r = bddrcache(op, f, g);
     return ZDD_ID(r);
+}
+
+BDD BDD::cache_get(uint8_t op, const BDD& f, const BDD& g) {
+    return BDD_ID(bddrcache(op, f.get_id(), g.get_id()));
+}
+
+void BDD::cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result) {
+    bddwcache(op, f.get_id(), g.get_id(), result.get_id());
+}
+
+ZDD ZDD::cache_get(uint8_t op, const ZDD& f, const ZDD& g) {
+    return ZDD_ID(bddrcache(op, f.get_id(), g.get_id()));
+}
+
+void ZDD::cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result) {
+    bddwcache(op, f.get_id(), g.get_id(), result.get_id());
 }
 
 // Obsolete: BDD and ZDD share the same node table, so node-level type

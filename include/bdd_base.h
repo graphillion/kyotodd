@@ -319,6 +319,17 @@ BDD BDDvar(bddvar v);
 ZDD ZDD_Meet(const ZDD& f, const ZDD& g);
 
 /**
+ * @brief Read the operation cache and return the result as a BDD.
+ *
+ * Wrapper around bddrcache. Returns BDD::Null on cache miss.
+ * @param op Operation code.
+ * @param f First operand (raw node ID).
+ * @param g Second operand (raw node ID).
+ * @return The cached BDD, or BDD::Null if not found.
+ */
+BDD BDD_CacheBDD(uint8_t op, bddp f, bddp g);
+
+/**
  * @brief Read the operation cache and return the result as a ZDD.
  *
  * Wrapper around bddrcache. Returns ZDD::Null on cache miss.
@@ -331,8 +342,12 @@ ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g);
 
 /** @brief Read 2-operand cache. @return Cached result, or bddnull on miss. */
 bddp bddrcache(uint8_t op, bddp f, bddp g);
+/** @brief Read 2-operand cache (alias of bddrcache()). */
+inline bddp BDD_CacheInt(uint8_t op, bddp f, bddp g) { return bddrcache(op, f, g); }
 /** @brief Write 2-operand cache entry. */
 void bddwcache(uint8_t op, bddp f, bddp g, bddp result);
+/** @brief Write 2-operand cache entry (alias of bddwcache()). */
+inline void BDD_CacheEnt(uint8_t op, bddp f, bddp g, bddp result) { bddwcache(op, f, g, result); }
 /** @brief Read 3-operand cache. @return Cached result, or bddnull on miss. */
 bddp bddrcache3(uint8_t op, bddp f, bddp g, bddp h);
 /** @brief Write 3-operand cache entry. */

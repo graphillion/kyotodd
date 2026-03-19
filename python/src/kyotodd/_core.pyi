@@ -788,11 +788,11 @@ def finalize() -> None:
     """
     ...
 
-def newvar() -> int:
+def new_var() -> int:
     """Create a new variable and return its variable number."""
     ...
 
-def newvar_of_level(lev: int) -> int:
+def new_var_of_level(lev: int) -> int:
     """Create a new variable at the specified level.
 
     Args:
@@ -803,16 +803,16 @@ def newvar_of_level(lev: int) -> int:
     """
     ...
 
-def level_of_var(var: int) -> int:
-    """Return the level of the given variable.
+def to_level(var: int) -> int:
+    """Convert a variable number to its level.
 
     Args:
         var: Variable number.
     """
     ...
 
-def var_of_level(level: int) -> int:
-    """Return the variable at the given level.
+def to_var(level: int) -> int:
+    """Convert a level to its variable number.
 
     Args:
         level: Level number.

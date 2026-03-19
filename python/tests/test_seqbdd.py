@@ -17,7 +17,7 @@ def reset():
 
 def _vars(n):
     """Create n BDD variables and return their numbers."""
-    return [kyotodd.newvar() for _ in range(n)]
+    return [kyotodd.new_var() for _ in range(n)]
 
 
 class TestSeqBDDConstruction:
@@ -287,14 +287,14 @@ class TestSeqBDDStr:
     def test_single_element(self):
         v1, = _vars(1)
         s = kyotodd.SeqBDD.from_list([v1])
-        lev = kyotodd.level_of_var(v1)
+        lev = kyotodd.to_level(v1)
         assert str(s) == str(lev)
 
     def test_multi_element(self):
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1, v2])
-        lev1 = kyotodd.level_of_var(v1)
-        lev2 = kyotodd.level_of_var(v2)
+        lev1 = kyotodd.to_level(v1)
+        lev2 = kyotodd.to_level(v2)
         assert str(s) == f"{lev1} {lev2}"
 
     def test_multiple_sequences(self):

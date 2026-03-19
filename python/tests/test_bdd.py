@@ -21,7 +21,7 @@ class TestBDDConstruction:
         assert b == BDD.false_
 
     def test_var(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         assert x != BDD.false_
         assert x != BDD.true_
@@ -40,14 +40,14 @@ class TestBDDConstants:
 
 class TestBDDEquality:
     def test_eq_same(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         y = BDD.var(1)
         assert x == y
 
     def test_ne_different(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         x = BDD.var(1)
         y = BDD.var(2)
         assert x != y
@@ -55,27 +55,27 @@ class TestBDDEquality:
 
 class TestBDDHash:
     def test_hashable(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         h = hash(x)
         assert isinstance(h, int)
 
     def test_equal_objects_same_hash(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         y = BDD.var(1)
         assert hash(x) == hash(y)
 
     def test_usable_in_set(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         x = BDD.var(1)
         y = BDD.var(2)
         s = {x, y, BDD.var(1)}
         assert len(s) == 2
 
     def test_usable_as_dict_key(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         d = {x: "hello"}
         assert d[BDD.var(1)] == "hello"
@@ -87,7 +87,7 @@ class TestBDDRepr:
         assert "BDD(node_id=" in r
 
     def test_repr_var(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         r = repr(x)
         assert r.startswith("BDD(node_id=")
@@ -113,21 +113,21 @@ class TestBDDProperties:
         assert BDD.true_.raw_size == 0
 
     def test_size_var(self):
-        kyotodd.newvar()
+        kyotodd.new_var()
         x = BDD.var(1)
         assert x.raw_size == 1
 
     def test_top_var(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         x = BDD.var(2)
         assert x.top_var == 2
 
 
 class TestBDDOperators:
     def _make_vars(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return BDD.var(1), BDD.var(2)
 
     def test_and(self):
@@ -196,8 +196,8 @@ class TestBDDOperators:
 
 class TestBDDCompoundAssignment:
     def _make_vars(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return BDD.var(1), BDD.var(2)
 
     def test_iand(self):
@@ -233,9 +233,9 @@ class TestBDDCompoundAssignment:
 
 class TestBDDMethods:
     def _make_vars(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return BDD.var(1), BDD.var(2), BDD.var(3)
 
     def test_at0(self):
@@ -316,9 +316,9 @@ class TestBDDMethods:
 
 class TestBDDQuantification:
     def _make_vars(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return BDD.var(1), BDD.var(2), BDD.var(3)
 
     def test_exist_single_var(self):
@@ -381,8 +381,8 @@ class TestBDDQuantification:
 
 class TestBDDIte:
     def _make_vars(self):
-        kyotodd.newvar()
-        kyotodd.newvar()
+        kyotodd.new_var()
+        kyotodd.new_var()
         return BDD.var(1), BDD.var(2)
 
     def test_ite_basic(self):

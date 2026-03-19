@@ -10,17 +10,17 @@ def test_init_with_params():
     kyotodd.init(node_count=2048, node_max=100000)
 
 
-def test_auto_init_via_newvar():
-    """newvar() should work without explicit init (auto-init)."""
+def test_auto_init_via_new_var():
+    """new_var() should work without explicit init (auto-init)."""
     kyotodd.init()  # reset first
-    v = kyotodd.newvar()
+    v = kyotodd.new_var()
     assert v == 1
 
 
-def test_newvar_sequential():
-    v1 = kyotodd.newvar()
-    v2 = kyotodd.newvar()
-    v3 = kyotodd.newvar()
+def test_new_var_sequential():
+    v1 = kyotodd.new_var()
+    v2 = kyotodd.new_var()
+    v3 = kyotodd.new_var()
     assert v1 == 1
     assert v2 == 2
     assert v3 == 3
@@ -28,27 +28,27 @@ def test_newvar_sequential():
 
 def test_var_count():
     assert kyotodd.var_count() == 0
-    kyotodd.newvar()
+    kyotodd.new_var()
     assert kyotodd.var_count() == 1
-    kyotodd.newvar()
+    kyotodd.new_var()
     assert kyotodd.var_count() == 2
 
 
-def test_newvar_of_level():
-    v = kyotodd.newvar_of_level(1)
+def test_new_var_of_level():
+    v = kyotodd.new_var_of_level(1)
     assert v >= 1
 
 
-def test_level_of_var():
-    v = kyotodd.newvar()
-    lev = kyotodd.level_of_var(v)
+def test_to_level():
+    v = kyotodd.new_var()
+    lev = kyotodd.to_level(v)
     assert lev == v  # default mapping: var == level
 
 
-def test_var_of_level():
-    v = kyotodd.newvar()
-    lev = kyotodd.level_of_var(v)
-    assert kyotodd.var_of_level(lev) == v
+def test_to_var():
+    v = kyotodd.new_var()
+    lev = kyotodd.to_level(v)
+    assert kyotodd.to_var(lev) == v
 
 
 def test_node_count():
@@ -57,7 +57,7 @@ def test_node_count():
 
 
 def test_gc():
-    kyotodd.newvar()
+    kyotodd.new_var()
     kyotodd.gc()  # should not raise
 
 
@@ -75,7 +75,7 @@ def test_live_nodes():
 
 def test_invalid_var_raises_valueerror():
     from kyotodd import BDD
-    kyotodd.newvar()
+    kyotodd.new_var()
     x = BDD.var(1)
     with pytest.raises(ValueError):
         x.at0(0)  # var 0 is invalid
@@ -85,7 +85,7 @@ def test_invalid_var_raises_valueerror():
 
 def test_finalize_with_live_objects_raises():
     from kyotodd import BDD
-    kyotodd.newvar()
+    kyotodd.new_var()
     x = BDD.var(1)
     with pytest.raises(RuntimeError):
         kyotodd.finalize()
@@ -94,7 +94,7 @@ def test_finalize_with_live_objects_raises():
 
 def test_reinit_with_live_objects_raises():
     from kyotodd import BDD
-    kyotodd.newvar()
+    kyotodd.new_var()
     x = BDD.var(1)
     with pytest.raises(RuntimeError):
         kyotodd.init(256)
@@ -104,10 +104,10 @@ def test_reinit_with_live_objects_raises():
 def test_node_max_exhaustion_raises():
     from kyotodd import BDD
     kyotodd.init(4, 4)
-    v1 = kyotodd.newvar()
-    v2 = kyotodd.newvar()
-    v3 = kyotodd.newvar()
-    v4 = kyotodd.newvar()
+    v1 = kyotodd.new_var()
+    v2 = kyotodd.new_var()
+    v3 = kyotodd.new_var()
+    v4 = kyotodd.new_var()
     with pytest.raises(MemoryError):
         a = BDD.var(v1) & BDD.var(v2) & BDD.var(v3) & BDD.var(v4)
         b = BDD.var(v1) | BDD.var(v2) | BDD.var(v3) | BDD.var(v4)
