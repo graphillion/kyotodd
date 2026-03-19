@@ -168,6 +168,47 @@ void bdddump(bddp f);
  */
 void bddvdump(bddp *p, int n);
 
+// --- Graphillion format save/load for ZDD ---
+
+/**
+ * @brief Export a single ZDD in Graphillion format to a FILE stream.
+ *
+ * Writes the ZDD in the Graphillion text format. Complement edges are
+ * expanded into separate nodes. Variable numbers are reversed so that
+ * lower Graphillion variable numbers correspond to higher KyotoDD levels
+ * (closer to the root).
+ *
+ * @param strm Output FILE stream.
+ * @param f    ZDD root node ID.
+ * @param offset Level offset: level = N + 1 - graphillion_var + offset.
+ */
+void zdd_export_graphillion(FILE* strm, bddp f, int offset = 0);
+
+/**
+ * @brief Export a single ZDD in Graphillion format to an output stream.
+ * @copydetails zdd_export_graphillion(FILE*, bddp, int)
+ */
+void zdd_export_graphillion(std::ostream& strm, bddp f, int offset = 0);
+
+/**
+ * @brief Import a single ZDD from Graphillion format from a FILE stream.
+ *
+ * Reads a ZDD in the Graphillion text format. Variable numbers are
+ * reversed so that Graphillion variable 1 (root-side) maps to the
+ * highest KyotoDD level.
+ *
+ * @param strm   Input FILE stream.
+ * @param offset Level offset: level = N + 1 - graphillion_var + offset.
+ * @return The imported ZDD root node ID.
+ */
+bddp zdd_import_graphillion(FILE* strm, int offset = 0);
+
+/**
+ * @brief Import a single ZDD from Graphillion format from an input stream.
+ * @copydetails zdd_import_graphillion(FILE*, int)
+ */
+bddp zdd_import_graphillion(std::istream& strm, int offset = 0);
+
 /** @brief @deprecated Always throws. Retained for API compatibility. */
 void bddgraph0(bddp f);
 /** @brief @deprecated Always throws. Retained for API compatibility. */

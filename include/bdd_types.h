@@ -853,6 +853,15 @@ public:
     /** @brief Find a non-trivial divisor of the family. */
     ZDD Divisor() const;
 
+    /** @brief Export this ZDD in Graphillion format to a FILE stream. */
+    void export_graphillion(FILE* strm, int offset = 0) const;
+    /** @brief Export this ZDD in Graphillion format to an output stream. */
+    void export_graphillion(std::ostream& strm, int offset = 0) const;
+    /** @brief Import a ZDD from Graphillion format from a FILE stream. */
+    static ZDD import_graphillion(FILE* strm, int offset = 0);
+    /** @brief Import a ZDD from Graphillion format from an input stream. */
+    static ZDD import_graphillion(std::istream& strm, int offset = 0);
+
     using DDBase::raw_child0;
     using DDBase::raw_child1;
     using DDBase::raw_child;

@@ -673,6 +673,24 @@ inline ZDD ZDD::Divisor() const {
     return z;
 }
 
+// ZDD Graphillion format save/load
+
+inline void ZDD::export_graphillion(FILE* strm, int offset) const {
+    zdd_export_graphillion(strm, root, offset);
+}
+
+inline void ZDD::export_graphillion(std::ostream& strm, int offset) const {
+    zdd_export_graphillion(strm, root, offset);
+}
+
+inline ZDD ZDD::import_graphillion(FILE* strm, int offset) {
+    return ZDD_ID(zdd_import_graphillion(strm, offset));
+}
+
+inline ZDD ZDD::import_graphillion(std::istream& strm, int offset) {
+    return ZDD_ID(zdd_import_graphillion(strm, offset));
+}
+
 // ZDD child accessor functions (static versions returning bddp)
 
 inline bddp ZDD::child0(bddp f) {

@@ -9801,3 +9801,182 @@ TEST_F(BDDTest, ZDD_ToStr_PowerSet2) {
     ZDD f = ZDD::power_set(2);
     EXPECT_EQ(f.to_str(), "{},{1},{2},{2,1}");
 }
+
+// --- Graphillion format export/import tests ---
+
+TEST_F(BDDTest, Graphillion_ExportTerminalEmpty) {
+    std::ostringstream oss;
+    ZDD e(0);  // empty family
+    e.export_graphillion(oss);
+    EXPECT_EQ(oss.str(), "B\n.\n");
+}
+
+TEST_F(BDDTest, Graphillion_ExportTerminalSingle) {
+    std::ostringstream oss;
+    ZDD s(1);  // unit family {empty set}
+    s.export_graphillion(oss);
+    EXPECT_EQ(oss.str(), "T\n.\n");
+}
+
+TEST_F(BDDTest, Graphillion_ImportTerminalEmpty) {
+    std::istringstream iss("B\n.\n");
+    ZDD z = ZDD::import_graphillion(iss);
+    EXPECT_EQ(z, ZDD::Empty);
+}
+
+TEST_F(BDDTest, Graphillion_ImportTerminalSingle) {
+    std::istringstream iss("T\n.\n");
+    ZDD z = ZDD::import_graphillion(iss);
+    EXPECT_EQ(z, ZDD::Single);
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripSingleton) {
+    // {{1}} - a family with one set containing variable 1
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_graphillion(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripPowerSet3) {
+    // Power set of {1,2,3}: {},{1},{2},{3},{1,2},{1,3},{2,3},{1,2,3}
+    ZDD f = ZDD::power_set(3);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_graphillion(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripCombination) {
+    // C(4,2): all 2-element subsets of {1,2,3,4}
+    ZDD f = ZDD::combination(4, 2);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_graphillion(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripFromSets) {
+    std::vector<std::vector<bddvar>> sets = {{1, 3}, {2}, {1, 2, 3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_graphillion(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_ExportVariableReversal) {
+    // {{3}} with 3 variables - root should be var 3 (level 3 in KyotoDD)
+    // In Graphillion: root should have graphillion_var 1
+    ZDD f = ZDD::singleton(3);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::string output = oss.str();
+    // The last non-terminal line (before ".") should have the smallest
+    // graphillion variable number (root side).
+    // Since this is a single node with var 3 -> level 3, and N=3,
+    // graphillion_var = 3 + 1 - 3 = 1
+    // Output: "0 1 B T\n.\n"
+    EXPECT_EQ(output, "0 1 B T\n.\n");
+}
+
+TEST_F(BDDTest, Graphillion_ImportKnownFormat) {
+    // Manually constructed: 2 variables in Graphillion
+    // Node 0: g_var=2, lo=B, hi=T  (near terminals, KyotoDD var 1)
+    // Node 1: g_var=1, lo=0, hi=T  (root, KyotoDD var 2)
+    // This should represent {{1},{2},{1,2}} - i.e. all non-empty subsets of {1,2}
+    // Wait, let's trace: root=node1, var=2
+    //   lo=node0 (var=1), hi=T
+    //   node0: var=1, lo=B, hi=T
+    // So: ZDD with var 2 at root:
+    //   var2=0 -> node0: var1=0 -> B (empty), var1=1 -> T -> {{}}
+    //     So lo of root gives: {{1}}
+    //   var2=1 -> T -> {{}}
+    //     Adding var2: {{2}}
+    // Family = {{1}, {2}} - hmm, that's not right for what I want.
+    // Actually: root node is var 2 (KyotoDD), lo=node0, hi=T
+    //   Path var2=0: go to node0 (var1), lo=B (no), hi=T (yes, {1}) -> {{1}}
+    //   Path var2=1: go to T -> {∅} -> add var2 -> {{2}}
+    // Family = {{1}, {2}}
+    std::istringstream iss("0 2 B T\n1 1 0 T\n.\n");
+    ZDD z = ZDD::import_graphillion(iss);
+    auto sets = z.enumerate();
+    // Expected: {{1}, {2}}
+    std::vector<std::vector<bddvar>> expected = {{1}, {2}};
+    EXPECT_EQ(sets, expected);
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripComplementEdge) {
+    // ~(ZDD::Single) has complement on root
+    // ZDD with complement edges: {{}} complement = family without empty set...
+    // Actually ~ZDD::Single toggles empty set membership.
+    // ZDD::Single = {∅}, ~ZDD::Single = {} (empty family) = ZDD::Empty
+    // Let's use a more interesting case: power_set(2) includes ∅
+    // Its complement toggles ∅ membership.
+    ZDD f = ZDD::power_set(2);
+    ZDD g = ~f;  // toggle empty set membership
+    std::ostringstream oss;
+    g.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD h = ZDD::import_graphillion(iss);
+    EXPECT_EQ(g.enumerate(), h.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_OffsetImport) {
+    // Import with offset=2: graphillion var 1 maps to level = 1+1-1+2 = 3
+    // So a single-node ZDD with graphillion var 1 should become var at level 3
+    std::istringstream iss("0 1 B T\n.\n");
+    ZDD z = ZDD::import_graphillion(iss, 2);
+    auto sets = z.enumerate();
+    // level 3 -> var 3 (default ordering)
+    std::vector<std::vector<bddvar>> expected = {{3}};
+    EXPECT_EQ(sets, expected);
+}
+
+TEST_F(BDDTest, Graphillion_OffsetExport) {
+    // Export singleton(1) (level 1, N=1) with offset=2:
+    // graphillion_var = 1 + 1 - 1 + 2 = 3
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.export_graphillion(oss, 2);
+    EXPECT_EQ(oss.str(), "0 3 B T\n.\n");
+}
+
+TEST_F(BDDTest, Graphillion_RoundtripMultipleVars) {
+    // {{1,2}, {2,3}, {1,3}}
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {2, 3}, {1, 3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_graphillion(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Graphillion_ImportErrorMissingDot) {
+    std::istringstream iss("0 1 B T\n");
+    EXPECT_THROW(ZDD::import_graphillion(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Graphillion_ImportErrorUndefinedRef) {
+    // Node references undefined child
+    std::istringstream iss("0 1 B 99\n.\n");
+    EXPECT_THROW(ZDD::import_graphillion(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Graphillion_FileRoundtrip) {
+    // Test FILE* variants
+    ZDD f = ZDD::power_set(3);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_graphillion(fp);
+    std::rewind(fp);
+    ZDD g = ZDD::import_graphillion(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
