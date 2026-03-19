@@ -248,6 +248,113 @@ TEST_F(QDDTest, ToZddWithComplement) {
     EXPECT_EQ(z.get_id(), bddsingle);
 }
 
+// =============================================================
+// BDD::to_qdd() Tests
+// =============================================================
+
+TEST_F(QDDTest, BddToQddTerminals) {
+    bddnewvar();  // need at least one var for to_qdd
+
+    QDD qf = BDD::False.to_qdd();
+    QDD qt = BDD::True.to_qdd();
+
+    // With 1 variable, false → (v1, false, false), true → (v1, true, true)
+    EXPECT_FALSE(qf.is_terminal());
+    EXPECT_EQ(QDD::child0(qf.get_id()), bddfalse);
+    EXPECT_EQ(QDD::child1(qf.get_id()), bddfalse);
+
+    EXPECT_FALSE(qt.is_terminal());
+    EXPECT_EQ(QDD::child0(qt.get_id()), bddtrue);
+    EXPECT_EQ(QDD::child1(qt.get_id()), bddtrue);
+}
+
+TEST_F(QDDTest, BddToQddAllLevelsPresent) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // BDD for v3 (just the top variable): skips levels 1 and 2
+    BDD b = BDDvar(v3);
+    QDD q = b.to_qdd();
+
+    // Root should be at level 3
+    EXPECT_EQ(q.top(), v3);
+    // Children at level 2
+    QDD c0 = q.child0();
+    QDD c1 = q.child1();
+    EXPECT_EQ(c0.top(), v2);
+    EXPECT_EQ(c1.top(), v2);
+    // Grandchildren at level 1
+    EXPECT_EQ(c0.child0().top(), v1);
+    EXPECT_EQ(c0.child1().top(), v1);
+    EXPECT_EQ(c1.child0().top(), v1);
+    EXPECT_EQ(c1.child1().top(), v1);
+    // Great-grandchildren are terminals
+    EXPECT_TRUE(c0.child0().child0().is_terminal());
+}
+
+TEST_F(QDDTest, BddToQddRoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD bv3 = BDDvar(v3);
+
+    // Test several BDDs
+    BDD cases[] = {
+        bv1,
+        bv2 & bv3,
+        bv1 | ~bv2,
+        bv1 ^ bv2 ^ bv3,
+        ~bv3,
+    };
+
+    for (const BDD& orig : cases) {
+        QDD q = orig.to_qdd();
+        BDD back = q.to_bdd();
+        EXPECT_EQ(back.get_id(), orig.get_id())
+            << "Round-trip failed for BDD " << orig.get_id();
+    }
+}
+
+// =============================================================
+// ZDD::to_qdd() Tests
+// =============================================================
+
+TEST_F(QDDTest, ZddToQddEmpty) {
+    bddnewvar();
+
+    QDD q = ZDD::Empty.to_qdd();
+    // Should be all-false QDD
+    BDD b = q.to_bdd();
+    EXPECT_TRUE(b.is_zero());
+}
+
+TEST_F(QDDTest, ZddToQddRoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // ZDD {{v1}} = (v1, empty, single)
+    ZDD z1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+
+    // ZDD {{v2}} = (v2, empty, single)
+    ZDD z2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+
+    // ZDD {{v1}, {v2}} = union
+    ZDD z_union = ZDD_ID(bddunion(z1.get_id(), z2.get_id()));
+
+    ZDD cases[] = { z1, z2, z_union, ZDD::Empty, ZDD::Single };
+
+    for (const ZDD& orig : cases) {
+        QDD q = orig.to_qdd();
+        ZDD back = q.to_zdd();
+        EXPECT_EQ(back.get_id(), orig.get_id())
+            << "Round-trip failed for ZDD " << orig.get_id();
+    }
+}
+
 TEST_F(QDDTest, ChildAccessorExceptions) {
     // Terminal
     EXPECT_THROW(QDD::raw_child0(bddfalse), std::invalid_argument);

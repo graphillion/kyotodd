@@ -462,6 +462,9 @@ public:
     /** @brief Get the child by index (0 or 1) as a BDD with complement edge resolution. */
     BDD child(int child) const;
 
+    /** @brief Convert to a QDD (quasi-reduced BDD) by inserting lo==hi identity nodes at skipped levels. */
+    QDD to_qdd() const;
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */
@@ -794,6 +797,9 @@ public:
     ZDD child1() const;
     /** @brief Get the child by index (0 or 1) as a ZDD with complement edge resolution (ZDD semantics). */
     ZDD child(int child) const;
+
+    /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
+    QDD to_qdd() const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
