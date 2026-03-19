@@ -2907,6 +2907,44 @@ TEST_F(BDDTest, BddchangeVarAboveTop) {
     EXPECT_EQ(bddchange(z_v1, v3), expected);
 }
 
+// --- bddchange auto-expansion ---
+
+TEST_F(BDDTest, BddchangeAutoExpandVar) {
+    bddvar old_count = bddvarused();
+    bddvar target = old_count + 3;
+    bddp result = bddchange(bddsingle, target);
+    EXPECT_EQ(bddvarused(), target);
+    EXPECT_EQ(bddtop(result), target);
+}
+
+TEST_F(BDDTest, BddchangeAutoExpandPreservesData) {
+    bddvar v1 = bddnewvar();
+    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddvar target = bddvarused() + 2;
+    bddp result = bddchange(z_v1, target);
+    EXPECT_EQ(bddvarused(), target);
+    EXPECT_EQ(bddtop(result), target);
+}
+
+TEST_F(BDDTest, BddchangeRejectsVarAbove65536) {
+    EXPECT_THROW(bddchange(bddsingle, 65537), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddchangeNullNoAutoExpand) {
+    bddvar old_count = bddvarused();
+    bddp result = bddchange(bddnull, old_count + 1);
+    EXPECT_EQ(result, bddnull);
+    EXPECT_EQ(bddvarused(), old_count);
+}
+
+TEST_F(BDDTest, BddchangeEmptyAutoExpand) {
+    bddvar old_count = bddvarused();
+    bddvar target = old_count + 2;
+    bddp result = bddchange(bddempty, target);
+    EXPECT_EQ(result, bddempty);
+    EXPECT_EQ(bddvarused(), target);
+}
+
 // --- bddunion ---
 
 TEST_F(BDDTest, BddunionTerminals) {
@@ -5156,7 +5194,6 @@ TEST_F(BDDTest, BddVarRangeCheckThrowsForInvalidVar) {
     EXPECT_THROW(bddoffset(z, bad), std::invalid_argument);
     EXPECT_THROW(bddonset(z, bad), std::invalid_argument);
     EXPECT_THROW(bddonset0(z, bad), std::invalid_argument);
-    EXPECT_THROW(bddchange(z, bad), std::invalid_argument);
 
     // very large var
     EXPECT_THROW(bddprime(999999), std::invalid_argument);

@@ -163,10 +163,18 @@ static bddp bddonset0_rec(bddp f, bddvar var) {
 static bddp bddchange_rec(bddp f, bddvar var);
 
 bddp bddchange(bddp f, bddvar var) {
-    if (var < 1 || var > bdd_varcount) {
+    if (var < 1) {
         throw std::invalid_argument("bddchange: var out of range");
     }
+    if (var > 65536) {
+        throw std::invalid_argument(
+            "bddchange: auto-expansion beyond 2^16 variables is not supported");
+    }
     if (f == bddnull) return bddnull;
+    // Auto-expand variables if needed (same pattern as bdd_lshift_core)
+    while (bdd_varcount < var) {
+        bddnewvar();
+    }
     // Terminal cases
     if (f == bddempty) return bddempty;
 
