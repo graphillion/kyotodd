@@ -194,6 +194,10 @@ static void enumerate_rec(bddp f, std::vector<bddvar>& current,
     current.pop_back();
 }
 
+bool ZDD::has_empty() const {
+    return bddhasempty(root);
+}
+
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;

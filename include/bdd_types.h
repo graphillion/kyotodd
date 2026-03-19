@@ -808,6 +808,9 @@ public:
     /** @brief Get the child by index (0 or 1) as a ZDD with complement edge resolution (ZDD semantics). */
     ZDD child(int child) const;
 
+    /** @brief Check if the empty set (∅) is a member of the family. */
+    bool has_empty() const;
+
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
 

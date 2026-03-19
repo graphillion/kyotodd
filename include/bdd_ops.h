@@ -542,6 +542,17 @@ uint64_t bddlit(bddp f);
 uint64_t bddlen(bddp f);
 
 /**
+ * @brief Check if the empty set (∅) is a member of a ZDD family.
+ *
+ * Returns true if ∅ ∈ F, i.e. the family represented by @p f
+ * contains the empty set. Correctly handles complement edges.
+ *
+ * @param f A ZDD node ID.
+ * @return true if the empty set is in the family, false otherwise.
+ */
+bool bddhasempty(bddp f);
+
+/**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
  *
  * Same computation as bddcard, but returns a BigInt so the result

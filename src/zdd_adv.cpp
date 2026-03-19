@@ -507,8 +507,8 @@ static bddp bddminimal_rec(bddp f) {
     return result;
 }
 
-// Helper: check if ∅ ∈ F (the empty set is a member of the ZDD family)
-static bool zdd_has_empty(bddp f) {
+// Check if ∅ ∈ F (the empty set is a member of the ZDD family)
+bool bddhasempty(bddp f) {
     while (true) {
         if (f == bddempty) return false;
         if (f == bddsingle) return true;
@@ -527,7 +527,7 @@ bddp bddminhit(bddp f) {
     if (f == bddsingle) return bddempty;  // ∅ ∈ F → impossible to hit
 
     // Early termination: if ∅ ∈ F, impossible to hit
-    if (zdd_has_empty(f)) return bddempty;
+    if (bddhasempty(f)) return bddempty;
 
     return bdd_gc_guard([&]() -> bddp { return bddminhit_rec(f); });
 }
@@ -539,7 +539,7 @@ static bddp bddminhit_rec(bddp f) {
     if (f == bddsingle) return bddempty;  // ∅ ∈ F → impossible to hit
 
     // Early termination: if ∅ ∈ F, impossible to hit
-    if (zdd_has_empty(f)) return bddempty;
+    if (bddhasempty(f)) return bddempty;
 
     // Cache lookup (unary: g=0)
     bddp cached = bddrcache(BDD_OP_MINHIT, f, 0);
@@ -650,8 +650,8 @@ uint64_t bddcard(bddp f) {
         // If ∅ ∈ family(f_raw): card(~f_raw) = count - 1
         // If ∅ ∉ family(f_raw): card(~f_raw) = count + 1
         // To check ∅ membership: follow lo edges to terminal
-        // Use zdd_has_empty which correctly handles complement edges
-        if (zdd_has_empty(f_raw)) {
+        // Use bddhasempty which correctly handles complement edges
+        if (bddhasempty(f_raw)) {
             // ∅ was in the family, complement removes it
             count = count - 1;
         } else {
@@ -766,7 +766,7 @@ static double bddcount_rec(
     }
 
     if (comp) {
-        if (zdd_has_empty(f_raw)) {
+        if (bddhasempty(f_raw)) {
             count -= 1.0;
         } else {
             count += 1.0;
@@ -811,7 +811,7 @@ static bigint::BigInt bddexactcount_rec(
 
     // Complement edge toggles empty set membership
     if (comp) {
-        if (zdd_has_empty(f_raw)) {
+        if (bddhasempty(f_raw)) {
             // ∅ was in the family, complement removes it
             count -= bigint::BigInt(1);
         } else {

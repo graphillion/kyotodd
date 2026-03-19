@@ -9248,6 +9248,50 @@ TEST_F(BDDTest, BDDCount_ClassMethod) {
     EXPECT_EQ(nf.exact_count(2), bigint::BigInt(3));
 }
 
+// --- bddhasempty / ZDD::has_empty ---
+
+TEST_F(BDDTest, ZDD_HasEmpty_EmptyFamily) {
+    // Empty family {} contains no sets at all
+    EXPECT_FALSE(bddhasempty(bddempty));
+    ZDD f(0);
+    EXPECT_FALSE(f.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_HasEmpty_SingleFamily) {
+    // Unit family {∅} contains the empty set
+    EXPECT_TRUE(bddhasempty(bddsingle));
+    ZDD f(1);
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_HasEmpty_SingletonSet) {
+    // Family {{a}} does not contain the empty set
+    bddp a = bddchange(bddsingle, 1);
+    EXPECT_FALSE(bddhasempty(a));
+    ZDD f = ZDD_ID(a);
+    EXPECT_FALSE(f.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_HasEmpty_UnionWithEmpty) {
+    // Family {{a}, ∅} contains the empty set
+    bddp a = bddchange(bddsingle, 1);
+    bddp u = bddunion(a, bddsingle);
+    EXPECT_TRUE(bddhasempty(u));
+    ZDD z = ZDD_ID(u);
+    EXPECT_TRUE(z.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_HasEmpty_ComplementEdge) {
+    // Complement toggles ∅ membership
+    bddp a = bddchange(bddsingle, 1);  // {{a}}, no ∅
+    EXPECT_FALSE(bddhasempty(a));
+    EXPECT_TRUE(bddhasempty(bddnot(a)));  // complement adds ∅
+
+    bddp u = bddunion(a, bddsingle);  // {{a}, ∅}, has ∅
+    EXPECT_TRUE(bddhasempty(u));
+    EXPECT_FALSE(bddhasempty(bddnot(u)));  // complement removes ∅
+}
+
 // --- ZDD::enumerate ---
 
 TEST_F(BDDTest, ZDD_Enumerate_EmptyFamily) {
