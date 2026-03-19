@@ -355,6 +355,45 @@ TEST_F(QDDTest, ZddToQddRoundTrip) {
     }
 }
 
+// =============================================================
+// UnreducedBDD::to_qdd() and UnreducedZDD::to_qdd() Tests
+// =============================================================
+
+TEST_F(QDDTest, UnreducedBddToQddRoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Build unreduced BDD for v1 & v2
+    UnreducedBDD ub_false = UnreducedBDD::zero();
+    UnreducedBDD ub_true = UnreducedBDD::one();
+    UnreducedBDD ub_v1 = UnreducedBDD::node(v1, ub_false, ub_true);
+    UnreducedBDD ub_root = UnreducedBDD::node(v2, ub_false, ub_v1);
+
+    QDD q = ub_root.to_qdd();
+    BDD b = q.to_bdd();
+
+    // Should equal BDD for v1 & v2
+    BDD expected = BDDvar(v1) & BDDvar(v2);
+    EXPECT_EQ(b.get_id(), expected.get_id());
+}
+
+TEST_F(QDDTest, UnreducedZddToQddRoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();  // v2 at level 2
+
+    // Build unreduced ZDD for {{v1}}
+    UnreducedZDD uz_empty = UnreducedZDD::empty();
+    UnreducedZDD uz_single = UnreducedZDD::single();
+    UnreducedZDD uz_v1 = UnreducedZDD::node(v1, uz_empty, uz_single);
+
+    QDD q = uz_v1.to_qdd();
+    ZDD z = q.to_zdd();
+
+    // Should equal ZDD for {{v1}}
+    ZDD expected = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    EXPECT_EQ(z.get_id(), expected.get_id());
+}
+
 TEST_F(QDDTest, ChildAccessorExceptions) {
     // Terminal
     EXPECT_THROW(QDD::raw_child0(bddfalse), std::invalid_argument);

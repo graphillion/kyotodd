@@ -4,6 +4,8 @@
 #include "bdd_types.h"
 #include <functional>
 
+class QDD;
+
 /**
  * @brief An unreduced Binary Decision Diagram (BDD).
  *
@@ -156,6 +158,9 @@ public:
      * @throws std::invalid_argument If any node has a bddnull child.
      */
     BDD reduce() const;
+
+    /** @brief Convert to QDD via reduce() then BDD::to_qdd(). */
+    QDD to_qdd() const;
 };
 
 /**
@@ -260,6 +265,9 @@ public:
      * Recursively reduces using getznode().
      */
     ZDD reduce() const;
+
+    /** @brief Convert to QDD via reduce() then ZDD::to_qdd(). */
+    QDD to_qdd() const;
 };
 
 namespace std {
