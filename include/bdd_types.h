@@ -349,6 +349,14 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Export this BDD in Sapporo format to a FILE stream. */
+    void export_sapporo(FILE* strm) const;
+    /** @brief Export this BDD in Sapporo format to an output stream. */
+    void export_sapporo(std::ostream& strm) const;
+    /** @brief Import a BDD from Sapporo format from a FILE stream. */
+    static BDD import_sapporo(FILE* strm);
+    /** @brief Import a BDD from Sapporo format from an input stream. */
+    static BDD import_sapporo(std::istream& strm);
     /** @brief Print BDD summary (ID, Var, Level, Size) to stdout. */
     void Print() const;
     /** @brief Print BDD graph (bddgraph0 wrapper). */
@@ -758,6 +766,14 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Export this ZDD in Sapporo format to a FILE stream. */
+    void export_sapporo(FILE* strm) const;
+    /** @brief Export this ZDD in Sapporo format to an output stream. */
+    void export_sapporo(std::ostream& strm) const;
+    /** @brief Import a ZDD from Sapporo format from a FILE stream. */
+    static ZDD import_sapporo(FILE* strm);
+    /** @brief Import a ZDD from Sapporo format from an input stream. */
+    static ZDD import_sapporo(std::istream& strm);
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
     void Print() const;
 

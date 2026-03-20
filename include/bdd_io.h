@@ -168,6 +168,48 @@ void bdddump(bddp f);
  */
 void bddvdump(bddp *p, int n);
 
+// --- Sapporo format save/load ---
+
+/**
+ * @brief Export a single BDD in Sapporo format to a FILE stream.
+ * @param strm Output FILE stream.
+ * @param f    BDD root node ID.
+ */
+void bdd_export_sapporo(FILE* strm, bddp f);
+
+/** @brief Export a single BDD in Sapporo format to an output stream. */
+void bdd_export_sapporo(std::ostream& strm, bddp f);
+
+/**
+ * @brief Import a single BDD from Sapporo format from a FILE stream.
+ * @param strm Input FILE stream.
+ * @return The imported BDD root node ID, or bddfalse on failure.
+ */
+bddp bdd_import_sapporo(FILE* strm);
+
+/** @brief Import a single BDD from Sapporo format from an input stream. */
+bddp bdd_import_sapporo(std::istream& strm);
+
+/**
+ * @brief Export a single ZDD in Sapporo format to a FILE stream.
+ * @param strm Output FILE stream.
+ * @param f    ZDD root node ID.
+ */
+void zdd_export_sapporo(FILE* strm, bddp f);
+
+/** @brief Export a single ZDD in Sapporo format to an output stream. */
+void zdd_export_sapporo(std::ostream& strm, bddp f);
+
+/**
+ * @brief Import a single ZDD from Sapporo format from a FILE stream.
+ * @param strm Input FILE stream.
+ * @return The imported ZDD root node ID, or bddempty on failure.
+ */
+bddp zdd_import_sapporo(FILE* strm);
+
+/** @brief Import a single ZDD from Sapporo format from an input stream. */
+bddp zdd_import_sapporo(std::istream& strm);
+
 // --- Graphillion format save/load for ZDD ---
 
 /**

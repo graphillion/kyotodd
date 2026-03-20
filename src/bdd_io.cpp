@@ -487,6 +487,48 @@ void bddvdump(bddp *p, int n) {
     std::printf("\n");
 }
 
+// --- Sapporo format save/load wrappers ---
+
+void bdd_export_sapporo(FILE* strm, bddp f) {
+    bddexport(strm, &f, 1);
+}
+
+void bdd_export_sapporo(std::ostream& strm, bddp f) {
+    bddexport(strm, &f, 1);
+}
+
+bddp bdd_import_sapporo(FILE* strm) {
+    bddp p = bddnull;
+    int ret = bddimport(strm, &p, 1);
+    return (ret <= 0) ? bddfalse : p;
+}
+
+bddp bdd_import_sapporo(std::istream& strm) {
+    bddp p = bddnull;
+    int ret = bddimport(strm, &p, 1);
+    return (ret <= 0) ? bddfalse : p;
+}
+
+void zdd_export_sapporo(FILE* strm, bddp f) {
+    bddexport(strm, &f, 1);
+}
+
+void zdd_export_sapporo(std::ostream& strm, bddp f) {
+    bddexport(strm, &f, 1);
+}
+
+bddp zdd_import_sapporo(FILE* strm) {
+    bddp p = bddnull;
+    int ret = bddimportz(strm, &p, 1);
+    return (ret <= 0) ? bddempty : p;
+}
+
+bddp zdd_import_sapporo(std::istream& strm) {
+    bddp p = bddnull;
+    int ret = bddimportz(strm, &p, 1);
+    return (ret <= 0) ? bddempty : p;
+}
+
 // --- Graphillion format save/load ---
 
 // Write a Graphillion child reference: "B", "T", or the assigned node ID.

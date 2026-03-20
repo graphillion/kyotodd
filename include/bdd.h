@@ -250,6 +250,22 @@ inline void BDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline void BDD::export_sapporo(FILE* strm) const {
+    bdd_export_sapporo(strm, root);
+}
+
+inline void BDD::export_sapporo(std::ostream& strm) const {
+    bdd_export_sapporo(strm, root);
+}
+
+inline BDD BDD::import_sapporo(FILE* strm) {
+    return BDD_ID(bdd_import_sapporo(strm));
+}
+
+inline BDD BDD::import_sapporo(std::istream& strm) {
+    return BDD_ID(bdd_import_sapporo(strm));
+}
+
 inline void BDD::Print() const {
     bddvar v = bddtop(root);
     bddvar lev = bddlevofvar(v);
@@ -597,6 +613,22 @@ inline void ZDD::Export(FILE* strm) const {
 inline void ZDD::Export(std::ostream& strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
+}
+
+inline void ZDD::export_sapporo(FILE* strm) const {
+    zdd_export_sapporo(strm, root);
+}
+
+inline void ZDD::export_sapporo(std::ostream& strm) const {
+    zdd_export_sapporo(strm, root);
+}
+
+inline ZDD ZDD::import_sapporo(FILE* strm) {
+    return ZDD_ID(zdd_import_sapporo(strm));
+}
+
+inline ZDD ZDD::import_sapporo(std::istream& strm) {
+    return ZDD_ID(zdd_import_sapporo(strm));
 }
 
 inline void ZDD::XPrint() const {

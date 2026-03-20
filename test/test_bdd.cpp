@@ -9980,3 +9980,107 @@ TEST_F(BDDTest, Graphillion_FileRoundtrip) {
     std::fclose(fp);
     EXPECT_EQ(f.enumerate(), g.enumerate());
 }
+
+// --- Sapporo format export/import tests ---
+
+TEST_F(BDDTest, Sapporo_BDD_RoundtripStream) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f = a & b;  // AND of var 1 and var 2
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_sapporo(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Sapporo_BDD_RoundtripFile) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f = a | b;  // OR of var 1 and var 2
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_sapporo(fp);
+    std::rewind(fp);
+    BDD g = BDD::import_sapporo(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Sapporo_BDD_TerminalFalse) {
+    BDD f = BDD::False;
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_sapporo(iss);
+    EXPECT_EQ(g, BDD::False);
+}
+
+TEST_F(BDDTest, Sapporo_BDD_TerminalTrue) {
+    BDD f = BDD::True;
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_sapporo(iss);
+    EXPECT_EQ(g, BDD::True);
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_RoundtripStream) {
+    ZDD f = ZDD::power_set(3);
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_sapporo(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_RoundtripFile) {
+    ZDD f = ZDD::combination(4, 2);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_sapporo(fp);
+    std::rewind(fp);
+    ZDD g = ZDD::import_sapporo(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_TerminalEmpty) {
+    ZDD f = ZDD::Empty;
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_sapporo(iss);
+    EXPECT_EQ(g, ZDD::Empty);
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_TerminalSingle) {
+    ZDD f = ZDD::Single;
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_sapporo(iss);
+    EXPECT_EQ(g, ZDD::Single);
+}
+
+TEST_F(BDDTest, Sapporo_CLevel_BDD) {
+    // Test C-level functions directly
+    BDD f = BDD::prime(1) ^ BDD::prime(2);  // XOR
+    std::ostringstream oss;
+    bdd_export_sapporo(oss, f.GetID());
+    std::istringstream iss(oss.str());
+    bddp g = bdd_import_sapporo(iss);
+    EXPECT_EQ(f.GetID(), g);
+}
+
+TEST_F(BDDTest, Sapporo_CLevel_ZDD) {
+    // Test C-level functions directly
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    zdd_export_sapporo(oss, f.GetID());
+    std::istringstream iss(oss.str());
+    bddp g = zdd_import_sapporo(iss);
+    ZDD gz = ZDD_ID(g);
+    EXPECT_EQ(f.enumerate(), gz.enumerate());
+}
