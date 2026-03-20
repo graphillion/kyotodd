@@ -8,11 +8,14 @@
  *
  * Allocates the node table, unique tables, operation cache, and resets all
  * internal state. Must be called before any other BDD/ZDD operations.
- * Can be called again to re-initialize (frees all previous allocations).
+ * Can be called again to re-initialize (frees all previous allocations),
+ * but all BDD/ZDD/QDD objects referencing non-terminal nodes must be
+ * destroyed first; otherwise std::runtime_error is thrown.
  *
  * @param node_count Initial node table capacity (default: 256).
  * @param node_max   Maximum node table size (default: UINT64_MAX).
  * @return 0 on success.
+ * @throws std::runtime_error If live non-terminal objects still exist.
  * @throws std::overflow_error If allocation sizes overflow.
  * @throws std::bad_alloc If memory allocation fails.
  */
