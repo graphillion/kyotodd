@@ -7,6 +7,8 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
+#include <cstring>
 #include <unordered_set>
 
 // Max token length for arc string representations (node IDs, "F", "T", "N").
@@ -486,6 +488,351 @@ void bddvdump(bddp *p, int n) {
     }
     std::printf("\n");
 }
+
+// --- Binary format save/load ---
+
+static void write_bytes(FILE* strm, const void* data, size_t n) {
+    std::fwrite(data, 1, n, strm);
+}
+static void write_bytes(std::ostream& strm, const void* data, size_t n) {
+    strm.write(static_cast<const char*>(data), n);
+}
+static bool read_bytes(FILE* strm, void* data, size_t n) {
+    return std::fread(data, 1, n, strm) == n;
+}
+static bool read_bytes(std::istream& strm, void* data, size_t n) {
+    strm.read(static_cast<char*>(data), n);
+    return !strm.fail();
+}
+
+// Little-endian encode/decode
+static void encode_le16(uint8_t* buf, uint16_t v) {
+    buf[0] = v & 0xFF; buf[1] = (v >> 8) & 0xFF;
+}
+static void encode_le32(uint8_t* buf, uint32_t v) {
+    for (int i = 0; i < 4; i++) buf[i] = (v >> (8*i)) & 0xFF;
+}
+static void encode_le64(uint8_t* buf, uint64_t v) {
+    for (int i = 0; i < 8; i++) buf[i] = (v >> (8*i)) & 0xFF;
+}
+static uint16_t decode_le16(const uint8_t* buf) {
+    return static_cast<uint16_t>(buf[0]) | (static_cast<uint16_t>(buf[1]) << 8);
+}
+static uint32_t decode_le32(const uint8_t* buf) {
+    uint32_t v = 0;
+    for (int i = 0; i < 4; i++) v |= static_cast<uint32_t>(buf[i]) << (8*i);
+    return v;
+}
+static uint64_t decode_le64(const uint8_t* buf) {
+    uint64_t v = 0;
+    for (int i = 0; i < 8; i++) v |= static_cast<uint64_t>(buf[i]) << (8*i);
+    return v;
+}
+
+// Write/read a single ID in LE with the given byte width
+template<typename Stream>
+static void write_id_le(Stream& strm, uint64_t id, int bytes) {
+    uint8_t buf[8] = {0};
+    for (int i = 0; i < bytes; i++) buf[i] = (id >> (8*i)) & 0xFF;
+    write_bytes(strm, buf, bytes);
+}
+template<typename Stream>
+static uint64_t read_id_le(Stream& strm, int bytes) {
+    uint8_t buf[8] = {0};
+    if (!read_bytes(strm, buf, bytes))
+        throw std::runtime_error("binary import: unexpected end of input");
+    uint64_t id = 0;
+    for (int i = 0; i < bytes; i++) id |= static_cast<uint64_t>(buf[i]) << (8*i);
+    return id;
+}
+
+// Determine minimum byte-aligned bits to represent max_id
+static uint8_t bits_for_max_id(uint64_t max_id) {
+    if (max_id <= 0xFF) return 8;
+    if (max_id <= 0xFFFF) return 16;
+    if (max_id <= 0xFFFFFFFFULL) return 32;
+    return 64;
+}
+
+template<typename Stream>
+static void binary_export_core(Stream& strm, bddp f, uint8_t dd_type) {
+    if (f == bddnull)
+        throw std::invalid_argument("binary export: null node");
+
+    const uint32_t t = 2;  // number of terminals
+
+    // Collect all physical nodes via DFS, grouped by level
+    std::unordered_set<bddp> visited;
+    std::vector<bddp> all_nodes;  // physical node bddps (even, no complement)
+
+    if (!(f & BDD_CONST_FLAG)) {
+        // Iterative DFS to collect physical nodes
+        bddp root_phys = f & ~BDD_COMP_FLAG;
+        std::vector<bddp> stack;
+        stack.push_back(root_phys);
+        visited.insert(root_phys);
+        while (!stack.empty()) {
+            bddp node = stack.back();
+            stack.pop_back();
+            all_nodes.push_back(node);
+            bddp lo = node_lo(node);
+            bddp hi = node_hi(node);
+            bddp lo_phys = lo & ~BDD_COMP_FLAG;
+            bddp hi_phys = hi & ~BDD_COMP_FLAG;
+            if (!(hi_phys & BDD_CONST_FLAG) && visited.insert(hi_phys).second)
+                stack.push_back(hi_phys);
+            if (!(lo_phys & BDD_CONST_FLAG) && visited.insert(lo_phys).second)
+                stack.push_back(lo_phys);
+        }
+    }
+
+    // Sort by level (ascending: level 1 first)
+    std::sort(all_nodes.begin(), all_nodes.end(),
+              [](bddp a, bddp b) {
+                  return var2level[node_var(a)] < var2level[node_var(b)];
+              });
+
+    uint64_t total_nodes = all_nodes.size();
+    bddvar max_level = 0;
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddvar lev = var2level[node_var(all_nodes[i])];
+        if (lev > max_level) max_level = lev;
+    }
+    if (max_level == 0) max_level = 1;  // spec requires max_level >= 1
+
+    // Build ID mapping: physical bddp -> binary ID (even)
+    std::unordered_map<bddp, uint64_t> id_map;
+    for (uint64_t i = 0; i < total_nodes; i++) {
+        id_map[all_nodes[i]] = t + 2 * i;
+    }
+
+    // Helper to map any bddp edge to binary ID
+    auto to_bin_id = [&](bddp edge) -> uint64_t {
+        if (edge == bddfalse) return 0;
+        if (edge == bddtrue) return 1;
+        bddp phys = edge & ~BDD_COMP_FLAG;
+        bool comp = (edge & BDD_COMP_FLAG) != 0;
+        uint64_t bin_id = id_map[phys];
+        return comp ? (bin_id | 1) : bin_id;
+    };
+
+    // Max binary ID
+    uint64_t max_id = 1;  // at least terminal 1
+    if (total_nodes > 0)
+        max_id = t + 2 * (total_nodes - 1) + 1;  // max odd (negated last node)
+    uint64_t root_bin_id = (f & BDD_CONST_FLAG) ?
+        ((f == bddtrue) ? 1 : 0) : to_bin_id(f);
+    if (root_bin_id > max_id) max_id = root_bin_id;
+
+    uint8_t bits = bits_for_max_id(max_id);
+    int id_bytes = bits / 8;
+
+    // --- Write magic ---
+    uint8_t magic[3] = {0x42, 0x44, 0x44};
+    write_bytes(strm, magic, 3);
+
+    // --- Write header (91 bytes) ---
+    uint8_t header[91];
+    std::memset(header, 0, sizeof(header));
+    header[0] = 1;  // version
+    header[1] = dd_type;  // type: 2=BDD, 3=ZDD
+    encode_le16(header + 2, 2);   // number_of_arcs
+    encode_le32(header + 4, t);   // number_of_terminals
+    header[8] = 0;   // number_of_bits_for_level (unused v1)
+    header[9] = bits; // number_of_bits_for_id
+    header[10] = 1;  // use_negative_arcs
+    encode_le64(header + 11, max_level);  // max_level
+    encode_le64(header + 19, 1);  // number_of_roots
+    // bytes 27-90: reserved (already zero)
+    write_bytes(strm, header, 91);
+
+    // --- Write node-count array (max_level * uint64_t) ---
+    // Count nodes per level
+    std::vector<uint64_t> level_counts(max_level, 0);
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddvar lev = var2level[node_var(all_nodes[i])];
+        level_counts[lev - 1]++;
+    }
+    for (bddvar l = 0; l < max_level; l++) {
+        uint8_t buf[8];
+        encode_le64(buf, level_counts[l]);
+        write_bytes(strm, buf, 8);
+    }
+
+    // --- Write root ID ---
+    write_id_le(strm, root_bin_id, id_bytes);
+
+    // --- Write node array (sorted by level, each: lo_id, hi_id) ---
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddp node = all_nodes[i];
+        bddp lo = node_lo(node);
+        bddp hi = node_hi(node);
+        write_id_le(strm, to_bin_id(lo), id_bytes);
+        write_id_le(strm, to_bin_id(hi), id_bytes);
+    }
+
+    if (stream_has_error(strm))
+        throw std::runtime_error("binary export: write error");
+}
+
+void bdd_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 2); }
+void bdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 2); }
+void zdd_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 3); }
+void zdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 3); }
+
+// --- Binary format import ---
+
+template<typename Stream>
+static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
+    // --- Read magic ---
+    uint8_t magic[3];
+    if (!read_bytes(strm, magic, 3) ||
+        magic[0] != 0x42 || magic[1] != 0x44 || magic[2] != 0x44)
+        throw std::runtime_error("binary import: invalid magic bytes");
+
+    // --- Read header ---
+    uint8_t header[91];
+    if (!read_bytes(strm, header, 91))
+        throw std::runtime_error("binary import: truncated header");
+
+    uint8_t version = header[0];
+    if (version != 1)
+        throw std::runtime_error("binary import: unsupported version");
+
+    // uint8_t dd_type = header[1];  // we don't enforce type mismatch
+    uint16_t num_arcs = decode_le16(header + 2);
+    uint32_t num_terminals = decode_le32(header + 4);
+    // header[8]: bits_for_level (unused)
+    uint8_t bits_for_id = header[9];
+    uint8_t use_neg = header[10];
+    uint64_t max_level = decode_le64(header + 11);
+    uint64_t num_roots = decode_le64(header + 19);
+
+    if (num_arcs < 2)
+        throw std::runtime_error("binary import: number_of_arcs < 2");
+    if (bits_for_id == 0 || bits_for_id % 8 != 0)
+        throw std::runtime_error("binary import: bits_for_id must be a multiple of 8");
+    if (max_level < 1)
+        throw std::runtime_error("binary import: max_level < 1");
+    if (num_roots < 1)
+        throw std::runtime_error("binary import: number_of_roots < 1");
+
+    int id_bytes = bits_for_id / 8;
+    uint32_t t = num_terminals;
+
+    // --- Read node-count array ---
+    std::vector<uint64_t> level_counts(max_level);
+    for (uint64_t l = 0; l < max_level; l++) {
+        uint8_t buf[8];
+        if (!read_bytes(strm, buf, 8))
+            throw std::runtime_error("binary import: truncated level-count array");
+        level_counts[l] = decode_le64(buf);
+    }
+
+    uint64_t total_nodes = 0;
+    for (uint64_t l = 0; l < max_level; l++) total_nodes += level_counts[l];
+
+    // --- Read root IDs ---
+    std::vector<uint64_t> root_ids(num_roots);
+    for (uint64_t r = 0; r < num_roots; r++) {
+        root_ids[r] = read_id_le(strm, id_bytes);
+    }
+
+    // --- Read node array ---
+    // Each node has num_arcs child IDs
+    struct BinNode {
+        std::vector<uint64_t> children;
+    };
+    std::vector<BinNode> bin_nodes(total_nodes);
+    for (uint64_t i = 0; i < total_nodes; i++) {
+        bin_nodes[i].children.resize(num_arcs);
+        for (uint16_t a = 0; a < num_arcs; a++) {
+            bin_nodes[i].children[a] = read_id_le(strm, id_bytes);
+        }
+    }
+
+    // Ensure variables exist
+    while (bddvarused() < max_level) bddnewvar();
+
+    // --- Reconstruct nodes ---
+    // Nodes are stored by level but may have children at any level
+    // (e.g., ZDDs with non-standard variable ordering).
+    // Use iterative topological sort: create nodes whose children
+    // are all resolved (terminals or already created).
+    std::unordered_map<uint64_t, bddp> id_map;
+
+    // Helper to check if a binary ID is resolved
+    auto is_resolved = [&](uint64_t bin_id) -> bool {
+        if (bin_id < t) return true;  // terminal
+        uint64_t even_id = (use_neg && (bin_id & 1)) ? bin_id - 1 : bin_id;
+        return id_map.count(even_id) != 0;
+    };
+
+    // Helper to resolve a binary ID to internal bddp
+    auto resolve = [&](uint64_t bin_id) -> bddp {
+        if (bin_id < t) {
+            if (bin_id == 0) return bddfalse;
+            if (bin_id == 1) return bddtrue;
+            throw std::runtime_error("binary import: unsupported terminal ID");
+        }
+        bool comp = false;
+        if (use_neg && (bin_id & 1)) {
+            comp = true;
+            bin_id -= 1;
+        }
+        std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(bin_id);
+        if (it == id_map.end())
+            throw std::runtime_error("binary import: undefined node reference");
+        return comp ? bddnot(it->second) : it->second;
+    };
+
+    // Pre-compute level for each node index
+    std::vector<bddvar> node_levels(total_nodes);
+    {
+        uint64_t idx = 0;
+        for (uint64_t l = 0; l < max_level; l++) {
+            for (uint64_t c = 0; c < level_counts[l]; c++) {
+                node_levels[idx++] = static_cast<bddvar>(l + 1);
+            }
+        }
+    }
+
+    // Iterative creation: keep trying until all nodes are created
+    std::vector<bool> created(total_nodes, false);
+    uint64_t created_count = 0;
+    while (created_count < total_nodes) {
+        bool progress = false;
+        for (uint64_t i = 0; i < total_nodes; i++) {
+            if (created[i]) continue;
+            const BinNode& bn = bin_nodes[i];
+            // Check if all children are available
+            bool ready = true;
+            for (uint16_t a = 0; a < num_arcs; a++) {
+                if (!is_resolved(bn.children[a])) { ready = false; break; }
+            }
+            if (!ready) continue;
+
+            bddvar var = bddvaroflev(node_levels[i]);
+            bddp lo = resolve(bn.children[0]);
+            bddp hi = resolve(bn.children[1]);
+            uint64_t bin_id = use_neg ? (t + 2 * i) : (t + i);
+            id_map[bin_id] = make_node(var, lo, hi);
+            created[i] = true;
+            created_count++;
+            progress = true;
+        }
+        if (!progress)
+            throw std::runtime_error("binary import: circular dependency in node references");
+    }
+
+    // Resolve root (use the first root for single-BDD API)
+    return resolve(root_ids[0]);
+}
+
+bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, getnode); }
+bddp bdd_import_binary(std::istream& strm) { return binary_import_core(strm, getnode); }
+bddp zdd_import_binary(FILE* strm) { return binary_import_core(strm, getznode); }
+bddp zdd_import_binary(std::istream& strm) { return binary_import_core(strm, getznode); }
 
 // --- Sapporo format save/load wrappers ---
 

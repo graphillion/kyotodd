@@ -10084,3 +10084,172 @@ TEST_F(BDDTest, Sapporo_CLevel_ZDD) {
     ZDD gz = ZDD_ID(g);
     EXPECT_EQ(f.enumerate(), gz.enumerate());
 }
+
+// --- Binary format export/import tests ---
+
+TEST_F(BDDTest, Binary_BDD_RoundtripStream) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f = a & b;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Binary_BDD_TerminalFalse) {
+    BDD f = BDD::False;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(g, BDD::False);
+}
+
+TEST_F(BDDTest, Binary_BDD_TerminalTrue) {
+    BDD f = BDD::True;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(g, BDD::True);
+}
+
+TEST_F(BDDTest, Binary_BDD_ComplementRoot) {
+    // BDD with complement on root
+    BDD f = ~BDD::prime(1);  // NOT var 1
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Binary_BDD_Complex) {
+    BDD f = BDD::Ite(BDD::prime(1), BDD::prime(2), BDD::prime(3));
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Binary_BDD_FileRoundtrip) {
+    BDD f = BDD::prime(1) | BDD::prime(2);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_binary(fp);
+    std::rewind(fp);
+    BDD g = BDD::import_binary(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Binary_ZDD_RoundtripStream) {
+    ZDD f = ZDD::power_set(3);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_binary(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Binary_ZDD_TerminalEmpty) {
+    ZDD f = ZDD::Empty;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_binary(iss);
+    EXPECT_EQ(g, ZDD::Empty);
+}
+
+TEST_F(BDDTest, Binary_ZDD_TerminalSingle) {
+    ZDD f = ZDD::Single;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_binary(iss);
+    EXPECT_EQ(g, ZDD::Single);
+}
+
+TEST_F(BDDTest, Binary_ZDD_Combination) {
+    ZDD f = ZDD::combination(4, 2);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_binary(fp);
+    std::rewind(fp);
+    ZDD g = ZDD::import_binary(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Binary_ZDD_ComplementEdge) {
+    ZDD f = ~ZDD::power_set(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_binary(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Binary_ZDD_FileRoundtrip) {
+    ZDD f = ZDD::power_set(3);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_binary(fp);
+    std::rewind(fp);
+    ZDD g = ZDD::import_binary(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Binary_ZDD_FromSets) {
+    std::vector<std::vector<bddvar>> sets = {{1, 3}, {2}, {1, 2, 3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_binary(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Binary_MagicBytes) {
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::string data = oss.str();
+    // First 3 bytes should be "BDD"
+    EXPECT_EQ(data[0], 'B');
+    EXPECT_EQ(data[1], 'D');
+    EXPECT_EQ(data[2], 'D');
+    // Version = 1
+    EXPECT_EQ(static_cast<uint8_t>(data[3]), 1);
+    // Type = 3 (ZDD)
+    EXPECT_EQ(static_cast<uint8_t>(data[4]), 3);
+}
+
+TEST_F(BDDTest, Binary_ImportInvalidMagic) {
+    std::istringstream iss("XXX");
+    EXPECT_THROW(ZDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Binary_CLevel_BDD) {
+    BDD f = BDD::prime(1) ^ BDD::prime(2);
+    std::ostringstream oss;
+    bdd_export_binary(oss, f.GetID());
+    std::istringstream iss(oss.str());
+    bddp g = bdd_import_binary(iss);
+    EXPECT_EQ(f.GetID(), g);
+}
+
+TEST_F(BDDTest, Binary_CLevel_ZDD) {
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    zdd_export_binary(oss, f.GetID());
+    std::istringstream iss(oss.str());
+    bddp g = zdd_import_binary(iss);
+    ZDD gz = ZDD_ID(g);
+    EXPECT_EQ(f.enumerate(), gz.enumerate());
+}

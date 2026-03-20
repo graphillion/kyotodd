@@ -168,6 +168,53 @@ void bdddump(bddp f);
  */
 void bddvdump(bddp *p, int n);
 
+// --- Binary format save/load ---
+
+/**
+ * @brief Export a single BDD in BDD binary format to a FILE stream.
+ *
+ * Writes the BDD in the binary format defined by bdd_binary_format.md.
+ * Uses little-endian byte ordering, 2 terminals, 2 arcs, and
+ * negative (complement) arcs.
+ *
+ * @param strm Output FILE stream.
+ * @param f    BDD root node ID.
+ */
+void bdd_export_binary(FILE* strm, bddp f);
+
+/** @brief Export a single BDD in BDD binary format to an output stream. */
+void bdd_export_binary(std::ostream& strm, bddp f);
+
+/**
+ * @brief Import a single BDD from BDD binary format from a FILE stream.
+ * @param strm Input FILE stream.
+ * @return The imported BDD root node ID.
+ */
+bddp bdd_import_binary(FILE* strm);
+
+/** @brief Import a single BDD from BDD binary format from an input stream. */
+bddp bdd_import_binary(std::istream& strm);
+
+/**
+ * @brief Export a single ZDD in BDD binary format to a FILE stream.
+ * @param strm Output FILE stream.
+ * @param f    ZDD root node ID.
+ */
+void zdd_export_binary(FILE* strm, bddp f);
+
+/** @brief Export a single ZDD in BDD binary format to an output stream. */
+void zdd_export_binary(std::ostream& strm, bddp f);
+
+/**
+ * @brief Import a single ZDD from BDD binary format from a FILE stream.
+ * @param strm Input FILE stream.
+ * @return The imported ZDD root node ID.
+ */
+bddp zdd_import_binary(FILE* strm);
+
+/** @brief Import a single ZDD from BDD binary format from an input stream. */
+bddp zdd_import_binary(std::istream& strm);
+
 // --- Sapporo format save/load ---
 
 /**

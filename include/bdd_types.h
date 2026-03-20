@@ -349,6 +349,14 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Export this BDD in BDD binary format to a FILE stream. */
+    void export_binary(FILE* strm) const;
+    /** @brief Export this BDD in BDD binary format to an output stream. */
+    void export_binary(std::ostream& strm) const;
+    /** @brief Import a BDD from BDD binary format from a FILE stream. */
+    static BDD import_binary(FILE* strm);
+    /** @brief Import a BDD from BDD binary format from an input stream. */
+    static BDD import_binary(std::istream& strm);
     /** @brief Export this BDD in Sapporo format to a FILE stream. */
     void export_sapporo(FILE* strm) const;
     /** @brief Export this BDD in Sapporo format to an output stream. */
@@ -766,6 +774,14 @@ public:
     void Export(FILE* strm) const;
     /** @brief Export to an output stream. */
     void Export(std::ostream& strm) const;
+    /** @brief Export this ZDD in BDD binary format to a FILE stream. */
+    void export_binary(FILE* strm) const;
+    /** @brief Export this ZDD in BDD binary format to an output stream. */
+    void export_binary(std::ostream& strm) const;
+    /** @brief Import a ZDD from BDD binary format from a FILE stream. */
+    static ZDD import_binary(FILE* strm);
+    /** @brief Import a ZDD from BDD binary format from an input stream. */
+    static ZDD import_binary(std::istream& strm);
     /** @brief Export this ZDD in Sapporo format to a FILE stream. */
     void export_sapporo(FILE* strm) const;
     /** @brief Export this ZDD in Sapporo format to an output stream. */

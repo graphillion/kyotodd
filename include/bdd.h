@@ -250,6 +250,22 @@ inline void BDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline void BDD::export_binary(FILE* strm) const {
+    bdd_export_binary(strm, root);
+}
+
+inline void BDD::export_binary(std::ostream& strm) const {
+    bdd_export_binary(strm, root);
+}
+
+inline BDD BDD::import_binary(FILE* strm) {
+    return BDD_ID(bdd_import_binary(strm));
+}
+
+inline BDD BDD::import_binary(std::istream& strm) {
+    return BDD_ID(bdd_import_binary(strm));
+}
+
 inline void BDD::export_sapporo(FILE* strm) const {
     bdd_export_sapporo(strm, root);
 }
@@ -613,6 +629,22 @@ inline void ZDD::Export(FILE* strm) const {
 inline void ZDD::Export(std::ostream& strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
+}
+
+inline void ZDD::export_binary(FILE* strm) const {
+    zdd_export_binary(strm, root);
+}
+
+inline void ZDD::export_binary(std::ostream& strm) const {
+    zdd_export_binary(strm, root);
+}
+
+inline ZDD ZDD::import_binary(FILE* strm) {
+    return ZDD_ID(zdd_import_binary(strm));
+}
+
+inline ZDD ZDD::import_binary(std::istream& strm) {
+    return ZDD_ID(zdd_import_binary(strm));
 }
 
 inline void ZDD::export_sapporo(FILE* strm) const {
