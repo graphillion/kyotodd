@@ -116,6 +116,19 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 
 - `BDD` class has a single member `root` (uint64_t): the root node ID.
 
+## ZDD class
+
+- `ZDD` class has a single member `root` (uint64_t): the root node ID.
+- ZDD は集合族を表現する。complement edge は空集合 (∅) のメンバーシップを切り替える。
+
+## QDD class
+
+- `QDD` (Quasi-reduced Decision Diagram) class has a single member `root` (uint64_t): the root node ID.
+- QDD は jump rule を適用しない（lo == hi のノードも保持）。根から終端までの全レベルを訪問する。
+- complement edge は BDD と同じセマンティクス（lo と hi の両方を反転）。
+- `QDD::getnode(var, lo, hi)` は子のレベルが var のレベル - 1 であることを検証する。
+- BDD/ZDD との変換: `BDD::to_qdd()`, `ZDD::to_qdd()`, `QDD::to_bdd()`, `QDD::to_zdd()`。
+
 ## Repository
 
 - `conversation/` directory stores conversation logs and is gitignored.
@@ -138,5 +151,11 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 - `src/zdd_adv2.cpp` — ZDD 追加演算（permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset 等）
 - `src/bdd_io.cpp` — export/import の実装
 - `src/bdd_class.cpp` — BDD/ZDD static const 定義
+- `src/qdd.cpp` — QDD 実装（getnode、BDD/ZDD 変換等）
+- `src/unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD 実装
+- `include/qdd.h` — QDD クラス宣言
+- `include/unreduced_dd.h` — UnreducedBDD/UnreducedZDD クラス宣言
 - `src/main.cpp` — メインエントリポイント
 - `test/test_bdd.cpp` — Google Test によるテスト
+- `test/test_qdd.cpp` — QDD テスト
+- `test/test_unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD テスト
