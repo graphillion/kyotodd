@@ -156,7 +156,7 @@ ZDD Class
 
    .. py:method:: onset(v)
 
-      Select sets containing variable *v*, then remove *v*.
+      Select sets containing variable *v*, keeping *v* in the result.
 
       :param int v: Variable number.
       :return: The resulting ZDD.
@@ -164,7 +164,7 @@ ZDD Class
 
    .. py:method:: onset0(v)
 
-      Select sets NOT containing variable *v* (same as offset).
+      Select sets containing variable *v*, with *v* removed from each set (1-cofactor).
 
       :param int v: Variable number.
       :return: The resulting ZDD.

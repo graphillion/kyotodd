@@ -82,7 +82,7 @@ Select subsets of a family based on variable membership:
    off = F.offset(x1)
    assert off.card == 1
 
-   # Onset: sets containing x1, with x1 removed → {{}, {x2}}
+   # Onset: sets containing x1, keeping x1 → {{x1}, {x1,x2}}
    on = F.onset(x1)
    assert on.card == 2
 

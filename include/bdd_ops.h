@@ -233,10 +233,10 @@ bddp bddspread(bddp f, int k);
 bddp bddoffset(bddp f, bddvar var);
 
 /**
- * @brief ZDD onset: select sets containing variable @p var (var is kept in the result).
+ * @brief ZDD onset: select sets containing variable @p var, keeping @p var in the result.
  *
- * Returns the subfamily of sets that contain @p var, with @p var removed
- * from each set.
+ * Returns the subfamily of sets that contain @p var. The variable @p var
+ * is retained in each set (unlike bddonset0 which removes it).
  *
  * @param f A ZDD node ID.
  * @param var Variable number.
@@ -246,6 +246,10 @@ bddp bddonset(bddp f, bddvar var);
 
 /**
  * @brief ZDD onset0: select sets containing variable @p var and remove @p var (1-cofactor).
+ *
+ * Returns the subfamily of sets that contain @p var, with @p var removed
+ * from each set.
+ *
  * @param f A ZDD node ID.
  * @param var Variable number.
  * @return The resulting ZDD.

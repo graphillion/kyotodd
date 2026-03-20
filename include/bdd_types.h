@@ -602,15 +602,19 @@ public:
      */
     ZDD Offset(bddvar var) const;
     /**
-     * @brief Select sets containing variable @p var, then remove @p var (1-edge selection).
+     * @brief Select sets containing variable @p var, keeping @p var in the result.
      *
-     * Select sets that contain @p var and remove @p var from each.
+     * Returns the subfamily of sets that contain @p var.
+     * Unlike OnSet0, the variable @p var is retained in each set.
      * @param var Variable number.
      * @return The resulting ZDD.
      */
     ZDD OnSet(bddvar var) const;
     /**
-     * @brief Select sets containing variable @p var and remove @p var from them (same as OnSet with var removed).
+     * @brief Select sets containing variable @p var and remove @p var from them (1-cofactor).
+     *
+     * Returns the subfamily of sets that contain @p var, with @p var
+     * removed from each set.
      * @param var Variable number.
      * @return The resulting ZDD.
      */
