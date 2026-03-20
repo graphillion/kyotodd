@@ -47,8 +47,8 @@ int main() {
 ```python
 import kyotodd
 
-x1 = kyotodd.newvar()
-x2 = kyotodd.newvar()
+x1 = kyotodd.new_var()
+x2 = kyotodd.new_var()
 
 a = kyotodd.BDD.var(x1)
 b = kyotodd.BDD.var(x2)

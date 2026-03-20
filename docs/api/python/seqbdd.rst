@@ -189,10 +189,10 @@ Example
    kyotodd.init()
 
    # Create 4 variables (symbols a, b, c, d)
-   a = kyotodd.newvar()
-   b = kyotodd.newvar()
-   c = kyotodd.newvar()
-   d = kyotodd.newvar()
+   a = kyotodd.new_var()
+   b = kyotodd.new_var()
+   c = kyotodd.new_var()
+   d = kyotodd.new_var()
 
    # Build single sequences
    ab = kyotodd.SeqBDD.from_list([a, b])

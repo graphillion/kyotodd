@@ -50,8 +50,8 @@ The Python API mirrors the C++ API with Pythonic naming:
    import kyotodd
 
    # Create variables (library auto-initializes on first use)
-   x1 = kyotodd.newvar()
-   x2 = kyotodd.newvar()
+   x1 = kyotodd.new_var()
+   x2 = kyotodd.new_var()
 
    # Build BDDs for variables
    a = kyotodd.BDD.var(x1)

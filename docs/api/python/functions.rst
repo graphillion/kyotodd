@@ -24,7 +24,7 @@ Initialization
 Variable Management
 -------------------
 
-.. py:function:: kyotodd.newvar()
+.. py:function:: kyotodd.new_var()
 
    Create a new variable and return its variable number.
 
@@ -34,7 +34,7 @@ Variable Management
    :return: The variable number of the newly created variable.
    :rtype: int
 
-.. py:function:: kyotodd.newvar_of_level(lev)
+.. py:function:: kyotodd.new_var_of_level(lev)
 
    Create a new variable at the specified level.
 
@@ -45,7 +45,7 @@ Variable Management
    :return: The variable number of the newly created variable.
    :rtype: int
 
-.. py:function:: kyotodd.level_of_var(var)
+.. py:function:: kyotodd.to_level(var)
 
    Return the level of the given variable.
 
@@ -53,7 +53,7 @@ Variable Management
    :return: The level of the variable.
    :rtype: int
 
-.. py:function:: kyotodd.var_of_level(level)
+.. py:function:: kyotodd.to_var(level)
 
    Return the variable at the given level.
 
@@ -122,7 +122,7 @@ Random Generation
 
    .. note::
       Variables for levels 1 through *lev* must have been created
-      (via :py:func:`newvar`) before calling this function.
+      (via :py:func:`new_var`) before calling this function.
 
    :param int lev: Number of variable levels to use.
    :param int density: Probability (0--100) for each terminal to be 1 (default: 50).

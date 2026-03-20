@@ -62,5 +62,5 @@ Verify the installation:
 .. code-block:: python
 
    import kyotodd
-   x = kyotodd.newvar()
+   x = kyotodd.new_var()
    print(f"Created variable {x}")

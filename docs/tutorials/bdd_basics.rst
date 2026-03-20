@@ -13,9 +13,9 @@ Create variables and combine them with logical operators:
    import kyotodd
 
    # Create three variables
-   x1 = kyotodd.newvar()
-   x2 = kyotodd.newvar()
-   x3 = kyotodd.newvar()
+   x1 = kyotodd.new_var()
+   x2 = kyotodd.new_var()
+   x3 = kyotodd.new_var()
 
    a = kyotodd.BDD.var(x1)
    b = kyotodd.BDD.var(x2)

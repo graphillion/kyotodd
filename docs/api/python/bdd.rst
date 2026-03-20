@@ -17,7 +17,7 @@ BDD Class
 
       Create a BDD representing the given variable.
 
-      :param int v: Variable number (must have been created with :func:`~kyotodd.newvar`).
+      :param int v: Variable number (must have been created with :func:`~kyotodd.new_var`).
       :return: A BDD for the variable.
       :rtype: BDD
 

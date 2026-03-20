@@ -13,9 +13,9 @@ A ZDD family is built by combining singleton sets:
 
    import kyotodd
 
-   x1 = kyotodd.newvar()
-   x2 = kyotodd.newvar()
-   x3 = kyotodd.newvar()
+   x1 = kyotodd.new_var()
+   x2 = kyotodd.new_var()
+   x3 = kyotodd.new_var()
 
    # Start with the unit family {∅} (contains only the empty set)
    base = kyotodd.ZDD.single
