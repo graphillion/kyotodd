@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <sstream>
 #include <fstream>
+#include <random>
 #include "bdd.h"
 #include "qdd.h"
 #include "unreduced_dd.h"
@@ -356,6 +357,235 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("top_var", [](const BDD& b) -> bddvar {
             return bddtop(b.GetID());
         }, "The top (root) variable number of this BDD.")
+        .def_property_readonly("is_terminal", &BDD::is_terminal,
+             "True if this is a terminal node.")
+        .def_property_readonly("is_one", &BDD::is_one,
+             "True if this is the 1-terminal (true).")
+        .def_property_readonly("is_zero", &BDD::is_zero,
+             "True if this is the 0-terminal (false).")
+
+        // Conversion
+        .def("to_qdd", &BDD::to_qdd,
+             "Convert to a Quasi-reduced Decision Diagram (QDD).\n\n"
+             "Returns:\n"
+             "    The QDD representation.\n")
+
+        // Counting
+        .def("count", &BDD::count, py::arg("n"),
+             "Count the number of satisfying assignments (floating-point).\n\n"
+             "Args:\n"
+             "    n: Number of variables in the Boolean function.\n\n"
+             "Returns:\n"
+             "    The number of satisfying assignments as a float.\n")
+        .def("exact_count", [](const BDD& b, bddvar n) -> py::int_ {
+            bigint::BigInt bi = b.exact_count(n);
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, py::arg("n"),
+           "Count the number of satisfying assignments (arbitrary precision).\n\n"
+           "Args:\n"
+           "    n: Number of variables in the Boolean function.\n\n"
+           "Returns:\n"
+           "    The number of satisfying assignments as a Python int.\n")
+        .def("uniform_sample", [](BDD& b, bddvar n, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            BddCountMemo memo(b, n);
+            return b.uniform_sample(rng, n, memo);
+        }, py::arg("n"), py::arg("seed") = 0,
+           "Sample a satisfying assignment uniformly at random.\n\n"
+           "Args:\n"
+           "    n: Number of variables in the Boolean function.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers set to 1 in the sampled assignment.\n")
+
+        // Static factory methods
+        .def_static("prime", [](bddvar v) -> BDD {
+            ensure_init();
+            return BDD::prime(v);
+        }, py::arg("v"),
+           "Create a BDD for the positive literal of variable v.\n\n"
+           "Args:\n"
+           "    v: Variable number.\n\n"
+           "Returns:\n"
+           "    A BDD representing the variable v.\n")
+        .def_static("prime_not", [](bddvar v) -> BDD {
+            ensure_init();
+            return BDD::prime_not(v);
+        }, py::arg("v"),
+           "Create a BDD for the negative literal of variable v.\n\n"
+           "Args:\n"
+           "    v: Variable number.\n\n"
+           "Returns:\n"
+           "    A BDD representing NOT v.\n")
+        .def_static("cube", [](const std::vector<int>& lits) -> BDD {
+            ensure_init();
+            return BDD::cube(lits);
+        }, py::arg("lits"),
+           "Create a BDD for the conjunction (AND) of literals.\n\n"
+           "Uses DIMACS convention: positive int = variable,\n"
+           "negative int = negated variable.\n\n"
+           "Args:\n"
+           "    lits: List of literals (e.g. [1, -2, 3] means x1 & ~x2 & x3).\n\n"
+           "Returns:\n"
+           "    A BDD representing the cube.\n")
+        .def_static("clause", [](const std::vector<int>& lits) -> BDD {
+            ensure_init();
+            return BDD::clause(lits);
+        }, py::arg("lits"),
+           "Create a BDD for the disjunction (OR) of literals.\n\n"
+           "Uses DIMACS convention: positive int = variable,\n"
+           "negative int = negated variable.\n\n"
+           "Args:\n"
+           "    lits: List of literals (e.g. [1, -2, 3] means x1 | ~x2 | x3).\n\n"
+           "Returns:\n"
+           "    A BDD representing the clause.\n")
+        .def_static("getnode", [](bddvar var, const BDD& lo, const BDD& hi) -> BDD {
+            ensure_init();
+            return BDD::getnode(var, lo, hi);
+        }, py::arg("var"), py::arg("lo"), py::arg("hi"),
+           "Create a BDD node with the given variable and children.\n\n"
+           "Applies BDD reduction rules (jump rule, complement normalization).\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    lo: The low (0-edge) child.\n"
+           "    hi: The high (1-edge) child.\n\n"
+           "Returns:\n"
+           "    The created BDD node.\n")
+        .def_static("shared_size", [](const std::vector<BDD>& v) -> uint64_t {
+            return BDD::raw_size(v);
+        }, py::arg("bdds"),
+           "Count the total number of shared nodes across multiple BDDs.\n\n"
+           "Args:\n"
+           "    bdds: List of BDD objects.\n\n"
+           "Returns:\n"
+           "    The number of distinct nodes (with complement sharing).\n")
+        .def_static("shared_plain_size", [](const std::vector<BDD>& v) -> uint64_t {
+            return BDD::plain_size(v);
+        }, py::arg("bdds"),
+           "Count the total number of nodes across multiple BDDs without complement sharing.\n\n"
+           "Args:\n"
+           "    bdds: List of BDD objects.\n\n"
+           "Returns:\n"
+           "    The number of nodes.\n")
+
+        // Child accessors
+        .def("child0", [](const BDD& b) { return b.child0(); },
+             "Get the 0-child (lo) with complement edge resolution.")
+        .def("child1", [](const BDD& b) { return b.child1(); },
+             "Get the 1-child (hi) with complement edge resolution.")
+        .def("child", [](const BDD& b, int c) { return b.child(c); },
+             py::arg("child"),
+             "Get the child by index (0 or 1) with complement edge resolution.")
+        .def("raw_child0", [](const BDD& b) { return b.raw_child0(); },
+             "Get the raw 0-child (lo) without complement resolution.")
+        .def("raw_child1", [](const BDD& b) { return b.raw_child1(); },
+             "Get the raw 1-child (hi) without complement resolution.")
+        .def("raw_child", [](const BDD& b, int c) { return b.raw_child(c); },
+             py::arg("child"),
+             "Get the raw child by index (0 or 1) without complement resolution.")
+
+        // Binary I/O
+        .def("export_binary_str", [](const BDD& b) -> py::bytes {
+            std::ostringstream oss;
+            b.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this BDD in binary format to a bytes object.")
+        .def_static("import_binary_str", [](const std::string& data) -> BDD {
+            ensure_init();
+            std::istringstream iss(data);
+            return BDD::import_binary(iss);
+        }, py::arg("data"),
+           "Import a BDD from binary format bytes.")
+        .def("export_binary_file", [](const BDD& b, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            b.export_binary(ofs);
+        }, py::arg("path"),
+           "Export this BDD in binary format to a file.")
+        .def_static("import_binary_file", [](const std::string& path) -> BDD {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return BDD::import_binary(ifs);
+        }, py::arg("path"),
+           "Import a BDD from a binary format file.")
+
+        // Multi-root binary I/O
+        .def_static("export_binary_multi_str", [](const std::vector<BDD>& bdds) -> py::bytes {
+            std::ostringstream oss;
+            BDD::export_binary_multi(oss, bdds);
+            return py::bytes(oss.str());
+        }, py::arg("bdds"),
+           "Export multiple BDDs in binary format to a bytes object.")
+        .def_static("import_binary_multi_str", [](const std::string& data) -> std::vector<BDD> {
+            ensure_init();
+            std::istringstream iss(data);
+            return BDD::import_binary_multi(iss);
+        }, py::arg("data"),
+           "Import multiple BDDs from binary format bytes.")
+        .def_static("export_binary_multi_file", [](const std::vector<BDD>& bdds, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            BDD::export_binary_multi(ofs, bdds);
+        }, py::arg("bdds"), py::arg("path"),
+           "Export multiple BDDs in binary format to a file.")
+        .def_static("import_binary_multi_file", [](const std::string& path) -> std::vector<BDD> {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return BDD::import_binary_multi(ifs);
+        }, py::arg("path"),
+           "Import multiple BDDs from a binary format file.")
+
+        // Sapporo I/O
+        .def("export_sapporo_str", [](const BDD& b) -> std::string {
+            std::ostringstream oss;
+            b.export_sapporo(oss);
+            return oss.str();
+        }, "Export this BDD in Sapporo format to a string.")
+        .def_static("import_sapporo_str", [](const std::string& s) -> BDD {
+            ensure_init();
+            std::istringstream iss(s);
+            return BDD::import_sapporo(iss);
+        }, py::arg("s"),
+           "Import a BDD from a Sapporo format string.")
+        .def("export_sapporo_file", [](const BDD& b, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            b.export_sapporo(ofs);
+        }, py::arg("path"),
+           "Export this BDD in Sapporo format to a file.")
+        .def_static("import_sapporo_file", [](const std::string& path) -> BDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return BDD::import_sapporo(ifs);
+        }, py::arg("path"),
+           "Import a BDD from a Sapporo format file.")
+
+        // Graphviz
+        .def("save_graphviz_str", [](const BDD& b, bool raw) -> std::string {
+            std::ostringstream oss;
+            b.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            return oss.str();
+        }, py::arg("raw") = false,
+           "Export this BDD as a Graphviz DOT string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n\n"
+           "Returns:\n"
+           "    A DOT format string.\n")
+        .def("save_graphviz_file", [](const BDD& b, const std::string& path, bool raw) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            b.save_graphviz(ofs, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+        }, py::arg("path"), py::arg("raw") = false,
+           "Export this BDD as a Graphviz DOT file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n")
     ;
 
     // ZDD class
