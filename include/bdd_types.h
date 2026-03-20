@@ -148,6 +148,12 @@ class BDD;
 class ZDD;
 class QDD;
 
+/** @brief Graphviz output mode for save_graphviz(). */
+enum class GraphvizMode {
+    Expanded, ///< Complement edges expanded into full nodes (default).
+    Raw       ///< Physical DAG with complement edge markers (open circle).
+};
+
 /**
  * @brief Memo for ZDD exact counting, associated with a specific ZDD root.
  *
@@ -373,6 +379,10 @@ public:
     static BDD import_sapporo(FILE* strm);
     /** @brief Import a BDD from Sapporo format from an input stream. */
     static BDD import_sapporo(std::istream& strm);
+    /** @brief Save Graphviz DOT representation to a FILE stream. */
+    void save_graphviz(FILE* strm, GraphvizMode mode = GraphvizMode::Expanded) const;
+    /** @brief Save Graphviz DOT representation to an output stream. */
+    void save_graphviz(std::ostream& strm, GraphvizMode mode = GraphvizMode::Expanded) const;
     /** @brief Print BDD summary (ID, Var, Level, Size) to stdout. */
     void Print() const;
     /** @brief Print BDD graph (bddgraph0 wrapper). */
@@ -838,6 +848,10 @@ public:
     static ZDD import_sapporo(FILE* strm);
     /** @brief Import a ZDD from Sapporo format from an input stream. */
     static ZDD import_sapporo(std::istream& strm);
+    /** @brief Save Graphviz DOT representation to a FILE stream. */
+    void save_graphviz(FILE* strm, GraphvizMode mode = GraphvizMode::Expanded) const;
+    /** @brief Save Graphviz DOT representation to an output stream. */
+    void save_graphviz(std::ostream& strm, GraphvizMode mode = GraphvizMode::Expanded) const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
     void Print() const;
 

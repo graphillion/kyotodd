@@ -10496,3 +10496,171 @@ TEST_F(BDDTest, BddGetnodeRawNoValidation) {
     bddp zchild_v2 = ZDD::getnode_raw(v2, bddempty, bddsingle);
     EXPECT_NO_THROW(ZDD::getnode_raw(v1, zchild_v2, bddsingle));
 }
+
+// ---------------------------------------------------------------------------
+// save_graphviz tests
+// ---------------------------------------------------------------------------
+
+TEST_F(BDDTest, SaveGraphviz_BDD_TerminalFalse) {
+    std::ostringstream oss;
+    BDD::False.save_graphviz(oss);
+    std::string dot = oss.str();
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+    EXPECT_NE(dot.find("t0"), std::string::npos);
+    EXPECT_EQ(dot.find("t1"), std::string::npos);
+    EXPECT_NE(dot.find("}"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_TerminalTrue) {
+    std::ostringstream oss;
+    BDD::True.save_graphviz(oss);
+    std::string dot = oss.str();
+    EXPECT_NE(dot.find("t1"), std::string::npos);
+    EXPECT_EQ(dot.find("t0"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_ZDD_TerminalEmpty) {
+    std::ostringstream oss;
+    ZDD::Empty.save_graphviz(oss);
+    std::string dot = oss.str();
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+    EXPECT_NE(dot.find("t0"), std::string::npos);
+    EXPECT_EQ(dot.find("t1"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_ZDD_TerminalSingle) {
+    std::ostringstream oss;
+    ZDD::Single.save_graphviz(oss);
+    std::string dot = oss.str();
+    EXPECT_NE(dot.find("t1"), std::string::npos);
+    EXPECT_EQ(dot.find("t0"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_SingleVar_Expanded) {
+    bddvar v1 = bddnewvar();
+    BDD x1 = BDD::prime(v1);
+    std::ostringstream oss;
+    x1.save_graphviz(oss);
+    std::string dot = oss.str();
+    // Should have digraph, one non-terminal node, two terminals
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+    EXPECT_NE(dot.find("t0"), std::string::npos);
+    EXPECT_NE(dot.find("t1"), std::string::npos);
+    // Node should be labeled with variable number
+    std::string var_label = "label = \"" + std::to_string(v1) + "\"";
+    EXPECT_NE(dot.find(var_label), std::string::npos);
+    // Lo edge should be dotted
+    EXPECT_NE(dot.find("style = dotted"), std::string::npos);
+    // Color should be present
+    EXPECT_NE(dot.find("#81B65D"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_ComplementExpanded) {
+    bddvar v1 = bddnewvar();
+    BDD x1 = ~BDD::prime(v1);
+    std::ostringstream oss;
+    x1.save_graphviz(oss, GraphvizMode::Expanded);
+    std::string dot = oss.str();
+    // Should NOT have complement markers (arrowtail)
+    EXPECT_EQ(dot.find("arrowtail"), std::string::npos);
+    // Should still have valid structure
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+    EXPECT_NE(dot.find("t0"), std::string::npos);
+    EXPECT_NE(dot.find("t1"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_ComplementRaw) {
+    bddvar v1 = bddnewvar();
+    BDD x1 = ~BDD::prime(v1);
+    std::ostringstream oss;
+    x1.save_graphviz(oss, GraphvizMode::Raw);
+    std::string dot = oss.str();
+    // Raw mode with complement root should have entry point with arrowtail
+    EXPECT_NE(dot.find("entry"), std::string::npos);
+    EXPECT_NE(dot.find("arrowtail = odot"), std::string::npos);
+    EXPECT_NE(dot.find("dir = both"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_MultiVar_Expanded) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD f = BDD::prime(v1) & BDD::prime(v2);
+    std::ostringstream oss;
+    f.save_graphviz(oss);
+    std::string dot = oss.str();
+    // Should have both variable labels
+    std::string label1 = "label = \"" + std::to_string(v1) + "\"";
+    std::string label2 = "label = \"" + std::to_string(v2) + "\"";
+    EXPECT_NE(dot.find(label1), std::string::npos);
+    EXPECT_NE(dot.find(label2), std::string::npos);
+    // Should have rank constraints
+    EXPECT_NE(dot.find("rank = same"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_ZDD_SingleVar_Expanded) {
+    bddvar v1 = bddnewvar();
+    ZDD z = ZDD::singleton(v1);
+    std::ostringstream oss;
+    z.save_graphviz(oss);
+    std::string dot = oss.str();
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+    std::string var_label = "label = \"" + std::to_string(v1) + "\"";
+    EXPECT_NE(dot.find(var_label), std::string::npos);
+    EXPECT_NE(dot.find("t0"), std::string::npos);
+    EXPECT_NE(dot.find("t1"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_RawNoComplement) {
+    bddvar v1 = bddnewvar();
+    BDD x1 = BDD::prime(v1);
+    std::ostringstream oss;
+    x1.save_graphviz(oss, GraphvizMode::Raw);
+    std::string dot = oss.str();
+    // Non-complemented BDD in raw mode should NOT have entry point or arrowtail
+    EXPECT_EQ(dot.find("entry"), std::string::npos);
+    EXPECT_EQ(dot.find("arrowtail"), std::string::npos);
+    EXPECT_NE(dot.find("digraph {"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_FileOverload) {
+    bddvar v1 = bddnewvar();
+    BDD x1 = BDD::prime(v1);
+
+    // ostream version
+    std::ostringstream oss;
+    x1.save_graphviz(oss);
+
+    // FILE* version
+    FILE* tmp = tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    x1.save_graphviz(tmp);
+    long sz = ftell(tmp);
+    rewind(tmp);
+    std::string file_content(sz, '\0');
+    size_t nread = fread(&file_content[0], 1, sz, tmp);
+    file_content.resize(nread);
+    fclose(tmp);
+
+    EXPECT_EQ(oss.str(), file_content);
+}
+
+TEST_F(BDDTest, SaveGraphviz_ZDD_ComplementRaw) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // power_set has complement edges internally
+    ZDD z = ZDD::power_set(v2);
+    std::ostringstream oss_exp;
+    z.save_graphviz(oss_exp, GraphvizMode::Expanded);
+    std::ostringstream oss_raw;
+    z.save_graphviz(oss_raw, GraphvizMode::Raw);
+    // Both should be valid DOT
+    EXPECT_NE(oss_exp.str().find("digraph {"), std::string::npos);
+    EXPECT_NE(oss_raw.str().find("digraph {"), std::string::npos);
+}
+
+TEST_F(BDDTest, SaveGraphviz_BDD_Null) {
+    // BDD::Null should produce empty output
+    std::ostringstream oss;
+    BDD::Null.save_graphviz(oss);
+    EXPECT_TRUE(oss.str().empty());
+}

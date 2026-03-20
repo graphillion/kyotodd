@@ -295,6 +295,14 @@ inline BDD BDD::import_sapporo(std::istream& strm) {
     return BDD_ID(bdd_import_sapporo(strm));
 }
 
+inline void BDD::save_graphviz(FILE* strm, GraphvizMode mode) const {
+    bdd_save_graphviz(strm, root, mode);
+}
+
+inline void BDD::save_graphviz(std::ostream& strm, GraphvizMode mode) const {
+    bdd_save_graphviz(strm, root, mode);
+}
+
 inline void BDD::Print() const {
     bddvar v = bddtop(root);
     bddvar lev = bddlevofvar(v);
@@ -687,6 +695,14 @@ inline ZDD ZDD::import_sapporo(FILE* strm) {
 
 inline ZDD ZDD::import_sapporo(std::istream& strm) {
     return ZDD_ID(zdd_import_sapporo(strm));
+}
+
+inline void ZDD::save_graphviz(FILE* strm, GraphvizMode mode) const {
+    zdd_save_graphviz(strm, root, mode);
+}
+
+inline void ZDD::save_graphviz(std::ostream& strm, GraphvizMode mode) const {
+    zdd_save_graphviz(strm, root, mode);
 }
 
 inline void ZDD::XPrint() const {

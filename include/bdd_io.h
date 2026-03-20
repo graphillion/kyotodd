@@ -339,6 +339,21 @@ bddp zdd_import_graphillion(FILE* strm, int offset = 0);
  */
 bddp zdd_import_graphillion(std::istream& strm, int offset = 0);
 
+// --- Graphviz DOT format ---
+
+/** @brief Save BDD as Graphviz DOT to a FILE stream. */
+void bdd_save_graphviz(FILE* strm, bddp f,
+                       GraphvizMode mode = GraphvizMode::Expanded);
+/** @brief Save BDD as Graphviz DOT to an output stream. */
+void bdd_save_graphviz(std::ostream& strm, bddp f,
+                       GraphvizMode mode = GraphvizMode::Expanded);
+/** @brief Save ZDD as Graphviz DOT to a FILE stream. */
+void zdd_save_graphviz(FILE* strm, bddp f,
+                       GraphvizMode mode = GraphvizMode::Expanded);
+/** @brief Save ZDD as Graphviz DOT to an output stream. */
+void zdd_save_graphviz(std::ostream& strm, bddp f,
+                       GraphvizMode mode = GraphvizMode::Expanded);
+
 /** @brief @deprecated Always throws. Retained for API compatibility. */
 void bddgraph0(bddp f);
 /** @brief @deprecated Always throws. Retained for API compatibility. */
