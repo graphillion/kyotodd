@@ -48,10 +48,10 @@ A node ID is a 48-bit value. The MSB (bit 47) and LSB (bit 0) have special meani
 
 ## DD node creation
 
-- BDD: `BDD::getnode(var, lo, hi)` — BDD の削減規則を適用して新しいノードを作成する。レベル検証あり。
-- ZDD: `ZDD::getnode(var, lo, hi)` — ZDD の削減規則を適用して新しいノードを作成する。レベル検証あり。
-- QDD: `QDD::getnode(var, lo, hi)` — QDD ノードを作成する（jump rule なし）。レベル検証あり。
-- `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw` — 検証なしの内部・上級者向け版。
+- BDD: `BDD::getnode(var, lo, hi)` — Creates a new node applying BDD reduction rules. Includes level validation.
+- ZDD: `ZDD::getnode(var, lo, hi)` — Creates a new node applying ZDD reduction rules. Includes level validation.
+- QDD: `QDD::getnode(var, lo, hi)` — Creates a QDD node (no jump rule). Includes level validation.
+- `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw` — Internal/advanced version without validation.
 
 ## Complement edge semantics
 
@@ -112,22 +112,108 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 - Copy/move constructors register the new object's `&root`. Assignment operators only update the value.
 - `gc_roots()` uses a leaked singleton (`new std::unordered_set<bddp*>()`) to avoid static initialization/destruction order issues.
 
+## DDBase class
+
+- Base class for all decision diagram types. Defined in `include/dd_base.h`.
+- Not intended for polymorphic use; provides shared infrastructure.
+- Protected member `root` (bddp / uint64_t): the root node ID.
+- Constructors/destructors handle GC root registration (`bddgc_protect`/`bddgc_unprotect`).
+- Provides static methods: `init()`, `new_var()`, `var_used()`, `node_count()`, `gc()`, `to_level()`, `to_var()`.
+- Provides query methods: `get_id()`, `is_terminal()`, `is_one()`, `is_zero()`, `top()`, `raw_size()`.
+- Provides child accessors: `raw_child0()`, `raw_child1()`, `raw_child()`.
+
+### Class hierarchy
+
+```
+DDBase
+├── BDD
+├── ZDD
+├── QDD
+├── UnreducedBDD
+└── UnreducedZDD
+```
+
+SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrapping a ZDD internally).
+
 ## BDD class
 
-- `BDD` class has a single member `root` (uint64_t): the root node ID.
+- Inherits from DDBase.
+- Applies BDD reduction rule: `lo == hi` → return lo (jump rule).
+- Uses BDD complement edge semantics (both children flipped).
 
 ## ZDD class
 
-- `ZDD` class has a single member `root` (uint64_t): the root node ID.
-- ZDD は集合族を表現する。complement edge は空集合 (∅) のメンバーシップを切り替える。
+- Inherits from DDBase.
+- ZDD represents a family of sets. A complement edge toggles membership of the empty set (∅).
+- Applies ZDD zero-suppression rule: `hi == bddempty` → return lo.
+- Uses ZDD complement edge semantics (only lo flipped).
 
 ## QDD class
 
-- `QDD` (Quasi-reduced Decision Diagram) class has a single member `root` (uint64_t): the root node ID.
-- QDD は jump rule を適用しない（lo == hi のノードも保持）。根から終端までの全レベルを訪問する。
-- complement edge は BDD と同じセマンティクス（lo と hi の両方を反転）。
-- `QDD::getnode(var, lo, hi)` は子のレベルが var のレベル - 1 であることを検証する。
-- BDD/ZDD との変換: `BDD::to_qdd()`, `ZDD::to_qdd()`, `QDD::to_bdd()`, `QDD::to_zdd()`。
+- Inherits from DDBase.
+- `QDD` (Quasi-reduced Decision Diagram).
+- QDD does not apply the jump rule (retains nodes even when lo == hi). Visits every level from root to terminal.
+- Complement edge semantics are the same as BDD (both lo and hi are flipped).
+- `QDD::getnode(var, lo, hi)` validates that children's levels equal var's level - 1.
+- Conversion to/from BDD/ZDD: `BDD::to_qdd()`, `ZDD::to_qdd()`, `QDD::to_bdd()`, `QDD::to_zdd()`.
+
+## UnreducedBDD class
+
+- Inherits from DDBase. Defined in `include/unreduced_dd.h`.
+- Does NOT apply BDD reduction rules. Allows `lo == hi` nodes.
+- Complement edges are NOT normalized: can store complemented lo in the node.
+- Nodes are NOT inserted in the unique table (not canonical).
+- `UnreducedBDD::node(var, lo, hi)`: If both children are reduced AND `lo != hi`, delegates to `BDD::getnode_raw()` (produces a canonical node). Otherwise, allocates an unreduced node.
+- Supports top-down construction with `set_child0()` / `set_child1()` to mutate children after creation.
+- `is_reduced()`: Checks the reduced flag on the node.
+- `reduce()`: Recursively reduces bottom-up using `BDD::getnode()` to produce a canonical BDD.
+
+## UnreducedZDD class
+
+- Inherits from DDBase. Defined in `include/unreduced_dd.h`.
+- Does NOT apply the ZDD zero-suppression rule (`hi == bddempty`).
+- Complement edges are NOT normalized. Nodes are NOT in the unique table.
+- `UnreducedZDD::node(var, lo, hi)`: If both children are reduced AND `hi != bddempty`, delegates to `ZDD::getnode()`. Otherwise, allocates an unreduced node.
+- Supports `set_child0()` / `set_child1()` for top-down construction.
+- `reduce()`: Recursively reduces using `ZDD::getnode()` to produce a canonical ZDD.
+
+## SeqBDD class
+
+- Defined in `include/seqbdd.h`. Does NOT inherit from DDBase.
+- Uses composition: wraps a `ZDD` internally (`zdd_` member).
+- Provides string/sequence-specific operations over ZDD.
+- Key operations: `off_set()`, `on_set()`, `on_set0()`, `push()`, `top()`, `size()`, `card()`, `lit()`, `len()`.
+
+## PiDD class
+
+- Defined in `include/pidd.h`. Does NOT inherit from DDBase.
+- Uses composition: wraps a `ZDD` internally (`zdd_` member).
+- Represents permutations using transposition algebra.
+- Key operations: `Swap(u, v)`, `Cofact(u, v)`, `Odd()`, `Even()`, `SwapBound(n)`.
+
+## RotPiDD class
+
+- Defined in `include/rotpidd.h`. Does NOT inherit from DDBase.
+- Uses composition: wraps a `ZDD` internally (`zdd_` member).
+- Extends PiDD to handle rotations in addition to transpositions.
+- Key operations: `LeftRot(u, v)`, `Reverse(l, r)`, `Order(a, b)`, `Inverse()`, `Insert(p, v)`.
+
+## Node reduced flag
+
+The reduced flag is a 1-bit flag stored in `data[0]` bit 32 of a `BddNode`.
+
+```
+data[0] bits [63:33] : var     (31 bits)
+data[0] bit  [32]    : reduced (1 bit)
+data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
+```
+
+- Constant: `BDD_NODE_REDUCED_FLAG = 1ULL << 32` (defined in `include/bdd_node.h`).
+- `node_set_reduced(node_id)`: Sets bit 32 of data[0].
+- `node_is_reduced(node_id)`: Checks bit 32 of data[0].
+- `bddp_is_reduced(p)`: Returns true for terminal nodes (always reduced), false for null, and checks the flag for regular nodes.
+- In `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw`: the reduced flag is set when both children are reduced.
+- In `UnreducedBDD::node()` / `UnreducedZDD::node()`: the reduced flag is NOT set for unreduced nodes. Only nodes created via delegation to `getnode_raw` have the flag set.
 
 ## Repository
 
@@ -136,26 +222,30 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 
 ### File structure
 
-- `CMakeLists.txt` — ビルド設定
-- `include/bdd.h` — アンブレラヘッダ（全ヘッダを include）
-- `include/bdd_types.h` — 型定義、定数、構造体、BDD/ZDD クラス宣言
-- `include/bdd_base.h` — インフラ関数宣言（初期化、変数管理、ノード作成等）
-- `include/bdd_ops.h` — BDD 演算関数宣言
-- `include/bdd_io.h` — I/O 関数宣言（export/import）
-- `include/bdd_internal.h` — 内部ヘッダ（ノードアクセサ inline 関数）
-- `include/bdd_node.h` — BddNode 構造体の定義
-- `src/bdd_base.cpp` — グローバル変数、初期化、変数管理、ユニークテーブル、キャッシュ、ノード作成
-- `src/bdd_ops.cpp` — BDD 演算（and, or, xor, ite, cofactor, 量化等）
-- `src/zdd_ops.cpp` — ZDD 基本演算（offset, onset, change, union, intersec, subtract, div, join, meet, delta 等）
-- `src/zdd_adv.cpp` — ZDD 高度演算（disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card 等）
-- `src/zdd_adv2.cpp` — ZDD 追加演算（permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset 等）
-- `src/bdd_io.cpp` — export/import の実装
-- `src/bdd_class.cpp` — BDD/ZDD static const 定義
-- `src/qdd.cpp` — QDD 実装（getnode、BDD/ZDD 変換等）
-- `src/unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD 実装
-- `include/qdd.h` — QDD クラス宣言
-- `include/unreduced_dd.h` — UnreducedBDD/UnreducedZDD クラス宣言
-- `src/main.cpp` — メインエントリポイント
-- `test/test_bdd.cpp` — Google Test によるテスト
-- `test/test_qdd.cpp` — QDD テスト
-- `test/test_unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD テスト
+- `CMakeLists.txt` — Build configuration
+- `include/bdd.h` — Umbrella header (includes all headers)
+- `include/dd_base.h` — DDBase base class definition
+- `include/bdd_types.h` — Type definitions, constants, structs, BDD/ZDD class declarations
+- `include/bdd_base.h` — Infrastructure function declarations (initialization, variable management, node creation, etc.)
+- `include/bdd_ops.h` — BDD operation function declarations
+- `include/bdd_io.h` — I/O function declarations (export/import)
+- `include/bdd_internal.h` — Internal header (node accessor inline functions)
+- `include/bdd_node.h` — BddNode struct definition
+- `src/bdd_base.cpp` — Global variables, initialization, variable management, unique table, cache, node creation
+- `src/bdd_ops.cpp` — BDD operations (and, or, xor, ite, cofactor, quantification, etc.)
+- `src/zdd_ops.cpp` — ZDD basic operations (offset, onset, change, union, intersec, subtract, div, join, meet, delta, etc.)
+- `src/zdd_adv.cpp` — ZDD advanced operations (disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card, etc.)
+- `src/zdd_adv2.cpp` — ZDD additional operations (permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset, etc.)
+- `src/bdd_io.cpp` — export/import implementation
+- `src/bdd_class.cpp` — BDD/ZDD static const definitions
+- `src/qdd.cpp` — QDD implementation (getnode, BDD/ZDD conversion, etc.)
+- `src/unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD implementation
+- `include/qdd.h` — QDD class declaration
+- `include/unreduced_dd.h` — UnreducedBDD/UnreducedZDD class declaration
+- `include/seqbdd.h` — SeqBDD class declaration
+- `include/pidd.h` — PiDD class declaration
+- `include/rotpidd.h` — RotPiDD class declaration
+- `src/main.cpp` — Main entry point
+- `test/test_bdd.cpp` — Tests using Google Test
+- `test/test_qdd.cpp` — QDD tests
+- `test/test_unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD tests
