@@ -413,3 +413,89 @@ TEST_F(QDDTest, ChildAccessorExceptions) {
     EXPECT_THROW(QDD::raw_child(n.get_id(), 2), std::invalid_argument);
     EXPECT_THROW(QDD::child(n.get_id(), 2), std::invalid_argument);
 }
+
+// --- Binary format export/import tests ---
+
+TEST_F(QDDTest, Binary_TerminalZero) {
+    QDD f = QDD::zero();
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(g, QDD::zero());
+}
+
+TEST_F(QDDTest, Binary_TerminalOne) {
+    QDD f = QDD::one();
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(g, QDD::one());
+}
+
+TEST_F(QDDTest, Binary_SimpleRoundtrip) {
+    bddvar v1 = bddnewvar();
+    QDD f = QDD::getnode(v1, QDD::zero(), QDD::one());
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(QDDTest, Binary_MultiLevel) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // Build bottom-up: level 1, then level 2, then level 3
+    QDD l1a = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD l1b = QDD::getnode(v1, QDD::one(), QDD::zero());
+    QDD l2 = QDD::getnode(v2, l1a, l1b);
+    QDD l3 = QDD::getnode(v3, l2, l2);  // lo == hi (preserved in QDD)
+    std::ostringstream oss;
+    l3.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(l3, g);
+}
+
+TEST_F(QDDTest, Binary_ComplementRoot) {
+    bddvar v1 = bddnewvar();
+    QDD f = ~QDD::getnode(v1, QDD::zero(), QDD::one());
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(QDDTest, Binary_LoEqualsHiPreserved) {
+    // Verify that QDD preserves lo == hi nodes (BDD would collapse them)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    QDD l1 = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD l2 = QDD::getnode(v2, l1, l1);  // lo == hi
+    EXPECT_FALSE(l2.is_terminal());  // not collapsed
+
+    std::ostringstream oss;
+    l2.export_binary(oss);
+    std::istringstream iss(oss.str());
+    QDD g = QDD::import_binary(iss);
+    EXPECT_EQ(l2, g);
+    EXPECT_FALSE(g.is_terminal());
+}
+
+TEST_F(QDDTest, Binary_FileRoundtrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    QDD l1 = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD f = QDD::getnode(v2, l1, ~l1);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_binary(fp);
+    std::rewind(fp);
+    QDD g = QDD::import_binary(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f, g);
+}

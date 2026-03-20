@@ -143,6 +143,14 @@ UnreducedDD UnreducedDD::getnode(bddvar var, const UnreducedDD& lo,
     return result;
 }
 
+bddp UnreducedDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
+    // Always allocate an unreduced node:
+    // no complement normalization, no reduction rules, no unique table.
+    bddp node_id = allocate_node();
+    node_write(node_id, var, lo, hi);
+    return node_id;
+}
+
 // --- Child accessors (member versions) ---
 
 UnreducedDD UnreducedDD::raw_child0() const {

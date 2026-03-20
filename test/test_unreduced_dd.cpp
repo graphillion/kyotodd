@@ -647,3 +647,92 @@ TEST_F(UnreducedDDTest, SameStructure_DifferentResults_NonTrivial) {
     ZDD zdd = n.reduce_as_zdd();
     EXPECT_EQ(zdd.get_id(), bddsingle);
 }
+
+// =============================================================
+// Binary format export/import
+// =============================================================
+
+TEST_F(UnreducedDDTest, Binary_TerminalZero) {
+    UnreducedDD f = UnreducedDD::zero();
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    UnreducedDD g = UnreducedDD::import_binary(iss);
+    EXPECT_EQ(g.get_id(), bddfalse);
+}
+
+TEST_F(UnreducedDDTest, Binary_TerminalOne) {
+    UnreducedDD f = UnreducedDD::one();
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    UnreducedDD g = UnreducedDD::import_binary(iss);
+    EXPECT_EQ(g.get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, Binary_SimpleRoundtrip) {
+    bddvar v1 = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                          UnreducedDD::one());
+    std::ostringstream oss;
+    n.export_binary(oss);
+    std::istringstream iss(oss.str());
+    UnreducedDD g = UnreducedDD::import_binary(iss);
+    EXPECT_EQ(g.top(), n.top());
+    EXPECT_EQ(g.raw_child0().get_id(), bddfalse);
+    EXPECT_EQ(g.raw_child1().get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, Binary_MultiLevel) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    UnreducedDD l1 = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                           UnreducedDD::one());
+    UnreducedDD l2 = UnreducedDD::getnode(v2, l1, UnreducedDD::one());
+    std::ostringstream oss;
+    l2.export_binary(oss);
+    std::istringstream iss(oss.str());
+    UnreducedDD g = UnreducedDD::import_binary(iss);
+    EXPECT_EQ(g.top(), l2.top());
+    // Verify child structure is preserved
+    UnreducedDD gc0 = g.raw_child0();
+    EXPECT_EQ(gc0.top(), v1);
+    EXPECT_EQ(gc0.raw_child0().get_id(), bddfalse);
+    EXPECT_EQ(gc0.raw_child1().get_id(), bddtrue);
+    EXPECT_EQ(g.raw_child1().get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, Binary_FileRoundtrip) {
+    bddvar v1 = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                          UnreducedDD::one());
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    n.export_binary(fp);
+    std::rewind(fp);
+    UnreducedDD g = UnreducedDD::import_binary(fp);
+    std::fclose(fp);
+    EXPECT_EQ(g.top(), n.top());
+    EXPECT_EQ(g.raw_child0().get_id(), bddfalse);
+    EXPECT_EQ(g.raw_child1().get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, Binary_ReduceAfterImport) {
+    // Build an unreduced DD that has a lo==hi node (BDD would collapse)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    UnreducedDD l1 = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                           UnreducedDD::one());
+    // lo == hi: both are l1
+    UnreducedDD l2 = UnreducedDD::getnode(v2, l1, l1);
+
+    std::ostringstream oss;
+    l2.export_binary(oss);
+    std::istringstream iss(oss.str());
+    UnreducedDD g = UnreducedDD::import_binary(iss);
+
+    // reduce_as_bdd: lo==hi node at v2 should be collapsed by jump rule
+    BDD bdd = g.reduce_as_bdd();
+    BDD expected = BDD_ID(BDD::getnode(v1, bddfalse, bddtrue));
+    EXPECT_EQ(bdd.get_id(), expected.get_id());
+}

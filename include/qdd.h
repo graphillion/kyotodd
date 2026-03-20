@@ -123,6 +123,17 @@ public:
     /** @brief Get the child by index as a QDD (with complement resolution). */
     QDD child(int child) const;
 
+    // --- Binary format I/O ---
+
+    /** @brief Export this QDD in BDD binary format to a FILE stream. */
+    void export_binary(FILE* strm) const;
+    /** @brief Export this QDD in BDD binary format to an output stream. */
+    void export_binary(std::ostream& strm) const;
+    /** @brief Import a QDD from BDD binary format from a FILE stream. */
+    static QDD import_binary(FILE* strm);
+    /** @brief Import a QDD from BDD binary format from an input stream. */
+    static QDD import_binary(std::istream& strm);
+
     // --- Conversion ---
 
     /** @brief Convert QDD to canonical BDD by applying jump rule via getnode(). */

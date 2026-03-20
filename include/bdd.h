@@ -900,4 +900,38 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
 #include "unreduced_dd.h"
 #include "qdd.h"
 
+// --- QDD binary format inline definitions ---
+
+inline void QDD::export_binary(FILE* strm) const {
+    qdd_export_binary(strm, root);
+}
+inline void QDD::export_binary(std::ostream& strm) const {
+    qdd_export_binary(strm, root);
+}
+inline QDD QDD::import_binary(FILE* strm) {
+    return QDD_ID(qdd_import_binary(strm));
+}
+inline QDD QDD::import_binary(std::istream& strm) {
+    return QDD_ID(qdd_import_binary(strm));
+}
+
+// --- UnreducedDD binary format inline definitions ---
+
+inline void UnreducedDD::export_binary(FILE* strm) const {
+    unreduced_export_binary(strm, root);
+}
+inline void UnreducedDD::export_binary(std::ostream& strm) const {
+    unreduced_export_binary(strm, root);
+}
+inline UnreducedDD UnreducedDD::import_binary(FILE* strm) {
+    UnreducedDD u(0);
+    u.root = unreduced_import_binary(strm);
+    return u;
+}
+inline UnreducedDD UnreducedDD::import_binary(std::istream& strm) {
+    UnreducedDD u(0);
+    u.root = unreduced_import_binary(strm);
+    return u;
+}
+
 #endif

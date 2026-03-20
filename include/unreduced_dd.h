@@ -118,6 +118,20 @@ public:
     static UnreducedDD getnode(bddvar var, const UnreducedDD& lo,
                                const UnreducedDD& hi);
 
+    /**
+     * @brief Create an unreduced node from raw bddp values.
+     *
+     * Always allocates a new unreduced node. No complement
+     * normalization, no reduction rules, no unique table insertion.
+     * Matches the import_nodefn_t signature for binary import.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child node ID.
+     * @param hi  The high (1-edge) child node ID.
+     * @return The new node ID (always even, unreduced flag).
+     */
+    static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
+
     // --- Child accessors (raw only, no complement interpretation) ---
 
     using DDBase::raw_child0;
@@ -164,6 +178,17 @@ public:
     bool operator!=(const UnreducedDD& o) const { return root != o.root; }
     /** @brief Less-than by bddp value (for ordered containers). */
     bool operator<(const UnreducedDD& o) const { return root < o.root; }
+
+    // --- Binary format I/O ---
+
+    /** @brief Export this UnreducedDD in BDD binary format to a FILE stream. */
+    void export_binary(FILE* strm) const;
+    /** @brief Export this UnreducedDD in BDD binary format to an output stream. */
+    void export_binary(std::ostream& strm) const;
+    /** @brief Import an UnreducedDD from BDD binary format from a FILE stream. */
+    static UnreducedDD import_binary(FILE* strm);
+    /** @brief Import an UnreducedDD from BDD binary format from an input stream. */
+    static UnreducedDD import_binary(std::istream& strm);
 
     // --- Query ---
 

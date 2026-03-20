@@ -935,6 +935,10 @@ void bdd_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 2); }
 void bdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 2); }
 void zdd_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 3); }
 void zdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 3); }
+void qdd_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 1); }
+void qdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 1); }
+void unreduced_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 1); }
+void unreduced_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 1); }
 
 // --- Binary format import ---
 
@@ -1089,6 +1093,10 @@ bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, BDD::getnod
 bddp bdd_import_binary(std::istream& strm) { return binary_import_core(strm, BDD::getnode_raw); }
 bddp zdd_import_binary(FILE* strm) { return binary_import_core(strm, ZDD::getnode_raw); }
 bddp zdd_import_binary(std::istream& strm) { return binary_import_core(strm, ZDD::getnode_raw); }
+bddp qdd_import_binary(FILE* strm) { return binary_import_core(strm, QDD::getnode_raw); }
+bddp qdd_import_binary(std::istream& strm) { return binary_import_core(strm, QDD::getnode_raw); }
+bddp unreduced_import_binary(FILE* strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
+bddp unreduced_import_binary(std::istream& strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
 
 // --- Sapporo format save/load wrappers ---
 

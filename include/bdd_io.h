@@ -256,6 +256,28 @@ bddp zdd_import_binary(FILE* strm);
 /** @brief Import a single ZDD from BDD binary format from an input stream. */
 bddp zdd_import_binary(std::istream& strm);
 
+// --- QDD binary format ---
+
+/** @brief Export a single QDD in BDD binary format to a FILE stream. */
+void qdd_export_binary(FILE* strm, bddp f);
+/** @brief Export a single QDD in BDD binary format to an output stream. */
+void qdd_export_binary(std::ostream& strm, bddp f);
+/** @brief Import a single QDD from BDD binary format from a FILE stream. */
+bddp qdd_import_binary(FILE* strm);
+/** @brief Import a single QDD from BDD binary format from an input stream. */
+bddp qdd_import_binary(std::istream& strm);
+
+// --- UnreducedDD binary format ---
+
+/** @brief Export a single UnreducedDD in BDD binary format to a FILE stream. */
+void unreduced_export_binary(FILE* strm, bddp f);
+/** @brief Export a single UnreducedDD in BDD binary format to an output stream. */
+void unreduced_export_binary(std::ostream& strm, bddp f);
+/** @brief Import a single UnreducedDD from BDD binary format from a FILE stream. */
+bddp unreduced_import_binary(FILE* strm);
+/** @brief Import a single UnreducedDD from BDD binary format from an input stream. */
+bddp unreduced_import_binary(std::istream& strm);
+
 // --- Sapporo format save/load ---
 
 /**
