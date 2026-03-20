@@ -10253,3 +10253,147 @@ TEST_F(BDDTest, Binary_CLevel_ZDD) {
     ZDD gz = ZDD_ID(g);
     EXPECT_EQ(f.enumerate(), gz.enumerate());
 }
+
+// --- Knuth format export/import tests (obsolete format) ---
+
+TEST_F(BDDTest, Knuth_ZDD_TerminalEmpty) {
+    std::ostringstream oss;
+    ZDD(0).export_knuth(oss);
+    EXPECT_EQ(oss.str(), "0\n");
+    std::istringstream iss("0\n");
+    EXPECT_EQ(ZDD::import_knuth(iss), ZDD::Empty);
+}
+
+TEST_F(BDDTest, Knuth_ZDD_TerminalSingle) {
+    std::ostringstream oss;
+    ZDD(1).export_knuth(oss);
+    EXPECT_EQ(oss.str(), "1\n");
+    std::istringstream iss("1\n");
+    EXPECT_EQ(ZDD::import_knuth(iss), ZDD::Single);
+}
+
+TEST_F(BDDTest, Knuth_ZDD_RoundtripDecimal) {
+    ZDD f = ZDD::power_set(3);
+    std::ostringstream oss;
+    f.export_knuth(oss, false);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss, false);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_ZDD_RoundtripHex) {
+    ZDD f = ZDD::power_set(3);
+    std::ostringstream oss;
+    f.export_knuth(oss, true);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss, true);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_ZDD_RoundtripMultiLevel) {
+    // Use a ZDD with standard ordering (root at highest level)
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {2, 3}, {1, 3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_ZDD_RoundtripFromSets) {
+    std::vector<std::vector<bddvar>> sets = {{1, 3}, {2}, {1, 2, 3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_ZDD_ComplementEdge) {
+    ZDD f = ~ZDD::power_set(2);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_BDD_RoundtripStream) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_knuth(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Knuth_BDD_TerminalFalse) {
+    std::ostringstream oss;
+    BDD::False.export_knuth(oss);
+    EXPECT_EQ(oss.str(), "0\n");
+}
+
+TEST_F(BDDTest, Knuth_BDD_TerminalTrue) {
+    std::ostringstream oss;
+    BDD::True.export_knuth(oss);
+    EXPECT_EQ(oss.str(), "1\n");
+}
+
+TEST_F(BDDTest, Knuth_ExportFormatCheck) {
+    // Verify the exact format: level headers and node lines
+    ZDD f = ZDD::singleton(1);  // {{1}}, single node at level 1
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::string out = oss.str();
+    // Root is at level 1 (KyotoDD), max_level=1, knuth_level = 1+1-1 = 1
+    // Node with ID 2, lo=0 (empty), hi=1 (single)
+    EXPECT_EQ(out, "#1\n2:0,1\n");
+}
+
+TEST_F(BDDTest, Knuth_ExportHexFormat) {
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.export_knuth(oss, true);
+    EXPECT_EQ(oss.str(), "#1\n2:0,1\n");
+}
+
+TEST_F(BDDTest, Knuth_OffsetImport) {
+    // Import with offset=2: knuth_level 1 → kyotodd_level = 1+1-1+2 = 3
+    std::istringstream iss("#1\n2:0,1\n");
+    ZDD z = ZDD::import_knuth(iss, false, 2);
+    auto sets = z.enumerate();
+    std::vector<std::vector<bddvar>> expected = {{3}};
+    EXPECT_EQ(sets, expected);
+}
+
+TEST_F(BDDTest, Knuth_OffsetExport) {
+    ZDD f = ZDD::singleton(1);
+    std::ostringstream oss;
+    f.export_knuth(oss, false, 2);
+    // level=1, N=1, knuth_level = 1+1-1+2 = 3
+    EXPECT_EQ(oss.str(), "#3\n2:0,1\n");
+}
+
+TEST_F(BDDTest, Knuth_FileRoundtrip) {
+    ZDD f = ZDD::power_set(3);
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    f.export_knuth(fp);
+    std::rewind(fp);
+    ZDD g = ZDD::import_knuth(fp);
+    std::fclose(fp);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_CLevel) {
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}};
+    ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    zdd_export_knuth(oss, f.GetID());
+    std::istringstream iss(oss.str());
+    bddp g = zdd_import_knuth(iss);
+    ZDD gz = ZDD_ID(g);
+    EXPECT_EQ(f.enumerate(), gz.enumerate());
+}

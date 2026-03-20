@@ -250,6 +250,19 @@ inline void BDD::Export(std::ostream& strm) const {
     bddexport(strm, &p, 1);
 }
 
+inline void BDD::export_knuth(FILE* strm, bool is_hex, int offset) const {
+    bdd_export_knuth(strm, root, is_hex, offset);
+}
+inline void BDD::export_knuth(std::ostream& strm, bool is_hex, int offset) const {
+    bdd_export_knuth(strm, root, is_hex, offset);
+}
+inline BDD BDD::import_knuth(FILE* strm, bool is_hex, int offset) {
+    return BDD_ID(bdd_import_knuth(strm, is_hex, offset));
+}
+inline BDD BDD::import_knuth(std::istream& strm, bool is_hex, int offset) {
+    return BDD_ID(bdd_import_knuth(strm, is_hex, offset));
+}
+
 inline void BDD::export_binary(FILE* strm) const {
     bdd_export_binary(strm, root);
 }
@@ -629,6 +642,19 @@ inline void ZDD::Export(FILE* strm) const {
 inline void ZDD::Export(std::ostream& strm) const {
     bddp p = root;
     bddexport(strm, &p, 1);
+}
+
+inline void ZDD::export_knuth(FILE* strm, bool is_hex, int offset) const {
+    zdd_export_knuth(strm, root, is_hex, offset);
+}
+inline void ZDD::export_knuth(std::ostream& strm, bool is_hex, int offset) const {
+    zdd_export_knuth(strm, root, is_hex, offset);
+}
+inline ZDD ZDD::import_knuth(FILE* strm, bool is_hex, int offset) {
+    return ZDD_ID(zdd_import_knuth(strm, is_hex, offset));
+}
+inline ZDD ZDD::import_knuth(std::istream& strm, bool is_hex, int offset) {
+    return ZDD_ID(zdd_import_knuth(strm, is_hex, offset));
 }
 
 inline void ZDD::export_binary(FILE* strm) const {

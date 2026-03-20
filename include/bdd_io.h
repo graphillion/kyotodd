@@ -168,6 +168,47 @@ void bdddump(bddp f);
  */
 void bddvdump(bddp *p, int n);
 
+// --- Knuth format save/load (obsolete) ---
+
+/**
+ * @deprecated Use Sapporo or Binary format instead.
+ * @brief Export a single BDD in Knuth format to a FILE stream.
+ *
+ * Knuth format is a text format with level headers (#1, #2, ...) and
+ * node lines (id:lo,hi). Complement edges are expanded. Provided for
+ * backward compatibility only.
+ *
+ * @param strm   Output FILE stream.
+ * @param f      BDD root node ID.
+ * @param is_hex If true, use hexadecimal; otherwise decimal.
+ * @param offset Level offset: level = N + 1 - knuth_level + offset.
+ */
+void bdd_export_knuth(FILE* strm, bddp f, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_export_knuth */
+void bdd_export_knuth(std::ostream& strm, bddp f, bool is_hex = false, int offset = 0);
+
+/**
+ * @deprecated Use Sapporo or Binary format instead.
+ * @brief Import a single BDD from Knuth format from a FILE stream.
+ */
+bddp bdd_import_knuth(FILE* strm, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_import_knuth */
+bddp bdd_import_knuth(std::istream& strm, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_export_knuth */
+void zdd_export_knuth(FILE* strm, bddp f, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_export_knuth */
+void zdd_export_knuth(std::ostream& strm, bddp f, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_import_knuth */
+bddp zdd_import_knuth(FILE* strm, bool is_hex = false, int offset = 0);
+
+/** @deprecated @copybrief bdd_import_knuth */
+bddp zdd_import_knuth(std::istream& strm, bool is_hex = false, int offset = 0);
+
 // --- Binary format save/load ---
 
 /**
