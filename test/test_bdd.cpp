@@ -10893,3 +10893,19 @@ TEST_F(BDDTest, UniformSampleWithReorderedVariables) {
         }
     }
 }
+
+// --- ZDD_Import error handling ---
+
+TEST_F(BDDTest, ZDD_ImportIstreamInvalidInputThrows) {
+    std::istringstream bad("XXX");
+    EXPECT_THROW(ZDD_Import(bad), std::runtime_error);
+}
+
+TEST_F(BDDTest, ZDD_ImportFilePtrInvalidInputThrows) {
+    FILE* tmp = tmpfile();
+    ASSERT_NE(tmp, nullptr);
+    fprintf(tmp, "XXX");
+    rewind(tmp);
+    EXPECT_THROW(ZDD_Import(tmp), std::runtime_error);
+    fclose(tmp);
+}

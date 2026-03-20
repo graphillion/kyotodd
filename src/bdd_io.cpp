@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <istream>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <algorithm>
@@ -337,7 +338,10 @@ int bddimportz(std::istream& strm, std::vector<bddp>& v) {
 ZDD ZDD_Import(FILE* strm) {
     bddp p = bddnull;
     int ret = bddimportz(strm, &p, 1);
-    if (ret <= 0) return ZDD_ID(bddempty);
+    if (ret < 0) {
+        throw std::runtime_error("ZDD_Import: failed to parse input");
+    }
+    if (ret == 0) return ZDD_ID(bddempty);
     return ZDD_ID(p);
 }
 
@@ -353,7 +357,10 @@ int ZDD_Import(FILE* strm, std::vector<ZDD>& v) {
 ZDD ZDD_Import(std::istream& strm) {
     bddp p = bddnull;
     int ret = bddimportz(strm, &p, 1);
-    if (ret <= 0) return ZDD_ID(bddempty);
+    if (ret < 0) {
+        throw std::runtime_error("ZDD_Import: failed to parse input");
+    }
+    if (ret == 0) return ZDD_ID(bddempty);
     return ZDD_ID(p);
 }
 
