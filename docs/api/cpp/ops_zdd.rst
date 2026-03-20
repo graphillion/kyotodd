@@ -63,10 +63,12 @@ Counting
 --------
 
 .. doxygenfunction:: bddcard
+.. doxygenfunction:: bddcount
 .. doxygenfunction:: bddlit
 .. doxygenfunction:: bddlen
 .. doxygenfunction:: bddexactcount
 .. doxygenfunction:: bddcardmp16
+.. doxygenfunction:: bddhasempty
 
 Random Generation
 -----------------

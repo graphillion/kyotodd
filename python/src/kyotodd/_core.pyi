@@ -672,6 +672,17 @@ class ZDD:
         """Return string representation: ZDD(node_id=...)."""
         ...
 
+    def __bool__(self) -> bool:
+        """Always raises TypeError.
+
+        ZDD cannot be converted to bool.
+        Use ``== ZDD.empty`` or ``== ZDD.single`` instead.
+
+        Raises:
+            TypeError: Always.
+        """
+        ...
+
     def change(self, v: int) -> ZDD:
         """Toggle membership of variable v in all sets.
 

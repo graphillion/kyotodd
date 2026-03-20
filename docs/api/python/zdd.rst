@@ -132,6 +132,15 @@ ZDD Class
 
       Return string representation: ``ZDD(node_id=...)``.
 
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      ZDD cannot be converted to bool. Use ``== ZDD.empty`` or
+      ``== ZDD.single`` instead.
+
+      :raises TypeError: Always.
+
    Selection Operations
    --------------------
 
@@ -402,6 +411,184 @@ ZDD Class
 
       The number of sets in the family (arbitrary precision Python int).
 
+   .. py:method:: count()
+
+      Count the number of sets in the family (floating-point).
+
+      :return: The number of sets as a float.
+      :rtype: float
+
+   .. py:method:: has_empty()
+
+      Check if the empty set is a member of the family.
+
+      :return: True if the family contains the empty set.
+      :rtype: bool
+
+   Enumeration and Sampling
+   ------------------------
+
+   .. py:method:: enumerate()
+
+      Enumerate all sets in the family.
+
+      :return: A list of sets, each a list of variable numbers.
+      :rtype: list[list[int]]
+
+   .. py:method:: uniform_sample(seed=0)
+
+      Sample a set uniformly at random from the family.
+
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
+   Constructors
+   ------------
+
+   .. py:staticmethod:: singleton(v)
+
+      Create the ZDD ``{{v}}`` (a family with one singleton set).
+
+      :param int v: Variable number.
+      :rtype: ZDD
+
+   .. py:staticmethod:: single_set(vars)
+
+      Create the ZDD ``{{v1, v2, ...}}`` (a family with one set).
+
+      :param list[int] vars: List of variable numbers.
+      :rtype: ZDD
+
+   .. py:staticmethod:: power_set(n)
+
+      Create the power set of ``{1, ..., n}``.
+
+      :param int n: Universe size.
+      :rtype: ZDD
+
+   .. py:staticmethod:: power_set_vars(vars)
+
+      Create the power set of the given variables.
+
+      :param list[int] vars: List of variable numbers.
+      :rtype: ZDD
+
+   .. py:staticmethod:: from_sets(sets)
+
+      Construct a ZDD from a list of sets.
+
+      :param list[list[int]] sets: List of sets, each a list of variable numbers.
+      :rtype: ZDD
+
+   .. py:staticmethod:: combination(n, k)
+
+      Create the ZDD of all *k*-element subsets of ``{1, ..., n}``.
+
+      :param int n: Universe size.
+      :param int k: Subset size.
+      :rtype: ZDD
+
+   Node Operations
+   ---------------
+
+   .. py:staticmethod:: getnode(var, lo, hi)
+
+      Create a ZDD node with the given variable and children.
+
+      Applies ZDD reduction rules (zero-suppression, complement normalization).
+
+      :param int var: Variable number.
+      :param ZDD lo: The low (0-edge) child.
+      :param ZDD hi: The high (1-edge) child.
+      :rtype: ZDD
+
+   .. py:method:: child0()
+
+      Get the 0-child (lo) with complement edge resolution (ZDD semantics).
+
+      :rtype: ZDD
+
+   .. py:method:: child1()
+
+      Get the 1-child (hi) with complement edge resolution (ZDD semantics).
+
+      :rtype: ZDD
+
+   .. py:method:: child(child)
+
+      Get the child by index (0 or 1) with complement edge resolution.
+
+      :param int child: Child index (0 or 1).
+      :rtype: ZDD
+
+   .. py:method:: raw_child0()
+
+      Get the raw 0-child (lo) without complement resolution.
+
+      :rtype: ZDD
+
+   .. py:method:: raw_child1()
+
+      Get the raw 1-child (hi) without complement resolution.
+
+      :rtype: ZDD
+
+   .. py:method:: raw_child(child)
+
+      Get the raw child by index (0 or 1) without complement resolution.
+
+      :param int child: Child index (0 or 1).
+      :rtype: ZDD
+
+   .. py:staticmethod:: shared_size(zdds)
+
+      Count the total number of shared nodes across multiple ZDDs.
+
+      :param list[ZDD] zdds: List of ZDD objects.
+      :return: The number of distinct nodes (with complement sharing).
+      :rtype: int
+
+   .. py:staticmethod:: shared_plain_size(zdds)
+
+      Count the total number of nodes across multiple ZDDs without complement sharing.
+
+      :param list[ZDD] zdds: List of ZDD objects.
+      :rtype: int
+
+   Conversion
+   ----------
+
+   .. py:method:: to_qdd()
+
+      Convert to a Quasi-reduced Decision Diagram (QDD).
+
+      :rtype: QDD
+
+   String Formatting
+   -----------------
+
+   .. py:method:: print_sets(delim1="},{", delim2=",", var_name_map=...)
+
+      Format the family of sets as a string with custom delimiters.
+
+      Special cases: null ZDD returns ``'N'``, empty ZDD returns ``'E'``.
+
+      :param str delim1: Delimiter between sets (default: ``'},{'``).
+      :param str delim2: Delimiter between elements (default: ``','``).
+      :param list[str] var_name_map: List indexed by variable number for display names.
+      :rtype: str
+
+   .. py:method:: to_str()
+
+      Format the family of sets in default format.
+
+      Each set is enclosed in braces, elements separated by commas.
+      Example: ``'{},{1},{2},{2,1}'``.
+      Special cases: null ZDD returns ``'N'``, empty ZDD returns ``'E'``.
+
+      :rtype: str
+
    I/O
    ---
 
@@ -435,6 +622,144 @@ ZDD Class
       :return: The reconstructed ZDD.
       :rtype: ZDD
       :raises RuntimeError: If import fails or file cannot be opened.
+
+   Binary I/O
+   ^^^^^^^^^^
+
+   .. py:method:: export_binary_str()
+
+      Export this ZDD in binary format to a bytes object.
+
+      :rtype: bytes
+
+   .. py:staticmethod:: import_binary_str(data)
+
+      Import a ZDD from binary format bytes.
+
+      :param bytes data: Binary data.
+      :rtype: ZDD
+
+   .. py:method:: export_binary_file(path)
+
+      Export this ZDD in binary format to a file.
+
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_binary_file(path)
+
+      Import a ZDD from a binary format file.
+
+      :param str path: File path to read from.
+      :rtype: ZDD
+
+   .. py:staticmethod:: export_binary_multi_str(zdds)
+
+      Export multiple ZDDs in binary format to a bytes object.
+
+      :param list[ZDD] zdds: List of ZDD objects.
+      :rtype: bytes
+
+   .. py:staticmethod:: import_binary_multi_str(data)
+
+      Import multiple ZDDs from binary format bytes.
+
+      :param bytes data: Binary data.
+      :rtype: list[ZDD]
+
+   .. py:staticmethod:: export_binary_multi_file(zdds, path)
+
+      Export multiple ZDDs in binary format to a file.
+
+      :param list[ZDD] zdds: List of ZDD objects.
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_binary_multi_file(path)
+
+      Import multiple ZDDs from a binary format file.
+
+      :param str path: File path to read from.
+      :rtype: list[ZDD]
+
+   Sapporo I/O
+   ^^^^^^^^^^^
+
+   .. py:method:: export_sapporo_str()
+
+      Export this ZDD in Sapporo format to a string.
+
+      :rtype: str
+
+   .. py:staticmethod:: import_sapporo_str(s)
+
+      Import a ZDD from a Sapporo format string.
+
+      :param str s: Sapporo format string.
+      :rtype: ZDD
+
+   .. py:method:: export_sapporo_file(path)
+
+      Export this ZDD in Sapporo format to a file.
+
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_sapporo_file(path)
+
+      Import a ZDD from a Sapporo format file.
+
+      :param str path: File path to read from.
+      :rtype: ZDD
+
+   Graphillion I/O
+   ^^^^^^^^^^^^^^^
+
+   .. py:method:: export_graphillion_str(offset=0)
+
+      Export this ZDD in Graphillion format to a string.
+
+      :param int offset: Variable number offset (default: 0).
+      :rtype: str
+
+   .. py:staticmethod:: import_graphillion_str(s, offset=0)
+
+      Import a ZDD from a Graphillion format string.
+
+      :param str s: Graphillion format string.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: ZDD
+
+   .. py:method:: export_graphillion_file(path, offset=0)
+
+      Export this ZDD in Graphillion format to a file.
+
+      :param str path: File path to write to.
+      :param int offset: Variable number offset (default: 0).
+
+   .. py:staticmethod:: import_graphillion_file(path, offset=0)
+
+      Import a ZDD from a Graphillion format file.
+
+      :param str path: File path to read from.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: ZDD
+
+   Graphviz
+   ^^^^^^^^
+
+   .. py:method:: save_graphviz_str(raw=False)
+
+      Export this ZDD as a Graphviz DOT string.
+
+      :param bool raw: If True, show physical DAG with complement markers.
+                       If False (default), expand complement edges.
+      :rtype: str
+
+   .. py:method:: save_graphviz_file(path, raw=False)
+
+      Export this ZDD as a Graphviz DOT file.
+
+      :param str path: File path to write to.
+      :param bool raw: If True, show physical DAG with complement markers.
+                       If False (default), expand complement edges.
 
    Properties
    ----------
@@ -478,3 +803,18 @@ ZDD Class
       :type: ZDD
 
       The support set as a ZDD.
+
+   .. py:property:: is_terminal
+      :type: bool
+
+      True if this is a terminal node.
+
+   .. py:property:: is_one
+      :type: bool
+
+      True if this is the 1-terminal (unit family containing the empty set).
+
+   .. py:property:: is_zero
+      :type: bool
+
+      True if this is the 0-terminal (empty family).
