@@ -10405,3 +10405,94 @@ TEST_F(BDDTest, Knuth_CLevel) {
     ZDD gz = ZDD_ID(g);
     EXPECT_EQ(f.enumerate(), gz.enumerate());
 }
+
+// --- BDD::getnode level validation ---
+
+TEST_F(BDDTest, BddGetnodeLevelValidation) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Valid: children at lower levels
+    bddp child = BDD::getnode(v1, bddfalse, bddtrue);
+    EXPECT_NO_THROW(BDD::getnode(v2, child, bddtrue));
+    EXPECT_NO_THROW(BDD::getnode(v3, child, bddtrue));
+
+    // Valid: terminal children (always allowed)
+    EXPECT_NO_THROW(BDD::getnode(v1, bddfalse, bddtrue));
+
+    // Invalid: lo child at same level as parent
+    bddp same_level = BDD::getnode_raw(v2, bddfalse, bddtrue);
+    EXPECT_THROW(BDD::getnode(v2, same_level, bddtrue), std::invalid_argument);
+
+    // Invalid: hi child at higher level than parent
+    bddp higher = BDD::getnode_raw(v3, bddfalse, bddtrue);
+    EXPECT_THROW(BDD::getnode(v2, bddfalse, higher), std::invalid_argument);
+
+    // Invalid: var out of range
+    EXPECT_THROW(BDD::getnode(0, bddfalse, bddtrue), std::invalid_argument);
+    EXPECT_THROW(BDD::getnode(bddvarused() + 1, bddfalse, bddtrue), std::invalid_argument);
+
+    // Reduction rule still applies: lo == hi returns lo without validation
+    bddp node_v3 = BDD::getnode_raw(v3, bddfalse, bddtrue);
+    EXPECT_EQ(BDD::getnode(v1, node_v3, node_v3), node_v3);
+}
+
+TEST_F(BDDTest, ZddGetnodeLevelValidation) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Valid: children at lower levels
+    bddp child = ZDD::getnode(v1, bddempty, bddsingle);
+    EXPECT_NO_THROW(ZDD::getnode(v2, child, bddsingle));
+    EXPECT_NO_THROW(ZDD::getnode(v3, child, bddsingle));
+
+    // Valid: terminal children
+    EXPECT_NO_THROW(ZDD::getnode(v1, bddempty, bddsingle));
+
+    // Invalid: hi child at same level as parent
+    bddp same_level = ZDD::getnode_raw(v2, bddempty, bddsingle);
+    EXPECT_THROW(ZDD::getnode(v2, bddempty, same_level), std::invalid_argument);
+
+    // Invalid: lo child at higher level than parent
+    bddp higher = ZDD::getnode_raw(v3, bddempty, bddsingle);
+    EXPECT_THROW(ZDD::getnode(v2, higher, bddsingle), std::invalid_argument);
+
+    // Invalid: var out of range
+    EXPECT_THROW(ZDD::getnode(0, bddempty, bddsingle), std::invalid_argument);
+    EXPECT_THROW(ZDD::getnode(bddvarused() + 1, bddempty, bddsingle), std::invalid_argument);
+
+    // Zero-suppression rule: hi == bddempty returns lo without validation
+    bddp node_v3 = ZDD::getnode_raw(v3, bddempty, bddsingle);
+    EXPECT_EQ(ZDD::getnode(v1, node_v3, bddempty), node_v3);
+}
+
+TEST_F(BDDTest, BddGetnodeClassTypeVersion) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // BDD class type version
+    BDD lo = BDD::False;
+    BDD hi = BDD::True;
+    BDD result = BDD::getnode(v1, lo, hi);
+    EXPECT_EQ(result.GetID(), BDD::getnode(v1, bddfalse, bddtrue));
+
+    // ZDD class type version
+    ZDD zlo = ZDD::Empty;
+    ZDD zhi = ZDD::Single;
+    ZDD zresult = ZDD::getnode(v1, zlo, zhi);
+    EXPECT_EQ(zresult.GetID(), ZDD::getnode(v1, bddempty, bddsingle));
+}
+
+TEST_F(BDDTest, BddGetnodeRawNoValidation) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // getnode_raw does NOT validate levels — no exception
+    bddp child_v2 = BDD::getnode_raw(v2, bddfalse, bddtrue);
+    EXPECT_NO_THROW(BDD::getnode_raw(v1, child_v2, bddtrue));
+
+    bddp zchild_v2 = ZDD::getnode_raw(v2, bddempty, bddsingle);
+    EXPECT_NO_THROW(ZDD::getnode_raw(v1, zchild_v2, bddsingle));
+}
