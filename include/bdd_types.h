@@ -363,6 +363,14 @@ public:
     static BDD import_binary(FILE* strm);
     /** @brief Import a BDD from BDD binary format from an input stream. */
     static BDD import_binary(std::istream& strm);
+    /** @brief Export multiple BDDs in binary format to a FILE stream. */
+    static void export_binary_multi(FILE* strm, const std::vector<BDD>& bdds);
+    /** @brief Export multiple BDDs in binary format to an output stream. */
+    static void export_binary_multi(std::ostream& strm, const std::vector<BDD>& bdds);
+    /** @brief Import multiple BDDs from binary format from a FILE stream. */
+    static std::vector<BDD> import_binary_multi(FILE* strm);
+    /** @brief Import multiple BDDs from binary format from an input stream. */
+    static std::vector<BDD> import_binary_multi(std::istream& strm);
     /** @deprecated Use export_sapporo() or export_binary() instead. */
     void export_knuth(FILE* strm, bool is_hex = false, int offset = 0) const;
     /** @deprecated Use export_sapporo() or export_binary() instead. */
@@ -832,6 +840,14 @@ public:
     static ZDD import_binary(FILE* strm);
     /** @brief Import a ZDD from BDD binary format from an input stream. */
     static ZDD import_binary(std::istream& strm);
+    /** @brief Export multiple ZDDs in binary format to a FILE stream. */
+    static void export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds);
+    /** @brief Export multiple ZDDs in binary format to an output stream. */
+    static void export_binary_multi(std::ostream& strm, const std::vector<ZDD>& zdds);
+    /** @brief Import multiple ZDDs from binary format from a FILE stream. */
+    static std::vector<ZDD> import_binary_multi(FILE* strm);
+    /** @brief Import multiple ZDDs from binary format from an input stream. */
+    static std::vector<ZDD> import_binary_multi(std::istream& strm);
     /** @deprecated Use export_sapporo() or export_binary() instead. */
     void export_knuth(FILE* strm, bool is_hex = false, int offset = 0) const;
     /** @deprecated Use export_sapporo() or export_binary() instead. */

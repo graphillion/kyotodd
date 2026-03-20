@@ -279,6 +279,36 @@ inline BDD BDD::import_binary(std::istream& strm) {
     return BDD_ID(bdd_import_binary(strm));
 }
 
+inline void BDD::export_binary_multi(FILE* strm, const std::vector<BDD>& bdds) {
+    std::vector<bddp> roots;
+    roots.reserve(bdds.size());
+    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].get_id());
+    bdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline void BDD::export_binary_multi(std::ostream& strm, const std::vector<BDD>& bdds) {
+    std::vector<bddp> roots;
+    roots.reserve(bdds.size());
+    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].get_id());
+    bdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline std::vector<BDD> BDD::import_binary_multi(FILE* strm) {
+    std::vector<bddp> raw = bdd_import_binary_multi(strm);
+    std::vector<BDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(BDD_ID(raw[i]));
+    return result;
+}
+
+inline std::vector<BDD> BDD::import_binary_multi(std::istream& strm) {
+    std::vector<bddp> raw = bdd_import_binary_multi(strm);
+    std::vector<BDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(BDD_ID(raw[i]));
+    return result;
+}
+
 inline void BDD::export_sapporo(FILE* strm) const {
     bdd_export_sapporo(strm, root);
 }
@@ -681,6 +711,36 @@ inline ZDD ZDD::import_binary(std::istream& strm) {
     return ZDD_ID(zdd_import_binary(strm));
 }
 
+inline void ZDD::export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds) {
+    std::vector<bddp> roots;
+    roots.reserve(zdds.size());
+    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].get_id());
+    zdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline void ZDD::export_binary_multi(std::ostream& strm, const std::vector<ZDD>& zdds) {
+    std::vector<bddp> roots;
+    roots.reserve(zdds.size());
+    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].get_id());
+    zdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline std::vector<ZDD> ZDD::import_binary_multi(FILE* strm) {
+    std::vector<bddp> raw = zdd_import_binary_multi(strm);
+    std::vector<ZDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(ZDD_ID(raw[i]));
+    return result;
+}
+
+inline std::vector<ZDD> ZDD::import_binary_multi(std::istream& strm) {
+    std::vector<bddp> raw = zdd_import_binary_multi(strm);
+    std::vector<ZDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(ZDD_ID(raw[i]));
+    return result;
+}
+
 inline void ZDD::export_sapporo(FILE* strm) const {
     zdd_export_sapporo(strm, root);
 }
@@ -913,6 +973,36 @@ inline QDD QDD::import_binary(FILE* strm) {
 }
 inline QDD QDD::import_binary(std::istream& strm) {
     return QDD_ID(qdd_import_binary(strm));
+}
+
+inline void QDD::export_binary_multi(FILE* strm, const std::vector<QDD>& qdds) {
+    std::vector<bddp> roots;
+    roots.reserve(qdds.size());
+    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].get_id());
+    qdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline void QDD::export_binary_multi(std::ostream& strm, const std::vector<QDD>& qdds) {
+    std::vector<bddp> roots;
+    roots.reserve(qdds.size());
+    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].get_id());
+    qdd_export_binary_multi(strm, roots.data(), roots.size());
+}
+
+inline std::vector<QDD> QDD::import_binary_multi(FILE* strm) {
+    std::vector<bddp> raw = qdd_import_binary_multi(strm);
+    std::vector<QDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(QDD_ID(raw[i]));
+    return result;
+}
+
+inline std::vector<QDD> QDD::import_binary_multi(std::istream& strm) {
+    std::vector<bddp> raw = qdd_import_binary_multi(strm);
+    std::vector<QDD> result;
+    result.reserve(raw.size());
+    for (size_t i = 0; i < raw.size(); i++) result.push_back(QDD_ID(raw[i]));
+    return result;
 }
 
 // --- UnreducedDD binary format inline definitions ---

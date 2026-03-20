@@ -278,6 +278,35 @@ bddp unreduced_import_binary(FILE* strm);
 /** @brief Import a single UnreducedDD from BDD binary format from an input stream. */
 bddp unreduced_import_binary(std::istream& strm);
 
+// --- Multi-root binary format ---
+
+/** @brief Export multiple BDDs in binary format to a FILE stream. */
+void bdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n);
+/** @brief Export multiple BDDs in binary format to an output stream. */
+void bdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n);
+/** @brief Import multiple BDDs from binary format from a FILE stream. */
+std::vector<bddp> bdd_import_binary_multi(FILE* strm);
+/** @brief Import multiple BDDs from binary format from an input stream. */
+std::vector<bddp> bdd_import_binary_multi(std::istream& strm);
+
+/** @brief Export multiple ZDDs in binary format to a FILE stream. */
+void zdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n);
+/** @brief Export multiple ZDDs in binary format to an output stream. */
+void zdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n);
+/** @brief Import multiple ZDDs from binary format from a FILE stream. */
+std::vector<bddp> zdd_import_binary_multi(FILE* strm);
+/** @brief Import multiple ZDDs from binary format from an input stream. */
+std::vector<bddp> zdd_import_binary_multi(std::istream& strm);
+
+/** @brief Export multiple QDDs in binary format to a FILE stream. */
+void qdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n);
+/** @brief Export multiple QDDs in binary format to an output stream. */
+void qdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n);
+/** @brief Import multiple QDDs from binary format from a FILE stream. */
+std::vector<bddp> qdd_import_binary_multi(FILE* strm);
+/** @brief Import multiple QDDs from binary format from an input stream. */
+std::vector<bddp> qdd_import_binary_multi(std::istream& strm);
+
 // --- Sapporo format save/load ---
 
 /**

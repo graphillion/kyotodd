@@ -940,10 +940,150 @@ void qdd_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f,
 void unreduced_export_binary(FILE* strm, bddp f) { binary_export_core(strm, f, 1); }
 void unreduced_export_binary(std::ostream& strm, bddp f) { binary_export_core(strm, f, 1); }
 
+// --- Multi-root binary format export ---
+
+template<typename Stream>
+static void binary_export_multi_core(Stream& strm, const bddp* roots, size_t num_roots, uint8_t dd_type) {
+    for (size_t r = 0; r < num_roots; r++) {
+        if (roots[r] == bddnull)
+            throw std::invalid_argument("binary export: null node");
+    }
+
+    const uint32_t t = 2;  // number of terminals
+
+    // Collect all physical nodes via DFS from all roots
+    std::unordered_set<bddp> visited;
+    std::vector<bddp> all_nodes;
+
+    for (size_t r = 0; r < num_roots; r++) {
+        bddp f = roots[r];
+        if (f & BDD_CONST_FLAG) continue;  // terminal, skip
+        bddp root_phys = f & ~BDD_COMP_FLAG;
+        if (!visited.insert(root_phys).second) continue;
+        std::vector<bddp> stack;
+        stack.push_back(root_phys);
+        while (!stack.empty()) {
+            bddp node = stack.back();
+            stack.pop_back();
+            all_nodes.push_back(node);
+            bddp lo = node_lo(node);
+            bddp hi = node_hi(node);
+            bddp lo_phys = lo & ~BDD_COMP_FLAG;
+            bddp hi_phys = hi & ~BDD_COMP_FLAG;
+            if (!(hi_phys & BDD_CONST_FLAG) && visited.insert(hi_phys).second)
+                stack.push_back(hi_phys);
+            if (!(lo_phys & BDD_CONST_FLAG) && visited.insert(lo_phys).second)
+                stack.push_back(lo_phys);
+        }
+    }
+
+    // Sort by level (ascending: level 1 first)
+    std::sort(all_nodes.begin(), all_nodes.end(),
+              [](bddp a, bddp b) {
+                  return var2level[node_var(a)] < var2level[node_var(b)];
+              });
+
+    uint64_t total_nodes = all_nodes.size();
+    bddvar max_level = 0;
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddvar lev = var2level[node_var(all_nodes[i])];
+        if (lev > max_level) max_level = lev;
+    }
+    if (max_level == 0) max_level = 1;  // spec requires max_level >= 1
+
+    // Build ID mapping: physical bddp -> binary ID (even)
+    std::unordered_map<bddp, uint64_t> id_map;
+    for (uint64_t i = 0; i < total_nodes; i++) {
+        id_map[all_nodes[i]] = t + 2 * i;
+    }
+
+    // Helper to map any bddp edge to binary ID
+    auto to_bin_id = [&](bddp edge) -> uint64_t {
+        if (edge == bddfalse) return 0;
+        if (edge == bddtrue) return 1;
+        bddp phys = edge & ~BDD_COMP_FLAG;
+        bool comp = (edge & BDD_COMP_FLAG) != 0;
+        uint64_t bin_id = id_map[phys];
+        return comp ? (bin_id | 1) : bin_id;
+    };
+
+    // Max binary ID
+    uint64_t max_id = 1;  // at least terminal 1
+    if (total_nodes > 0)
+        max_id = t + 2 * (total_nodes - 1) + 1;
+    for (size_t r = 0; r < num_roots; r++) {
+        bddp f = roots[r];
+        uint64_t root_bin_id = (f & BDD_CONST_FLAG) ?
+            ((f == bddtrue) ? 1 : 0) : to_bin_id(f);
+        if (root_bin_id > max_id) max_id = root_bin_id;
+    }
+
+    uint8_t bits = bits_for_max_id(max_id);
+    int id_bytes = bits / 8;
+
+    // --- Write magic ---
+    uint8_t magic[3] = {0x42, 0x44, 0x44};
+    write_bytes(strm, magic, 3);
+
+    // --- Write header (91 bytes) ---
+    uint8_t header[91];
+    std::memset(header, 0, sizeof(header));
+    header[0] = 1;  // version
+    header[1] = dd_type;
+    encode_le16(header + 2, 2);   // number_of_arcs
+    encode_le32(header + 4, t);   // number_of_terminals
+    header[8] = 0;   // number_of_bits_for_level (unused v1)
+    header[9] = bits; // number_of_bits_for_id
+    header[10] = 1;  // use_negative_arcs
+    encode_le64(header + 11, max_level);
+    encode_le64(header + 19, static_cast<uint64_t>(num_roots));
+    // bytes 27-90: reserved (already zero)
+    write_bytes(strm, header, 91);
+
+    // --- Write node-count array (max_level * uint64_t) ---
+    std::vector<uint64_t> level_counts(max_level, 0);
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddvar lev = var2level[node_var(all_nodes[i])];
+        level_counts[lev - 1]++;
+    }
+    for (bddvar l = 0; l < max_level; l++) {
+        uint8_t buf[8];
+        encode_le64(buf, level_counts[l]);
+        write_bytes(strm, buf, 8);
+    }
+
+    // --- Write root IDs ---
+    for (size_t r = 0; r < num_roots; r++) {
+        bddp f = roots[r];
+        uint64_t root_bin_id = (f & BDD_CONST_FLAG) ?
+            ((f == bddtrue) ? 1 : 0) : to_bin_id(f);
+        write_id_le(strm, root_bin_id, id_bytes);
+    }
+
+    // --- Write node array (sorted by level, each: lo_id, hi_id) ---
+    for (size_t i = 0; i < all_nodes.size(); i++) {
+        bddp node = all_nodes[i];
+        bddp lo = node_lo(node);
+        bddp hi = node_hi(node);
+        write_id_le(strm, to_bin_id(lo), id_bytes);
+        write_id_le(strm, to_bin_id(hi), id_bytes);
+    }
+
+    if (stream_has_error(strm))
+        throw std::runtime_error("binary export: write error");
+}
+
+void bdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 2); }
+void bdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 2); }
+void zdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 3); }
+void zdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 3); }
+void qdd_export_binary_multi(FILE* strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 1); }
+void qdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n) { binary_export_multi_core(strm, roots, n, 1); }
+
 // --- Binary format import ---
 
 template<typename Stream>
-static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
+static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t make_node) {
     // --- Read magic ---
     uint8_t magic[3];
     if (!read_bytes(strm, magic, 3) ||
@@ -974,8 +1114,6 @@ static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
         throw std::runtime_error("binary import: bits_for_id must be a multiple of 8");
     if (max_level < 1)
         throw std::runtime_error("binary import: max_level < 1");
-    if (num_roots < 1)
-        throw std::runtime_error("binary import: number_of_roots < 1");
 
     int id_bytes = bits_for_id / 8;
     uint32_t t = num_terminals;
@@ -996,6 +1134,13 @@ static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
     std::vector<uint64_t> root_ids(num_roots);
     for (uint64_t r = 0; r < num_roots; r++) {
         root_ids[r] = read_id_le(strm, id_bytes);
+    }
+
+    // Handle empty case (num_roots == 0, total_nodes == 0)
+    if (num_roots == 0) {
+        // Ensure variables exist even for empty files
+        while (bddvarused() < max_level) bddnewvar();
+        return std::vector<bddp>();
     }
 
     // --- Read node array ---
@@ -1085,8 +1230,21 @@ static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
             throw std::runtime_error("binary import: circular dependency in node references");
     }
 
-    // Resolve root (use the first root for single-BDD API)
-    return resolve(root_ids[0]);
+    // Resolve all roots
+    std::vector<bddp> result;
+    result.reserve(num_roots);
+    for (uint64_t r = 0; r < num_roots; r++) {
+        result.push_back(resolve(root_ids[r]));
+    }
+    return result;
+}
+
+template<typename Stream>
+static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
+    std::vector<bddp> results = binary_import_multi_core(strm, make_node);
+    if (results.empty())
+        throw std::runtime_error("binary import: number_of_roots < 1");
+    return results[0];
 }
 
 bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, BDD::getnode_raw); }
@@ -1097,6 +1255,13 @@ bddp qdd_import_binary(FILE* strm) { return binary_import_core(strm, QDD::getnod
 bddp qdd_import_binary(std::istream& strm) { return binary_import_core(strm, QDD::getnode_raw); }
 bddp unreduced_import_binary(FILE* strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
 bddp unreduced_import_binary(std::istream& strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
+
+std::vector<bddp> bdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, BDD::getnode_raw); }
+std::vector<bddp> bdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, BDD::getnode_raw); }
+std::vector<bddp> zdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, ZDD::getnode_raw); }
+std::vector<bddp> zdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, ZDD::getnode_raw); }
+std::vector<bddp> qdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, QDD::getnode_raw); }
+std::vector<bddp> qdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, QDD::getnode_raw); }
 
 // --- Sapporo format save/load wrappers ---
 

@@ -133,6 +133,14 @@ public:
     static QDD import_binary(FILE* strm);
     /** @brief Import a QDD from BDD binary format from an input stream. */
     static QDD import_binary(std::istream& strm);
+    /** @brief Export multiple QDDs in binary format to a FILE stream. */
+    static void export_binary_multi(FILE* strm, const std::vector<QDD>& qdds);
+    /** @brief Export multiple QDDs in binary format to an output stream. */
+    static void export_binary_multi(std::ostream& strm, const std::vector<QDD>& qdds);
+    /** @brief Import multiple QDDs from binary format from a FILE stream. */
+    static std::vector<QDD> import_binary_multi(FILE* strm);
+    /** @brief Import multiple QDDs from binary format from an input stream. */
+    static std::vector<QDD> import_binary_multi(std::istream& strm);
 
     // --- Conversion ---
 
