@@ -331,6 +331,9 @@ bddvar bddnewvar() {
 }
 
 std::vector<bddvar> bddnewvar(int n) {
+    if (n < 0) {
+        throw std::invalid_argument("bddnewvar: n must be non-negative");
+    }
     std::vector<bddvar> vars;
     vars.reserve(n);
     for (int i = 0; i < n; i++) {

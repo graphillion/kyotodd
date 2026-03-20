@@ -4,6 +4,8 @@
 // This header is included by bdd_types.h after type/constant definitions.
 // Do NOT include this header directly; include bdd_types.h or bdd.h instead.
 
+#include <stdexcept>
+
 // Forward declarations (defined in bdd_base.h)
 int bddinit(uint64_t node_count, uint64_t node_max);
 bddvar bddnewvar();
@@ -86,6 +88,9 @@ public:
      *  @param reverse If true, insert each at level 1 (reverses var/lev ordering).
      */
     static std::vector<bddvar> new_var(int n, bool reverse = false) {
+        if (n < 0) {
+            throw std::invalid_argument("DDBase::new_var: n must be non-negative");
+        }
         std::vector<bddvar> vars(n);
         for (int i = 0; i < n; ++i)
             vars[i] = reverse ? bddnewvaroflev(1) : bddnewvar();

@@ -10909,3 +10909,24 @@ TEST_F(BDDTest, ZDD_ImportFilePtrInvalidInputThrows) {
     EXPECT_THROW(ZDD_Import(tmp), std::runtime_error);
     fclose(tmp);
 }
+
+// --- Negative count validation for bddnewvar / DDBase::new_var ---
+
+TEST_F(BDDTest, BddNewVarNegativeCountThrows) {
+    EXPECT_THROW(bddnewvar(-1), std::invalid_argument);
+}
+
+TEST_F(BDDTest, DDBaseNewVarNegativeCountThrows) {
+    EXPECT_THROW(DDBase::new_var(-1, false), std::invalid_argument);
+    EXPECT_THROW(DDBase::new_var(-1, true), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BddNewVarZeroCountReturnsEmpty) {
+    auto vars = bddnewvar(0);
+    EXPECT_TRUE(vars.empty());
+}
+
+TEST_F(BDDTest, DDBaseNewVarZeroCountReturnsEmpty) {
+    auto vars = DDBase::new_var(0, false);
+    EXPECT_TRUE(vars.empty());
+}
