@@ -203,10 +203,40 @@ TEST_F(RotPiDDTest, OddEven) {
     EXPECT_EQ(odd.Card(), 3u);
     EXPECT_EQ(even.Card(), 3u);
 
-    /* Identity is even */
-    RotPiDD id = RotPiDD::VECtoRotPiDD({1,2,3});
-    EXPECT_EQ(id & even, id);
-    EXPECT_EQ(id & odd, RotPiDD(0));
+    /* Verify individual permutation parity */
+    /* Even: {1,2,3}=id, {2,3,1}=(123), {3,1,2}=(132) */
+    RotPiDD id   = RotPiDD::VECtoRotPiDD({1,2,3});
+    RotPiDD p231 = RotPiDD::VECtoRotPiDD({2,3,1});
+    RotPiDD p312 = RotPiDD::VECtoRotPiDD({3,1,2});
+    EXPECT_EQ(id   & even, id);
+    EXPECT_EQ(p231 & even, p231);
+    EXPECT_EQ(p312 & even, p312);
+    EXPECT_EQ(id   & odd, RotPiDD(0));
+    EXPECT_EQ(p231 & odd, RotPiDD(0));
+    EXPECT_EQ(p312 & odd, RotPiDD(0));
+
+    /* Odd: {1,3,2}=(23), {2,1,3}=(12), {3,2,1}=(13) */
+    RotPiDD p132 = RotPiDD::VECtoRotPiDD({1,3,2});
+    RotPiDD p213 = RotPiDD::VECtoRotPiDD({2,1,3});
+    RotPiDD p321 = RotPiDD::VECtoRotPiDD({3,2,1});
+    EXPECT_EQ(p132 & odd, p132);
+    EXPECT_EQ(p213 & odd, p213);
+    EXPECT_EQ(p321 & odd, p321);
+    EXPECT_EQ(p132 & even, RotPiDD(0));
+    EXPECT_EQ(p213 & even, RotPiDD(0));
+    EXPECT_EQ(p321 & even, RotPiDD(0));
+}
+
+TEST_F(RotPiDDTest, OddEven_EvenLengthLeftRot) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+
+    /* LeftRot(3, 1) = 2 transpositions = even permutation */
+    RotPiDD p = RotPiDD(1).LeftRot(3, 1);
+    EXPECT_EQ(p.Card(), 1u);
+    EXPECT_EQ(p.Odd().Card(), 0u);   // even perm -> not odd
+    EXPECT_EQ(p.Even().Card(), 1u);  // even perm -> is even
 }
 
 /* ---- Extract_One ---- */

@@ -311,7 +311,14 @@ RotPiDD RotPiDD::Odd() const
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* LeftRot(x, y) is (x - y) transpositions, so parity = (x - y) mod 2 */
-    RotPiDD r = p0.Odd() + p1.Even().LeftRot(x, y);
+    RotPiDD r;
+    if ((x - y) % 2 != 0) {
+        /* Odd number of transpositions: parity flips */
+        r = p0.Odd() + p1.Even().LeftRot(x, y);
+    } else {
+        /* Even number of transpositions: parity preserved */
+        r = p0.Odd() + p1.Odd().LeftRot(x, y);
+    }
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_ODD, fx, 0, r.zdd_.GetID());
