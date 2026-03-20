@@ -958,6 +958,291 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.GetID());
         }, "The top (root) variable number of this ZDD.")
+        .def_property_readonly("is_terminal", &ZDD::is_terminal,
+             "True if this is a terminal node.")
+        .def_property_readonly("is_one", &ZDD::is_one,
+             "True if this is the 1-terminal ({empty set}).")
+        .def_property_readonly("is_zero", &ZDD::is_zero,
+             "True if this is the 0-terminal (empty family).")
+
+        // Conversion
+        .def("to_qdd", &ZDD::to_qdd,
+             "Convert to a Quasi-reduced Decision Diagram (QDD).\n\n"
+             "Returns:\n"
+             "    The QDD representation.\n")
+
+        // Counting
+        .def("count", &ZDD::count,
+             "Count the number of sets in the family (floating-point).\n\n"
+             "Returns:\n"
+             "    The number of sets as a float.\n")
+        .def("uniform_sample", [](ZDD& z, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            ZddCountMemo memo(z);
+            return z.uniform_sample(rng, memo);
+        }, py::arg("seed") = 0,
+           "Sample a set uniformly at random from the family.\n\n"
+           "Args:\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
+
+        // Enumeration
+        .def("enumerate", &ZDD::enumerate,
+             "Enumerate all sets in the family.\n\n"
+             "Returns:\n"
+             "    A list of sets, each a list of variable numbers.\n")
+        .def("has_empty", &ZDD::has_empty,
+             "Check if the empty set is a member of the family.\n\n"
+             "Returns:\n"
+             "    True if the family contains the empty set.\n")
+
+        // Static factory methods
+        .def_static("singleton", [](bddvar v) -> ZDD {
+            ensure_init();
+            return ZDD::singleton(v);
+        }, py::arg("v"),
+           "Create the ZDD {{v}} (a family with one singleton set).\n\n"
+           "Args:\n"
+           "    v: Variable number.\n\n"
+           "Returns:\n"
+           "    A ZDD representing {{v}}.\n")
+        .def_static("single_set", [](const std::vector<bddvar>& vars) -> ZDD {
+            ensure_init();
+            return ZDD::single_set(vars);
+        }, py::arg("vars"),
+           "Create the ZDD {{v1, v2, ...}} (a family with one set).\n\n"
+           "Args:\n"
+           "    vars: List of variable numbers.\n\n"
+           "Returns:\n"
+           "    A ZDD representing the single set.\n")
+        .def_static("power_set", [](bddvar n) -> ZDD {
+            ensure_init();
+            return ZDD::power_set(n);
+        }, py::arg("n"),
+           "Create the power set of {1, ..., n}.\n\n"
+           "Args:\n"
+           "    n: Universe size.\n\n"
+           "Returns:\n"
+           "    A ZDD representing 2^{1,...,n}.\n")
+        .def_static("power_set_vars", [](const std::vector<bddvar>& vars) -> ZDD {
+            ensure_init();
+            return ZDD::power_set(vars);
+        }, py::arg("vars"),
+           "Create the power set of the given variables.\n\n"
+           "Args:\n"
+           "    vars: List of variable numbers.\n\n"
+           "Returns:\n"
+           "    A ZDD representing the power set.\n")
+        .def_static("from_sets", [](const std::vector<std::vector<bddvar>>& sets) -> ZDD {
+            ensure_init();
+            return ZDD::from_sets(sets);
+        }, py::arg("sets"),
+           "Construct a ZDD from a list of sets.\n\n"
+           "Args:\n"
+           "    sets: List of sets, each a list of variable numbers.\n\n"
+           "Returns:\n"
+           "    A ZDD representing the family of sets.\n")
+        .def_static("combination", [](bddvar n, bddvar k) -> ZDD {
+            ensure_init();
+            return ZDD::combination(n, k);
+        }, py::arg("n"), py::arg("k"),
+           "Create the ZDD of all k-element subsets of {1, ..., n}.\n\n"
+           "Args:\n"
+           "    n: Universe size.\n"
+           "    k: Subset size.\n\n"
+           "Returns:\n"
+           "    A ZDD representing C(n,k).\n")
+        .def_static("getnode", [](bddvar var, const ZDD& lo, const ZDD& hi) -> ZDD {
+            ensure_init();
+            return ZDD::getnode(var, lo, hi);
+        }, py::arg("var"), py::arg("lo"), py::arg("hi"),
+           "Create a ZDD node with the given variable and children.\n\n"
+           "Applies ZDD reduction rules (zero-suppression, complement normalization).\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    lo: The low (0-edge) child.\n"
+           "    hi: The high (1-edge) child.\n\n"
+           "Returns:\n"
+           "    The created ZDD node.\n")
+        .def_static("shared_size", [](const std::vector<ZDD>& v) -> uint64_t {
+            return ZDD::raw_size(v);
+        }, py::arg("zdds"),
+           "Count the total number of shared nodes across multiple ZDDs.\n\n"
+           "Args:\n"
+           "    zdds: List of ZDD objects.\n\n"
+           "Returns:\n"
+           "    The number of distinct nodes (with complement sharing).\n")
+        .def_static("shared_plain_size", [](const std::vector<ZDD>& v) -> uint64_t {
+            return ZDD::plain_size(v);
+        }, py::arg("zdds"),
+           "Count the total number of nodes across multiple ZDDs without complement sharing.\n\n"
+           "Args:\n"
+           "    zdds: List of ZDD objects.\n\n"
+           "Returns:\n"
+           "    The number of nodes.\n")
+
+        // Child accessors
+        .def("child0", [](const ZDD& z) { return z.child0(); },
+             "Get the 0-child (lo) with complement edge resolution (ZDD semantics).")
+        .def("child1", [](const ZDD& z) { return z.child1(); },
+             "Get the 1-child (hi) with complement edge resolution (ZDD semantics).")
+        .def("child", [](const ZDD& z, int c) { return z.child(c); },
+             py::arg("child"),
+             "Get the child by index (0 or 1) with complement edge resolution (ZDD semantics).")
+        .def("raw_child0", [](const ZDD& z) { return z.raw_child0(); },
+             "Get the raw 0-child (lo) without complement resolution.")
+        .def("raw_child1", [](const ZDD& z) { return z.raw_child1(); },
+             "Get the raw 1-child (hi) without complement resolution.")
+        .def("raw_child", [](const ZDD& z, int c) { return z.raw_child(c); },
+             py::arg("child"),
+             "Get the raw child by index (0 or 1) without complement resolution.")
+
+        // Binary I/O
+        .def("export_binary_str", [](const ZDD& z) -> py::bytes {
+            std::ostringstream oss;
+            z.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this ZDD in binary format to a bytes object.")
+        .def_static("import_binary_str", [](const std::string& data) -> ZDD {
+            ensure_init();
+            std::istringstream iss(data);
+            return ZDD::import_binary(iss);
+        }, py::arg("data"),
+           "Import a ZDD from binary format bytes.")
+        .def("export_binary_file", [](const ZDD& z, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            z.export_binary(ofs);
+        }, py::arg("path"),
+           "Export this ZDD in binary format to a file.")
+        .def_static("import_binary_file", [](const std::string& path) -> ZDD {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return ZDD::import_binary(ifs);
+        }, py::arg("path"),
+           "Import a ZDD from a binary format file.")
+
+        // Multi-root binary I/O
+        .def_static("export_binary_multi_str", [](const std::vector<ZDD>& zdds) -> py::bytes {
+            std::ostringstream oss;
+            ZDD::export_binary_multi(oss, zdds);
+            return py::bytes(oss.str());
+        }, py::arg("zdds"),
+           "Export multiple ZDDs in binary format to a bytes object.")
+        .def_static("import_binary_multi_str", [](const std::string& data) -> std::vector<ZDD> {
+            ensure_init();
+            std::istringstream iss(data);
+            return ZDD::import_binary_multi(iss);
+        }, py::arg("data"),
+           "Import multiple ZDDs from binary format bytes.")
+        .def_static("export_binary_multi_file", [](const std::vector<ZDD>& zdds, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            ZDD::export_binary_multi(ofs, zdds);
+        }, py::arg("zdds"), py::arg("path"),
+           "Export multiple ZDDs in binary format to a file.")
+        .def_static("import_binary_multi_file", [](const std::string& path) -> std::vector<ZDD> {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return ZDD::import_binary_multi(ifs);
+        }, py::arg("path"),
+           "Import multiple ZDDs from a binary format file.")
+
+        // Sapporo I/O
+        .def("export_sapporo_str", [](const ZDD& z) -> std::string {
+            std::ostringstream oss;
+            z.export_sapporo(oss);
+            return oss.str();
+        }, "Export this ZDD in Sapporo format to a string.")
+        .def_static("import_sapporo_str", [](const std::string& s) -> ZDD {
+            ensure_init();
+            std::istringstream iss(s);
+            return ZDD::import_sapporo(iss);
+        }, py::arg("s"),
+           "Import a ZDD from a Sapporo format string.")
+        .def("export_sapporo_file", [](const ZDD& z, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            z.export_sapporo(ofs);
+        }, py::arg("path"),
+           "Export this ZDD in Sapporo format to a file.")
+        .def_static("import_sapporo_file", [](const std::string& path) -> ZDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return ZDD::import_sapporo(ifs);
+        }, py::arg("path"),
+           "Import a ZDD from a Sapporo format file.")
+
+        // Graphillion I/O
+        .def("export_graphillion_str", [](const ZDD& z, int offset) -> std::string {
+            std::ostringstream oss;
+            z.export_graphillion(oss, offset);
+            return oss.str();
+        }, py::arg("offset") = 0,
+           "Export this ZDD in Graphillion format to a string.\n\n"
+           "Args:\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    A Graphillion format string.\n")
+        .def_static("import_graphillion_str", [](const std::string& s, int offset) -> ZDD {
+            ensure_init();
+            std::istringstream iss(s);
+            return ZDD::import_graphillion(iss, offset);
+        }, py::arg("s"), py::arg("offset") = 0,
+           "Import a ZDD from a Graphillion format string.\n\n"
+           "Args:\n"
+           "    s: The Graphillion format string.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n")
+        .def("export_graphillion_file", [](const ZDD& z, const std::string& path, int offset) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            z.export_graphillion(ofs, offset);
+        }, py::arg("path"), py::arg("offset") = 0,
+           "Export this ZDD in Graphillion format to a file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n"
+           "    offset: Variable number offset (default: 0).\n")
+        .def_static("import_graphillion_file", [](const std::string& path, int offset) -> ZDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return ZDD::import_graphillion(ifs, offset);
+        }, py::arg("path"), py::arg("offset") = 0,
+           "Import a ZDD from a Graphillion format file.\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n")
+
+        // Graphviz
+        .def("save_graphviz_str", [](const ZDD& z, bool raw) -> std::string {
+            std::ostringstream oss;
+            z.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            return oss.str();
+        }, py::arg("raw") = false,
+           "Export this ZDD as a Graphviz DOT string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n\n"
+           "Returns:\n"
+           "    A DOT format string.\n")
+        .def("save_graphviz_file", [](const ZDD& z, const std::string& path, bool raw) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            z.save_graphviz(ofs, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+        }, py::arg("path"), py::arg("raw") = false,
+           "Export this ZDD as a Graphviz DOT file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n")
     ;
 
     // ================================================================

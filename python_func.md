@@ -31,31 +31,6 @@ C++に実装されていてPythonバインディングに未実装の関数。
 
 | C++ メソッド | 説明 |
 |---|---|
-| `ZDD::to_qdd()` | QDD への変換 |
-| `ZDD::count()` | 集合族のカウント (浮動小数点) |
-| `ZDD::uniform_sample(RNG&, ZddCountMemo&)` | 一様ランダムサンプリング |
-| `ZDD::enumerate()` | 全集合を列挙 |
-| `ZDD::has_empty()` | 空集合を含むか |
-| `ZDD::singleton(bddvar)` | 単一変数の集合 {{v}} を生成 (static) |
-| `ZDD::single_set(const vector<bddvar>&)` | 単一集合 {v1,v2,...} を生成 (static) |
-| `ZDD::power_set(bddvar)` | べき集合を生成 (変数数指定) (static) |
-| `ZDD::power_set(const vector<bddvar>&)` | べき集合を生成 (変数リスト指定) (static) |
-| `ZDD::from_sets(const vector<vector<bddvar>>&)` | 集合のリストから ZDD を構築 (static) |
-| `ZDD::combination(bddvar, bddvar)` | 組み合わせ ZDD を生成 (static) |
-| `ZDD::getnode(bddvar, const ZDD&, const ZDD&)` | ノード作成 (static) |
-| `ZDD::child0()` / `ZDD::child1()` / `ZDD::child(int)` | complement 解決付き子アクセサ |
-| `ZDD::raw_child0()` / `ZDD::raw_child1()` / `ZDD::raw_child(int)` | raw 子アクセサ |
-| `ZDD::raw_size(const vector<ZDD>&)` | 複数 ZDD の共有ノード数 (static) |
-| `ZDD::plain_size(const vector<ZDD>&)` | 複数 ZDD の非共有ノード数 (static) |
-| `ZDD::export_binary()` | バイナリ形式エクスポート |
-| `ZDD::import_binary()` | バイナリ形式インポート (static) |
-| `ZDD::export_binary_multi()` | 複数 ZDD バイナリエクスポート (static) |
-| `ZDD::import_binary_multi()` | 複数 ZDD バイナリインポート (static) |
-| `ZDD::export_sapporo()` | Sapporo 形式エクスポート |
-| `ZDD::import_sapporo()` | Sapporo 形式インポート (static) |
-| `ZDD::export_graphillion()` | Graphillion 形式エクスポート |
-| `ZDD::import_graphillion()` | Graphillion 形式インポート (static) |
-| `ZDD::save_graphviz()` | Graphviz DOT 出力 |
 | `ZDD::ZLev(int, int)` | ZLev 操作 |
 | `ZDD_LCM_A(char*, int)` | LCM アルゴリズム (A) |
 | `ZDD_LCM_C(char*, int)` | LCM アルゴリズム (C) |
