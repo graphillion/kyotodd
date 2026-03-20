@@ -48,14 +48,16 @@ A node ID is a 48-bit value. The MSB (bit 47) and LSB (bit 0) have special meani
 
 ## DD node creation
 
-- BDD: `getnode(var, lo, hi)` — BDD の削減規則を適用して新しいノードを作成する。
-- ZDD: `getznode(var, lo, hi)` — ZDD の削減規則を適用して新しいノードを作成する。
+- BDD: `BDD::getnode(var, lo, hi)` — BDD の削減規則を適用して新しいノードを作成する。レベル検証あり。
+- ZDD: `ZDD::getnode(var, lo, hi)` — ZDD の削減規則を適用して新しいノードを作成する。レベル検証あり。
+- QDD: `QDD::getnode(var, lo, hi)` — QDD ノードを作成する（jump rule なし）。レベル検証あり。
+- `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw` — 検証なしの内部・上級者向け版。
 
 ## Complement edge semantics
 
 Both BDD and ZDD use complement edges (bit 0 of a node ID) to represent negation without allocating extra nodes. The normalization rule ensures that the lo child stored in a node is always non-complemented (bit 0 = 0). When the caller passes a complemented lo, the node creation functions absorb the complement into the returned edge. However, BDD and ZDD differ in how the complement propagates through the node:
 
-### BDD (`getnode`)
+### BDD (`BDD::getnode`)
 
 A complement edge negates the entire Boolean function represented by the subtree. If lo is complemented, both children are flipped:
 
@@ -63,7 +65,7 @@ A complement edge negates the entire Boolean function represented by the subtree
 - Normalization: if lo has bit 0 set, strip it from lo, flip hi, and set bit 0 on the returned node ID.
 - When traversing a BDD node with a complement edge, apply `bddnot` to **both** lo and hi.
 
-### ZDD (`getznode`)
+### ZDD (`ZDD::getnode`)
 
 A complement edge toggles membership of the empty set (∅) in the family. Since ∅ membership propagates only through the lo (0-edge) path, only lo is affected:
 
