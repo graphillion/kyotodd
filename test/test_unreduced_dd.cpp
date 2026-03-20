@@ -1,14 +1,7 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
 
-class UnreducedBDDTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        BDD_Init(1024, UINT64_MAX);
-    }
-};
-
-class UnreducedZDDTest : public ::testing::Test {
+class UnreducedDDTest : public ::testing::Test {
 protected:
     void SetUp() override {
         BDD_Init(1024, UINT64_MAX);
@@ -16,308 +9,108 @@ protected:
 };
 
 // =============================================================
-// UnreducedBDD Tests
+// Basic construction
 // =============================================================
 
-TEST_F(UnreducedBDDTest, FactoryZero) {
-    UnreducedBDD z = UnreducedBDD::zero();
+TEST_F(UnreducedDDTest, FactoryZero) {
+    UnreducedDD z = UnreducedDD::zero();
     EXPECT_TRUE(z.is_terminal());
     EXPECT_TRUE(z.is_zero());
     EXPECT_TRUE(z.is_reduced());
     EXPECT_EQ(z.get_id(), bddfalse);
 }
 
-TEST_F(UnreducedBDDTest, FactoryOne) {
-    UnreducedBDD o = UnreducedBDD::one();
+TEST_F(UnreducedDDTest, FactoryOne) {
+    UnreducedDD o = UnreducedDD::one();
     EXPECT_TRUE(o.is_terminal());
     EXPECT_TRUE(o.is_one());
     EXPECT_TRUE(o.is_reduced());
     EXPECT_EQ(o.get_id(), bddtrue);
 }
 
-TEST_F(UnreducedBDDTest, DefaultConstructor) {
-    UnreducedBDD u;
+TEST_F(UnreducedDDTest, DefaultConstructor) {
+    UnreducedDD u;
     EXPECT_EQ(u.get_id(), bddfalse);
     EXPECT_TRUE(u.is_reduced());
 }
 
-TEST_F(UnreducedBDDTest, IntConstructor) {
-    UnreducedBDD u0(0);
+TEST_F(UnreducedDDTest, IntConstructor) {
+    UnreducedDD u0(0);
     EXPECT_EQ(u0.get_id(), bddfalse);
-    UnreducedBDD u1(1);
+    UnreducedDD u1(1);
     EXPECT_EQ(u1.get_id(), bddtrue);
-    UnreducedBDD un(-1);
+    UnreducedDD un(-1);
     EXPECT_EQ(un.get_id(), bddnull);
 }
 
-TEST_F(UnreducedBDDTest, CopyConstructor) {
+TEST_F(UnreducedDDTest, CopyConstructor) {
     bddvar v = bddnewvar();
-    UnreducedBDD a = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
-    UnreducedBDD b(a);
+    UnreducedDD a = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD b(a);
     EXPECT_EQ(a.get_id(), b.get_id());
 }
 
-TEST_F(UnreducedBDDTest, MoveConstructor) {
+TEST_F(UnreducedDDTest, MoveConstructor) {
     bddvar v = bddnewvar();
-    UnreducedBDD a = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
+    UnreducedDD a = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
     bddp id = a.get_id();
-    UnreducedBDD b(std::move(a));
+    UnreducedDD b(std::move(a));
     EXPECT_EQ(b.get_id(), id);
     EXPECT_EQ(a.get_id(), bddnull);
 }
 
-TEST_F(UnreducedBDDTest, ConversionFromBDD) {
-    bddvar v = bddnewvar();
-    BDD x = BDDvar(v);
-    UnreducedBDD u(x);
-    EXPECT_EQ(u.get_id(), x.get_id());
-    EXPECT_TRUE(u.is_reduced());
-}
+// =============================================================
+// getnode (always creates unreduced nodes)
+// =============================================================
 
-TEST_F(UnreducedBDDTest, NodeWithReducedChildren_DelegatesToGetnode) {
+TEST_F(UnreducedDDTest, Getnode_AlwaysUnreduced) {
     bddvar v = bddnewvar();
-    // Build unreduced node with reduced children and lo != hi
-    UnreducedBDD lo = UnreducedBDD::zero();
-    UnreducedBDD hi = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, lo, hi);
-    // Should delegate to getnode -> reduced
-    EXPECT_TRUE(n.is_reduced());
-    // Should match BDDvar
-    BDD x = BDDvar(v);
-    EXPECT_EQ(n.get_id(), x.get_id());
-}
-
-TEST_F(UnreducedBDDTest, NodeLoEqualsHi_CreatesUnreducedNode) {
-    bddvar v = bddnewvar();
-    UnreducedBDD t = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, t, t);
-    // lo == hi: unreduced (BDD reduction rule would eliminate this)
+    // Even with reduced children and lo != hi, getnode creates unreduced node
+    UnreducedDD lo = UnreducedDD::zero();
+    UnreducedDD hi = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, lo, hi);
     EXPECT_FALSE(n.is_reduced());
     EXPECT_FALSE(n.is_terminal());
     EXPECT_EQ(n.top(), v);
 }
 
-TEST_F(UnreducedBDDTest, NodeLoEqualsHi_ReducesToChild) {
+TEST_F(UnreducedDDTest, Getnode_LoEqualsHi) {
     bddvar v = bddnewvar();
-    UnreducedBDD t = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, t, t);
-    BDD reduced = n.reduce();
-    // Reducing a node with lo == hi should eliminate it
-    EXPECT_EQ(reduced.get_id(), bddtrue);
+    UnreducedDD t = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, t, t);
+    // lo == hi: no BDD reduction rule applied
+    EXPECT_FALSE(n.is_reduced());
+    EXPECT_FALSE(n.is_terminal());
+    EXPECT_EQ(n.top(), v);
 }
 
-TEST_F(UnreducedBDDTest, NodeWithBddnullChildren) {
+TEST_F(UnreducedDDTest, Getnode_HiEqualsEmpty) {
     bddvar v = bddnewvar();
-    UnreducedBDD null(-1);
-    UnreducedBDD n = UnreducedBDD::getnode(v, null, null);
+    UnreducedDD lo = UnreducedDD::one();
+    UnreducedDD hi = UnreducedDD::zero();  // bddempty == bddfalse
+    UnreducedDD n = UnreducedDD::getnode(v, lo, hi);
+    // hi == bddempty: no ZDD zero-suppression applied
     EXPECT_FALSE(n.is_reduced());
     EXPECT_EQ(n.top(), v);
 }
 
-TEST_F(UnreducedBDDTest, SetChild_Basic) {
+TEST_F(UnreducedDDTest, Getnode_WithBddnullChildren) {
     bddvar v = bddnewvar();
-    UnreducedBDD null(-1);
-    UnreducedBDD n = UnreducedBDD::getnode(v, null, null);
-
-    // Set children
-    n.set_child0(UnreducedBDD::zero());
-    n.set_child1(UnreducedBDD::one());
-
-    // Verify children were set
-    EXPECT_EQ(UnreducedBDD::raw_child0(n.get_id()), bddfalse);
-    EXPECT_EQ(UnreducedBDD::raw_child1(n.get_id()), bddtrue);
-}
-
-TEST_F(UnreducedBDDTest, SetChild_ThenReduce) {
-    bddvar v = bddnewvar();
-    UnreducedBDD null(-1);
-    UnreducedBDD n = UnreducedBDD::getnode(v, null, null);
-
-    n.set_child0(UnreducedBDD::zero());
-    n.set_child1(UnreducedBDD::one());
-
-    BDD reduced = n.reduce();
-    BDD expected = BDDvar(v);
-    EXPECT_EQ(reduced, expected);
-}
-
-TEST_F(UnreducedBDDTest, SetChild_ThrowsOnReduced) {
-    bddvar v = bddnewvar();
-    // This creates a reduced node (both children reduced, lo != hi)
-    UnreducedBDD n = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
-    EXPECT_TRUE(n.is_reduced());
-    EXPECT_THROW(n.set_child0(UnreducedBDD::one()), std::invalid_argument);
-}
-
-TEST_F(UnreducedBDDTest, SetChild_ThrowsOnTerminal) {
-    UnreducedBDD t = UnreducedBDD::one();
-    EXPECT_THROW(t.set_child0(UnreducedBDD::zero()), std::invalid_argument);
-}
-
-TEST_F(UnreducedBDDTest, SetChild_ThrowsOnComplement) {
-    bddvar v = bddnewvar();
-    UnreducedBDD null(-1);
-    UnreducedBDD n = UnreducedBDD::getnode(v, null, null);
-    UnreducedBDD neg = ~n;
-    EXPECT_THROW(neg.set_child0(UnreducedBDD::zero()), std::invalid_argument);
-}
-
-TEST_F(UnreducedBDDTest, ChildAccessors_BDDSemantics) {
-    bddvar v = bddnewvar();
-    UnreducedBDD lo = UnreducedBDD::zero();
-    UnreducedBDD hi = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, lo, hi);
-
-    // Non-complemented reference
-    EXPECT_EQ(n.child0().get_id(), bddfalse);
-    EXPECT_EQ(n.child1().get_id(), bddtrue);
-}
-
-TEST_F(UnreducedBDDTest, ChildAccessors_ComplementPropagation) {
-    bddvar v = bddnewvar();
-    UnreducedBDD lo = UnreducedBDD::zero();
-    UnreducedBDD hi = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, lo, hi);
-    bddp neg_id = bddnot(n.get_id());
-
-    // BDD complement: both children are negated
-    EXPECT_EQ(UnreducedBDD::child0(neg_id), bddtrue);
-    EXPECT_EQ(UnreducedBDD::child1(neg_id), bddfalse);
-}
-
-TEST_F(UnreducedBDDTest, OperatorNot) {
-    bddvar v = bddnewvar();
-    UnreducedBDD n = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
-    UnreducedBDD neg = ~n;
-    EXPECT_EQ(neg.get_id(), bddnot(n.get_id()));
-    // Double negation
-    UnreducedBDD dneg = ~neg;
-    EXPECT_EQ(dneg.get_id(), n.get_id());
-}
-
-TEST_F(UnreducedBDDTest, ComparisonOperators) {
-    UnreducedBDD a = UnreducedBDD::zero();
-    UnreducedBDD b = UnreducedBDD::one();
-    EXPECT_TRUE(a == a);
-    EXPECT_FALSE(a == b);
-    EXPECT_TRUE(a != b);
-    EXPECT_FALSE(a != a);
-    // operator< is based on bddp value
-    EXPECT_TRUE((a < b) || (b < a));
-}
-
-TEST_F(UnreducedBDDTest, HashFunction) {
-    std::unordered_map<UnreducedBDD, int> map;
-    UnreducedBDD a = UnreducedBDD::zero();
-    UnreducedBDD b = UnreducedBDD::one();
-    map[a] = 1;
-    map[b] = 2;
-    EXPECT_EQ(map[a], 1);
-    EXPECT_EQ(map[b], 2);
-}
-
-TEST_F(UnreducedBDDTest, IsReduced_BddnullReturnsFalse) {
-    UnreducedBDD n(-1);
-    EXPECT_EQ(n.get_id(), bddnull);
+    UnreducedDD null(-1);
+    UnreducedDD n = UnreducedDD::getnode(v, null, null);
     EXPECT_FALSE(n.is_reduced());
+    EXPECT_EQ(n.top(), v);
 }
 
-TEST_F(UnreducedBDDTest, Reduce_Terminal) {
-    BDD r0 = UnreducedBDD::zero().reduce();
-    EXPECT_EQ(r0.get_id(), bddfalse);
-    BDD r1 = UnreducedBDD::one().reduce();
-    EXPECT_EQ(r1.get_id(), bddtrue);
-}
+// =============================================================
+// Raw child accessors (no complement interpretation)
+// =============================================================
 
-TEST_F(UnreducedBDDTest, Reduce_AlreadyReduced) {
+TEST_F(UnreducedDDTest, RawChildAccessors) {
     bddvar v = bddnewvar();
-    BDD x = BDDvar(v);
-    UnreducedBDD u(x);
-    BDD reduced = u.reduce();
-    EXPECT_EQ(reduced.get_id(), x.get_id());
-}
-
-TEST_F(UnreducedBDDTest, Reduce_ThrowsOnBddnull) {
-    UnreducedBDD n(-1);
-    EXPECT_THROW(n.reduce(), std::invalid_argument);
-}
-
-TEST_F(UnreducedBDDTest, Reduce_ChainedUnreducedNodes) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-
-    // Build: v2 node with lo == hi (unreduced)
-    UnreducedBDD leaf = UnreducedBDD::one();
-    UnreducedBDD mid = UnreducedBDD::getnode(v2, leaf, leaf);
-    EXPECT_FALSE(mid.is_reduced());
-
-    // Build: v1 node with unreduced child
-    UnreducedBDD root = UnreducedBDD::getnode(v1, mid, UnreducedBDD::zero());
-    EXPECT_FALSE(root.is_reduced());
-
-    // Reduce: mid (lo == hi) should be eliminated to "one"
-    // root becomes (v1, one, zero) = ~BDDvar(v1)
-    BDD reduced = root.reduce();
-    BDD expected = ~BDDvar(v1);
-    EXPECT_EQ(reduced.get_id(), expected.get_id());
-}
-
-TEST_F(UnreducedBDDTest, Reduce_ComplementEdge) {
-    bddvar v = bddnewvar();
-    UnreducedBDD n = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
-    UnreducedBDD neg = ~n;
-    BDD reduced = neg.reduce();
-    BDD expected = ~BDDvar(v);
-    EXPECT_EQ(reduced.get_id(), expected.get_id());
-}
-
-TEST_F(UnreducedBDDTest, TopDownConstruction_FullWorkflow) {
-    bddvar v1 = bddnewvar();  // level 1
-    bddvar v2 = bddnewvar();  // level 2 (higher)
-
-    // Root must be at the highest level (v2) for proper BDD ordering
-    UnreducedBDD null(-1);
-    UnreducedBDD root = UnreducedBDD::getnode(v2, null, null);
-    EXPECT_FALSE(root.is_reduced());
-
-    // Create child at v1 (lower level)
-    UnreducedBDD child_lo = UnreducedBDD::getnode(v1, UnreducedBDD::zero(),
-                                                    UnreducedBDD::one());
-    UnreducedBDD child_hi = UnreducedBDD::one();
-
-    // Set children: (v2, v1_node, T)
-    root.set_child0(child_lo);
-    root.set_child1(child_hi);
-
-    // Reduce: represents v1 | v2
-    BDD reduced = root.reduce();
-
-    BDD x1 = BDDvar(v1);
-    BDD x2 = BDDvar(v2);
-    BDD expected = x1 | x2;
-    EXPECT_EQ(reduced.get_id(), expected.get_id());
-}
-
-TEST_F(UnreducedBDDTest, NodeWithUnreducedChild) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-
-    // Create an unreduced child (lo == hi)
-    UnreducedBDD unreduced_child = UnreducedBDD::getnode(v2,
-        UnreducedBDD::zero(), UnreducedBDD::zero());
-    EXPECT_FALSE(unreduced_child.is_reduced());
-
-    // Create parent with one unreduced child
-    UnreducedBDD parent = UnreducedBDD::getnode(v1, unreduced_child,
-                                                  UnreducedBDD::one());
-    EXPECT_FALSE(parent.is_reduced());
-}
-
-TEST_F(UnreducedBDDTest, RawChildAccessors) {
-    bddvar v = bddnewvar();
-    UnreducedBDD lo = UnreducedBDD::zero();
-    UnreducedBDD hi = UnreducedBDD::one();
-    UnreducedBDD n = UnreducedBDD::getnode(v, lo, hi);
+    UnreducedDD lo = UnreducedDD::zero();
+    UnreducedDD hi = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, lo, hi);
 
     EXPECT_EQ(n.raw_child0().get_id(), bddfalse);
     EXPECT_EQ(n.raw_child1().get_id(), bddtrue);
@@ -325,222 +118,532 @@ TEST_F(UnreducedBDDTest, RawChildAccessors) {
     EXPECT_EQ(n.raw_child(1).get_id(), bddtrue);
 }
 
-TEST_F(UnreducedBDDTest, ChildAccessors_ThrowOnTerminal) {
-    UnreducedBDD t = UnreducedBDD::one();
-    EXPECT_THROW(t.child0(), std::invalid_argument);
-    EXPECT_THROW(t.child1(), std::invalid_argument);
+TEST_F(UnreducedDDTest, RawChildAccessors_ComplementedNodeReadsBaseNode) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD neg = ~n;
+
+    // raw_child accesses the base node (strips complement bit)
+    // but does NOT propagate complement to children
+    EXPECT_EQ(neg.raw_child0().get_id(), bddfalse);
+    EXPECT_EQ(neg.raw_child1().get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, RawChildAccessors_WithComplementedChildren) {
+    bddvar v = bddnewvar();
+    // Store a complemented lo edge
+    UnreducedDD neg_one = ~UnreducedDD::one();
+    UnreducedDD hi = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, neg_one, hi);
+
+    // raw_child returns the stored value as-is (complement bit preserved)
+    EXPECT_EQ(n.raw_child0().get_id(), bddnot(bddtrue));
+    EXPECT_EQ(n.raw_child1().get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, RawChildAccessors_ThrowOnTerminal) {
+    UnreducedDD t = UnreducedDD::one();
     EXPECT_THROW(t.raw_child0(), std::invalid_argument);
     EXPECT_THROW(t.raw_child1(), std::invalid_argument);
 }
 
-TEST_F(UnreducedBDDTest, ChildAccessors_ThrowOnNull) {
-    EXPECT_THROW(UnreducedBDD::child0(bddnull), std::invalid_argument);
-    EXPECT_THROW(UnreducedBDD::child1(bddnull), std::invalid_argument);
-}
-
-TEST_F(UnreducedBDDTest, ChildByIndex_ThrowOnInvalidIndex) {
+TEST_F(UnreducedDDTest, RawChildAccessors_ThrowOnInvalidIndex) {
     bddvar v = bddnewvar();
-    UnreducedBDD n = UnreducedBDD::getnode(v, UnreducedBDD::zero(), UnreducedBDD::one());
-    EXPECT_THROW(n.child(2), std::invalid_argument);
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
     EXPECT_THROW(n.raw_child(2), std::invalid_argument);
 }
 
 // =============================================================
-// UnreducedZDD Tests
+// set_child0 / set_child1 (top-down construction)
 // =============================================================
 
-TEST_F(UnreducedZDDTest, FactoryEmpty) {
-    UnreducedZDD e = UnreducedZDD::empty();
-    EXPECT_TRUE(e.is_terminal());
-    EXPECT_TRUE(e.is_zero());
-    EXPECT_TRUE(e.is_reduced());
-    EXPECT_EQ(e.get_id(), bddempty);
-}
-
-TEST_F(UnreducedZDDTest, FactorySingle) {
-    UnreducedZDD s = UnreducedZDD::single();
-    EXPECT_TRUE(s.is_terminal());
-    EXPECT_TRUE(s.is_one());
-    EXPECT_TRUE(s.is_reduced());
-    EXPECT_EQ(s.get_id(), bddsingle);
-}
-
-TEST_F(UnreducedZDDTest, ConversionFromZDD) {
+TEST_F(UnreducedDDTest, SetChild_Basic) {
     bddvar v = bddnewvar();
-    ZDD z = ZDD(0).Change(v);
-    UnreducedZDD u(z);
-    EXPECT_EQ(u.get_id(), z.get_id());
-    EXPECT_TRUE(u.is_reduced());
+    UnreducedDD null(-1);
+    UnreducedDD n = UnreducedDD::getnode(v, null, null);
+
+    n.set_child0(UnreducedDD::zero());
+    n.set_child1(UnreducedDD::one());
+
+    EXPECT_EQ(UnreducedDD::raw_child0(n.get_id()), bddfalse);
+    EXPECT_EQ(UnreducedDD::raw_child1(n.get_id()), bddtrue);
 }
 
-TEST_F(UnreducedZDDTest, NodeWithReducedChildren_DelegatesToGetznode) {
+TEST_F(UnreducedDDTest, SetChild_ThrowsOnTerminal) {
+    UnreducedDD t = UnreducedDD::one();
+    EXPECT_THROW(t.set_child0(UnreducedDD::zero()), std::invalid_argument);
+}
+
+TEST_F(UnreducedDDTest, SetChild_ThrowsOnComplement) {
     bddvar v = bddnewvar();
-    UnreducedZDD lo = UnreducedZDD::empty();
-    UnreducedZDD hi = UnreducedZDD::single();
-    UnreducedZDD n = UnreducedZDD::getnode(v, lo, hi);
-    // Should delegate to getznode -> reduced
-    EXPECT_TRUE(n.is_reduced());
+    UnreducedDD null(-1);
+    UnreducedDD n = UnreducedDD::getnode(v, null, null);
+    UnreducedDD neg = ~n;
+    EXPECT_THROW(neg.set_child0(UnreducedDD::zero()), std::invalid_argument);
 }
 
-TEST_F(UnreducedZDDTest, NodeHiEqualsEmpty_CreatesUnreducedNode) {
+// =============================================================
+// operator~ (bit 0 toggle, no semantics)
+// =============================================================
+
+TEST_F(UnreducedDDTest, OperatorNot) {
     bddvar v = bddnewvar();
-    UnreducedZDD lo = UnreducedZDD::single();
-    UnreducedZDD hi = UnreducedZDD::empty();
-    // hi == bddempty: ZDD would suppress this, but unreduced allows it
-    UnreducedZDD n = UnreducedZDD::getnode(v, lo, hi);
-    EXPECT_FALSE(n.is_reduced());
-    EXPECT_EQ(n.top(), v);
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD neg = ~n;
+    EXPECT_EQ(neg.get_id(), bddnot(n.get_id()));
+    // Double negation
+    UnreducedDD dneg = ~neg;
+    EXPECT_EQ(dneg.get_id(), n.get_id());
 }
 
-TEST_F(UnreducedZDDTest, NodeHiEqualsEmpty_ReducesToLo) {
-    bddvar v = bddnewvar();
-    UnreducedZDD lo = UnreducedZDD::single();
-    UnreducedZDD hi = UnreducedZDD::empty();
-    UnreducedZDD n = UnreducedZDD::getnode(v, lo, hi);
-    ZDD reduced = n.reduce();
-    // Reducing should apply zero-suppression: hi==empty => return lo
-    EXPECT_EQ(reduced.get_id(), bddsingle);
+TEST_F(UnreducedDDTest, OperatorNot_OnTerminals) {
+    // ~zero == one, ~one == zero (terminal encoding)
+    EXPECT_EQ((~UnreducedDD::zero()).get_id(), bddtrue);
+    EXPECT_EQ((~UnreducedDD::one()).get_id(), bddfalse);
 }
 
-TEST_F(UnreducedZDDTest, ChildAccessors_ZDDSemantics) {
-    bddvar v = bddnewvar();
-    UnreducedZDD lo = UnreducedZDD::empty();
-    UnreducedZDD hi = UnreducedZDD::single();
-    UnreducedZDD n = UnreducedZDD::getnode(v, lo, hi);
+// =============================================================
+// Comparison operators and hash
+// =============================================================
 
-    EXPECT_EQ(n.child0().get_id(), bddempty);
-    EXPECT_EQ(n.child1().get_id(), bddsingle);
+TEST_F(UnreducedDDTest, ComparisonOperators) {
+    UnreducedDD a = UnreducedDD::zero();
+    UnreducedDD b = UnreducedDD::one();
+    EXPECT_TRUE(a == a);
+    EXPECT_FALSE(a == b);
+    EXPECT_TRUE(a != b);
+    EXPECT_FALSE(a != a);
+    EXPECT_TRUE((a < b) || (b < a));
 }
 
-TEST_F(UnreducedZDDTest, ChildAccessors_ComplementOnlyAffectsLo) {
-    bddvar v = bddnewvar();
-    UnreducedZDD lo = UnreducedZDD::empty();
-    UnreducedZDD hi = UnreducedZDD::single();
-    UnreducedZDD n = UnreducedZDD::getnode(v, lo, hi);
-    bddp neg_id = bddnot(n.get_id());
-
-    // ZDD complement: only lo is affected
-    bddp c0 = UnreducedZDD::child0(neg_id);
-    bddp c1 = UnreducedZDD::child1(neg_id);
-    EXPECT_EQ(c0, bddnot(bddempty));  // lo is negated
-    EXPECT_EQ(c1, bddsingle);          // hi is NOT negated
-}
-
-TEST_F(UnreducedZDDTest, OperatorNot) {
-    UnreducedZDD e = UnreducedZDD::empty();
-    UnreducedZDD neg = ~e;
-    EXPECT_EQ(neg.get_id(), bddnot(bddempty));
-    EXPECT_EQ((~neg).get_id(), bddempty);
-}
-
-TEST_F(UnreducedZDDTest, SetChild_Basic) {
-    bddvar v = bddnewvar();
-    UnreducedZDD null(-1);
-    UnreducedZDD n = UnreducedZDD::getnode(v, null, null);
-
-    n.set_child0(UnreducedZDD::empty());
-    n.set_child1(UnreducedZDD::single());
-
-    EXPECT_EQ(UnreducedZDD::raw_child0(n.get_id()), bddempty);
-    EXPECT_EQ(UnreducedZDD::raw_child1(n.get_id()), bddsingle);
-}
-
-TEST_F(UnreducedZDDTest, SetChild_ThenReduce) {
-    bddvar v = bddnewvar();
-    UnreducedZDD null(-1);
-    UnreducedZDD n = UnreducedZDD::getnode(v, null, null);
-
-    n.set_child0(UnreducedZDD::empty());
-    n.set_child1(UnreducedZDD::single());
-
-    ZDD reduced = n.reduce();
-    // {{v}} represented as ZDD: Change(v) on {{}} = {{v}}
-    ZDD expected = ZDD(1).Change(v);
-    EXPECT_EQ(reduced.get_id(), expected.get_id());
-}
-
-TEST_F(UnreducedZDDTest, TopDownConstruction_FullWorkflow) {
-    bddvar v1 = bddnewvar();  // level 1
-    bddvar v2 = bddnewvar();  // level 2 (higher)
-
-    // Root at v2 (highest level) with placeholder children
-    UnreducedZDD null(-1);
-    UnreducedZDD root = UnreducedZDD::getnode(v2, null, null);
-
-    // Create child at v1 (lower level)
-    UnreducedZDD v1_node = UnreducedZDD::getnode(v1, UnreducedZDD::empty(),
-                                                   UnreducedZDD::single());
-
-    // Set children: root = (v2, v1_node, single)
-    // This represents: {{v1}, {v2}}
-    root.set_child0(v1_node);
-    root.set_child1(UnreducedZDD::single());
-
-    // Reduce
-    ZDD reduced = root.reduce();
-
-    // Expected: {{v1}, {v2}}
-    ZDD z1 = ZDD(1).Change(v1);
-    ZDD z2 = ZDD(1).Change(v2);
-    ZDD expected = z1 + z2;
-    EXPECT_EQ(reduced.get_id(), expected.get_id());
-}
-
-TEST_F(UnreducedZDDTest, Reduce_Terminal) {
-    ZDD r0 = UnreducedZDD::empty().reduce();
-    EXPECT_EQ(r0.get_id(), bddempty);
-    ZDD r1 = UnreducedZDD::single().reduce();
-    EXPECT_EQ(r1.get_id(), bddsingle);
-}
-
-TEST_F(UnreducedZDDTest, Reduce_ThrowsOnBddnull) {
-    UnreducedZDD n(-1);
-    EXPECT_THROW(n.reduce(), std::invalid_argument);
-}
-
-TEST_F(UnreducedZDDTest, IsReduced_BddnullReturnsFalse) {
-    UnreducedZDD n(-1);
-    EXPECT_FALSE(n.is_reduced());
-}
-
-TEST_F(UnreducedZDDTest, HashFunction) {
-    std::unordered_map<UnreducedZDD, int> map;
-    UnreducedZDD a = UnreducedZDD::empty();
-    UnreducedZDD b = UnreducedZDD::single();
+TEST_F(UnreducedDDTest, HashFunction) {
+    std::unordered_map<UnreducedDD, int> map;
+    UnreducedDD a = UnreducedDD::zero();
+    UnreducedDD b = UnreducedDD::one();
     map[a] = 1;
     map[b] = 2;
     EXPECT_EQ(map[a], 1);
     EXPECT_EQ(map[b], 2);
 }
 
-TEST_F(UnreducedZDDTest, SetChild_ThrowsOnReduced) {
-    bddvar v = bddnewvar();
-    UnreducedZDD n = UnreducedZDD::getnode(v, UnreducedZDD::empty(),
-                                             UnreducedZDD::single());
-    EXPECT_TRUE(n.is_reduced());
-    EXPECT_THROW(n.set_child0(UnreducedZDD::single()), std::invalid_argument);
+// =============================================================
+// is_reduced
+// =============================================================
+
+TEST_F(UnreducedDDTest, IsReduced_BddnullReturnsFalse) {
+    UnreducedDD n(-1);
+    EXPECT_EQ(n.get_id(), bddnull);
+    EXPECT_FALSE(n.is_reduced());
 }
 
-TEST_F(UnreducedZDDTest, Reduce_ChainedUnreducedNodes) {
-    bddvar v1 = bddnewvar();  // level 1
-    bddvar v2 = bddnewvar();  // level 2 (higher)
+TEST_F(UnreducedDDTest, IsReduced_TerminalReturnsTrue) {
+    EXPECT_TRUE(UnreducedDD::zero().is_reduced());
+    EXPECT_TRUE(UnreducedDD::one().is_reduced());
+}
 
-    // Build: v1 node with hi == bddempty (would be suppressed by ZDD rule)
-    UnreducedZDD mid = UnreducedZDD::getnode(v1, UnreducedZDD::single(),
-                                               UnreducedZDD::empty());
-    EXPECT_FALSE(mid.is_reduced());
+TEST_F(UnreducedDDTest, IsReduced_GetnodeReturnsFalse) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    EXPECT_FALSE(n.is_reduced());
+}
 
-    // Build: v2 node (higher level) with unreduced child
-    UnreducedZDD root = UnreducedZDD::getnode(v2, mid, UnreducedZDD::single());
-    EXPECT_FALSE(root.is_reduced());
+// =============================================================
+// reduce_as_bdd
+// =============================================================
 
-    // Reduce: mid should be suppressed (hi == empty => return lo = single)
-    // root becomes getznode(v2, single, single)
-    ZDD reduced = root.reduce();
+TEST_F(UnreducedDDTest, ReduceAsBDD_Terminal) {
+    BDD r0 = UnreducedDD::zero().reduce_as_bdd();
+    EXPECT_EQ(r0.get_id(), bddfalse);
+    BDD r1 = UnreducedDD::one().reduce_as_bdd();
+    EXPECT_EQ(r1.get_id(), bddtrue);
+}
 
-    // getznode(v2, single, single) = (v2, single, single)
-    // This is {{v2}, {}} = {{v2}, {}}
-    ZDD z2 = ZDD(1).Change(v2);
-    ZDD expected = z2 + ZDD(1);  // {{v2}} union {{}}
+TEST_F(UnreducedDDTest, ReduceAsBDD_SimpleNode) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    BDD reduced = n.reduce_as_bdd();
+    BDD expected = BDDvar(v);
     EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsBDD_LoEqualsHi_Eliminated) {
+    bddvar v = bddnewvar();
+    UnreducedDD t = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, t, t);
+    BDD reduced = n.reduce_as_bdd();
+    // BDD jump rule: lo == hi => return lo
+    EXPECT_EQ(reduced.get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, ReduceAsBDD_ChainedUnreducedNodes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Build: v2 node with lo == hi (unreduced)
+    UnreducedDD leaf = UnreducedDD::one();
+    UnreducedDD mid = UnreducedDD::getnode(v2, leaf, leaf);
+
+    // Build: v1 node with unreduced child
+    UnreducedDD root = UnreducedDD::getnode(v1, mid, UnreducedDD::zero());
+
+    // Reduce: mid (lo == hi) eliminated to "one"
+    // root becomes (v1, one, zero) = ~BDDvar(v1)
+    BDD reduced = root.reduce_as_bdd();
+    BDD expected = ~BDDvar(v1);
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsBDD_WithComplementEdge) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD neg = ~n;
+    BDD reduced = neg.reduce_as_bdd();
+    BDD expected = ~BDDvar(v);
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsBDD_ThrowsOnBddnull) {
+    UnreducedDD n(-1);
+    EXPECT_THROW(n.reduce_as_bdd(), std::invalid_argument);
+}
+
+TEST_F(UnreducedDDTest, ReduceAsBDD_TopDownConstruction) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    UnreducedDD null(-1);
+    UnreducedDD root = UnreducedDD::getnode(v2, null, null);
+
+    UnreducedDD child_lo = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                                     UnreducedDD::one());
+    root.set_child0(child_lo);
+    root.set_child1(UnreducedDD::one());
+
+    BDD reduced = root.reduce_as_bdd();
+    BDD x1 = BDDvar(v1);
+    BDD x2 = BDDvar(v2);
+    BDD expected = x1 | x2;
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+// =============================================================
+// reduce_as_zdd
+// =============================================================
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_Terminal) {
+    ZDD r0 = UnreducedDD::zero().reduce_as_zdd();
+    EXPECT_EQ(r0.get_id(), bddempty);
+    ZDD r1 = UnreducedDD::one().reduce_as_zdd();
+    EXPECT_EQ(r1.get_id(), bddsingle);
+}
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_HiEqualsEmpty_Suppressed) {
+    bddvar v = bddnewvar();
+    UnreducedDD lo = UnreducedDD::one();
+    UnreducedDD hi = UnreducedDD::zero();  // bddempty
+    UnreducedDD n = UnreducedDD::getnode(v, lo, hi);
+    ZDD reduced = n.reduce_as_zdd();
+    // ZDD zero-suppression: hi == empty => return lo
+    EXPECT_EQ(reduced.get_id(), bddsingle);
+}
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_SimpleNode) {
+    bddvar v = bddnewvar();
+    UnreducedDD lo = UnreducedDD::zero();
+    UnreducedDD hi = UnreducedDD::one();
+    UnreducedDD n = UnreducedDD::getnode(v, lo, hi);
+    ZDD reduced = n.reduce_as_zdd();
+    // {{v}} = Change(v) on {{}}
+    ZDD expected = ZDD(1).Change(v);
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_ChainedUnreducedNodes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // v1 node with hi == bddempty (would be suppressed)
+    UnreducedDD mid = UnreducedDD::getnode(v1, UnreducedDD::one(),
+                                             UnreducedDD::zero());
+
+    // v2 node with unreduced child
+    UnreducedDD root = UnreducedDD::getnode(v2, mid, UnreducedDD::one());
+
+    // Reduce: mid suppressed (hi == empty => return lo = single)
+    // root becomes (v2, single, single)
+    ZDD reduced = root.reduce_as_zdd();
+
+    ZDD z2 = ZDD(1).Change(v2);
+    ZDD expected = z2 + ZDD(1);  // {{v2}, {}}
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_TopDownConstruction) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    UnreducedDD null(-1);
+    UnreducedDD root = UnreducedDD::getnode(v2, null, null);
+
+    UnreducedDD v1_node = UnreducedDD::getnode(v1, UnreducedDD::zero(),
+                                                    UnreducedDD::one());
+    root.set_child0(v1_node);
+    root.set_child1(UnreducedDD::one());
+
+    ZDD reduced = root.reduce_as_zdd();
+
+    ZDD z1 = ZDD(1).Change(v1);
+    ZDD z2 = ZDD(1).Change(v2);
+    ZDD expected = z1 + z2;  // {{v1}, {v2}}
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsZDD_ThrowsOnBddnull) {
+    UnreducedDD n(-1);
+    EXPECT_THROW(n.reduce_as_zdd(), std::invalid_argument);
+}
+
+// =============================================================
+// reduce_as_qdd
+// =============================================================
+
+TEST_F(UnreducedDDTest, ReduceAsQDD_Terminal) {
+    QDD q0 = UnreducedDD::zero().reduce_as_qdd();
+    EXPECT_EQ(q0.get_id(), bddfalse);
+    QDD q1 = UnreducedDD::one().reduce_as_qdd();
+    EXPECT_EQ(q1.get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, ReduceAsQDD_SimpleNode) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    QDD q = n.reduce_as_qdd();
+    // QDD has same structure as BDD for single-variable case
+    QDD expected = BDDvar(v).to_qdd();
+    EXPECT_EQ(q.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ReduceAsQDD_MultiLevel) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Build: v2 node skipping v1 level
+    UnreducedDD n = UnreducedDD::getnode(v2, UnreducedDD::zero(), UnreducedDD::one());
+    QDD q = n.reduce_as_qdd();
+
+    // QDD should have all levels filled
+    QDD expected = BDDvar(v2).to_qdd();
+    EXPECT_EQ(q.get_id(), expected.get_id());
+}
+
+// =============================================================
+// Complement expansion constructors
+// =============================================================
+
+TEST_F(UnreducedDDTest, ConstructFromBDD_Terminal) {
+    BDD b0 = BDD::False;
+    BDD b1 = BDD::True;
+    UnreducedDD u0(b0);
+    UnreducedDD u1(b1);
+    EXPECT_EQ(u0.get_id(), bddfalse);
+    EXPECT_EQ(u1.get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, ConstructFromBDD_SimpleNonComplemented) {
+    bddvar v = bddnewvar();
+    BDD x = BDDvar(v);
+    UnreducedDD u(x);
+    // No complement edges in BDDvar(v), so the expanded version
+    // is an unreduced copy of the same structure
+    EXPECT_FALSE(u.is_reduced());  // new unreduced node
+    EXPECT_EQ(u.top(), v);
+    EXPECT_EQ(u.raw_child0().get_id(), bddfalse);
+    EXPECT_EQ(u.raw_child1().get_id(), bddtrue);
+    // Round-trip reduce should give back the same BDD
+    BDD back = u.reduce_as_bdd();
+    EXPECT_EQ(back.get_id(), x.get_id());
+}
+
+TEST_F(UnreducedDDTest, ConstructFromBDD_ComplementExpanded) {
+    bddvar v = bddnewvar();
+    BDD x = BDDvar(v);
+    BDD neg_x = ~x;  // Has complement edge on root
+
+    UnreducedDD u(neg_x);
+    // After complement expansion, no complement bit should remain
+    EXPECT_EQ(u.get_id() & BDD_COMP_FLAG, 0u);
+    // The expanded DD should represent ~x: (v, 1, 0)
+    EXPECT_EQ(u.raw_child0().get_id(), bddtrue);
+    EXPECT_EQ(u.raw_child1().get_id(), bddfalse);
+    // Reduce back to BDD
+    BDD back = u.reduce_as_bdd();
+    EXPECT_EQ(back.get_id(), neg_x.get_id());
+}
+
+TEST_F(UnreducedDDTest, ConstructFromBDD_ComplexComplementExpansion) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD x1 = BDDvar(v1);
+    BDD x2 = BDDvar(v2);
+    BDD f = x1 & x2;  // AND may use complement edges internally
+
+    UnreducedDD u(f);
+    BDD back = u.reduce_as_bdd();
+    EXPECT_EQ(back.get_id(), f.get_id());
+}
+
+TEST_F(UnreducedDDTest, ConstructFromZDD_SimpleNonComplemented) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD(1).Change(v);  // {{v}}
+    UnreducedDD u(z);
+    ZDD back = u.reduce_as_zdd();
+    EXPECT_EQ(back.get_id(), z.get_id());
+}
+
+TEST_F(UnreducedDDTest, ConstructFromZDD_ComplementExpanded) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD(1).Change(v);  // {{v}}
+    ZDD neg_z = ~z;  // complement
+
+    UnreducedDD u(neg_z);
+    // After complement expansion, no complement bit on root
+    EXPECT_EQ(u.get_id() & BDD_COMP_FLAG, 0u);
+    // Reduce back
+    ZDD back = u.reduce_as_zdd();
+    EXPECT_EQ(back.get_id(), neg_z.get_id());
+}
+
+TEST_F(UnreducedDDTest, ConstructFromQDD_RoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD x1 = BDDvar(v1);
+    QDD q = x1.to_qdd();
+
+    UnreducedDD u(q);
+    QDD back = u.reduce_as_qdd();
+    EXPECT_EQ(back.get_id(), q.get_id());
+}
+
+// =============================================================
+// wrap_raw
+// =============================================================
+
+TEST_F(UnreducedDDTest, WrapRaw_BDD) {
+    bddvar v = bddnewvar();
+    BDD x = BDDvar(v);
+    UnreducedDD u = UnreducedDD::wrap_raw(x);
+    // Wraps the same bddp
+    EXPECT_EQ(u.get_id(), x.get_id());
+    EXPECT_TRUE(u.is_reduced());
+    // Same-type reduce gives back the same BDD
+    BDD back = u.reduce_as_bdd();
+    EXPECT_EQ(back.get_id(), x.get_id());
+}
+
+TEST_F(UnreducedDDTest, WrapRaw_ZDD) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD(1).Change(v);
+    UnreducedDD u = UnreducedDD::wrap_raw(z);
+    EXPECT_EQ(u.get_id(), z.get_id());
+    EXPECT_TRUE(u.is_reduced());
+    ZDD back = u.reduce_as_zdd();
+    EXPECT_EQ(back.get_id(), z.get_id());
+}
+
+TEST_F(UnreducedDDTest, WrapRaw_QDD) {
+    bddvar v = bddnewvar();
+    QDD q = BDDvar(v).to_qdd();
+    UnreducedDD u = UnreducedDD::wrap_raw(q);
+    EXPECT_EQ(u.get_id(), q.get_id());
+}
+
+// =============================================================
+// Complement edge interpretation during reduce
+// =============================================================
+
+TEST_F(UnreducedDDTest, ComplementInterpretedAsB_BDD) {
+    bddvar v = bddnewvar();
+    // Build unreduced node with complemented lo: (v, ~0, 1)
+    UnreducedDD n = UnreducedDD::getnode(v, ~UnreducedDD::zero(), UnreducedDD::one());
+
+    // reduce_as_bdd: complement on lo is interpreted as BDD complement
+    // BDD::getnode_raw(v, ~0, 1) = BDD::getnode_raw(v, 1, 1)
+    //   with comp flag, then normalized => lo==hi => return 1, then negate => 0
+    // Actually: ~0 = bddtrue. So (v, bddtrue, bddtrue) => jump rule => bddtrue, negate => bddfalse
+    // Wait, let me think: reduce reads raw lo = ~zero = bddtrue, hi = bddtrue.
+    // reduce(bddtrue) = bddtrue, reduce(bddtrue) = bddtrue.
+    // BDD::getnode_raw(v, bddtrue, bddtrue) => lo==hi => return bddtrue.
+    // No complement on f, so result = bddtrue.
+    // Wait, ~zero = bddnot(bddfalse) = bddtrue. So the stored lo IS bddtrue (a terminal).
+    // The reduce function reads node_lo(base) = bddtrue, node_hi(base) = bddtrue.
+    BDD reduced = n.reduce_as_bdd();
+    EXPECT_EQ(reduced.get_id(), bddtrue);
+}
+
+TEST_F(UnreducedDDTest, ComplementInterpretedAsZDD) {
+    bddvar v = bddnewvar();
+    // Build: (v, ~one, one) where ~one = bddfalse
+    // Stored raw: lo = bddfalse, hi = bddtrue
+    UnreducedDD n = UnreducedDD::getnode(v, ~UnreducedDD::one(), UnreducedDD::one());
+
+    // reduce_as_zdd: lo = bddfalse, hi = bddtrue
+    // ZDD::getnode_raw(v, bddfalse, bddtrue) => hi != bddempty, lo not complemented
+    // Creates canonical node representing {{v}}
+    ZDD reduced = n.reduce_as_zdd();
+    ZDD expected = ZDD(1).Change(v);
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, ComplementOnNonTerminal_ReduceAsBDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+
+    // Build inner node: (v1, 0, 1)
+    UnreducedDD inner = UnreducedDD::getnode(v1, UnreducedDD::zero(), UnreducedDD::one());
+    // Build outer node with complement: (v2, ~inner, 1)
+    UnreducedDD outer = UnreducedDD::getnode(v2, ~inner, UnreducedDD::one());
+
+    BDD reduced = outer.reduce_as_bdd();
+
+    // ~inner through BDD reduce means: reduce(~inner)
+    // = bddnot(reduce(inner)) = bddnot(BDDvar(v1)) = ~BDDvar(v1)
+    // BDD::getnode_raw(v2, ~BDDvar(v1), bddtrue)
+    // BDD comp normalization: lo is complemented, so flip both:
+    // lo' = BDDvar(v1), hi' = bddfalse
+    // Store (v2, BDDvar(v1), bddfalse), return complemented
+    BDD x1 = BDDvar(v1);
+    BDD x2 = BDDvar(v2);
+    // The function is: if v2=0: ~x1, if v2=1: 1
+    // = ~x1 & ~x2 | x2 = ~(x1 & ~x2) = ~x1 | x2
+    BDD expected = ~x1 | x2;
+    EXPECT_EQ(reduced.get_id(), expected.get_id());
+}
+
+TEST_F(UnreducedDDTest, SameStructure_DifferentReduceResults) {
+    bddvar v = bddnewvar();
+    // Build: (v, 0, 0) — lo == hi == bddzero == bddempty
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::zero());
+
+    // reduce_as_bdd: lo == hi => jump rule => return bddfalse
+    BDD bdd = n.reduce_as_bdd();
+    EXPECT_EQ(bdd.get_id(), bddfalse);
+
+    // reduce_as_zdd: hi == bddempty => zero-suppression => return lo = bddempty
+    ZDD zdd = n.reduce_as_zdd();
+    EXPECT_EQ(zdd.get_id(), bddempty);
+}
+
+TEST_F(UnreducedDDTest, SameStructure_DifferentResults_NonTrivial) {
+    bddvar v = bddnewvar();
+    // Build: (v, 1, 0) — hi == bddempty, lo == bddtrue
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::one(), UnreducedDD::zero());
+
+    // reduce_as_bdd: lo != hi, creates BDD node (v, 1, 0) = ~BDDvar(v)
+    BDD bdd = n.reduce_as_bdd();
+    BDD expected_bdd = ~BDDvar(v);
+    EXPECT_EQ(bdd.get_id(), expected_bdd.get_id());
+
+    // reduce_as_zdd: hi == bddempty => zero-suppression => return lo = bddtrue
+    ZDD zdd = n.reduce_as_zdd();
+    EXPECT_EQ(zdd.get_id(), bddsingle);
 }

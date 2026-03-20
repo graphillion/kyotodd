@@ -201,17 +201,6 @@ QDD ZDD::to_qdd() const {
     return QDD_ID(result);
 }
 
-// --- UnreducedBDD/UnreducedZDD to QDD (two-stage) ---
-
-QDD UnreducedBDD::to_qdd() const {
-    BDD reduced = reduce();
-    return reduced.to_qdd();
-}
-
-QDD UnreducedZDD::to_qdd() const {
-    ZDD reduced = reduce();
-    return reduced.to_qdd();
-}
 
 QDD QDD_ID(bddp p) {
     if (p != bddnull && !(p & BDD_CONST_FLAG)) {
