@@ -146,7 +146,14 @@ std::vector<bddvar> BDD::uniform_sample_impl(
 
     std::vector<bddvar> result;
     bddp f = root;
-    bddvar current_level = n;
+    // Compute the max level among domain variables {1..n} so that
+    // all don't-care variables above the root are handled correctly
+    // even when variable ordering is non-default.
+    bddvar current_level = 0;
+    for (bddvar v = 1; v <= n; ++v) {
+        bddvar lev = var2level[v];
+        if (lev > current_level) current_level = lev;
+    }
     const bigint::BigInt two(2);
     const bigint::BigInt zero(0);
 
@@ -159,9 +166,13 @@ std::vector<bddvar> BDD::uniform_sample_impl(
         bddvar node_level = var2level[var];
 
         // Randomly assign skipped variables (current_level down to node_level+1)
+        // Filter out variables outside domain {1..n}
         for (bddvar lev = current_level; lev > node_level; --lev) {
-            if (rand_func(two) != zero) {
-                result.push_back(bddvaroflev(lev));
+            bddvar v = bddvaroflev(lev);
+            if (v <= n) {
+                if (rand_func(two) != zero) {
+                    result.push_back(v);
+                }
             }
         }
 
@@ -190,10 +201,14 @@ std::vector<bddvar> BDD::uniform_sample_impl(
     }
 
     // Terminal reached: randomly assign remaining levels
+    // Filter out variables outside domain {1..n}
     if (f == bddtrue) {
         for (bddvar lev = current_level; lev > 0; --lev) {
-            if (rand_func(two) != zero) {
-                result.push_back(bddvaroflev(lev));
+            bddvar v = bddvaroflev(lev);
+            if (v <= n) {
+                if (rand_func(two) != zero) {
+                    result.push_back(v);
+                }
             }
         }
     }

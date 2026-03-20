@@ -1019,7 +1019,7 @@ double bddcount(bddp f, bddvar n) {
 
     std::unordered_map<bddp, double> memo;
     double inner = bddcount_bdd_rec(f, n, memo);
-    return ldexp(inner, n - top_level);
+    return ldexp(inner, static_cast<int>(n) - static_cast<int>(top_level));
 }
 
 static bigint::BigInt bddexactcount_bdd_rec(
@@ -1079,7 +1079,11 @@ bigint::BigInt bddexactcount(bddp f, bddvar n) {
 
     std::unordered_map<bddp, bigint::BigInt> memo;
     bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
-    return inner << static_cast<std::size_t>(n - top_level);
+    if (n >= top_level) {
+        return inner << static_cast<std::size_t>(n - top_level);
+    } else {
+        return inner >> static_cast<std::size_t>(top_level - n);
+    }
 }
 
 bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
@@ -1091,5 +1095,9 @@ bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
     bddvar top_level = var2level[node_var(f_raw)];
 
     bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
-    return inner << static_cast<std::size_t>(n - top_level);
+    if (n >= top_level) {
+        return inner << static_cast<std::size_t>(n - top_level);
+    } else {
+        return inner >> static_cast<std::size_t>(top_level - n);
+    }
 }

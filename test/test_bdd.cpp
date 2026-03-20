@@ -10832,3 +10832,64 @@ TEST_F(BDDTest, SaveGraphviz_BDD_Null) {
     BDD::Null.save_graphviz(oss);
     EXPECT_TRUE(oss.str().empty());
 }
+
+// --- Variable reordering: count / exact_count / uniform_sample ---
+
+TEST_F(BDDTest, CountWithReorderedVariables) {
+    // Setup: var1->level2, var2->level3, var3->level1
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddnewvaroflev(1);  // var3 at level 1
+
+    EXPECT_EQ(var2level[v1], 2u);
+    EXPECT_EQ(var2level[v2], 3u);
+
+    BDD f = BDDvar(v2);  // x2
+
+    // x2 over {x1, x2}: satisfying = {(0,1),(1,1)} = 2
+    EXPECT_DOUBLE_EQ(f.count(2), 2.0);
+    // x2 over {x1, x2, x3}: satisfying = 4
+    EXPECT_DOUBLE_EQ(f.count(3), 4.0);
+}
+
+TEST_F(BDDTest, ExactCountWithReorderedVariables) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddnewvaroflev(1);  // var3 at level 1
+
+    BDD f = BDDvar(v2);  // x2
+
+    // x2 over {x1, x2}: 2 satisfying assignments
+    EXPECT_EQ(f.exact_count(2), bigint::BigInt(2));
+    // x2 over {x1, x2, x3}: 4 satisfying assignments
+    EXPECT_EQ(f.exact_count(3), bigint::BigInt(4));
+
+    // x1 AND x2 over {x1, x2}: 1 satisfying assignment
+    BDD g = BDDvar(v1) & BDDvar(v2);
+    EXPECT_EQ(g.exact_count(2), bigint::BigInt(1));
+
+    // x1 OR x2 over {x1, x2}: 3 satisfying assignments
+    BDD h = BDDvar(v1) | BDDvar(v2);
+    EXPECT_EQ(h.exact_count(2), bigint::BigInt(3));
+}
+
+TEST_F(BDDTest, UniformSampleWithReorderedVariables) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddnewvaroflev(1);  // var3 at level 1
+
+    BDD f = BDDvar(v2);  // x2, n=2
+
+    std::mt19937_64 rng(42);
+    BddCountMemo memo(f.get_id(), 2);
+
+    for (int i = 0; i < 100; ++i) {
+        auto sample = f.uniform_sample(rng, 2, memo);
+        // v2 must always be in the sample (x2=1 required)
+        EXPECT_NE(std::find(sample.begin(), sample.end(), v2), sample.end());
+        // No variable outside domain {1, 2} should appear
+        for (bddvar v : sample) {
+            EXPECT_LE(v, 2u) << "out-of-domain variable " << v << " in sample";
+        }
+    }
+}
