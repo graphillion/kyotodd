@@ -10291,9 +10291,17 @@ TEST_F(BDDTest, Knuth_ZDD_RoundtripHex) {
 }
 
 TEST_F(BDDTest, Knuth_ZDD_RoundtripMultiLevel) {
-    // Use a ZDD with standard ordering (root at highest level)
     std::vector<std::vector<bddvar>> sets = {{1, 2}, {2, 3}, {1, 3}};
     ZDD f = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    ZDD g = ZDD::import_knuth(iss);
+    EXPECT_EQ(f.enumerate(), g.enumerate());
+}
+
+TEST_F(BDDTest, Knuth_ZDD_RoundtripCombination) {
+    ZDD f = ZDD::combination(4, 2);
     std::ostringstream oss;
     f.export_knuth(oss);
     std::istringstream iss(oss.str());

@@ -273,21 +273,22 @@ ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
     return ZDD_ID(f);
 }
 
-// Recursive helper: all k-element subsets of {v, v+1, ..., n}
-static bddp combination_rec(bddvar v, bddvar n, bddvar k) {
+// Recursive helper: all k-element subsets of {v, v-1, ..., 1}
+// v counts downward so that the root is at the highest level.
+static bddp combination_rec(bddvar v, bddvar k) {
     if (k == 0) return bddsingle;
-    if (n - v + 1 < k) return bddempty;  // not enough variables left
-    if (n - v + 1 == k) {
-        // must take all remaining variables
+    if (v < k) return bddempty;  // not enough variables left
+    if (v == k) {
+        // must take all remaining variables (1..v)
         bddp f = bddsingle;
-        for (bddvar i = v; i <= n; ++i) {
+        for (bddvar i = 1; i <= v; ++i) {
             f = bddchange(f, i);
         }
         return f;
     }
     // getznode(v, lo, hi): lo = subsets not containing v, hi = subsets containing v
-    bddp lo = combination_rec(v + 1, n, k);
-    bddp hi = combination_rec(v + 1, n, k - 1);
+    bddp lo = combination_rec(v - 1, k);
+    bddp hi = combination_rec(v - 1, k - 1);
     return getznode(v, lo, hi);
 }
 
@@ -297,7 +298,7 @@ ZDD ZDD::combination(bddvar n, bddvar k) {
     while (bdd_varcount < n) {
         bddnewvar();
     }
-    return ZDD_ID(combination_rec(1, n, k));
+    return ZDD_ID(combination_rec(n, k));
 }
 
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
