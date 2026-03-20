@@ -3,6 +3,8 @@
 #include <sstream>
 #include <fstream>
 #include "bdd.h"
+#include "qdd.h"
+#include "unreduced_dd.h"
 #include "pidd.h"
 #include "rotpidd.h"
 #include "seqbdd.h"
@@ -1016,6 +1018,242 @@ PYBIND11_MODULE(_core, m) {
              "The number of permutations in the set.")
         .def_property_readonly("zdd", &RotPiDD::GetZDD,
              "The internal ZDD representation.")
+    ;
+
+    // ================================================================
+    // QDD class
+    // ================================================================
+
+    py::class_<QDD>(m, "QDD",
+        "A Quasi-reduced Decision Diagram.\n\n"
+        "QDD does not apply the jump rule (lo == hi nodes are preserved).\n"
+        "Every path from root to terminal visits every variable level exactly once.\n"
+        "Uses BDD complement edge semantics.")
+        .def(py::init([](int val) {
+            ensure_init();
+            return QDD(val);
+        }), py::arg("val") = 0,
+           "Construct a QDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for false, 1 for true, negative for null.\n")
+
+        .def_property_readonly_static("false_", [](py::object) -> QDD {
+            return QDD::False;
+        })
+        .def_property_readonly_static("true_", [](py::object) -> QDD {
+            return QDD::True;
+        })
+        .def_property_readonly_static("null", [](py::object) -> QDD {
+            return QDD::Null;
+        })
+
+        .def("__eq__", [](const QDD& a, const QDD& b) { return a == b; },
+             "Equality comparison by node ID.")
+        .def("__ne__", [](const QDD& a, const QDD& b) { return a != b; },
+             "Inequality comparison by node ID.")
+        .def("__hash__", [](const QDD& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        }, "Hash based on node ID.")
+        .def("__repr__", [](const QDD& a) {
+            return "QDD(node_id=" + std::to_string(a.get_id()) + ")";
+        }, "Return string representation: QDD(node_id=...).")
+        .def("__bool__", [](const QDD&) -> bool {
+            throw py::type_error(
+                "QDD cannot be converted to bool. "
+                "Use == QDD.false_ or == QDD.true_ instead.");
+        })
+
+        // Operators
+        .def("__invert__", [](const QDD& a) { return ~a; },
+             "Complement (negate): ~self.")
+
+        // Node creation
+        .def_static("getnode", [](bddvar var, const QDD& lo, const QDD& hi) -> QDD {
+            ensure_init();
+            return QDD::getnode(var, lo, hi);
+        }, py::arg("var"), py::arg("lo"), py::arg("hi"),
+           "Create a QDD node with level validation.\n\n"
+           "Children must be at the expected level (var's level - 1).\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    lo: The low (0-edge) child.\n"
+           "    hi: The high (1-edge) child.\n\n"
+           "Returns:\n"
+           "    The created QDD node.\n")
+
+        // Child accessors
+        .def("child0", [](const QDD& q) { return q.child0(); },
+             "Get the 0-child (lo) with complement resolution.")
+        .def("child1", [](const QDD& q) { return q.child1(); },
+             "Get the 1-child (hi) with complement resolution.")
+        .def("child", [](const QDD& q, int c) { return q.child(c); },
+             py::arg("child"),
+             "Get the child by index (0 or 1) with complement resolution.")
+        .def("raw_child0", [](const QDD& q) { return q.raw_child0(); },
+             "Get the raw 0-child (lo) without complement resolution.")
+        .def("raw_child1", [](const QDD& q) { return q.raw_child1(); },
+             "Get the raw 1-child (hi) without complement resolution.")
+        .def("raw_child", [](const QDD& q, int c) { return q.raw_child(c); },
+             py::arg("child"),
+             "Get the raw child by index (0 or 1) without complement resolution.")
+
+        // Conversion
+        .def("to_bdd", &QDD::to_bdd,
+             "Convert to a canonical BDD by applying jump rule.")
+        .def("to_zdd", &QDD::to_zdd,
+             "Convert to a canonical ZDD.")
+
+        // Properties
+        .def_property_readonly("node_id", [](const QDD& q) { return q.get_id(); },
+             "The raw node ID of this QDD.")
+        .def_property_readonly("is_terminal", &QDD::is_terminal,
+             "True if this is a terminal node.")
+        .def_property_readonly("is_one", &QDD::is_one,
+             "True if this is the 1-terminal.")
+        .def_property_readonly("is_zero", &QDD::is_zero,
+             "True if this is the 0-terminal.")
+        .def_property_readonly("top_var", [](const QDD& q) -> bddvar {
+            return q.top();
+        }, "The top (root) variable number of this QDD.")
+        .def_property_readonly("raw_size", [](const QDD& q) { return q.raw_size(); },
+             "The number of nodes in the DAG of this QDD.")
+    ;
+
+    // ================================================================
+    // UnreducedDD class
+    // ================================================================
+
+    py::class_<UnreducedDD>(m, "UnreducedDD",
+        "A type-agnostic unreduced Decision Diagram.\n\n"
+        "Does NOT apply any reduction rules at node creation time.\n"
+        "Complement edges are stored raw and only gain meaning\n"
+        "when reduce_as_bdd(), reduce_as_zdd(), or reduce_as_qdd() is called.")
+        .def(py::init([](int val) {
+            ensure_init();
+            return UnreducedDD(val);
+        }), py::arg("val") = 0,
+           "Construct an UnreducedDD from an integer value.\n\n"
+           "Args:\n"
+           "    val: 0 for 0-terminal, 1 for 1-terminal, negative for null.\n")
+
+        // Constructors from other DD types (complement expansion)
+        .def(py::init([](const BDD& bdd) {
+            return UnreducedDD(bdd);
+        }), py::arg("bdd"),
+           "Convert a BDD to an UnreducedDD with complement expansion.\n\n"
+           "Recursively expands all complement edges using BDD semantics.\n")
+        .def(py::init([](const ZDD& zdd) {
+            return UnreducedDD(zdd);
+        }), py::arg("zdd"),
+           "Convert a ZDD to an UnreducedDD with complement expansion.\n\n"
+           "Recursively expands all complement edges using ZDD semantics.\n")
+        .def(py::init([](const QDD& qdd) {
+            return UnreducedDD(qdd);
+        }), py::arg("qdd"),
+           "Convert a QDD to an UnreducedDD with complement expansion.\n\n"
+           "Uses BDD complement semantics.\n")
+
+        .def("__eq__", [](const UnreducedDD& a, const UnreducedDD& b) { return a == b; },
+             "Equality comparison by node ID (not semantic equality).")
+        .def("__ne__", [](const UnreducedDD& a, const UnreducedDD& b) { return a != b; },
+             "Inequality comparison by node ID.")
+        .def("__lt__", [](const UnreducedDD& a, const UnreducedDD& b) { return a < b; },
+             "Less-than by node ID (for ordered containers).")
+        .def("__hash__", [](const UnreducedDD& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        }, "Hash based on node ID.")
+        .def("__repr__", [](const UnreducedDD& a) {
+            return "UnreducedDD(node_id=" + std::to_string(a.get_id()) + ")";
+        }, "Return string representation: UnreducedDD(node_id=...).")
+        .def("__bool__", [](const UnreducedDD&) -> bool {
+            throw py::type_error(
+                "UnreducedDD cannot be converted to bool. "
+                "Use == UnreducedDD(0) or == UnreducedDD(1) instead.");
+        })
+
+        // Operators
+        .def("__invert__", [](const UnreducedDD& a) { return ~a; },
+             "Toggle complement bit (bit 0). O(1).\n\n"
+             "The complement bit has no semantics in UnreducedDD;\n"
+             "it is only interpreted at reduce time.")
+
+        // Node creation
+        .def_static("getnode", [](bddvar var, const UnreducedDD& lo,
+                                  const UnreducedDD& hi) -> UnreducedDD {
+            ensure_init();
+            return UnreducedDD::getnode(var, lo, hi);
+        }, py::arg("var"), py::arg("lo"), py::arg("hi"),
+           "Create an unreduced DD node.\n\n"
+           "Always allocates a new node. No complement normalization,\n"
+           "no reduction rules, no unique table insertion.\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    lo: The low (0-edge) child.\n"
+           "    hi: The high (1-edge) child.\n\n"
+           "Returns:\n"
+           "    The created UnreducedDD node.\n")
+
+        // Raw wrap (complement edges preserved)
+        .def_static("wrap_raw_bdd", [](const BDD& bdd) -> UnreducedDD {
+            return UnreducedDD::wrap_raw(bdd);
+        }, py::arg("bdd"),
+           "Wrap a BDD's bddp directly without complement expansion.\n\n"
+           "Only use reduce_as_bdd() on the result.\n")
+        .def_static("wrap_raw_zdd", [](const ZDD& zdd) -> UnreducedDD {
+            return UnreducedDD::wrap_raw(zdd);
+        }, py::arg("zdd"),
+           "Wrap a ZDD's bddp directly without complement expansion.\n\n"
+           "Only use reduce_as_zdd() on the result.\n")
+        .def_static("wrap_raw_qdd", [](const QDD& qdd) -> UnreducedDD {
+            return UnreducedDD::wrap_raw(qdd);
+        }, py::arg("qdd"),
+           "Wrap a QDD's bddp directly without complement expansion.\n\n"
+           "Only use reduce_as_qdd() on the result.\n")
+
+        // Child accessors (raw only)
+        .def("raw_child0", [](const UnreducedDD& u) { return u.raw_child0(); },
+             "Get the raw 0-child (lo) as an UnreducedDD.")
+        .def("raw_child1", [](const UnreducedDD& u) { return u.raw_child1(); },
+             "Get the raw 1-child (hi) as an UnreducedDD.")
+        .def("raw_child", [](const UnreducedDD& u, int c) { return u.raw_child(c); },
+             py::arg("child"),
+             "Get the raw child by index (0 or 1) as an UnreducedDD.")
+
+        // Child mutation (top-down construction)
+        .def("set_child0", &UnreducedDD::set_child0, py::arg("child"),
+             "Set the 0-child (lo) of this unreduced node.\n\n"
+             "Only valid on unreduced, non-terminal, non-complemented nodes.\n")
+        .def("set_child1", &UnreducedDD::set_child1, py::arg("child"),
+             "Set the 1-child (hi) of this unreduced node.\n\n"
+             "Only valid on unreduced, non-terminal, non-complemented nodes.\n")
+
+        // Reduce
+        .def("reduce_as_bdd", &UnreducedDD::reduce_as_bdd,
+             "Reduce to a canonical BDD.\n\n"
+             "Applies BDD complement semantics and jump rule.\n")
+        .def("reduce_as_zdd", &UnreducedDD::reduce_as_zdd,
+             "Reduce to a canonical ZDD.\n\n"
+             "Applies ZDD complement semantics and zero-suppression rule.\n")
+        .def("reduce_as_qdd", &UnreducedDD::reduce_as_qdd,
+             "Reduce to a canonical QDD.\n\n"
+             "Equivalent to reduce_as_bdd().to_qdd().\n")
+
+        // Properties
+        .def_property_readonly("node_id", [](const UnreducedDD& u) { return u.get_id(); },
+             "The raw node ID of this UnreducedDD.")
+        .def_property_readonly("is_terminal", &UnreducedDD::is_terminal,
+             "True if this is a terminal node.")
+        .def_property_readonly("is_one", &UnreducedDD::is_one,
+             "True if this is the 1-terminal.")
+        .def_property_readonly("is_zero", &UnreducedDD::is_zero,
+             "True if this is the 0-terminal.")
+        .def_property_readonly("is_reduced", &UnreducedDD::is_reduced,
+             "True if this DD is fully reduced (canonical).")
+        .def_property_readonly("top_var", [](const UnreducedDD& u) -> bddvar {
+            return u.top();
+        }, "The top (root) variable number.")
+        .def_property_readonly("raw_size", [](const UnreducedDD& u) { return u.raw_size(); },
+             "The number of nodes in the DAG.")
     ;
 
     // ================================================================

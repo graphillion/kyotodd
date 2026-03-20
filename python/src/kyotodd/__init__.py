@@ -3,6 +3,8 @@
 from kyotodd._core import (
     BDD,
     ZDD,
+    QDD,
+    UnreducedDD,
     PiDD,
     RotPiDD,
     SeqBDD,
@@ -29,6 +31,8 @@ from kyotodd._core import (
 __all__ = [
     "BDD",
     "ZDD",
+    "QDD",
+    "UnreducedDD",
     "PiDD",
     "RotPiDD",
     "SeqBDD",
