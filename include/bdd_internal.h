@@ -5,7 +5,12 @@
 #include <stdexcept>
 #include <functional>
 
-// --- Debug assertion ---
+/**
+ * @brief Debug assertion macro.
+ *
+ * In debug builds (NDEBUG not defined), throws std::logic_error if the
+ * condition is false. In release builds, expands to a no-op.
+ */
 #ifndef NDEBUG
 #define BDD_DEBUG_ASSERT(cond) \
     do { if (!(cond)) throw std::logic_error("BDD assertion failed: " #cond); } while(0)
@@ -13,7 +18,12 @@
 #define BDD_DEBUG_ASSERT(cond) ((void)0)
 #endif
 
-// --- Recursion depth guard ---
+/**
+ * @brief RAII guard that tracks recursion depth.
+ *
+ * Increments BDD_RecurCount on construction, decrements on destruction.
+ * Throws std::overflow_error if the recursion limit is exceeded.
+ */
 struct BDD_RecurGuard {
     BDD_RecurGuard() {
         if (++BDD_RecurCount > BDD_RecurLimit) {
@@ -24,16 +34,39 @@ struct BDD_RecurGuard {
     ~BDD_RecurGuard() { --BDD_RecurCount; }
 };
 
-// --- GC guard ---
+/** @brief Current GC nesting depth. GC is suppressed when > 0. */
 extern int bdd_gc_depth;
+/** @brief Run garbage collection. No-op if bdd_gc_depth > 0. */
 int bddgc();
+/**
+ * @brief Check whether GC should be triggered.
+ * @return true if the node table usage exceeds the GC threshold.
+ */
 bool bdd_should_gc();
 
+/**
+ * @brief RAII guard that increments/decrements bdd_gc_depth.
+ *
+ * While bdd_gc_depth > 0, GC invocations are suppressed to prevent
+ * collecting nodes that are in use by a recursive operation.
+ */
 struct BDD_GCDepthGuard {
     BDD_GCDepthGuard() { ++bdd_gc_depth; }
     ~BDD_GCDepthGuard() { --bdd_gc_depth; }
 };
 
+/**
+ * @brief Execute a function with GC safety.
+ *
+ * At the outermost level (bdd_gc_depth == 0): pre-checks GC, increments
+ * depth, executes the lambda, catches std::overflow_error for retry
+ * after GC. At depth > 0: just increments/decrements depth.
+ *
+ * @tparam F Callable returning bddp.
+ * @param func The operation to execute.
+ * @return The bddp result of the operation.
+ * @throws std::overflow_error if GC retry also fails.
+ */
 template<typename F>
 bddp bdd_gc_guard(F func) {
     bool is_outermost = (bdd_gc_depth == 0);
@@ -53,8 +86,15 @@ bddp bdd_gc_guard(F func) {
     }
 }
 
-// --- Node index validation ---
-// Node ID must be a valid non-terminal, even ID >= 2 with index < bdd_node_used.
+/**
+ * @brief Convert a node ID to its array index.
+ *
+ * Strips the complement flag and computes the index into bdd_nodes[].
+ * Node ID 2 maps to index 0, node ID 4 to index 1, etc.
+ *
+ * @param node_id The node ID (complement flag is stripped internally).
+ * @return The array index.
+ */
 inline uint64_t node_index(bddp node_id) {
     node_id &= ~BDD_COMP_FLAG;
     BDD_DEBUG_ASSERT(node_id >= 2 && !(node_id & BDD_CONST_FLAG));
@@ -63,33 +103,63 @@ inline uint64_t node_index(bddp node_id) {
     return idx;
 }
 
-// --- Node write ---
-// Node ID -> array index: node_id/2 - 1
+/**
+ * @brief Write variable, lo, and hi into a node's data fields.
+ *
+ * Encodes the (var, lo, hi) triple into the node at bdd_nodes[node_id/2 - 1].
+ *
+ * @param node_id The node ID to write to (must be even, non-terminal).
+ * @param var     Variable number to store.
+ * @param lo      Low (0-edge) child node ID.
+ * @param hi      High (1-edge) child node ID.
+ */
 inline void node_write(bddp node_id, bddvar var, bddp lo, bddp hi) {
     BddNode& n = bdd_nodes[node_index(node_id)];
     n.data[0] = (static_cast<uint64_t>(var) << BDD_NODE_VAR_SHIFT) | (lo >> BDD_NODE_LO_SPLIT);
     n.data[1] = ((lo & BDD_NODE_LO_LO_MASK) << BDD_NODE_LO_LO_SHIFT) | hi;
 }
 
-// --- Node reduced flag ---
+/**
+ * @brief Set the reduced flag on a node.
+ * @param node_id The node ID (complement flag is stripped internally).
+ */
 inline void node_set_reduced(bddp node_id) {
     bdd_nodes[node_index(node_id)].data[0] |= BDD_NODE_REDUCED_FLAG;
 }
 
+/**
+ * @brief Check if the reduced flag is set on a node.
+ * @param node_id The node ID (complement flag is stripped internally).
+ * @return true if the node is marked as reduced.
+ */
 inline bool node_is_reduced(bddp node_id) {
     return (bdd_nodes[node_index(node_id)].data[0] & BDD_NODE_REDUCED_FLAG) != 0;
 }
 
-// Check if a bddp (node ID or terminal) is reduced
+/**
+ * @brief Check if a bddp value (node ID or terminal) is reduced.
+ *
+ * Terminal nodes are always reduced. Null returns false.
+ * For regular nodes, checks the reduced flag.
+ *
+ * @param p A bddp value.
+ * @return true if the value represents a reduced node.
+ */
 inline bool bddp_is_reduced(bddp p) {
     if (p == bddnull) return false;                // bddnull is not a real node
     if (p & BDD_CONST_FLAG) return true;           // terminals are always reduced
     return node_is_reduced(p & ~BDD_COMP_FLAG);    // strip complement flag
 }
 
-// --- Node field extraction ---
-// Node ID -> array index: node_id/2 - 1
-// Complement flag is stripped internally so callers need not worry about it.
+/**
+ * @brief Extract the variable number from a node.
+ *
+ * Complement flag is stripped internally so callers need not worry about it.
+ *
+ * @param node_id The node ID.
+ * @return The variable number stored in the node.
+ * @throws std::out_of_range if the stored variable is invalid.
+ */
 inline bddvar node_var(bddp node_id) {
     bddvar v = static_cast<bddvar>(bdd_nodes[node_index(node_id)].data[0] >> BDD_NODE_VAR_SHIFT);
     if (v < 1 || v > bdd_varcount) {
@@ -98,19 +168,47 @@ inline bddvar node_var(bddp node_id) {
     return v;
 }
 
+/**
+ * @brief Extract the raw lo (0-edge) child from a node.
+ *
+ * Returns the stored lo child without complement edge resolution.
+ *
+ * @param node_id The node ID (complement flag is stripped internally).
+ * @return The lo child node ID.
+ */
 inline bddp node_lo(bddp node_id) {
     const BddNode& n = bdd_nodes[node_index(node_id)];
     return ((n.data[0] & BDD_NODE_LO_HI_MASK) << BDD_NODE_LO_SPLIT) | (n.data[1] >> BDD_NODE_LO_LO_SHIFT);
 }
 
+/**
+ * @brief Extract the raw hi (1-edge) child from a node.
+ *
+ * Returns the stored hi child without complement edge resolution.
+ *
+ * @param node_id The node ID (complement flag is stripped internally).
+ * @return The hi child node ID.
+ */
 inline bddp node_hi(bddp node_id) {
     const BddNode& n = bdd_nodes[node_index(node_id)];
     return n.data[1] & BDD_NODE_HI_MASK;
 }
 
-// --- Common lshift/rshift recursive templates ---
-// MakeNode: bddp(bddvar, bddp, bddp) — getnode or getznode
-
+/**
+ * @brief Core implementation of left shift for BDD/ZDD.
+ *
+ * Recursively shifts all variable levels upward by the given amount.
+ * Creates new variables if the shifted level exceeds the current maximum.
+ *
+ * @tparam MakeNode Callable with signature bddp(bddvar, bddp, bddp)
+ *                  (e.g., BDD::getnode or ZDD::getnode).
+ * @param f         The root node ID.
+ * @param shift     Number of levels to shift upward.
+ * @param op        Cache operation code.
+ * @param make_node Node creation function.
+ * @return The shifted node ID.
+ * @throws std::invalid_argument if the shifted level overflows.
+ */
 template<typename MakeNode>
 bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     BDD_RecurGuard guard;
@@ -142,6 +240,20 @@ bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     return comp ? bddnot(result) : result;
 }
 
+/**
+ * @brief Core implementation of right shift for BDD/ZDD.
+ *
+ * Recursively shifts all variable levels downward by the given amount.
+ *
+ * @tparam MakeNode Callable with signature bddp(bddvar, bddp, bddp)
+ *                  (e.g., BDD::getnode or ZDD::getnode).
+ * @param f         The root node ID.
+ * @param shift     Number of levels to shift downward.
+ * @param op        Cache operation code.
+ * @param make_node Node creation function.
+ * @return The shifted node ID.
+ * @throws std::invalid_argument if the shifted level underflows.
+ */
 template<typename MakeNode>
 bddp bdd_rshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     BDD_RecurGuard guard;

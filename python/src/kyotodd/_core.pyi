@@ -266,6 +266,288 @@ class BDD:
     def node_id(self) -> int:
         """The raw node ID of this BDD."""
         ...
+    @property
+    def is_terminal(self) -> bool:
+        """True if this is a terminal node."""
+        ...
+    @property
+    def is_one(self) -> bool:
+        """True if this is the 1-terminal (true)."""
+        ...
+    @property
+    def is_zero(self) -> bool:
+        """True if this is the 0-terminal (false)."""
+        ...
+
+    def to_qdd(self) -> QDD:
+        """Convert to a Quasi-reduced Decision Diagram (QDD).
+
+        Returns:
+            The QDD representation.
+        """
+        ...
+
+    def count(self, n: int) -> float:
+        """Count the number of satisfying assignments (floating-point).
+
+        Args:
+            n: Number of variables in the Boolean function.
+
+        Returns:
+            The number of satisfying assignments as a float.
+        """
+        ...
+
+    def exact_count(self, n: int) -> int:
+        """Count the number of satisfying assignments (arbitrary precision).
+
+        Args:
+            n: Number of variables in the Boolean function.
+
+        Returns:
+            The number of satisfying assignments as a Python int.
+        """
+        ...
+
+    def uniform_sample(self, n: int, seed: int = 0) -> List[int]:
+        """Sample a satisfying assignment uniformly at random.
+
+        Args:
+            n: Number of variables in the Boolean function.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers set to 1 in the sampled assignment.
+        """
+        ...
+
+    @staticmethod
+    def prime(v: int) -> BDD:
+        """Create a BDD for the positive literal of variable v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A BDD representing the variable v.
+        """
+        ...
+
+    @staticmethod
+    def prime_not(v: int) -> BDD:
+        """Create a BDD for the negative literal of variable v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A BDD representing NOT v.
+        """
+        ...
+
+    @staticmethod
+    def cube(lits: List[int]) -> BDD:
+        """Create a BDD for the conjunction (AND) of literals.
+
+        Uses DIMACS convention: positive int = variable,
+        negative int = negated variable.
+
+        Args:
+            lits: List of literals (e.g. [1, -2, 3] means x1 & ~x2 & x3).
+
+        Returns:
+            A BDD representing the cube.
+        """
+        ...
+
+    @staticmethod
+    def clause(lits: List[int]) -> BDD:
+        """Create a BDD for the disjunction (OR) of literals.
+
+        Uses DIMACS convention: positive int = variable,
+        negative int = negated variable.
+
+        Args:
+            lits: List of literals (e.g. [1, -2, 3] means x1 | ~x2 | x3).
+
+        Returns:
+            A BDD representing the clause.
+        """
+        ...
+
+    @staticmethod
+    def getnode(var: int, lo: BDD, hi: BDD) -> BDD:
+        """Create a BDD node with the given variable and children.
+
+        Applies BDD reduction rules (jump rule, complement normalization).
+
+        Args:
+            var: Variable number.
+            lo: The low (0-edge) child.
+            hi: The high (1-edge) child.
+
+        Returns:
+            The created BDD node.
+        """
+        ...
+
+    @staticmethod
+    def shared_size(bdds: List[BDD]) -> int:
+        """Count the total number of shared nodes across multiple BDDs.
+
+        Args:
+            bdds: List of BDD objects.
+
+        Returns:
+            The number of distinct nodes (with complement sharing).
+        """
+        ...
+
+    @staticmethod
+    def shared_plain_size(bdds: List[BDD]) -> int:
+        """Count the total number of nodes across multiple BDDs without complement sharing.
+
+        Args:
+            bdds: List of BDD objects.
+
+        Returns:
+            The number of nodes.
+        """
+        ...
+
+    def child0(self) -> BDD:
+        """Get the 0-child (lo) with complement edge resolution."""
+        ...
+
+    def child1(self) -> BDD:
+        """Get the 1-child (hi) with complement edge resolution."""
+        ...
+
+    def child(self, child: int) -> BDD:
+        """Get the child by index (0 or 1) with complement edge resolution."""
+        ...
+
+    def raw_child0(self) -> BDD:
+        """Get the raw 0-child (lo) without complement resolution."""
+        ...
+
+    def raw_child1(self) -> BDD:
+        """Get the raw 1-child (hi) without complement resolution."""
+        ...
+
+    def raw_child(self, child: int) -> BDD:
+        """Get the raw child by index (0 or 1) without complement resolution."""
+        ...
+
+    def export_binary_str(self) -> bytes:
+        """Export this BDD in binary format to a bytes object."""
+        ...
+
+    @staticmethod
+    def import_binary_str(data: bytes) -> BDD:
+        """Import a BDD from binary format bytes."""
+        ...
+
+    def export_binary_file(self, path: str) -> None:
+        """Export this BDD in binary format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_file(path: str) -> BDD:
+        """Import a BDD from a binary format file.
+
+        Args:
+            path: File path to read from.
+
+        Returns:
+            The reconstructed BDD.
+        """
+        ...
+
+    @staticmethod
+    def export_binary_multi_str(bdds: List[BDD]) -> bytes:
+        """Export multiple BDDs in binary format to a bytes object.
+
+        Args:
+            bdds: List of BDD objects.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_str(data: bytes) -> List[BDD]:
+        """Import multiple BDDs from binary format bytes."""
+        ...
+
+    @staticmethod
+    def export_binary_multi_file(bdds: List[BDD], path: str) -> None:
+        """Export multiple BDDs in binary format to a file.
+
+        Args:
+            bdds: List of BDD objects.
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_file(path: str) -> List[BDD]:
+        """Import multiple BDDs from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    def export_sapporo_str(self) -> str:
+        """Export this BDD in Sapporo format to a string."""
+        ...
+
+    @staticmethod
+    def import_sapporo_str(s: str) -> BDD:
+        """Import a BDD from a Sapporo format string."""
+        ...
+
+    def export_sapporo_file(self, path: str) -> None:
+        """Export this BDD in Sapporo format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_sapporo_file(path: str) -> BDD:
+        """Import a BDD from a Sapporo format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    def save_graphviz_str(self, raw: bool = False) -> str:
+        """Export this BDD as a Graphviz DOT string.
+
+        Args:
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+
+        Returns:
+            A DOT format string.
+        """
+        ...
+
+    def save_graphviz_file(self, path: str, raw: bool = False) -> None:
+        """Export this BDD as a Graphviz DOT file.
+
+        Args:
+            path: File path to write to.
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+        """
+        ...
 
 
 class ZDD:
@@ -769,6 +1051,351 @@ class ZDD:
     def support(self) -> ZDD:
         """The support set as a ZDD."""
         ...
+    @property
+    def is_terminal(self) -> bool:
+        """True if this is a terminal node."""
+        ...
+    @property
+    def is_one(self) -> bool:
+        """True if this is the 1-terminal ({empty set})."""
+        ...
+    @property
+    def is_zero(self) -> bool:
+        """True if this is the 0-terminal (empty family)."""
+        ...
+
+    def to_qdd(self) -> QDD:
+        """Convert to a Quasi-reduced Decision Diagram (QDD).
+
+        Returns:
+            The QDD representation.
+        """
+        ...
+
+    def count(self) -> float:
+        """Count the number of sets in the family (floating-point).
+
+        Returns:
+            The number of sets as a float.
+        """
+        ...
+
+    def uniform_sample(self, seed: int = 0) -> List[int]:
+        """Sample a set uniformly at random from the family.
+
+        Args:
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
+    def enumerate(self) -> List[List[int]]:
+        """Enumerate all sets in the family.
+
+        Returns:
+            A list of sets, each a list of variable numbers.
+        """
+        ...
+
+    def has_empty(self) -> bool:
+        """Check if the empty set is a member of the family.
+
+        Returns:
+            True if the family contains the empty set.
+        """
+        ...
+
+    @staticmethod
+    def singleton(v: int) -> ZDD:
+        """Create the ZDD {{v}} (a family with one singleton set).
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A ZDD representing {{v}}.
+        """
+        ...
+
+    @staticmethod
+    def single_set(vars: List[int]) -> ZDD:
+        """Create the ZDD {{v1, v2, ...}} (a family with one set).
+
+        Args:
+            vars: List of variable numbers.
+
+        Returns:
+            A ZDD representing the single set.
+        """
+        ...
+
+    @staticmethod
+    def power_set(n: int) -> ZDD:
+        """Create the power set of {1, ..., n}.
+
+        Args:
+            n: Universe size.
+
+        Returns:
+            A ZDD representing 2^{1,...,n}.
+        """
+        ...
+
+    @staticmethod
+    def power_set_vars(vars: List[int]) -> ZDD:
+        """Create the power set of the given variables.
+
+        Args:
+            vars: List of variable numbers.
+
+        Returns:
+            A ZDD representing the power set.
+        """
+        ...
+
+    @staticmethod
+    def from_sets(sets: List[List[int]]) -> ZDD:
+        """Construct a ZDD from a list of sets.
+
+        Args:
+            sets: List of sets, each a list of variable numbers.
+
+        Returns:
+            A ZDD representing the family of sets.
+        """
+        ...
+
+    @staticmethod
+    def combination(n: int, k: int) -> ZDD:
+        """Create the ZDD of all k-element subsets of {1, ..., n}.
+
+        Args:
+            n: Universe size.
+            k: Subset size.
+
+        Returns:
+            A ZDD representing C(n,k).
+        """
+        ...
+
+    @staticmethod
+    def getnode(var: int, lo: ZDD, hi: ZDD) -> ZDD:
+        """Create a ZDD node with the given variable and children.
+
+        Applies ZDD reduction rules (zero-suppression, complement normalization).
+
+        Args:
+            var: Variable number.
+            lo: The low (0-edge) child.
+            hi: The high (1-edge) child.
+
+        Returns:
+            The created ZDD node.
+        """
+        ...
+
+    @staticmethod
+    def shared_size(zdds: List[ZDD]) -> int:
+        """Count the total number of shared nodes across multiple ZDDs.
+
+        Args:
+            zdds: List of ZDD objects.
+
+        Returns:
+            The number of distinct nodes (with complement sharing).
+        """
+        ...
+
+    @staticmethod
+    def shared_plain_size(zdds: List[ZDD]) -> int:
+        """Count the total number of nodes across multiple ZDDs without complement sharing.
+
+        Args:
+            zdds: List of ZDD objects.
+
+        Returns:
+            The number of nodes.
+        """
+        ...
+
+    def child0(self) -> ZDD:
+        """Get the 0-child (lo) with complement edge resolution (ZDD semantics)."""
+        ...
+
+    def child1(self) -> ZDD:
+        """Get the 1-child (hi) with complement edge resolution (ZDD semantics)."""
+        ...
+
+    def child(self, child: int) -> ZDD:
+        """Get the child by index (0 or 1) with complement edge resolution (ZDD semantics)."""
+        ...
+
+    def raw_child0(self) -> ZDD:
+        """Get the raw 0-child (lo) without complement resolution."""
+        ...
+
+    def raw_child1(self) -> ZDD:
+        """Get the raw 1-child (hi) without complement resolution."""
+        ...
+
+    def raw_child(self, child: int) -> ZDD:
+        """Get the raw child by index (0 or 1) without complement resolution."""
+        ...
+
+    def export_binary_str(self) -> bytes:
+        """Export this ZDD in binary format to a bytes object."""
+        ...
+
+    @staticmethod
+    def import_binary_str(data: bytes) -> ZDD:
+        """Import a ZDD from binary format bytes."""
+        ...
+
+    def export_binary_file(self, path: str) -> None:
+        """Export this ZDD in binary format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_file(path: str) -> ZDD:
+        """Import a ZDD from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    @staticmethod
+    def export_binary_multi_str(zdds: List[ZDD]) -> bytes:
+        """Export multiple ZDDs in binary format to a bytes object.
+
+        Args:
+            zdds: List of ZDD objects.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_str(data: bytes) -> List[ZDD]:
+        """Import multiple ZDDs from binary format bytes."""
+        ...
+
+    @staticmethod
+    def export_binary_multi_file(zdds: List[ZDD], path: str) -> None:
+        """Export multiple ZDDs in binary format to a file.
+
+        Args:
+            zdds: List of ZDD objects.
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_file(path: str) -> List[ZDD]:
+        """Import multiple ZDDs from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    def export_sapporo_str(self) -> str:
+        """Export this ZDD in Sapporo format to a string."""
+        ...
+
+    @staticmethod
+    def import_sapporo_str(s: str) -> ZDD:
+        """Import a ZDD from a Sapporo format string."""
+        ...
+
+    def export_sapporo_file(self, path: str) -> None:
+        """Export this ZDD in Sapporo format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_sapporo_file(path: str) -> ZDD:
+        """Import a ZDD from a Sapporo format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    def export_graphillion_str(self, offset: int = 0) -> str:
+        """Export this ZDD in Graphillion format to a string.
+
+        Args:
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            A Graphillion format string.
+        """
+        ...
+
+    @staticmethod
+    def import_graphillion_str(s: str, offset: int = 0) -> ZDD:
+        """Import a ZDD from a Graphillion format string.
+
+        Args:
+            s: The Graphillion format string.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed ZDD.
+        """
+        ...
+
+    def export_graphillion_file(self, path: str, offset: int = 0) -> None:
+        """Export this ZDD in Graphillion format to a file.
+
+        Args:
+            path: File path to write to.
+            offset: Variable number offset (default: 0).
+        """
+        ...
+
+    @staticmethod
+    def import_graphillion_file(path: str, offset: int = 0) -> ZDD:
+        """Import a ZDD from a Graphillion format file.
+
+        Args:
+            path: File path to read from.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed ZDD.
+        """
+        ...
+
+    def save_graphviz_str(self, raw: bool = False) -> str:
+        """Export this ZDD as a Graphviz DOT string.
+
+        Args:
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+
+        Returns:
+            A DOT format string.
+        """
+        ...
+
+    def save_graphviz_file(self, path: str, raw: bool = False) -> None:
+        """Export this ZDD as a Graphviz DOT file.
+
+        Args:
+            path: File path to write to.
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+        """
+        ...
 
 
 def init(node_count: int = 256, node_max: int = ...) -> None:
@@ -845,6 +1472,26 @@ def gc_get_threshold() -> float:
 
 def node_count() -> int:
     """Return the number of used node slots (including dead nodes awaiting GC)."""
+    ...
+
+def new_vars(n: int, reverse: bool = False) -> List[int]:
+    """Create multiple new variables at once.
+
+    Args:
+        n: Number of variables to create.
+        reverse: If True, return variable numbers in reverse order.
+
+    Returns:
+        A list of the newly created variable numbers.
+    """
+    ...
+
+def gc_rootcount() -> int:
+    """Return the number of registered GC root pointers."""
+    ...
+
+def top_level() -> int:
+    """Return the maximum level number (equal to the number of variables)."""
     ...
 
 def zdd_random(lev: int, density: int = 50) -> ZDD:
@@ -997,6 +1644,31 @@ class PiDD:
     @property
     def zdd(self) -> ZDD:
         """The internal ZDD representation."""
+        ...
+
+    def __truediv__(self, other: PiDD) -> PiDD:
+        """Division: self / other."""
+        ...
+    def __mod__(self, other: PiDD) -> PiDD:
+        """Remainder: self % other."""
+        ...
+    def __itruediv__(self, other: PiDD) -> PiDD:
+        """In-place division."""
+        ...
+    def __imod__(self, other: PiDD) -> PiDD:
+        """In-place remainder."""
+        ...
+
+    def print(self) -> str:
+        """Print all permutations and return as a string."""
+        ...
+
+    def enum(self) -> str:
+        """Enumerate all permutations in compact form and return as a string."""
+        ...
+
+    def enum2(self) -> str:
+        """Enumerate all permutations in expanded form and return as a string."""
         ...
 
 
@@ -1229,4 +1901,597 @@ class RotPiDD:
     @property
     def zdd(self) -> ZDD:
         """The internal ZDD representation."""
+        ...
+
+    def print(self) -> str:
+        """Print all permutations and return as a string."""
+        ...
+
+    def enum(self) -> str:
+        """Enumerate all permutations in compact form and return as a string."""
+        ...
+
+    def enum2(self) -> str:
+        """Enumerate all permutations in expanded form and return as a string."""
+        ...
+
+    def contradiction_maximization(
+        self,
+        used_set: int,
+        unused_list: List[int],
+        n: int,
+        w: List[List[int]],
+    ) -> int:
+        """Compute the maximum weighted contradiction value.
+
+        Traverses the RotPiDD to find the permutation assignment
+        that maximizes the sum of weights in the conflict matrix.
+
+        Args:
+            used_set: Bitmask of already-assigned positions.
+            unused_list: List of unassigned positions.
+            n: Total number of positions.
+            w: Weight matrix: w[i][j] is the weight for assigning
+               position i to value j.
+
+        Returns:
+            The maximum contradiction value.
+        """
+        ...
+
+
+# ================================================================
+# QDD
+# ================================================================
+
+class QDD:
+    """A Quasi-reduced Decision Diagram.
+
+    QDD does not apply the jump rule (lo == hi nodes are preserved).
+    Every path from root to terminal visits every variable level exactly once.
+    Uses BDD complement edge semantics.
+    """
+
+    false_: QDD
+    """Constant false QDD."""
+    true_: QDD
+    """Constant true QDD."""
+    null: QDD
+    """Null (error) QDD."""
+
+    def __init__(self, val: int = 0) -> None:
+        """Construct a QDD from an integer value.
+
+        Args:
+            val: 0 for false, 1 for true, negative for null.
+        """
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Equality comparison by node ID."""
+        ...
+    def __ne__(self, other: object) -> bool:
+        """Inequality comparison by node ID."""
+        ...
+    def __hash__(self) -> int:
+        """Hash based on node ID."""
+        ...
+    def __repr__(self) -> str:
+        """Return string representation: QDD(node_id=...)."""
+        ...
+    def __invert__(self) -> QDD:
+        """Complement (negate): ~self."""
+        ...
+
+    @staticmethod
+    def getnode(var: int, lo: QDD, hi: QDD) -> QDD:
+        """Create a QDD node with level validation.
+
+        Children must be at the expected level (var's level - 1).
+
+        Args:
+            var: Variable number.
+            lo: The low (0-edge) child.
+            hi: The high (1-edge) child.
+
+        Returns:
+            The created QDD node.
+        """
+        ...
+
+    def child0(self) -> QDD:
+        """Get the 0-child (lo) with complement resolution."""
+        ...
+
+    def child1(self) -> QDD:
+        """Get the 1-child (hi) with complement resolution."""
+        ...
+
+    def child(self, child: int) -> QDD:
+        """Get the child by index (0 or 1) with complement resolution."""
+        ...
+
+    def raw_child0(self) -> QDD:
+        """Get the raw 0-child (lo) without complement resolution."""
+        ...
+
+    def raw_child1(self) -> QDD:
+        """Get the raw 1-child (hi) without complement resolution."""
+        ...
+
+    def raw_child(self, child: int) -> QDD:
+        """Get the raw child by index (0 or 1) without complement resolution."""
+        ...
+
+    def to_bdd(self) -> BDD:
+        """Convert to a canonical BDD by applying jump rule."""
+        ...
+
+    def to_zdd(self) -> ZDD:
+        """Convert to a canonical ZDD."""
+        ...
+
+    @property
+    def node_id(self) -> int:
+        """The raw node ID of this QDD."""
+        ...
+    @property
+    def is_terminal(self) -> bool:
+        """True if this is a terminal node."""
+        ...
+    @property
+    def is_one(self) -> bool:
+        """True if this is the 1-terminal."""
+        ...
+    @property
+    def is_zero(self) -> bool:
+        """True if this is the 0-terminal."""
+        ...
+    @property
+    def top_var(self) -> int:
+        """The top (root) variable number of this QDD."""
+        ...
+    @property
+    def raw_size(self) -> int:
+        """The number of nodes in the DAG of this QDD."""
+        ...
+
+    def export_binary_str(self) -> bytes:
+        """Export this QDD in binary format to a bytes object."""
+        ...
+
+    @staticmethod
+    def import_binary_str(data: bytes) -> QDD:
+        """Import a QDD from binary format bytes."""
+        ...
+
+    def export_binary_file(self, path: str) -> None:
+        """Export this QDD in binary format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_file(path: str) -> QDD:
+        """Import a QDD from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+    @staticmethod
+    def export_binary_multi_str(qdds: List[QDD]) -> bytes:
+        """Export multiple QDDs in binary format to a bytes object.
+
+        Args:
+            qdds: List of QDD objects.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_str(data: bytes) -> List[QDD]:
+        """Import multiple QDDs from binary format bytes."""
+        ...
+
+    @staticmethod
+    def export_binary_multi_file(qdds: List[QDD], path: str) -> None:
+        """Export multiple QDDs in binary format to a file.
+
+        Args:
+            qdds: List of QDD objects.
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_multi_file(path: str) -> List[QDD]:
+        """Import multiple QDDs from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+
+# ================================================================
+# UnreducedDD
+# ================================================================
+
+class UnreducedDD:
+    """A type-agnostic unreduced Decision Diagram.
+
+    Does NOT apply any reduction rules at node creation time.
+    Complement edges are stored raw and only gain meaning
+    when reduce_as_bdd(), reduce_as_zdd(), or reduce_as_qdd() is called.
+    """
+
+    def __init__(self, val: int = 0) -> None:
+        """Construct an UnreducedDD from an integer value.
+
+        Args:
+            val: 0 for 0-terminal, 1 for 1-terminal, negative for null.
+        """
+        ...
+
+    @staticmethod
+    def from_bdd(bdd: BDD) -> UnreducedDD:
+        """Convert a BDD to an UnreducedDD with complement expansion.
+
+        Recursively expands all complement edges using BDD semantics.
+        """
+        ...
+
+    @staticmethod
+    def from_zdd(zdd: ZDD) -> UnreducedDD:
+        """Convert a ZDD to an UnreducedDD with complement expansion.
+
+        Recursively expands all complement edges using ZDD semantics.
+        """
+        ...
+
+    @staticmethod
+    def from_qdd(qdd: QDD) -> UnreducedDD:
+        """Convert a QDD to an UnreducedDD with complement expansion.
+
+        Uses BDD complement semantics.
+        """
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Equality comparison by node ID (not semantic equality)."""
+        ...
+    def __ne__(self, other: object) -> bool:
+        """Inequality comparison by node ID."""
+        ...
+    def __lt__(self, other: UnreducedDD) -> bool:
+        """Less-than by node ID (for ordered containers)."""
+        ...
+    def __hash__(self) -> int:
+        """Hash based on node ID."""
+        ...
+    def __repr__(self) -> str:
+        """Return string representation: UnreducedDD(node_id=...)."""
+        ...
+    def __invert__(self) -> UnreducedDD:
+        """Toggle complement bit (bit 0). O(1).
+
+        The complement bit has no semantics in UnreducedDD;
+        it is only interpreted at reduce time.
+        """
+        ...
+
+    @staticmethod
+    def zero() -> UnreducedDD:
+        """Return a 0-terminal UnreducedDD."""
+        ...
+
+    @staticmethod
+    def one() -> UnreducedDD:
+        """Return a 1-terminal UnreducedDD."""
+        ...
+
+    @staticmethod
+    def getnode(var: int, lo: UnreducedDD, hi: UnreducedDD) -> UnreducedDD:
+        """Create an unreduced DD node.
+
+        Always allocates a new node. No complement normalization,
+        no reduction rules, no unique table insertion.
+
+        Args:
+            var: Variable number.
+            lo: The low (0-edge) child.
+            hi: The high (1-edge) child.
+
+        Returns:
+            The created UnreducedDD node.
+        """
+        ...
+
+    @staticmethod
+    def wrap_raw_bdd(bdd: BDD) -> UnreducedDD:
+        """Wrap a BDD's bddp directly without complement expansion.
+
+        Only use reduce_as_bdd() on the result.
+        """
+        ...
+
+    @staticmethod
+    def wrap_raw_zdd(zdd: ZDD) -> UnreducedDD:
+        """Wrap a ZDD's bddp directly without complement expansion.
+
+        Only use reduce_as_zdd() on the result.
+        """
+        ...
+
+    @staticmethod
+    def wrap_raw_qdd(qdd: QDD) -> UnreducedDD:
+        """Wrap a QDD's bddp directly without complement expansion.
+
+        Only use reduce_as_qdd() on the result.
+        """
+        ...
+
+    def raw_child0(self) -> UnreducedDD:
+        """Get the raw 0-child (lo) as an UnreducedDD."""
+        ...
+
+    def raw_child1(self) -> UnreducedDD:
+        """Get the raw 1-child (hi) as an UnreducedDD."""
+        ...
+
+    def raw_child(self, child: int) -> UnreducedDD:
+        """Get the raw child by index (0 or 1) as an UnreducedDD."""
+        ...
+
+    def set_child0(self, child: UnreducedDD) -> None:
+        """Set the 0-child (lo) of this unreduced node.
+
+        Only valid on unreduced, non-terminal, non-complemented nodes.
+        """
+        ...
+
+    def set_child1(self, child: UnreducedDD) -> None:
+        """Set the 1-child (hi) of this unreduced node.
+
+        Only valid on unreduced, non-terminal, non-complemented nodes.
+        """
+        ...
+
+    def reduce_as_bdd(self) -> BDD:
+        """Reduce to a canonical BDD.
+
+        Applies BDD complement semantics and jump rule.
+        """
+        ...
+
+    def reduce_as_zdd(self) -> ZDD:
+        """Reduce to a canonical ZDD.
+
+        Applies ZDD complement semantics and zero-suppression rule.
+        """
+        ...
+
+    def reduce_as_qdd(self) -> QDD:
+        """Reduce to a canonical QDD.
+
+        Equivalent to reduce_as_bdd().to_qdd().
+        """
+        ...
+
+    @property
+    def node_id(self) -> int:
+        """The raw node ID of this UnreducedDD."""
+        ...
+    @property
+    def is_terminal(self) -> bool:
+        """True if this is a terminal node."""
+        ...
+    @property
+    def is_one(self) -> bool:
+        """True if this is the 1-terminal."""
+        ...
+    @property
+    def is_zero(self) -> bool:
+        """True if this is the 0-terminal."""
+        ...
+    @property
+    def is_reduced(self) -> bool:
+        """True if this DD is fully reduced (canonical)."""
+        ...
+    @property
+    def top_var(self) -> int:
+        """The top (root) variable number."""
+        ...
+    @property
+    def raw_size(self) -> int:
+        """The number of nodes in the DAG."""
+        ...
+
+    def export_binary_str(self) -> bytes:
+        """Export this UnreducedDD in binary format to a bytes object."""
+        ...
+
+    @staticmethod
+    def import_binary_str(data: bytes) -> UnreducedDD:
+        """Import an UnreducedDD from binary format bytes."""
+        ...
+
+    def export_binary_file(self, path: str) -> None:
+        """Export this UnreducedDD in binary format to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_binary_file(path: str) -> UnreducedDD:
+        """Import an UnreducedDD from a binary format file.
+
+        Args:
+            path: File path to read from.
+        """
+        ...
+
+
+# ================================================================
+# SeqBDD
+# ================================================================
+
+class SeqBDD:
+    """A Sequence BDD representing sets of sequences.
+
+    Uses ZDD internally to compactly represent ordered sequences
+    where the same symbol may appear multiple times.
+    """
+
+    def __init__(self, val: int = 0) -> None:
+        """Construct a SeqBDD.
+
+        Args:
+            val: 0 for empty set, 1 for {epsilon}, negative for null.
+        """
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Equality comparison."""
+        ...
+    def __ne__(self, other: object) -> bool:
+        """Inequality comparison."""
+        ...
+    def __hash__(self) -> int:
+        """Hash based on internal ZDD node ID."""
+        ...
+    def __repr__(self) -> str:
+        """Return string representation: SeqBDD(card=...)."""
+        ...
+    def __str__(self) -> str:
+        """Return the sequence string representation."""
+        ...
+
+    def __and__(self, other: SeqBDD) -> SeqBDD:
+        """Intersection: ``self & other``."""
+        ...
+    def __add__(self, other: SeqBDD) -> SeqBDD:
+        """Union: ``self + other``."""
+        ...
+    def __sub__(self, other: SeqBDD) -> SeqBDD:
+        """Difference: ``self - other``."""
+        ...
+    def __mul__(self, other: SeqBDD) -> SeqBDD:
+        """Concatenation: ``self * other``."""
+        ...
+    def __truediv__(self, other: SeqBDD) -> SeqBDD:
+        """Left quotient: ``self / other``."""
+        ...
+    def __mod__(self, other: SeqBDD) -> SeqBDD:
+        """Left remainder: ``self % other``."""
+        ...
+    def __iand__(self, other: SeqBDD) -> SeqBDD:
+        """In-place intersection."""
+        ...
+    def __iadd__(self, other: SeqBDD) -> SeqBDD:
+        """In-place union."""
+        ...
+    def __isub__(self, other: SeqBDD) -> SeqBDD:
+        """In-place difference."""
+        ...
+    def __imul__(self, other: SeqBDD) -> SeqBDD:
+        """In-place concatenation."""
+        ...
+    def __itruediv__(self, other: SeqBDD) -> SeqBDD:
+        """In-place left quotient."""
+        ...
+    def __imod__(self, other: SeqBDD) -> SeqBDD:
+        """In-place left remainder."""
+        ...
+
+    def off_set(self, v: int) -> SeqBDD:
+        """Remove sequences starting with variable v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A SeqBDD without sequences starting with v.
+        """
+        ...
+
+    def on_set0(self, v: int) -> SeqBDD:
+        """Extract suffixes of sequences starting with v.
+
+        Selects sequences whose first symbol is v, then removes the leading v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A SeqBDD of suffixes after stripping the leading v.
+        """
+        ...
+
+    def on_set(self, v: int) -> SeqBDD:
+        """Extract sequences starting with variable v.
+
+        Args:
+            v: Variable number.
+
+        Returns:
+            A SeqBDD of sequences that start with v.
+        """
+        ...
+
+    def push(self, v: int) -> SeqBDD:
+        """Prepend variable v to all sequences.
+
+        Args:
+            v: Variable number to prepend.
+
+        Returns:
+            A SeqBDD with v prepended to every sequence.
+        """
+        ...
+
+    @property
+    def top(self) -> int:
+        """The variable number of the root node."""
+        ...
+    @property
+    def size(self) -> int:
+        """The number of nodes in the internal ZDD."""
+        ...
+    @property
+    def card(self) -> int:
+        """The number of sequences in the set."""
+        ...
+    @property
+    def lit(self) -> int:
+        """Total symbol count across all sequences."""
+        ...
+    @property
+    def len(self) -> int:
+        """Length of the longest sequence."""
+        ...
+    @property
+    def zdd(self) -> ZDD:
+        """The internal ZDD representation."""
+        ...
+
+    def export_str(self) -> str:
+        """Export all sequences as a string."""
+        ...
+
+    def export_file(self, path: str) -> None:
+        """Export all sequences to a file.
+
+        Args:
+            path: File path to write to.
+        """
+        ...
+
+    def print_seq(self) -> str:
+        """Print all sequences in a human-readable format and return as string."""
         ...
