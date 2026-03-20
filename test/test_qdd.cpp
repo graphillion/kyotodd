@@ -152,6 +152,11 @@ TEST_F(QDDTest, ToBddTerminal) {
     EXPECT_EQ(QDD::one().to_bdd().get_id(), bddtrue);
 }
 
+TEST_F(QDDTest, ToBddNull) {
+    BDD result = QDD::Null.to_bdd();
+    EXPECT_EQ(result.get_id(), bddnull);
+}
+
 TEST_F(QDDTest, ToBddCollapseLoEqualsHi) {
     bddvar v1 = bddnewvar();
 
@@ -208,6 +213,11 @@ TEST_F(QDDTest, ToZddTerminal) {
     EXPECT_EQ(QDD::one().to_zdd().get_id(), bddsingle);
 }
 
+TEST_F(QDDTest, ToZddNull) {
+    ZDD result = QDD::Null.to_zdd();
+    EXPECT_EQ(result.get_id(), bddnull);
+}
+
 TEST_F(QDDTest, ToZddConstantFunction) {
     bddvar v1 = bddnewvar();
 
@@ -251,6 +261,16 @@ TEST_F(QDDTest, ToZddWithComplement) {
 // =============================================================
 // BDD::to_qdd() Tests
 // =============================================================
+
+TEST_F(QDDTest, BddToQddNull) {
+    QDD result = BDD::Null.to_qdd();
+    EXPECT_EQ(result.get_id(), bddnull);
+}
+
+TEST_F(QDDTest, ZddToQddNull) {
+    QDD result = ZDD::Null.to_qdd();
+    EXPECT_EQ(result.get_id(), bddnull);
+}
 
 TEST_F(QDDTest, BddToQddTerminals) {
     bddnewvar();  // need at least one var for to_qdd

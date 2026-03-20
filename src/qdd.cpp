@@ -34,6 +34,7 @@ static bddp qdd_to_bdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 BDD QDD::to_bdd() const {
+    if (root == bddnull) return BDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         return qdd_to_bdd_impl(root, memo);
@@ -71,6 +72,7 @@ static bddp qdd_to_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 ZDD QDD::to_zdd() const {
+    if (root == bddnull) return ZDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         return qdd_to_zdd_impl(root, memo);
@@ -147,6 +149,7 @@ static bddp bdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 QDD BDD::to_qdd() const {
+    if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         bddp q = bdd_to_qdd_impl(root, memo);
@@ -192,6 +195,7 @@ static bddp zdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 QDD ZDD::to_qdd() const {
+    if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         bddp q = zdd_to_qdd_impl(root, memo);
