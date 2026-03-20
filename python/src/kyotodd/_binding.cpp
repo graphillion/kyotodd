@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <random>
+#include <iostream>
 #include "bdd.h"
 #include "qdd.h"
 #include "unreduced_dd.h"
@@ -158,6 +159,27 @@ PYBIND11_MODULE(_core, m) {
        "Get the current GC threshold.\n\n"
        "Returns:\n"
        "    The current threshold value.\n");
+
+    m.def("new_vars", [](int n, bool reverse) -> std::vector<bddvar> {
+        ensure_init();
+        return DDBase::new_var(n, reverse);
+    }, py::arg("n"), py::arg("reverse") = false,
+       "Create n new variables at once.\n\n"
+       "Args:\n"
+       "    n: Number of variables to create.\n"
+       "    reverse: If True, insert each at level 1 (reverses var/level ordering).\n\n"
+       "Returns:\n"
+       "    A list of the newly created variable numbers.\n");
+
+    m.def("gc_rootcount", &bddgc_rootcount,
+       "Return the number of registered GC roots.\n\n"
+       "Returns:\n"
+       "    The GC root count.\n");
+
+    m.def("top_level", &bddtoplev,
+       "Return the highest level currently in use.\n\n"
+       "Returns:\n"
+       "    The top level number.\n");
 
     m.def("zdd_random", [](int lev, int density) -> ZDD {
         ensure_init();
@@ -1358,6 +1380,37 @@ PYBIND11_MODULE(_core, m) {
              "The number of permutations in the set.")
         .def_property_readonly("zdd", &PiDD::GetZDD,
              "The internal ZDD representation.")
+
+        .def("__itruediv__", [](PiDD& a, const PiDD& b) -> PiDD& { a /= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place division.")
+        .def("__imod__", [](PiDD& a, const PiDD& b) -> PiDD& { a %= b; return a; },
+             py::return_value_policy::reference_internal,
+             "In-place remainder.")
+
+        .def("print", [](const PiDD& p) -> std::string {
+            // Redirect stdout to capture Print() output
+            std::ostringstream oss;
+            // PiDD::Print() writes to stdout, capture via redirect
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Print();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Print PiDD statistics and return as string.")
+        .def("enum", [](const PiDD& p) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Enum();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Enumerate all permutations and return as string.")
+        .def("enum2", [](const PiDD& p) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Enum2();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Enumerate all permutations (form 2) and return as string.")
     ;
 
     // ================================================================
@@ -1533,6 +1586,49 @@ PYBIND11_MODULE(_core, m) {
              "The number of permutations in the set.")
         .def_property_readonly("zdd", &RotPiDD::GetZDD,
              "The internal ZDD representation.")
+
+        .def("print", [](const RotPiDD& p) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Print();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Print RotPiDD statistics and return as string.")
+        .def("enum", [](const RotPiDD& p) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Enum();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Enumerate all permutations and return as string.")
+        .def("enum2", [](const RotPiDD& p) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            p.Enum2();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Enumerate all permutations (form 2) and return as string.")
+        .def("contradiction_maximization",
+            [](const RotPiDD& p, int n,
+               const std::vector<std::vector<int>>& w) -> long long int {
+            unsigned long long int used_set = 0;
+            std::vector<int> unused_list;
+            for (int i = 1; i <= n; ++i) {
+                unused_list.push_back(i);
+            }
+            std::unordered_map<
+                std::pair<bddp, unsigned long long int>,
+                long long int,
+                RotPiDD::hash_func
+            > hash;
+            return p.contradictionMaximization(used_set, unused_list, n, hash, w);
+        }, py::arg("n"), py::arg("w"),
+           "Run contradiction maximization algorithm.\n\n"
+           "Args:\n"
+           "    n: Permutation size.\n"
+           "    w: Weight matrix (n+1 x n+1, 1-indexed).\n\n"
+           "Returns:\n"
+           "    The maximum contradiction value.\n")
     ;
 
     // ================================================================
@@ -1632,6 +1728,59 @@ PYBIND11_MODULE(_core, m) {
         }, "The top (root) variable number of this QDD.")
         .def_property_readonly("raw_size", [](const QDD& q) { return q.raw_size(); },
              "The number of nodes in the DAG of this QDD.")
+
+        // Binary I/O
+        .def("export_binary_str", [](const QDD& q) -> py::bytes {
+            std::ostringstream oss;
+            q.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this QDD in binary format to a bytes object.")
+        .def_static("import_binary_str", [](const std::string& data) -> QDD {
+            ensure_init();
+            std::istringstream iss(data);
+            return QDD::import_binary(iss);
+        }, py::arg("data"),
+           "Import a QDD from binary format bytes.")
+        .def("export_binary_file", [](const QDD& q, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            q.export_binary(ofs);
+        }, py::arg("path"),
+           "Export this QDD in binary format to a file.")
+        .def_static("import_binary_file", [](const std::string& path) -> QDD {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return QDD::import_binary(ifs);
+        }, py::arg("path"),
+           "Import a QDD from a binary format file.")
+
+        // Multi-root binary I/O
+        .def_static("export_binary_multi_str", [](const std::vector<QDD>& qdds) -> py::bytes {
+            std::ostringstream oss;
+            QDD::export_binary_multi(oss, qdds);
+            return py::bytes(oss.str());
+        }, py::arg("qdds"),
+           "Export multiple QDDs in binary format to a bytes object.")
+        .def_static("import_binary_multi_str", [](const std::string& data) -> std::vector<QDD> {
+            ensure_init();
+            std::istringstream iss(data);
+            return QDD::import_binary_multi(iss);
+        }, py::arg("data"),
+           "Import multiple QDDs from binary format bytes.")
+        .def_static("export_binary_multi_file", [](const std::vector<QDD>& qdds, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            QDD::export_binary_multi(ofs, qdds);
+        }, py::arg("qdds"), py::arg("path"),
+           "Export multiple QDDs in binary format to a file.")
+        .def_static("import_binary_multi_file", [](const std::string& path) -> std::vector<QDD> {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return QDD::import_binary_multi(ifs);
+        }, py::arg("path"),
+           "Import multiple QDDs from a binary format file.")
     ;
 
     // ================================================================
@@ -1769,6 +1918,32 @@ PYBIND11_MODULE(_core, m) {
         }, "The top (root) variable number.")
         .def_property_readonly("raw_size", [](const UnreducedDD& u) { return u.raw_size(); },
              "The number of nodes in the DAG.")
+
+        // Binary I/O
+        .def("export_binary_str", [](const UnreducedDD& u) -> py::bytes {
+            std::ostringstream oss;
+            u.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this UnreducedDD in binary format to a bytes object.")
+        .def_static("import_binary_str", [](const std::string& data) -> UnreducedDD {
+            ensure_init();
+            std::istringstream iss(data);
+            return UnreducedDD::import_binary(iss);
+        }, py::arg("data"),
+           "Import an UnreducedDD from binary format bytes.")
+        .def("export_binary_file", [](const UnreducedDD& u, const std::string& path) {
+            std::ofstream ofs(path, std::ios::binary);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            u.export_binary(ofs);
+        }, py::arg("path"),
+           "Export this UnreducedDD in binary format to a file.")
+        .def_static("import_binary_file", [](const std::string& path) -> UnreducedDD {
+            ensure_init();
+            std::ifstream ifs(path, std::ios::binary);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return UnreducedDD::import_binary(ifs);
+        }, py::arg("path"),
+           "Import an UnreducedDD from a binary format file.")
     ;
 
     // ================================================================
@@ -1886,5 +2061,26 @@ PYBIND11_MODULE(_core, m) {
            "    vars: List of variable numbers for the sequence.\n\n"
            "Returns:\n"
            "    A SeqBDD containing the single sequence.\n")
+
+        .def("export_str", [](const SeqBDD& s) -> std::string {
+            std::ostringstream oss;
+            s.export_to(oss);
+            return oss.str();
+        }, "Export this SeqBDD to a string representation.")
+        .def("export_file", [](const SeqBDD& s, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            s.export_to(ofs);
+        }, py::arg("path"),
+           "Export this SeqBDD to a file.\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n")
+        .def("print_seq", [](const SeqBDD& s) -> std::string {
+            std::ostringstream oss;
+            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            s.print_seq();
+            std::cout.rdbuf(old);
+            return oss.str();
+        }, "Print all sequences and return as string.")
     ;
 }
