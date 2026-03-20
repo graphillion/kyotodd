@@ -129,8 +129,7 @@ DDBase
 ├── BDD
 ├── ZDD
 ├── QDD
-├── UnreducedBDD
-└── UnreducedZDD
+└── UnreducedDD
 ```
 
 SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrapping a ZDD internally).
@@ -157,25 +156,20 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - `QDD::getnode(var, lo, hi)` validates that children's levels equal var's level - 1.
 - Conversion to/from BDD/ZDD: `BDD::to_qdd()`, `ZDD::to_qdd()`, `QDD::to_bdd()`, `QDD::to_zdd()`.
 
-## UnreducedBDD class
+## UnreducedDD class
 
 - Inherits from DDBase. Defined in `include/unreduced_dd.h`.
-- Does NOT apply BDD reduction rules. Allows `lo == hi` nodes.
-- Complement edges are NOT normalized: can store complemented lo in the node.
+- Type-agnostic unreduced decision diagram. Does NOT apply any reduction rules at node creation.
+- Complement edges are NOT interpreted in UnreducedDD; they are stored raw and only gain meaning at reduce time.
 - Nodes are NOT inserted in the unique table (not canonical).
-- `UnreducedBDD::getnode(var, lo, hi)`: If both children are reduced AND `lo != hi`, delegates to `BDD::getnode_raw()` (produces a canonical node). Otherwise, allocates an unreduced node.
+- `UnreducedDD::getnode(var, lo, hi)`: Always allocates an unreduced node. No complement normalization, no reduction rules, no unique table insertion.
 - Supports top-down construction with `set_child0()` / `set_child1()` to mutate children after creation.
 - `is_reduced()`: Checks the reduced flag on the node.
-- `reduce()`: Recursively reduces bottom-up using `BDD::getnode()` to produce a canonical BDD.
-
-## UnreducedZDD class
-
-- Inherits from DDBase. Defined in `include/unreduced_dd.h`.
-- Does NOT apply the ZDD zero-suppression rule (`hi == bddempty`).
-- Complement edges are NOT normalized. Nodes are NOT in the unique table.
-- `UnreducedZDD::getnode(var, lo, hi)`: If both children are reduced AND `hi != bddempty`, delegates to `ZDD::getnode()`. Otherwise, allocates an unreduced node.
-- Supports `set_child0()` / `set_child1()` for top-down construction.
-- `reduce()`: Recursively reduces using `ZDD::getnode()` to produce a canonical ZDD.
+- `reduce_as_bdd()`: Reduces using BDD complement semantics and BDD jump rule (`lo == hi` → `lo`). Returns `BDD`.
+- `reduce_as_zdd()`: Reduces using ZDD complement semantics and ZDD zero-suppression rule (`hi == bddempty` → `lo`). Returns `ZDD`.
+- `reduce_as_qdd()`: Equivalent to `reduce_as_bdd().to_qdd()`. Returns `QDD`.
+- Complement expansion constructors: `UnreducedDD(const BDD&)`, `UnreducedDD(const ZDD&)`, `UnreducedDD(const QDD&)` expand complement edges using the source type's semantics, producing a complement-free unreduced DD.
+- `wrap_raw(const BDD&)` / `wrap_raw(const ZDD&)` / `wrap_raw(const QDD&)`: Wraps bddp directly without complement expansion. Cross-type reduce on wrap_raw results is undefined behavior.
 
 ## SeqBDD class
 
@@ -213,7 +207,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `node_is_reduced(node_id)`: Checks bit 32 of data[0].
 - `bddp_is_reduced(p)`: Returns true for terminal nodes (always reduced), false for null, and checks the flag for regular nodes.
 - In `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw`: the reduced flag is set when both children are reduced.
-- In `UnreducedBDD::getnode()` / `UnreducedZDD::getnode()`: the reduced flag is NOT set for unreduced nodes. Only nodes created via delegation to `getnode_raw` have the flag set.
+- In `UnreducedDD::getnode()`: the reduced flag is NOT set. All nodes created by `UnreducedDD::getnode()` are unreduced.
 
 ## Repository
 
@@ -239,13 +233,13 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `src/bdd_io.cpp` — export/import implementation
 - `src/bdd_class.cpp` — BDD/ZDD static const definitions
 - `src/qdd.cpp` — QDD implementation (getnode, BDD/ZDD conversion, etc.)
-- `src/unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD implementation
+- `src/unreduced_dd.cpp` — UnreducedDD implementation
 - `include/qdd.h` — QDD class declaration
-- `include/unreduced_dd.h` — UnreducedBDD/UnreducedZDD class declaration
+- `include/unreduced_dd.h` — UnreducedDD class declaration
 - `include/seqbdd.h` — SeqBDD class declaration
 - `include/pidd.h` — PiDD class declaration
 - `include/rotpidd.h` — RotPiDD class declaration
 - `src/main.cpp` — Main entry point
 - `test/test_bdd.cpp` — Tests using Google Test
 - `test/test_qdd.cpp` — QDD tests
-- `test/test_unreduced_dd.cpp` — UnreducedBDD/UnreducedZDD tests
+- `test/test_unreduced_dd.cpp` — UnreducedDD tests
