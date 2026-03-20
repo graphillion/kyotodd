@@ -5276,16 +5276,16 @@ TEST_F(BDDTest, BddVarRangeCheckThrowsForInvalidVar) {
     EXPECT_THROW(bddonset0(z, 0), std::invalid_argument);
     EXPECT_THROW(bddchange(z, 0), std::invalid_argument);
 
-    // var > bdd_varcount is invalid
+    // var > bdd_varcount: bddprime auto-expands, others throw
     bddvar bad = bddvarused() + 1;
-    EXPECT_THROW(bddprime(bad), std::invalid_argument);
-    EXPECT_THROW(bddat0(f, bad), std::invalid_argument);
-    EXPECT_THROW(bddat1(f, bad), std::invalid_argument);
-    EXPECT_THROW(bddoffset(z, bad), std::invalid_argument);
-    EXPECT_THROW(bddonset(z, bad), std::invalid_argument);
-    EXPECT_THROW(bddonset0(z, bad), std::invalid_argument);
+    EXPECT_NO_THROW(bddprime(bad));  // auto-expands variables
+    EXPECT_THROW(bddat0(f, bad + 1), std::invalid_argument);
+    EXPECT_THROW(bddat1(f, bad + 1), std::invalid_argument);
+    EXPECT_THROW(bddoffset(z, bad + 1), std::invalid_argument);
+    EXPECT_THROW(bddonset(z, bad + 1), std::invalid_argument);
+    EXPECT_THROW(bddonset0(z, bad + 1), std::invalid_argument);
 
-    // very large var
+    // very large var: bddprime rejects > 65536
     EXPECT_THROW(bddprime(999999), std::invalid_argument);
     EXPECT_THROW(bddat0(f, 999999), std::invalid_argument);
     EXPECT_THROW(bddat1(f, 999999), std::invalid_argument);
