@@ -72,7 +72,7 @@ public:
      * @param hi  The high (1-edge) child.
      * @return The created UnreducedBDD node.
      */
-    static UnreducedBDD node(bddvar var, const UnreducedBDD& lo,
+    static UnreducedBDD getnode(bddvar var, const UnreducedBDD& lo,
                              const UnreducedBDD& hi);
 
     // --- Child accessors (static bddp versions) ---
@@ -213,7 +213,7 @@ public:
      * If both children are reduced and hi != bddempty, delegates to
      * getznode(). Otherwise, allocates a new unreduced node.
      */
-    static UnreducedZDD node(bddvar var, const UnreducedZDD& lo,
+    static UnreducedZDD getnode(bddvar var, const UnreducedZDD& lo,
                              const UnreducedZDD& hi);
 
     // --- Child accessors (static bddp versions) ---

@@ -2,7 +2,7 @@
 
 // --- UnreducedBDD implementation ---
 
-UnreducedBDD UnreducedBDD::node(bddvar var, const UnreducedBDD& lo,
+UnreducedBDD UnreducedBDD::getnode(bddvar var, const UnreducedBDD& lo,
                                  const UnreducedBDD& hi) {
     bddp lo_id = lo.root;
     bddp hi_id = hi.root;
@@ -177,7 +177,7 @@ BDD UnreducedBDD::reduce() const {
 
 // --- UnreducedZDD implementation ---
 
-UnreducedZDD UnreducedZDD::node(bddvar var, const UnreducedZDD& lo,
+UnreducedZDD UnreducedZDD::getnode(bddvar var, const UnreducedZDD& lo,
                                  const UnreducedZDD& hi) {
     bddp lo_id = lo.root;
     bddp hi_id = hi.root;

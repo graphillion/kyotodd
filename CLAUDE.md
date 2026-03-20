@@ -163,7 +163,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Does NOT apply BDD reduction rules. Allows `lo == hi` nodes.
 - Complement edges are NOT normalized: can store complemented lo in the node.
 - Nodes are NOT inserted in the unique table (not canonical).
-- `UnreducedBDD::node(var, lo, hi)`: If both children are reduced AND `lo != hi`, delegates to `BDD::getnode_raw()` (produces a canonical node). Otherwise, allocates an unreduced node.
+- `UnreducedBDD::getnode(var, lo, hi)`: If both children are reduced AND `lo != hi`, delegates to `BDD::getnode_raw()` (produces a canonical node). Otherwise, allocates an unreduced node.
 - Supports top-down construction with `set_child0()` / `set_child1()` to mutate children after creation.
 - `is_reduced()`: Checks the reduced flag on the node.
 - `reduce()`: Recursively reduces bottom-up using `BDD::getnode()` to produce a canonical BDD.
@@ -173,7 +173,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Inherits from DDBase. Defined in `include/unreduced_dd.h`.
 - Does NOT apply the ZDD zero-suppression rule (`hi == bddempty`).
 - Complement edges are NOT normalized. Nodes are NOT in the unique table.
-- `UnreducedZDD::node(var, lo, hi)`: If both children are reduced AND `hi != bddempty`, delegates to `ZDD::getnode()`. Otherwise, allocates an unreduced node.
+- `UnreducedZDD::getnode(var, lo, hi)`: If both children are reduced AND `hi != bddempty`, delegates to `ZDD::getnode()`. Otherwise, allocates an unreduced node.
 - Supports `set_child0()` / `set_child1()` for top-down construction.
 - `reduce()`: Recursively reduces using `ZDD::getnode()` to produce a canonical ZDD.
 
@@ -213,7 +213,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `node_is_reduced(node_id)`: Checks bit 32 of data[0].
 - `bddp_is_reduced(p)`: Returns true for terminal nodes (always reduced), false for null, and checks the flag for regular nodes.
 - In `BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw`: the reduced flag is set when both children are reduced.
-- In `UnreducedBDD::node()` / `UnreducedZDD::node()`: the reduced flag is NOT set for unreduced nodes. Only nodes created via delegation to `getnode_raw` have the flag set.
+- In `UnreducedBDD::getnode()` / `UnreducedZDD::getnode()`: the reduced flag is NOT set for unreduced nodes. Only nodes created via delegation to `getnode_raw` have the flag set.
 
 ## Repository
 

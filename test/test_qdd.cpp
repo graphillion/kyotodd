@@ -366,8 +366,8 @@ TEST_F(QDDTest, UnreducedBddToQddRoundTrip) {
     // Build unreduced BDD for v1 & v2
     UnreducedBDD ub_false = UnreducedBDD::zero();
     UnreducedBDD ub_true = UnreducedBDD::one();
-    UnreducedBDD ub_v1 = UnreducedBDD::node(v1, ub_false, ub_true);
-    UnreducedBDD ub_root = UnreducedBDD::node(v2, ub_false, ub_v1);
+    UnreducedBDD ub_v1 = UnreducedBDD::getnode(v1, ub_false, ub_true);
+    UnreducedBDD ub_root = UnreducedBDD::getnode(v2, ub_false, ub_v1);
 
     QDD q = ub_root.to_qdd();
     BDD b = q.to_bdd();
@@ -384,7 +384,7 @@ TEST_F(QDDTest, UnreducedZddToQddRoundTrip) {
     // Build unreduced ZDD for {{v1}}
     UnreducedZDD uz_empty = UnreducedZDD::empty();
     UnreducedZDD uz_single = UnreducedZDD::single();
-    UnreducedZDD uz_v1 = UnreducedZDD::node(v1, uz_empty, uz_single);
+    UnreducedZDD uz_v1 = UnreducedZDD::getnode(v1, uz_empty, uz_single);
 
     QDD q = uz_v1.to_qdd();
     ZDD z = q.to_zdd();
