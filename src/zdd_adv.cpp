@@ -509,6 +509,7 @@ static bddp bddminimal_rec(bddp f) {
 
 // Check if ∅ ∈ F (the empty set is a member of the ZDD family)
 bool bddhasempty(bddp f) {
+    if (f == bddnull) return false;
     while (true) {
         if (f == bddempty) return false;
         if (f == bddsingle) return true;

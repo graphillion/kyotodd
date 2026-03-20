@@ -9406,7 +9406,7 @@ TEST_F(BDDTest, ZDD_SingleSet_MultipleVars) {
     ZDD f = ZDD::single_set({1, 2, 3});
     auto sets = f.enumerate();
     ASSERT_EQ(sets.size(), 1u);
-    std::vector<bddvar> expected = {3, 2, 1};
+    std::vector<bddvar> expected = {1, 2, 3};
     EXPECT_EQ(sets[0], expected);
     EXPECT_FALSE(f.has_empty());
 }
@@ -9645,15 +9645,12 @@ TEST_F(BDDTest, ZDD_Enumerate_PowerSet) {
     ZDD f = ZDD(1) + s1 + s2 + s12;
     auto sets = f.enumerate();
     ASSERT_EQ(sets.size(), 4u);
+    // Each inner vector is now sorted ascending; sort outer by lex order
     std::sort(sets.begin(), sets.end());
     EXPECT_EQ(sets[0], std::vector<bddvar>({}));
     EXPECT_EQ(sets[1], std::vector<bddvar>({v1}));
-    EXPECT_EQ(sets[2], std::vector<bddvar>({v2}));
-    std::vector<bddvar> expected12 = {v1, v2};
-    std::sort(expected12.begin(), expected12.end());
-    std::vector<bddvar> got12 = sets[3];
-    std::sort(got12.begin(), got12.end());
-    EXPECT_EQ(got12, expected12);
+    EXPECT_EQ(sets[2], (std::vector<bddvar>{v1, v2}));
+    EXPECT_EQ(sets[3], std::vector<bddvar>({v2}));
 }
 
 TEST_F(BDDTest, ZDD_Enumerate_ComplementEdge) {
@@ -10929,5 +10926,60 @@ TEST_F(BDDTest, BddNewVarZeroCountReturnsEmpty) {
 TEST_F(BDDTest, DDBaseNewVarZeroCountReturnsEmpty) {
     auto vars = DDBase::new_var(0, false);
     EXPECT_TRUE(vars.empty());
+}
+
+// --- ZDD::has_empty / enumerate on Null ---
+
+TEST_F(BDDTest, ZDD_HasEmpty_Null) {
+    ZDD n(-1);
+    EXPECT_FALSE(n.has_empty());
+}
+
+TEST_F(BDDTest, ZDD_Enumerate_Null) {
+    ZDD n(-1);
+    auto sets = n.enumerate();
+    EXPECT_TRUE(sets.empty());
+}
+
+// --- ZDD::single_set / from_sets duplicate elements ---
+
+TEST_F(BDDTest, ZDD_SingleSet_DuplicateElements) {
+    bddnewvar(); bddnewvar();
+    // {1, 1} should deduplicate to {1}, not toggle to {}
+    ZDD f = ZDD::single_set({1, 1});
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    EXPECT_EQ(sets[0], std::vector<bddvar>({1}));
+}
+
+TEST_F(BDDTest, ZDD_FromSets_DuplicateElements) {
+    bddnewvar(); bddnewvar();
+    // {{1, 2, 2}} should deduplicate to {{1, 2}}, not {{1}}
+    ZDD f = ZDD::from_sets({{1, 2, 2}});
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    std::vector<bddvar> expected = {1, 2};
+    EXPECT_EQ(sets[0], expected);
+}
+
+// --- ZDD::combination with reordered variables ---
+
+TEST_F(BDDTest, ZDD_Combination_Reordered) {
+    bddnewvar(); bddnewvar();
+    bddnewvaroflev(1);  // var3 at level 1, shifts var1→lev2, var2→lev3
+
+    // C(3,2) = {{1,2}, {1,3}, {2,3}} = 3 sets
+    ZDD f = ZDD::combination(3, 2);
+    EXPECT_EQ(f.Card(), 3u);
+
+    // Verify ZDD structural invariant: parent level > child level
+    auto sets = f.enumerate();
+    ASSERT_EQ(sets.size(), 3u);
+    // Each inner set should be sorted ascending
+    for (auto& s : sets) {
+        for (size_t i = 1; i < s.size(); ++i) {
+            EXPECT_LT(s[i-1], s[i]);
+        }
+    }
 }
 

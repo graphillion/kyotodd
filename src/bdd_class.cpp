@@ -1,6 +1,7 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <sstream>
 
@@ -120,6 +121,7 @@ std::vector<bddvar> ZDD::uniform_sample_impl(
         }
     }
 
+    std::sort(result.begin(), result.end());
     return result;
 }
 
@@ -270,7 +272,13 @@ ZDD ZDD::power_set(const std::vector<bddvar>& vars) {
 
 ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
     bddp f = bddsingle;
-    for (bddvar v : vars) {
+    // Deduplicate: bddchange toggles, so applying it twice cancels out.
+    // Use sorted unique to ensure each variable is toggled exactly once.
+    std::vector<bddvar> unique_vars(vars);
+    std::sort(unique_vars.begin(), unique_vars.end());
+    unique_vars.erase(std::unique(unique_vars.begin(), unique_vars.end()),
+                      unique_vars.end());
+    for (bddvar v : unique_vars) {
         f = bddchange(f, v);
     }
     return ZDD_ID(f);
@@ -280,7 +288,12 @@ ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
     bddp f = bddempty;
     for (const auto& s : sets) {
         bddp t = bddsingle;
-        for (bddvar v : s) {
+        // Deduplicate each set
+        std::vector<bddvar> unique_s(s);
+        std::sort(unique_s.begin(), unique_s.end());
+        unique_s.erase(std::unique(unique_s.begin(), unique_s.end()),
+                       unique_s.end());
+        for (bddvar v : unique_s) {
             t = bddchange(t, v);
         }
         f = bddunion(f, t);
@@ -288,22 +301,24 @@ ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
     return ZDD_ID(f);
 }
 
-// Recursive helper: all k-element subsets of {v, v-1, ..., 1}
-// v counts downward so that the root is at the highest level.
-static bddp combination_rec(bddvar v, bddvar k) {
+// Recursive helper: all k-element subsets from sorted_vars[idx..end).
+// sorted_vars is sorted by level descending so the root has the highest level.
+static bddp combination_rec(const std::vector<bddvar>& sorted_vars,
+                             size_t idx, bddvar k) {
+    bddvar remaining = static_cast<bddvar>(sorted_vars.size() - idx);
     if (k == 0) return bddsingle;
-    if (v < k) return bddempty;  // not enough variables left
-    if (v == k) {
-        // must take all remaining variables (1..v)
+    if (remaining < k) return bddempty;  // not enough variables left
+    if (remaining == k) {
+        // must take all remaining variables
         bddp f = bddsingle;
-        for (bddvar i = 1; i <= v; ++i) {
-            f = bddchange(f, i);
+        for (size_t i = idx; i < sorted_vars.size(); ++i) {
+            f = bddchange(f, sorted_vars[i]);
         }
         return f;
     }
-    // ZDD::getnode_raw(v, lo, hi): lo = subsets not containing v, hi = subsets containing v
-    bddp lo = combination_rec(v - 1, k);
-    bddp hi = combination_rec(v - 1, k - 1);
+    bddvar v = sorted_vars[idx];
+    bddp lo = combination_rec(sorted_vars, idx + 1, k);
+    bddp hi = combination_rec(sorted_vars, idx + 1, k - 1);
     return ZDD::getnode_raw(v, lo, hi);
 }
 
@@ -313,13 +328,22 @@ ZDD ZDD::combination(bddvar n, bddvar k) {
     while (bdd_varcount < n) {
         bddnewvar();
     }
-    return ZDD_ID(combination_rec(n, k));
+    // Sort variables 1..n by level descending for correct ZDD node ordering
+    std::vector<bddvar> sorted_vars(n);
+    for (bddvar i = 0; i < n; ++i) sorted_vars[i] = i + 1;
+    std::sort(sorted_vars.begin(), sorted_vars.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+    return ZDD_ID(combination_rec(sorted_vars, 0, k));
 }
 
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
+    if (root == bddnull) return {};
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;
     enumerate_rec(root, current, result);
+    for (auto& s : result) {
+        std::sort(s.begin(), s.end());
+    }
     return result;
 }
 

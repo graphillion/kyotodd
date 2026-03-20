@@ -944,17 +944,22 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
     while (bdd_varcount < n) {
         bddnewvar();
     }
+    // Sort variables 1..n by level descending for correct ZDD node ordering
+    std::vector<bddvar> sorted_vars(n);
+    for (bddvar i = 0; i < n; ++i) sorted_vars[i] = i + 1;
+    std::sort(sorted_vars.begin(), sorted_vars.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
     std::uniform_int_distribution<int> coin(0, 1);
-    // Recursive lambda: build random family over variables {v, v+1, ..., n}
-    std::function<bddp(bddvar)> build = [&](bddvar v) -> bddp {
-        if (v > n) {
+    // Recursive lambda: build random family over sorted variables
+    std::function<bddp(size_t)> build = [&](size_t idx) -> bddp {
+        if (idx >= sorted_vars.size()) {
             return coin(rng) ? bddsingle : bddempty;
         }
-        bddp lo = build(v + 1);
-        bddp hi = build(v + 1);
-        return ZDD::getnode_raw(v, lo, hi);
+        bddp lo = build(idx + 1);
+        bddp hi = build(idx + 1);
+        return ZDD::getnode_raw(sorted_vars[idx], lo, hi);
     };
-    return ZDD_ID(build(1));
+    return ZDD_ID(build(0));
 }
 
 #include "unreduced_dd.h"
