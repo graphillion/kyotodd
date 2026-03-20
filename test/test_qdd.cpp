@@ -30,11 +30,11 @@ TEST_F(QDDTest, NodePreservesLoEqualsHi) {
     // v1 is level 1, v2 is level 2
 
     // Build QDD bottom-up: level 1 node, then level 2 node
-    QDD lo_node = QDD::node(v1, QDD::zero(), QDD::zero());
+    QDD lo_node = QDD::getnode(v1, QDD::zero(), QDD::zero());
     EXPECT_FALSE(lo_node.is_terminal());  // not collapsed to terminal
 
     // Compare with BDD which would collapse
-    BDD bdd_collapsed = BDD_ID(getnode(v1, bddfalse, bddfalse));
+    BDD bdd_collapsed = BDD_ID(BDD::getnode(v1, bddfalse, bddfalse));
     EXPECT_TRUE(bdd_collapsed.is_zero());  // BDD collapses lo==hi
 }
 
@@ -45,19 +45,19 @@ TEST_F(QDDTest, LevelValidationRejectsWrongLevel) {
     // v1=level1, v2=level2, v3=level3
 
     // v3 (level 3) expects children at level 2, but terminals are level 0
-    EXPECT_THROW(QDD::node(v3, QDD::zero(), QDD::zero()), std::invalid_argument);
+    EXPECT_THROW(QDD::getnode(v3, QDD::zero(), QDD::zero()), std::invalid_argument);
 
     // v2 (level 2) expects children at level 1 — terminals are level 0
-    EXPECT_THROW(QDD::node(v2, QDD::zero(), QDD::zero()), std::invalid_argument);
+    EXPECT_THROW(QDD::getnode(v2, QDD::zero(), QDD::zero()), std::invalid_argument);
 
     // v1 (level 1) expects children at level 0 (terminals) — should work
-    EXPECT_NO_THROW(QDD::node(v1, QDD::zero(), QDD::one()));
+    EXPECT_NO_THROW(QDD::getnode(v1, QDD::zero(), QDD::one()));
 }
 
 TEST_F(QDDTest, ComplementBDDSemantics) {
     bddvar v1 = bddnewvar();
 
-    QDD n = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD n = QDD::getnode(v1, QDD::zero(), QDD::one());
     QDD nc = ~n;
 
     EXPECT_NE(n, nc);
@@ -70,7 +70,7 @@ TEST_F(QDDTest, ComplementBDDSemantics) {
 TEST_F(QDDTest, RawChildAccessors) {
     bddvar v1 = bddnewvar();
 
-    QDD n = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD n = QDD::getnode(v1, QDD::zero(), QDD::one());
     // raw: node_lo is bddfalse, node_hi is bddtrue (no complement on this node)
     EXPECT_EQ(QDD::raw_child0(n.get_id()), bddfalse);
     EXPECT_EQ(QDD::raw_child1(n.get_id()), bddtrue);
@@ -85,8 +85,8 @@ TEST_F(QDDTest, RawChildAccessors) {
 TEST_F(QDDTest, UniqueTableSharing) {
     bddvar v1 = bddnewvar();
 
-    QDD a = QDD::node(v1, QDD::zero(), QDD::one());
-    QDD b = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD a = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD b = QDD::getnode(v1, QDD::zero(), QDD::one());
     // Same (var, lo, hi) should produce same node ID
     EXPECT_EQ(a.get_id(), b.get_id());
 }
@@ -98,17 +98,17 @@ TEST_F(QDDTest, ThreeVariableFullPath) {
 
     // Build bottom-up: every path visits all 3 levels
     // Level 1 nodes (children are terminals at level 0)
-    QDD n1_ff = QDD::node(v1, QDD::zero(), QDD::zero());
-    QDD n1_ft = QDD::node(v1, QDD::zero(), QDD::one());
-    QDD n1_tf = QDD::node(v1, QDD::one(), QDD::zero());
-    QDD n1_tt = QDD::node(v1, QDD::one(), QDD::one());
+    QDD n1_ff = QDD::getnode(v1, QDD::zero(), QDD::zero());
+    QDD n1_ft = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD n1_tf = QDD::getnode(v1, QDD::one(), QDD::zero());
+    QDD n1_tt = QDD::getnode(v1, QDD::one(), QDD::one());
 
     // Level 2 nodes (children are level 1 nodes)
-    QDD n2_lo = QDD::node(v2, n1_ff, n1_ft);
-    QDD n2_hi = QDD::node(v2, n1_tf, n1_tt);
+    QDD n2_lo = QDD::getnode(v2, n1_ff, n1_ft);
+    QDD n2_hi = QDD::getnode(v2, n1_tf, n1_tt);
 
     // Level 3 root (children are level 2 nodes)
-    QDD root = QDD::node(v3, n2_lo, n2_hi);
+    QDD root = QDD::getnode(v3, n2_lo, n2_hi);
 
     EXPECT_FALSE(root.is_terminal());
     EXPECT_EQ(root.top(), v3);
@@ -133,7 +133,7 @@ TEST_F(QDDTest, QDD_IDValidation) {
 
     // Reduced node should work
     bddvar v1 = bddnewvar();
-    QDD n = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD n = QDD::getnode(v1, QDD::zero(), QDD::one());
     EXPECT_NO_THROW(QDD_ID(n.get_id()));
 }
 
@@ -156,12 +156,12 @@ TEST_F(QDDTest, ToBddCollapseLoEqualsHi) {
     bddvar v1 = bddnewvar();
 
     // QDD node where lo == hi == false → BDD should collapse to false
-    QDD q = QDD::node(v1, QDD::zero(), QDD::zero());
+    QDD q = QDD::getnode(v1, QDD::zero(), QDD::zero());
     BDD b = q.to_bdd();
     EXPECT_TRUE(b.is_zero());
 
     // QDD node where lo == hi == true → BDD should collapse to true
-    QDD q2 = QDD::node(v1, QDD::one(), QDD::one());
+    QDD q2 = QDD::getnode(v1, QDD::one(), QDD::one());
     BDD b2 = q2.to_bdd();
     EXPECT_TRUE(b2.is_one());
 }
@@ -178,10 +178,10 @@ TEST_F(QDDTest, ToBddRoundTrip) {
 
     // Build the equivalent QDD manually
     // Level 1 nodes
-    QDD q_lo = QDD::node(v1, QDD::zero(), QDD::one());   // v1
-    QDD q_hi = QDD::node(v1, QDD::zero(), QDD::zero());  // false (identity)
+    QDD q_lo = QDD::getnode(v1, QDD::zero(), QDD::one());   // v1
+    QDD q_hi = QDD::getnode(v1, QDD::zero(), QDD::zero());  // false (identity)
     // Level 2 root
-    QDD q_root = QDD::node(v2, q_lo, q_hi);
+    QDD q_root = QDD::getnode(v2, q_lo, q_hi);
 
     BDD converted = q_root.to_bdd();
     EXPECT_EQ(converted.get_id(), original.get_id());
@@ -190,7 +190,7 @@ TEST_F(QDDTest, ToBddRoundTrip) {
 TEST_F(QDDTest, ToBddWithComplement) {
     bddvar v1 = bddnewvar();
 
-    QDD q = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD q = QDD::getnode(v1, QDD::zero(), QDD::one());
     QDD qc = ~q;
     BDD b = qc.to_bdd();
 
@@ -212,12 +212,12 @@ TEST_F(QDDTest, ToZddConstantFunction) {
     bddvar v1 = bddnewvar();
 
     // QDD: (v1, false, false) → ZDD: empty
-    QDD q_zero = QDD::node(v1, QDD::zero(), QDD::zero());
+    QDD q_zero = QDD::getnode(v1, QDD::zero(), QDD::zero());
     ZDD z = q_zero.to_zdd();
     EXPECT_EQ(z.get_id(), bddempty);
 
     // QDD: (v1, true, true) → ZDD: {∅, {v1}} = universe for 1 var
-    QDD q_one = QDD::node(v1, QDD::one(), QDD::one());
+    QDD q_one = QDD::getnode(v1, QDD::one(), QDD::one());
     ZDD z2 = q_one.to_zdd();
     // This should be the ZDD for "all subsets of {v1}" = {{}, {v1}}
     EXPECT_FALSE(z2.is_terminal());
@@ -227,11 +227,11 @@ TEST_F(QDDTest, ToZddSingleVariable) {
     bddvar v1 = bddnewvar();
 
     // QDD for function v1: (v1, false, true)
-    QDD q = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD q = QDD::getnode(v1, QDD::zero(), QDD::one());
     ZDD z = q.to_zdd();
 
     // BDD v1 as ZDD = {{v1}}: (v1, empty, single)
-    ZDD expected = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD expected = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(z.get_id(), expected.get_id());
 }
 
@@ -239,11 +239,11 @@ TEST_F(QDDTest, ToZddWithComplement) {
     bddvar v1 = bddnewvar();
 
     // ~(v1, 0, 1) = (v1, 1, 0) = ~v1
-    QDD q = ~QDD::node(v1, QDD::zero(), QDD::one());
+    QDD q = ~QDD::getnode(v1, QDD::zero(), QDD::one());
     ZDD z = q.to_zdd();
 
     // ~v1 as ZDD: the function "not v1" = {∅}
-    // getznode(v1, single, empty) → ZDD zero-suppression: hi==empty → return lo=single
+    // ZDD::getnode(v1, single, empty) → ZDD zero-suppression: hi==empty → return lo=single
     // So ZDD for ~v1 is just bddsingle
     EXPECT_EQ(z.get_id(), bddsingle);
 }
@@ -337,10 +337,10 @@ TEST_F(QDDTest, ZddToQddRoundTrip) {
     bddvar v2 = bddnewvar();
 
     // ZDD {{v1}} = (v1, empty, single)
-    ZDD z1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     // ZDD {{v2}} = (v2, empty, single)
-    ZDD z2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     // ZDD {{v1}, {v2}} = union
     ZDD z_union = ZDD_ID(bddunion(z1.get_id(), z2.get_id()));
@@ -390,7 +390,7 @@ TEST_F(QDDTest, UnreducedZddToQddRoundTrip) {
     ZDD z = q.to_zdd();
 
     // Should equal ZDD for {{v1}}
-    ZDD expected = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD expected = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(z.get_id(), expected.get_id());
 }
 
@@ -403,7 +403,7 @@ TEST_F(QDDTest, ChildAccessorExceptions) {
     EXPECT_THROW(QDD::child0(bddnull), std::invalid_argument);
     // Invalid child index
     bddvar v1 = bddnewvar();
-    QDD n = QDD::node(v1, QDD::zero(), QDD::one());
+    QDD n = QDD::getnode(v1, QDD::zero(), QDD::one());
     EXPECT_THROW(QDD::raw_child(n.get_id(), 2), std::invalid_argument);
     EXPECT_THROW(QDD::child(n.get_id(), 2), std::invalid_argument);
 }

@@ -78,7 +78,7 @@ static bddp bddand_rec(bddp f, bddp g) {
     bddp lo = bddand_rec(f_lo, g_lo);
     bddp hi = bddand_rec(f_hi, g_hi);
 
-    bddp result = getnode(top_var, lo, hi);
+    bddp result = BDD::getnode_raw(top_var, lo, hi);
 
     // Cache insert
     bddwcache(BDD_OP_AND, f, g, result);
@@ -169,7 +169,7 @@ static bddp bddxor_rec(bddp f, bddp g) {
     bddp lo = bddxor_rec(f_lo, g_lo);
     bddp hi = bddxor_rec(f_hi, g_hi);
 
-    bddp result = getnode(top_var, lo, hi);
+    bddp result = BDD::getnode_raw(top_var, lo, hi);
 
     // Cache insert (store result for normalized operands, without comp adjustment)
     bddwcache(BDD_OP_XOR, f, g, result);
@@ -286,7 +286,7 @@ static bddp bddite_rec(bddp f, bddp g, bddp h) {
     bddp lo = bddite_rec(f_lo, g_lo, h_lo);
     bddp hi = bddite_rec(f_hi, g_hi, h_hi);
 
-    bddp result = getnode(top_var, lo, hi);
+    bddp result = BDD::getnode_raw(top_var, lo, hi);
 
     // Cache write
     bddwcache3(BDD_OP_ITE, f, g, h, result);
@@ -337,7 +337,7 @@ static bddp bddat0_rec(bddp f, bddvar v) {
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp lo = bddat0_rec(f_lo, v);
         bddp hi = bddat0_rec(f_hi, v);
-        result = getnode(f_var, lo, hi);
+        result = BDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_AT0, f, static_cast<bddp>(v), result);
@@ -387,7 +387,7 @@ static bddp bddat1_rec(bddp f, bddvar v) {
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp lo = bddat1_rec(f_lo, v);
         bddp hi = bddat1_rec(f_hi, v);
-        result = getnode(f_var, lo, hi);
+        result = BDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_AT1, f, static_cast<bddp>(v), result);
@@ -490,7 +490,7 @@ bddp bddsupport(bddp f) {
         // Build chain bottom-up: each node has lo=chain, hi=bddtrue
         bddp result = bddfalse;
         for (size_t i = 0; i < vars.size(); i++) {
-            result = getnode(vars[i], result, bddtrue);
+            result = BDD::getnode_raw(vars[i], result, bddtrue);
         }
         return result;
     });
@@ -558,7 +558,7 @@ static bddp bddexist_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp lo = bddexist_rec(f_lo, g);
         bddp hi = bddexist_rec(f_hi, g);
-        result = getnode(f_var, lo, hi);
+        result = BDD::getnode_raw(f_var, lo, hi);
     } else {
         // Same variable: quantify it out
         // exist v. f = f|_{v=0} OR f|_{v=1}
@@ -589,7 +589,7 @@ static bddp vars_to_cube(const std::vector<bddvar>& vars) {
     });
     bddp cube = bddfalse;
     for (size_t i = 0; i < sorted.size(); i++) {
-        cube = getnode(sorted[i], cube, bddtrue);
+        cube = BDD::getnode_raw(sorted[i], cube, bddtrue);
     }
     return cube;
 }
@@ -652,7 +652,7 @@ static bddp bdduniv_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
         bddp lo = bdduniv_rec(f_lo, g);
         bddp hi = bdduniv_rec(f_hi, g);
-        result = getnode(f_var, lo, hi);
+        result = BDD::getnode_raw(f_var, lo, hi);
     } else {
         // Same variable: quantify it universally
         // forall v. f = f|_{v=0} AND f|_{v=1}
@@ -688,7 +688,7 @@ bddp bddlshiftb(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTB, getnode);
+        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTB, BDD::getnode_raw);
     });
 }
 
@@ -698,7 +698,7 @@ bddp bddrshiftb(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTB, getnode);
+        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTB, BDD::getnode_raw);
     });
 }
 
@@ -779,7 +779,7 @@ static bddp bddcofactor_rec(bddp f, bddp g) {
     } else {
         bddp lo = bddcofactor_rec(f_lo, g_lo);
         bddp hi = bddcofactor_rec(f_hi, g_hi);
-        result = getnode(top_var, lo, hi);
+        result = BDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_COFACTOR, f, g, result);
@@ -831,13 +831,13 @@ static bddp bddswap_rec(bddp f, bddvar v1, bddvar v2,
         // At the lower swap variable (level lev2)
         // Children are below lev2, hence below lev1 too.
         // Neither v1 nor v2 appears in children. Just relabel v2 -> v1.
-        result = getnode(v1, f_lo, f_hi);
+        result = BDD::getnode_raw(v1, f_lo, f_hi);
     } else if (f_level > lev1) {
         // Above both swap levels
         // After swap, children have max level <= lev1 < f_level. Safe.
         bddp r_lo = bddswap_rec(f_lo, v1, v2, lev1, lev2);
         bddp r_hi = bddswap_rec(f_hi, v1, v2, lev1, lev2);
-        result = getnode(f_var, r_lo, r_hi);
+        result = BDD::getnode_raw(f_var, r_lo, r_hi);
     } else {
         // Between swap levels: lev2 < f_level < lev1
         // Children may contain v2; after swap, v2->v1 at lev1 > f_level.
@@ -902,7 +902,7 @@ static bddp bddsmooth_rec(bddp f, bddvar v) {
     } else {
         bddp lo = bddsmooth_rec(f_lo, v);
         bddp hi = bddsmooth_rec(f_hi, v);
-        result = getnode(t, lo, hi);
+        result = BDD::getnode_raw(t, lo, hi);
     }
 
     bddwcache(BDD_OP_SMOOTH, f, static_cast<bddp>(v), result);
@@ -945,7 +945,7 @@ static bddp bddspread_rec(bddp f, int k) {
     // hi = f1.Spread(k) | f0.Spread(k-1)
     bddp hi = bddnot(bddand_rec(bddnot(f1_spread_k), bddnot(f0_spread_k1)));
 
-    bddp result = getnode(t, lo, hi);
+    bddp result = BDD::getnode_raw(t, lo, hi);
 
     bddwcache(BDD_OP_SPREAD, f, static_cast<bddp>(k), result);
     return result;

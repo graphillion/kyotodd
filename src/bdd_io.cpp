@@ -279,7 +279,7 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
 int bddimport(FILE* strm, bddp* p, int lim) {
     if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
-    int ret = import_core(strm, result, getnode);
+    int ret = import_core(strm, result, BDD::getnode_raw);
     if (ret < 0) return ret;
     int count = ret < lim ? ret : lim;
     for (int i = 0; i < count; i++) p[i] = result[i];
@@ -287,13 +287,13 @@ int bddimport(FILE* strm, bddp* p, int lim) {
 }
 
 int bddimport(FILE* strm, std::vector<bddp>& v) {
-    return import_core(strm, v, getnode);
+    return import_core(strm, v, BDD::getnode_raw);
 }
 
 int bddimport(std::istream& strm, bddp* p, int lim) {
     if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
-    int ret = import_core(strm, result, getnode);
+    int ret = import_core(strm, result, BDD::getnode_raw);
     if (ret < 0) return ret;
     int count = ret < lim ? ret : lim;
     for (int i = 0; i < count; i++) p[i] = result[i];
@@ -301,13 +301,13 @@ int bddimport(std::istream& strm, bddp* p, int lim) {
 }
 
 int bddimport(std::istream& strm, std::vector<bddp>& v) {
-    return import_core(strm, v, getnode);
+    return import_core(strm, v, BDD::getnode_raw);
 }
 
 int bddimportz(FILE* strm, bddp* p, int lim) {
     if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
-    int ret = import_core(strm, result, getznode);
+    int ret = import_core(strm, result, ZDD::getnode_raw);
     if (ret < 0) return ret;
     int count = ret < lim ? ret : lim;
     for (int i = 0; i < count; i++) p[i] = result[i];
@@ -315,13 +315,13 @@ int bddimportz(FILE* strm, bddp* p, int lim) {
 }
 
 int bddimportz(FILE* strm, std::vector<bddp>& v) {
-    return import_core(strm, v, getznode);
+    return import_core(strm, v, ZDD::getnode_raw);
 }
 
 int bddimportz(std::istream& strm, bddp* p, int lim) {
     if (lim <= 0 || !p) return 0;
     std::vector<bddp> result;
-    int ret = import_core(strm, result, getznode);
+    int ret = import_core(strm, result, ZDD::getnode_raw);
     if (ret < 0) return ret;
     int count = ret < lim ? ret : lim;
     for (int i = 0; i < count; i++) p[i] = result[i];
@@ -329,7 +329,7 @@ int bddimportz(std::istream& strm, bddp* p, int lim) {
 }
 
 int bddimportz(std::istream& strm, std::vector<bddp>& v) {
-    return import_core(strm, v, getznode);
+    return import_core(strm, v, ZDD::getnode_raw);
 }
 
 // --- ZDD_Import ---
@@ -733,16 +733,16 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
 }
 
 bddp bdd_import_knuth(FILE* strm, bool is_hex, int offset) {
-    return knuth_import_core(strm, is_hex, offset, getnode);
+    return knuth_import_core(strm, is_hex, offset, BDD::getnode_raw);
 }
 bddp bdd_import_knuth(std::istream& strm, bool is_hex, int offset) {
-    return knuth_import_core(strm, is_hex, offset, getnode);
+    return knuth_import_core(strm, is_hex, offset, BDD::getnode_raw);
 }
 bddp zdd_import_knuth(FILE* strm, bool is_hex, int offset) {
-    return knuth_import_core(strm, is_hex, offset, getznode);
+    return knuth_import_core(strm, is_hex, offset, ZDD::getnode_raw);
 }
 bddp zdd_import_knuth(std::istream& strm, bool is_hex, int offset) {
-    return knuth_import_core(strm, is_hex, offset, getznode);
+    return knuth_import_core(strm, is_hex, offset, ZDD::getnode_raw);
 }
 
 // --- Binary format save/load ---
@@ -1085,10 +1085,10 @@ static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
     return resolve(root_ids[0]);
 }
 
-bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, getnode); }
-bddp bdd_import_binary(std::istream& strm) { return binary_import_core(strm, getnode); }
-bddp zdd_import_binary(FILE* strm) { return binary_import_core(strm, getznode); }
-bddp zdd_import_binary(std::istream& strm) { return binary_import_core(strm, getznode); }
+bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, BDD::getnode_raw); }
+bddp bdd_import_binary(std::istream& strm) { return binary_import_core(strm, BDD::getnode_raw); }
+bddp zdd_import_binary(FILE* strm) { return binary_import_core(strm, ZDD::getnode_raw); }
+bddp zdd_import_binary(std::istream& strm) { return binary_import_core(strm, ZDD::getnode_raw); }
 
 // --- Sapporo format save/load wrappers ---
 
@@ -1354,7 +1354,7 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
 
         if (id_map.count(nl.id))
             throw std::runtime_error("zdd_import_graphillion: duplicate node ID");
-        bddp node = getznode(var, lo, hi);
+        bddp node = ZDD::getnode_raw(var, lo, hi);
         id_map[nl.id] = node;
         root = node;  // last node is root
     }

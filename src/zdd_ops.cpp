@@ -7,8 +7,8 @@ bddp bddpush(bddp f, bddvar v) {
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddpush: var out of range");
     }
-    // f == bddempty → getznode(v, bddempty, bddempty) → bddempty (zero-suppression)
-    return bdd_gc_guard([&]() -> bddp { return getznode(v, bddempty, f); });
+    // f == bddempty → ZDD::getnode_raw(v, bddempty, bddempty) → bddempty (zero-suppression)
+    return bdd_gc_guard([&]() -> bddp { return ZDD::getnode_raw(v, bddempty, f); });
 }
 
 static bddp bddoffset_rec(bddp f, bddvar var);
@@ -54,7 +54,7 @@ static bddp bddoffset_rec(bddp f, bddvar var) {
         // f_level > v_level: var is below, recurse into both branches
         bddp lo = bddoffset_rec(f_lo, var);
         bddp hi = bddoffset_rec(f_hi, var);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_OFFSET, f, static_cast<bddp>(var), result);
@@ -99,12 +99,12 @@ static bddp bddonset_rec(bddp f, bddvar var) {
     bddp result;
     if (f_var == var) {
         // hi branch = sets containing var (with var removed), re-attach var
-        result = getznode(var, bddempty, f_hi);
+        result = ZDD::getnode_raw(var, bddempty, f_hi);
     } else {
         // f_level > v_level: var is below, recurse into both branches
         bddp lo = bddonset_rec(f_lo, var);
         bddp hi = bddonset_rec(f_hi, var);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_ONSET, f, static_cast<bddp>(var), result);
@@ -153,7 +153,7 @@ static bddp bddonset0_rec(bddp f, bddvar var) {
         // f_level > v_level: var is below, recurse into both branches
         bddp lo = bddonset0_rec(f_lo, var);
         bddp hi = bddonset0_rec(f_hi, var);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_ONSET0, f, static_cast<bddp>(var), result);
@@ -185,7 +185,7 @@ static bddp bddchange_rec(bddp f, bddvar var) {
     BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
-    if (f == bddsingle) return getznode(var, bddempty, bddsingle);  // {{}} → {{var}}
+    if (f == bddsingle) return ZDD::getnode_raw(var, bddempty, bddsingle);  // {{}} → {{var}}
 
     bool f_comp = (f & BDD_COMP_FLAG) != 0;
     bddvar f_var = node_var(f);
@@ -193,7 +193,7 @@ static bddp bddchange_rec(bddp f, bddvar var) {
     bddvar v_level = var2level[var];
 
     // var is above f's top: all sets lack var, so add var to each
-    if (f_level < v_level) return getznode(var, bddempty, f);
+    if (f_level < v_level) return ZDD::getnode_raw(var, bddempty, f);
 
     // Cache lookup
     bddp cached = bddrcache(BDD_OP_CHANGE, f, static_cast<bddp>(var));
@@ -206,12 +206,12 @@ static bddp bddchange_rec(bddp f, bddvar var) {
     bddp result;
     if (f_var == var) {
         // Swap: sets without var get var, sets with var lose var
-        result = getznode(var, f_hi, f_lo);
+        result = ZDD::getnode_raw(var, f_hi, f_lo);
     } else {
         // f_level > v_level: var is below, recurse into both branches
         bddp lo = bddchange_rec(f_lo, var);
         bddp hi = bddchange_rec(f_hi, var);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_CHANGE, f, static_cast<bddp>(var), result);
@@ -281,7 +281,7 @@ static bddp bddunion_rec(bddp f, bddp g) {
 
     bddp lo = bddunion_rec(f_lo, g_lo);
     bddp hi = bddunion_rec(f_hi, g_hi);
-    bddp result = getznode(top_var, lo, hi);
+    bddp result = ZDD::getnode_raw(top_var, lo, hi);
 
     bddwcache(BDD_OP_UNION, f, g, result);
     return result;
@@ -344,7 +344,7 @@ static bddp bddintersec_rec(bddp f, bddp g) {
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bddintersec_rec(f_lo, g_lo);
         bddp hi = bddintersec_rec(f_hi, g_hi);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_INTERSEC, f, g, result);
@@ -391,7 +391,7 @@ static bddp bddsubtract_rec(bddp f, bddp g) {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bddsubtract_rec(f_lo, g);
-        result = getznode(f_var, lo, f_hi);
+        result = ZDD::getnode_raw(f_var, lo, f_hi);
     } else if (g_level > f_level) {
         // f has no sets containing g_var; subtract from g's lo branch
         bddp g_lo = node_lo(g);
@@ -404,7 +404,7 @@ static bddp bddsubtract_rec(bddp f, bddp g) {
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bddsubtract_rec(f_lo, g_lo);
         bddp hi = bddsubtract_rec(f_hi, g_hi);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_SUBTRACT, f, g, result);
@@ -453,7 +453,7 @@ static bddp bdddiv_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bdddiv_rec(f_lo, g);
         bddp hi = bdddiv_rec(f_hi, g);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     } else {
         // Same top variable
         bddp f_lo = node_lo(f);
@@ -539,7 +539,7 @@ static bddp bddsymdiff_rec(bddp f, bddp g) {
 
     bddp lo = bddsymdiff_rec(f_lo, g_lo);
     bddp hi = bddsymdiff_rec(f_hi, g_hi);
-    bddp result = getznode(top_var, lo, hi);
+    bddp result = ZDD::getnode_raw(top_var, lo, hi);
 
     bddwcache(BDD_OP_SYMDIFF, f, g, result);
     return result;
@@ -593,14 +593,14 @@ static bddp bddjoin_rec(bddp f, bddp g) {
         // G has no sets with top_var, so A∪B keeps top_var iff A had it
         bddp lo = bddjoin_rec(f_lo, g);
         bddp hi = bddjoin_rec(f_hi, g);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bddjoin_rec(f, g_lo);
         bddp hi = bddjoin_rec(f, g_hi);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else {
         // Same top variable v
         // lo: A∈F_lo, B∈G_lo (neither has v)
@@ -617,7 +617,7 @@ static bddp bddjoin_rec(bddp f, bddp g) {
         bddp hi_c = bddjoin_rec(f_hi, g_hi);
         // Use _rec for same-file calls
         bddp hi = bddunion_rec(bddunion_rec(hi_a, hi_b), hi_c);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_JOIN, f, g, result);
@@ -690,7 +690,7 @@ static bddp bddmeet_rec(bddp f, bddp g) {
         bddp lo_c = bddmeet_rec(f_hi, g_lo);
         bddp lo = bddunion_rec(bddunion_rec(lo_a, lo_b), lo_c);
         bddp hi = bddmeet_rec(f_hi, g_hi);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_MEET, f, g, result);
@@ -745,14 +745,14 @@ static bddp bdddelta_rec(bddp f, bddp g) {
         // G has no sets with f_var; A⊕B keeps f_var iff A had it
         bddp lo = bdddelta_rec(f_lo, g);
         bddp hi = bdddelta_rec(f_hi, g);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bdddelta_rec(f, g_lo);
         bddp hi = bdddelta_rec(f, g_hi);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else {
         // Same top variable v
         // v in A⊕B iff exactly one of A,B contains v
@@ -771,7 +771,7 @@ static bddp bdddelta_rec(bddp f, bddp g) {
         bddp hi_a = bdddelta_rec(f_lo, g_hi);
         bddp hi_b = bdddelta_rec(f_hi, g_lo);
         bddp hi = bddunion_rec(hi_a, hi_b);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_DELTA, f, g, result);
@@ -804,7 +804,7 @@ bddp bddlshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTZ, getznode);
+        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
     });
 }
 
@@ -814,7 +814,7 @@ bddp bddrshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTZ, getznode);
+        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
     });
 }
 

@@ -691,7 +691,9 @@ bddp allocate_node() {
     throw std::overflow_error("node table exhausted");
 }
 
-bddp getnode(bddvar var, bddp lo, bddp hi) {
+// --- BDD node creation ---
+
+bddp BDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
     if (lo == hi) return lo;  // reduction rule
 
     // Complement edge normalization: lo must not be complemented.
@@ -728,7 +730,28 @@ bddp getnode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
-bddp getznode(bddvar var, bddp lo, bddp hi) {
+bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
+    // Apply reduction rule first (no node creation if lo == hi)
+    if (lo == hi) return lo;
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("BDD::getnode: var out of range");
+    bddvar var_level = var2level[var];
+    if (!(lo & BDD_CONST_FLAG) && var2level[node_var(lo & ~BDD_COMP_FLAG)] >= var_level)
+        throw std::invalid_argument("BDD::getnode: lo child level >= var level");
+    if (!(hi & BDD_CONST_FLAG) && var2level[node_var(hi & ~BDD_COMP_FLAG)] >= var_level)
+        throw std::invalid_argument("BDD::getnode: hi child level >= var level");
+    return BDD::getnode_raw(var, lo, hi);
+}
+
+BDD BDD::getnode(bddvar var, const BDD& lo, const BDD& hi) {
+    BDD b(0);
+    b.root = BDD::getnode(var, lo.root, hi.root);
+    return b;
+}
+
+// --- ZDD node creation ---
+
+bddp ZDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
     if (hi == bddempty) return lo;  // ZDD zero-suppression rule
 
     // Complement edge normalization: lo must not be complemented.
@@ -764,22 +787,29 @@ bddp getznode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
-bddp getqnode(bddvar var, bddp lo, bddp hi) {
+bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
+    // Apply zero-suppression rule first (no node creation if hi == bddempty)
+    if (hi == bddempty) return lo;
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("ZDD::getnode: var out of range");
+    bddvar var_level = var2level[var];
+    if (!(lo & BDD_CONST_FLAG) && var2level[node_var(lo & ~BDD_COMP_FLAG)] >= var_level)
+        throw std::invalid_argument("ZDD::getnode: lo child level >= var level");
+    if (!(hi & BDD_CONST_FLAG) && var2level[node_var(hi & ~BDD_COMP_FLAG)] >= var_level)
+        throw std::invalid_argument("ZDD::getnode: hi child level >= var level");
+    return ZDD::getnode_raw(var, lo, hi);
+}
+
+ZDD ZDD::getnode(bddvar var, const ZDD& lo, const ZDD& hi) {
+    ZDD z(0);
+    z.root = ZDD::getnode(var, lo.root, hi.root);
+    return z;
+}
+
+// --- QDD node creation ---
+
+bddp QDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
     // No jump rule: lo == hi does NOT return lo
-
-    // Level validation: children must be at var's level - 1
-    bddvar expected_child_level = var2level[var] - 1;
-
-    auto child_level = [](bddp child) -> bddvar {
-        if (child & BDD_CONST_FLAG) return 0;  // terminal is level 0
-        return var2level[node_var(child & ~BDD_COMP_FLAG)];
-    };
-
-    bddvar lo_level = child_level(lo);
-    bddvar hi_level = child_level(hi);
-    if (lo_level != expected_child_level || hi_level != expected_child_level) {
-        throw std::invalid_argument("getqnode: child level mismatch");
-    }
 
     // Complement edge normalization: lo must not be complemented.
     // BDD semantics: ~(var, lo, hi) = (var, ~lo, ~hi)
@@ -815,6 +845,30 @@ bddp getqnode(bddvar var, bddp lo, bddp hi) {
     return comp ? bddnot(node_id) : node_id;
 }
 
+bddp QDD::getnode(bddvar var, bddp lo, bddp hi) {
+    // Level validation: children must be at var's level - 1
+    bddvar expected_child_level = var2level[var] - 1;
+
+    auto child_level = [](bddp child) -> bddvar {
+        if (child & BDD_CONST_FLAG) return 0;  // terminal is level 0
+        return var2level[node_var(child & ~BDD_COMP_FLAG)];
+    };
+
+    bddvar lo_level = child_level(lo);
+    bddvar hi_level = child_level(hi);
+    if (lo_level != expected_child_level || hi_level != expected_child_level) {
+        throw std::invalid_argument("QDD::getnode: child level mismatch");
+    }
+
+    return QDD::getnode_raw(var, lo, hi);
+}
+
+QDD QDD::getnode(bddvar var, const QDD& lo, const QDD& hi) {
+    QDD q(0);
+    q.root = QDD::getnode(var, lo.root, hi.root);
+    return q;
+}
+
 bddp bddconst(uint64_t val) {
     if (val > 1) {
         throw std::invalid_argument("bddconst: val must be 0 or 1");
@@ -834,7 +888,7 @@ bddp bddprime(bddvar v) {
     while (bdd_varcount < v) {
         bddnewvar();
     }
-    return getnode(v, bddfalse, bddtrue);
+    return BDD::getnode_raw(v, bddfalse, bddtrue);
 }
 
 BDD BDD_ID(bddp p) {

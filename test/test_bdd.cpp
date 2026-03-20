@@ -334,12 +334,12 @@ TEST_F(BDDTest, BddAndWithNot) {
 
 TEST_F(BDDTest, GetnodeReduction) {
     bddvar v = BDD_NewVar();
-    // getnode(v, bddtrue, bddtrue) should return bddtrue (reduction)
-    bddp result = getnode(v, bddtrue, bddtrue);
+    // BDD::getnode(v, bddtrue, bddtrue) should return bddtrue (reduction)
+    bddp result = BDD::getnode(v, bddtrue, bddtrue);
     EXPECT_EQ(result, bddtrue);
 
-    // getnode(v, bddfalse, bddfalse) should return bddfalse
-    result = getnode(v, bddfalse, bddfalse);
+    // BDD::getnode(v, bddfalse, bddfalse) should return bddfalse
+    result = BDD::getnode(v, bddfalse, bddfalse);
     EXPECT_EQ(result, bddfalse);
 }
 
@@ -1399,7 +1399,7 @@ TEST_F(BDDTest, BddExistThreeVars) {
     // exist v1. (v1 & v2 & v3) = v2 & v3
     EXPECT_EQ(bddexist(f, bddprime(v1)), bddand(p2, p3));
     // exist v1,v3. (v1 & v2 & v3) = v2
-    bddp cube13 = getnode(v3, bddprime(v1), bddtrue);  // {v1, v3}
+    bddp cube13 = BDD::getnode(v3, bddprime(v1), bddtrue);  // {v1, v3}
     EXPECT_EQ(bddexist(f, cube13), p2);
     // exist v1,v2,v3. (v1 & v2 & v3) = true
     EXPECT_EQ(bddexist(f, bddsupport(f)), bddtrue);
@@ -1500,7 +1500,7 @@ TEST_F(BDDTest, BddExistVecMatchesCube) {
     bddp p3 = bddprime(v3);
     bddp f = bddor(bddand(p1, p2), p3);
     std::vector<bddvar> vars = {v2, v3};
-    bddp cube = getnode(v3, bddprime(v2), bddtrue);
+    bddp cube = BDD::getnode(v3, bddprime(v2), bddtrue);
     EXPECT_EQ(bddexist(f, vars), bddexist(f, cube));
 }
 
@@ -1544,7 +1544,7 @@ TEST_F(BDDTest, BddUnivVecMatchesCube) {
     bddp p3 = bddprime(v3);
     bddp f = bddor(bddand(p1, p2), p3);
     std::vector<bddvar> vars = {v2, v3};
-    bddp cube = getnode(v3, bddprime(v2), bddtrue);
+    bddp cube = BDD::getnode(v3, bddprime(v2), bddtrue);
     EXPECT_EQ(bdduniv(f, vars), bdduniv(f, cube));
 }
 
@@ -1934,7 +1934,7 @@ TEST_F(BDDTest, BddUnivThreeVars) {
     // forall v1. (v1|v2|v3) = (v2|v3) & (1) = v2|v3
     EXPECT_EQ(bdduniv(f, bddprime(v1)), bddor(p2, p3));
     // forall v1,v2. (v1|v2|v3) = forall v2. (v2|v3) = v3 & 1 = v3
-    bddp cube12 = getnode(v2, bddprime(v1), bddtrue);
+    bddp cube12 = BDD::getnode(v2, bddprime(v1), bddtrue);
     EXPECT_EQ(bdduniv(f, cube12), p3);
     // forall v1,v2,v3. (v1|v2|v3) = false (e.g. all 0)
     EXPECT_EQ(bdduniv(f, bddsupport(f)), bddfalse);
@@ -2062,27 +2062,27 @@ TEST_F(BDDTest, XorOrAndRelation) {
 TEST_F(BDDTest, GetznodeZeroSuppression) {
     // ZDD reduction: if hi == bddempty, return lo
     bddvar v1 = bddnewvar();
-    EXPECT_EQ(getznode(v1, bddempty, bddempty), bddempty);
-    EXPECT_EQ(getznode(v1, bddsingle, bddempty), bddsingle);
+    EXPECT_EQ(ZDD::getnode(v1, bddempty, bddempty), bddempty);
+    EXPECT_EQ(ZDD::getnode(v1, bddsingle, bddempty), bddsingle);
 
     bddvar v2 = bddnewvar();
-    bddp node = getznode(v2, bddempty, bddsingle);
-    EXPECT_EQ(getznode(v1, node, bddempty), node);
+    bddp node = ZDD::getnode(v2, bddempty, bddsingle);
+    EXPECT_EQ(ZDD::getnode(v1, node, bddempty), node);
 }
 
 TEST_F(BDDTest, GetznodeNoReductionWhenLoEqualsHi) {
     // Unlike BDD, getznode does NOT reduce when lo == hi
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     // This should create a node, not return bddsingle
     EXPECT_NE(z, bddsingle);
     EXPECT_FALSE(z & BDD_CONST_FLAG);
 }
 
 TEST_F(BDDTest, GetznodeSingleton) {
-    // {{v1}} = getznode(v1, bddempty, bddsingle)
+    // {{v1}} = ZDD::getnode(v1, bddempty, bddsingle)
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_FALSE(z & BDD_CONST_FLAG);
     // lo should be bddempty, hi should be bddsingle
     bddp node = z & ~BDD_COMP_FLAG;
@@ -2093,8 +2093,8 @@ TEST_F(BDDTest, GetznodeComplementNormalization) {
     // lo is complemented: strip it, complement the result
     // hi is NOT negated (unlike BDD getnode)
     bddvar v1 = bddnewvar();
-    bddp z1 = getznode(v1, bddempty, bddsingle);   // {{v1}}
-    bddp z2 = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    bddp z1 = ZDD::getnode(v1, bddempty, bddsingle);   // {{v1}}
+    bddp z2 = ZDD::getnode(v1, bddsingle, bddsingle);  // {{}, {v1}}
     // z2 should be complement of z1, since:
     //   lo=bddsingle → comp=true, lo normalized to bddempty
     //   stored node is (v1, bddempty, bddsingle) = z1
@@ -2106,15 +2106,15 @@ TEST_F(BDDTest, GetznodeComplementHiUnchanged) {
     // Verify hi is not negated during complement normalization
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp inner = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp inner = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
-    // getznode(v2, bddsingle, inner)
+    // ZDD::getnode(v2, bddsingle, inner)
     // lo=bddsingle is complemented → comp=true, lo=bddempty
     // hi=inner stays unchanged (ZDD rule)
-    bddp z = getznode(v2, bddsingle, inner);
+    bddp z = ZDD::getnode(v2, bddsingle, inner);
 
     // Compare with BDD getnode which would negate hi too
-    bddp b = getnode(v2, bddsingle, inner);
+    bddp b = BDD::getnode(v2, bddsingle, inner);
 
     // They should differ because BDD negates hi but ZDD doesn't
     // getznode stores (v2, bddempty, inner), getnode stores (v2, bddempty, ~inner)
@@ -2124,8 +2124,8 @@ TEST_F(BDDTest, GetznodeComplementHiUnchanged) {
 TEST_F(BDDTest, GetznodeUniqueTableSharing) {
     // Same (var, lo, hi) returns same node
     bddvar v1 = bddnewvar();
-    bddp z1 = getznode(v1, bddempty, bddsingle);
-    bddp z2 = getznode(v1, bddempty, bddsingle);
+    bddp z1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z2 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(z1, z2);
 }
 
@@ -2134,11 +2134,11 @@ TEST_F(BDDTest, GetznodeTwoElementFamily) {
     bddvar v1 = bddnewvar();  // level 1
     bddvar v2 = bddnewvar();  // level 2
     // Build bottom-up: v2 is lower level, v1 is higher level
-    // Node for v1: lo = getznode(v1, bddempty, bddsingle) would be wrong ordering
+    // Node for v1: lo = ZDD::getnode(v1, bddempty, bddsingle) would be wrong ordering
     // ZDD for {{v1}, {v2}}: at v2 (level 2, top), lo = {{v1}}, hi = {{}}
     //   at v1 (level 1), lo = {}, hi = {{}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}} at level 1
-    bddp z = getznode(v2, z_v1, bddsingle);          // at level 2: lo={{v1}}, hi={{}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}} at level 1
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);          // at level 2: lo={{v1}}, hi={{}}
     // The family = {{v1}} ∪ {{v2 ∪ s} | s ∈ {{}}} = {{v1}} ∪ {{v2}} = {{v1}, {v2}}
     EXPECT_FALSE(z & BDD_CONST_FLAG);
 }
@@ -2606,9 +2606,9 @@ TEST_F(BDDTest, ImportCreatesVariables) {
 // --- bddimportz ---
 
 TEST_F(BDDTest, ImportzRoundtripSingleton) {
-    // ZDD {{v1}} = getznode(v1, bddempty, bddsingle)
+    // ZDD {{v1}} = ZDD::getnode(v1, bddempty, bddsingle)
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     bddp p[] = { z };
     std::ostringstream oss;
     bddexport(oss, p, 1);
@@ -2620,9 +2620,9 @@ TEST_F(BDDTest, ImportzRoundtripSingleton) {
 }
 
 TEST_F(BDDTest, ImportzRoundtripWithComplement) {
-    // ZDD {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
+    // ZDD {{}, {v1}} = ZDD::getnode(v1, bddsingle, bddsingle)
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     bddp p[] = { z };
     std::ostringstream oss;
     bddexport(oss, p, 1);
@@ -2637,8 +2637,8 @@ TEST_F(BDDTest, ImportzRoundtripTwoVars) {
     // ZDD {{v1}, {v2}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z = getznode(v2, z_v1, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);
     bddp p[] = { z };
     std::ostringstream oss;
     bddexport(oss, p, 1);
@@ -2654,7 +2654,7 @@ TEST_F(BDDTest, ImportzDiffersFromImport) {
     // because getnode and getznode have different reduction rules
     bddvar v1 = bddnewvar();
     // Create a node where lo == hi (BDD would reduce, ZDD would not if hi != empty)
-    bddp node = getznode(v1, bddsingle, bddsingle);
+    bddp node = ZDD::getnode(v1, bddsingle, bddsingle);
     bddp p[] = { node };
     std::ostringstream oss;
     bddexport(oss, p, 1);
@@ -2675,7 +2675,7 @@ TEST_F(BDDTest, ImportzDiffersFromImport) {
 
 TEST_F(BDDTest, ImportzFilePtr) {
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     bddp p[] = { z };
 
     FILE* tmp = std::tmpfile();
@@ -2691,7 +2691,7 @@ TEST_F(BDDTest, ImportzFilePtr) {
 
 TEST_F(BDDTest, ImportzVectorOverload) {
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     std::vector<bddp> orig = { z };
     std::ostringstream oss;
     bddexport(oss, orig);
@@ -2705,7 +2705,7 @@ TEST_F(BDDTest, ImportzVectorOverload) {
 
 TEST_F(BDDTest, ImportzFilePtrVector) {
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     std::vector<bddp> orig = { z };
 
     FILE* tmp = std::tmpfile();
@@ -2732,8 +2732,8 @@ TEST_F(BDDTest, BddoffsetTerminal) {
 
 TEST_F(BDDTest, BddoffsetSingletonContaining) {
     bddvar v1 = bddnewvar();
-    // {{v1}} = getznode(v1, bddempty, bddsingle)
-    bddp z = getznode(v1, bddempty, bddsingle);
+    // {{v1}} = ZDD::getnode(v1, bddempty, bddsingle)
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // offset({{v1}}, v1) = sets not containing v1 = {} (empty family)
     EXPECT_EQ(bddoffset(z, v1), bddempty);
 }
@@ -2742,16 +2742,16 @@ TEST_F(BDDTest, BddoffsetSingletonNotContaining) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}} — does not contain v2
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // offset({{v1}}, v2) = {{v1}} (v2 not in any set)
     EXPECT_EQ(bddoffset(z, v2), z);
 }
 
 TEST_F(BDDTest, BddoffsetFamilyWithAndWithout) {
     bddvar v1 = bddnewvar();
-    // {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
+    // {{}, {v1}} = ZDD::getnode(v1, bddsingle, bddsingle)
     // lo = {{}} (sets without v1), hi = {{}} (sets with v1, v1 removed)
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     // offset(z, v1) = sets not containing v1 = lo = {{}}
     EXPECT_EQ(bddoffset(z, v1), bddsingle);
 }
@@ -2761,12 +2761,12 @@ TEST_F(BDDTest, BddoffsetTwoVars) {
     bddvar v2 = bddnewvar();
     // Build {{v1, v2}}: at v1 (level 1), hi=bddsingle, lo=bddempty → {{v1}}
     // Then at v2 (level 2), lo=bddempty, hi={{v1}} → sets containing v2 AND v1
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);        // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);        // {{v1, v2}}
     // offset({{v1,v2}}, v2) = sets not containing v2 = empty
     EXPECT_EQ(bddoffset(z_v1v2, v2), bddempty);
     // offset({{v1,v2}}, v1) should recurse: at v2, lo=empty→offset=empty, hi={{v1}}→offset({{v1}},v1)=empty
-    // result = getznode(v2, empty, empty) = empty
+    // result = ZDD::getnode(v2, empty, empty) = empty
     EXPECT_EQ(bddoffset(z_v1v2, v1), bddempty);
 }
 
@@ -2774,13 +2774,13 @@ TEST_F(BDDTest, BddoffsetMixedFamily) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // Build {{v1}, {v2}}: at v2 (level 2, top), lo={{v1}}, hi={{}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z = getznode(v2, z_v1, bddsingle);             // {{v1}, {v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);             // {{v1}, {v2}}
     // offset(z, v2) = sets not containing v2 = lo = {{v1}}
     EXPECT_EQ(bddoffset(z, v2), z_v1);
     // offset(z, v1): at v2, lo=offset({{v1}},v1)=empty, hi=offset({{}},v1)={{}}
-    // = getznode(v2, empty, single) = {{v2}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);     // {{v2}}
+    // = ZDD::getnode(v2, empty, single) = {{v2}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);     // {{v2}}
     EXPECT_EQ(bddoffset(z, v1), z_v2);
 }
 
@@ -2789,7 +2789,7 @@ TEST_F(BDDTest, BddoffsetVarNotInFamily) {
     (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}} — only involves v1, ask about v3 (higher level)
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // v3 has higher level than v1 → var above top, return f
     EXPECT_EQ(bddoffset(z, v3), z);
 }
@@ -2807,7 +2807,7 @@ TEST_F(BDDTest, BddonsetTerminal) {
 TEST_F(BDDTest, BddonsetSingletonContaining) {
     bddvar v1 = bddnewvar();
     // {{v1}}
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // onset({{v1}}, v1) = {{v1}} (keeps var)
     EXPECT_EQ(bddonset(z, v1), z);
 }
@@ -2816,17 +2816,17 @@ TEST_F(BDDTest, BddonsetSingletonNotContaining) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}} — does not contain v2
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // onset({{v1}}, v2) = empty
     EXPECT_EQ(bddonset(z, v2), bddempty);
 }
 
 TEST_F(BDDTest, BddonsetFamilyWithAndWithout) {
     bddvar v1 = bddnewvar();
-    // {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    // {{}, {v1}} = ZDD::getnode(v1, bddsingle, bddsingle)
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     // onset(z, v1) = {{v1}} (sets containing v1, var kept)
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     EXPECT_EQ(bddonset(z, v1), z_v1);
 }
 
@@ -2834,8 +2834,8 @@ TEST_F(BDDTest, BddonsetTwoVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1, v2}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);        // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);        // {{v1, v2}}
     // onset({{v1,v2}}, v2) = {{v1,v2}}
     EXPECT_EQ(bddonset(z_v1v2, v2), z_v1v2);
     // onset({{v1,v2}}, v1) = {{v1,v2}}
@@ -2846,10 +2846,10 @@ TEST_F(BDDTest, BddonsetMixedFamily) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}, {v2}}: at v2 (top), lo={{v1}}, hi={{}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z = getznode(v2, z_v1, bddsingle);             // {{v1}, {v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);             // {{v1}, {v2}}
     // onset(z, v2) = {{v2}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     EXPECT_EQ(bddonset(z, v2), z_v2);
     // onset(z, v1) = {{v1}}
     EXPECT_EQ(bddonset(z, v1), z_v1);
@@ -2860,7 +2860,7 @@ TEST_F(BDDTest, BddonsetVarNotInFamily) {
     (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}} — v3 not present
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddonset(z, v3), bddempty);
 }
 
@@ -2875,7 +2875,7 @@ TEST_F(BDDTest, Bddonset0Terminal) {
 TEST_F(BDDTest, Bddonset0SingletonContaining) {
     bddvar v1 = bddnewvar();
     // {{v1}}
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     // onset0({{v1}}, v1) = {{}} (var removed)
     EXPECT_EQ(bddonset0(z, v1), bddsingle);
 }
@@ -2883,14 +2883,14 @@ TEST_F(BDDTest, Bddonset0SingletonContaining) {
 TEST_F(BDDTest, Bddonset0SingletonNotContaining) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddonset0(z, v2), bddempty);
 }
 
 TEST_F(BDDTest, Bddonset0FamilyWithAndWithout) {
     bddvar v1 = bddnewvar();
     // {{}, {v1}}
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     // onset0(z, v1) = {{}} (sets containing v1 with v1 removed)
     EXPECT_EQ(bddonset0(z, v1), bddsingle);
 }
@@ -2899,12 +2899,12 @@ TEST_F(BDDTest, Bddonset0TwoVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1, v2}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);        // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);        // {{v1, v2}}
     // onset0({{v1,v2}}, v2) = {{v1}} (v2 removed)
     EXPECT_EQ(bddonset0(z_v1v2, v2), z_v1);
     // onset0({{v1,v2}}, v1) = {{v2}} (v1 removed)
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     EXPECT_EQ(bddonset0(z_v1v2, v1), z_v2);
 }
 
@@ -2912,8 +2912,8 @@ TEST_F(BDDTest, Bddonset0MixedFamily) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}, {v2}}: at v2 (top), lo={{v1}}, hi={{}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z = getznode(v2, z_v1, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);
     // onset0(z, v2) = {{}} (v2 removed from {v2})
     EXPECT_EQ(bddonset0(z, v2), bddsingle);
     // onset0(z, v1) = {{}} (v1 removed from {v1})
@@ -2924,7 +2924,7 @@ TEST_F(BDDTest, Bddonset0VarNotInFamily) {
     bddvar v1 = bddnewvar();
     (void)bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddonset0(z, v3), bddempty);
 }
 
@@ -2935,14 +2935,14 @@ TEST_F(BDDTest, BddchangeTerminal) {
     // change(empty, v1) = empty
     EXPECT_EQ(bddchange(bddempty, v1), bddempty);
     // change({{}}, v1) = {{v1}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddchange(bddsingle, v1), z_v1);
 }
 
 TEST_F(BDDTest, BddchangeSingletonToggle) {
     bddvar v1 = bddnewvar();
     // {{v1}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     // change({{v1}}, v1) = {{}} (remove v1)
     EXPECT_EQ(bddchange(z_v1, v1), bddsingle);
 }
@@ -2950,7 +2950,7 @@ TEST_F(BDDTest, BddchangeSingletonToggle) {
 TEST_F(BDDTest, BddchangeDoubleToggle) {
     bddvar v1 = bddnewvar();
     // change twice should restore original
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddchange(bddchange(z_v1, v1), v1), z_v1);
     EXPECT_EQ(bddchange(bddchange(bddsingle, v1), v1), bddsingle);
 }
@@ -2959,15 +2959,15 @@ TEST_F(BDDTest, BddchangeVarNotPresent) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}}: change with v2 → add v2 to each set → {{v1, v2}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);  // {{v1, v2}}
     EXPECT_EQ(bddchange(z_v1, v2), z_v1v2);
 }
 
 TEST_F(BDDTest, BddchangeFamilyWithAndWithout) {
     bddvar v1 = bddnewvar();
-    // {{}, {v1}} = getznode(v1, bddsingle, bddsingle)
-    bddp z = getznode(v1, bddsingle, bddsingle);
+    // {{}, {v1}} = ZDD::getnode(v1, bddsingle, bddsingle)
+    bddp z = ZDD::getnode(v1, bddsingle, bddsingle);
     // change(z, v1): sets without v1 ({{}}) get v1 → {{v1}}
     //                sets with v1 ({v1}) lose v1 → {{}}
     //                result = {{}, {v1}} = z (same family, swapped roles)
@@ -2978,12 +2978,12 @@ TEST_F(BDDTest, BddchangeMixedFamily) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // {{v1}, {v2}}: at v2 (top), lo={{v1}}, hi={{}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z = getznode(v2, z_v1, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v2, z_v1, bddsingle);
     // change(z, v1): toggle v1 in each set
     //   {v1} → {} (remove v1), {v2} → {v1, v2} (add v1)
     //   result = {{}, {v1, v2}}
-    bddp expected = getznode(v2, bddsingle, z_v1);  // {{}, {v1, v2}}
+    bddp expected = ZDD::getnode(v2, bddsingle, z_v1);  // {{}, {v1, v2}}
     EXPECT_EQ(bddchange(z, v1), expected);
 }
 
@@ -2992,8 +2992,8 @@ TEST_F(BDDTest, BddchangeVarAboveTop) {
     (void)bddnewvar();
     bddvar v3 = bddnewvar();
     // {{v1}}: change with v3 (higher level) → add v3 → {{v1, v3}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp expected = getznode(v3, bddempty, z_v1);  // {{v1, v3}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp expected = ZDD::getnode(v3, bddempty, z_v1);  // {{v1, v3}}
     EXPECT_EQ(bddchange(z_v1, v3), expected);
 }
 
@@ -3009,7 +3009,7 @@ TEST_F(BDDTest, BddchangeAutoExpandVar) {
 
 TEST_F(BDDTest, BddchangeAutoExpandPreservesData) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddvar target = bddvarused() + 2;
     bddp result = bddchange(z_v1, target);
     EXPECT_EQ(bddvarused(), target);
@@ -3049,24 +3049,24 @@ TEST_F(BDDTest, BddunionTerminals) {
 
 TEST_F(BDDTest, BddunionWithEmpty) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     EXPECT_EQ(bddunion(z_v1, bddempty), z_v1);
     EXPECT_EQ(bddunion(bddempty, z_v1), z_v1);
 }
 
 TEST_F(BDDTest, BddunionSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     EXPECT_EQ(bddunion(z_v1, z_v1), z_v1);
 }
 
 TEST_F(BDDTest, BddunionDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
     // {{v1}} ∪ {{v2}} = {{v1}, {v2}}
-    bddp expected = getznode(v2, z_v1, bddsingle);
+    bddp expected = ZDD::getnode(v2, z_v1, bddsingle);
     EXPECT_EQ(bddunion(z_v1, z_v2), expected);
     // Commutative
     EXPECT_EQ(bddunion(z_v2, z_v1), expected);
@@ -3074,24 +3074,24 @@ TEST_F(BDDTest, BddunionDisjointSingletons) {
 
 TEST_F(BDDTest, BddunionAddEmptySet) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     // {{v1}} ∪ {{}} = {{}, {v1}}
-    bddp expected = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    bddp expected = ZDD::getnode(v1, bddsingle, bddsingle);  // {{}, {v1}}
     EXPECT_EQ(bddunion(z_v1, bddsingle), expected);
 }
 
 TEST_F(BDDTest, BddunionOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);         // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1_v2 = ZDD::getnode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);         // {{v1, v2}}
     // {{v1}, {v2}} ∪ {{v1, v2}} = {{v1}, {v2}, {v1, v2}}
     bddp result = bddunion(z_v1_v2, z_v1v2);
     // Expected: at v2, lo={{v1}} (sets without v2), hi=union({{},{}}, {{v1}})
     // hi = {{}, {v1}}
-    bddp hi_expected = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
-    bddp expected = getznode(v2, z_v1, hi_expected);
+    bddp hi_expected = ZDD::getnode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    bddp expected = ZDD::getnode(v2, z_v1, hi_expected);
     EXPECT_EQ(result, expected);
 }
 
@@ -3099,18 +3099,18 @@ TEST_F(BDDTest, BddunionThreeVars) {
     bddvar v1 = bddnewvar();
     (void)bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);     // {{v3}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);     // {{v3}}
     // {{v1}} ∪ {{v3}} = at v3, lo={{v1}}, hi={{}}
-    bddp expected = getznode(v3, z_v1, bddsingle);
+    bddp expected = ZDD::getnode(v3, z_v1, bddsingle);
     EXPECT_EQ(bddunion(z_v1, z_v3), expected);
 }
 
 TEST_F(BDDTest, BddunionIdempotent) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp u = bddunion(z_v1, z_v2);
     // union(u, z_v1) == u (z_v1 already in u)
     EXPECT_EQ(bddunion(u, z_v1), u);
@@ -3128,22 +3128,22 @@ TEST_F(BDDTest, BddintersecTerminals) {
 
 TEST_F(BDDTest, BddintersecWithEmpty) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddintersec(z_v1, bddempty), bddempty);
     EXPECT_EQ(bddintersec(bddempty, z_v1), bddempty);
 }
 
 TEST_F(BDDTest, BddintersecSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddintersec(z_v1, z_v1), z_v1);
 }
 
 TEST_F(BDDTest, BddintersecDisjoint) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
     // {{v1}} ∩ {{v2}} = {} (no common sets)
     EXPECT_EQ(bddintersec(z_v1, z_v2), bddempty);
 }
@@ -3151,8 +3151,8 @@ TEST_F(BDDTest, BddintersecDisjoint) {
 TEST_F(BDDTest, BddintersecOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1_v2 = ZDD::getnode(v2, z_v1, bddsingle);      // {{v1}, {v2}}
     // {{v1}, {v2}} ∩ {{v1}} = {{v1}}
     EXPECT_EQ(bddintersec(z_v1_v2, z_v1), z_v1);
     EXPECT_EQ(bddintersec(z_v1, z_v1_v2), z_v1);
@@ -3160,32 +3160,32 @@ TEST_F(BDDTest, BddintersecOverlapping) {
 
 TEST_F(BDDTest, BddintersecWithEmptySet) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
     // {{v1}} ∩ {{}} = {} (no common sets)
     EXPECT_EQ(bddintersec(z_v1, bddsingle), bddempty);
     // {{}, {v1}} ∩ {{}} = {{}}
-    bddp z_both = getznode(v1, bddsingle, bddsingle);  // {{}, {v1}}
+    bddp z_both = ZDD::getnode(v1, bddsingle, bddsingle);  // {{}, {v1}}
     EXPECT_EQ(bddintersec(z_both, bddsingle), bddsingle);
 }
 
 TEST_F(BDDTest, BddintersecComplex) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);      // {{v1}}
-    bddp z_v1_v2 = getznode(v2, z_v1, bddsingle);       // {{v1}, {v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);          // {{v1, v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);      // {{v1}}
+    bddp z_v1_v2 = ZDD::getnode(v2, z_v1, bddsingle);       // {{v1}, {v2}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);          // {{v1, v2}}
     bddp z_v2_v1v2 = bddunion(
-        getznode(v2, bddempty, bddsingle), z_v1v2);       // {{v2}, {v1, v2}}
+        ZDD::getnode(v2, bddempty, bddsingle), z_v1v2);       // {{v2}, {v1, v2}}
     // {{v1}, {v2}} ∩ {{v2}, {v1, v2}} = {{v2}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     EXPECT_EQ(bddintersec(z_v1_v2, z_v2_v1v2), z_v2);
 }
 
 TEST_F(BDDTest, BddintersecUnionIdentity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp u = bddunion(z_v1, z_v2);  // {{v1}, {v2}}
     // intersec(union(a,b), a) == a
     EXPECT_EQ(bddintersec(u, z_v1), z_v1);
@@ -3203,22 +3203,22 @@ TEST_F(BDDTest, BddsubtractTerminals) {
 
 TEST_F(BDDTest, BddsubtractWithEmpty) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddsubtract(z_v1, bddempty), z_v1);
     EXPECT_EQ(bddsubtract(bddempty, z_v1), bddempty);
 }
 
 TEST_F(BDDTest, BddsubtractSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddsubtract(z_v1, z_v1), bddempty);
 }
 
 TEST_F(BDDTest, BddsubtractDisjoint) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
     // {{v1}} \ {{v2}} = {{v1}}
     EXPECT_EQ(bddsubtract(z_v1, z_v2), z_v1);
     // {{v2}} \ {{v1}} = {{v2}}
@@ -3228,8 +3228,8 @@ TEST_F(BDDTest, BddsubtractDisjoint) {
 TEST_F(BDDTest, BddsubtractSubset) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp u = bddunion(z_v1, z_v2);  // {{v1}, {v2}}
     // {{v1}, {v2}} \ {{v1}} = {{v2}}
     EXPECT_EQ(bddsubtract(u, z_v1), z_v2);
@@ -3241,8 +3241,8 @@ TEST_F(BDDTest, BddsubtractSubset) {
 
 TEST_F(BDDTest, BddsubtractEmptySetMember) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);     // {{v1}}
-    bddp z_both = getznode(v1, bddsingle, bddsingle);   // {{}, {v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);     // {{v1}}
+    bddp z_both = ZDD::getnode(v1, bddsingle, bddsingle);   // {{}, {v1}}
     // {{}, {v1}} \ {{v1}} = {{}}
     EXPECT_EQ(bddsubtract(z_both, z_v1), bddsingle);
     // {{}, {v1}} \ {{}} = {{v1}}
@@ -3252,13 +3252,13 @@ TEST_F(BDDTest, BddsubtractEmptySetMember) {
 TEST_F(BDDTest, BddsubtractUnionIdentity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     // union(a, b) \ b == subtract(a, b) when a ∩ b = empty
     bddp u = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddsubtract(u, z_v2), z_v1);
     // a == union(intersec(a,b), subtract(a,b))
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);  // {{v1, v2}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);  // {{v1, v2}}
     bddp big = bddunion(u, z_v1v2);  // {{v1}, {v2}, {v1,v2}}
     bddp common = bddintersec(big, u);
     bddp diff = bddsubtract(big, u);
@@ -3280,7 +3280,7 @@ TEST_F(BDDTest, BdddivTerminals) {
 
 TEST_F(BDDTest, BdddivByEmptySet) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     // {{v1}} / {∅} = {{v1}}
     EXPECT_EQ(bdddiv(z_v1, bddsingle), z_v1);
 }
@@ -3288,7 +3288,7 @@ TEST_F(BDDTest, BdddivByEmptySet) {
 TEST_F(BDDTest, BdddivSelf) {
     // F / F always contains {∅}
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     // {{v1}} / {{v1}}: x such that x ∪ {v1} ∈ {{v1}} and x ∩ {v1} = ∅
     // x = ∅: ∅ ∪ {v1} = {v1} ∈ F ✓ → {∅}
     EXPECT_EQ(bdddiv(z_v1, z_v1), bddsingle);
@@ -3297,7 +3297,7 @@ TEST_F(BDDTest, BdddivSelf) {
 TEST_F(BDDTest, BdddivEmptySetInFNotG) {
     // {∅} / {{v1}} = ∅ (∅ ∪ {v1} = {v1} ∉ {∅})
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bdddiv(bddsingle, z_v1), bddempty);
 }
 
@@ -3305,8 +3305,8 @@ TEST_F(BDDTest, BdddivGVarAboveF) {
     // G has variable not in F → ∅
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
     // {{v1}} / {{v2}}: x ∪ {v2} ∈ {{v1}}, but no set in {{v1}} contains v2
     EXPECT_EQ(bdddiv(z_v1, z_v2), bddempty);
 }
@@ -3315,9 +3315,9 @@ TEST_F(BDDTest, BdddivSimple) {
     // F = {{v1, v2}}, G = {{v2}} → F/G = {{v1}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);        // {{v1}}
-    bddp z_v1v2 = getznode(v2, bddempty, z_v1);           // {{v1, v2}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);        // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);        // {{v1}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, z_v1);           // {{v1, v2}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);        // {{v2}}
     EXPECT_EQ(bdddiv(z_v1v2, z_v2), z_v1);
 }
 
@@ -3330,17 +3330,17 @@ TEST_F(BDDTest, BdddivMultipleSets) {
     bddvar c = bddnewvar();  // level 2
     bddvar d = bddnewvar();  // level 3
 
-    bddp z_a = getznode(a, bddempty, bddsingle);   // {{a}}
-    bddp z_ac = getznode(c, bddempty, z_a);        // {{a,c}}
-    bddp z_ad = getznode(d, bddempty, z_a);        // {{a,d}}
-    bddp z_c = getznode(c, bddempty, bddsingle);   // {{c}}
-    bddp z_d = getznode(d, bddempty, bddsingle);   // {{d}}
+    bddp z_a = ZDD::getnode(a, bddempty, bddsingle);   // {{a}}
+    bddp z_ac = ZDD::getnode(c, bddempty, z_a);        // {{a,c}}
+    bddp z_ad = ZDD::getnode(d, bddempty, z_a);        // {{a,d}}
+    bddp z_c = ZDD::getnode(c, bddempty, bddsingle);   // {{c}}
+    bddp z_d = ZDD::getnode(d, bddempty, bddsingle);   // {{d}}
 
     bddp F = bddunion(bddunion(z_ac, z_ad), bddunion(z_c, z_d));
     bddp G = bddunion(z_c, z_d);
 
     // Expected: {{∅}, {a}}
-    bddp expected = getznode(a, bddsingle, bddsingle);
+    bddp expected = ZDD::getnode(a, bddsingle, bddsingle);
     EXPECT_EQ(bdddiv(F, G), expected);
 }
 
@@ -3352,12 +3352,12 @@ TEST_F(BDDTest, BdddivPartialMatch) {
     // F/G = {{∅}, {a}}
     bddvar a = bddnewvar();
     bddvar c = bddnewvar();
-    bddp z_a = getznode(a, bddempty, bddsingle);
-    bddp z_ac = getznode(c, bddempty, z_a);         // {{a,c}}
-    bddp z_c = getznode(c, bddempty, bddsingle);    // {{c}}
+    bddp z_a = ZDD::getnode(a, bddempty, bddsingle);
+    bddp z_ac = ZDD::getnode(c, bddempty, z_a);         // {{a,c}}
+    bddp z_c = ZDD::getnode(c, bddempty, bddsingle);    // {{c}}
     bddp F = bddunion(z_ac, z_c);                  // {{a,c}, {c}}
 
-    bddp expected = getznode(a, bddsingle, bddsingle);  // {{∅}, {a}}
+    bddp expected = ZDD::getnode(a, bddsingle, bddsingle);  // {{∅}, {a}}
     EXPECT_EQ(bdddiv(F, z_c), expected);
 }
 
@@ -3365,8 +3365,8 @@ TEST_F(BDDTest, BdddivNoMatch) {
     // F = {{a}}, G = {{b}} where level(b) > level(a) → ∅
     bddvar a = bddnewvar();
     bddvar b = bddnewvar();
-    bddp z_a = getznode(a, bddempty, bddsingle);
-    bddp z_b = getznode(b, bddempty, bddsingle);
+    bddp z_a = ZDD::getnode(a, bddempty, bddsingle);
+    bddp z_b = ZDD::getnode(b, bddempty, bddsingle);
     EXPECT_EQ(bdddiv(z_a, z_b), bddempty);
 }
 
@@ -3379,17 +3379,17 @@ TEST_F(BDDTest, BdddivQuotientTimesG) {
     bddvar a = bddnewvar();
     bddvar b = bddnewvar();
     bddvar c = bddnewvar();
-    bddp z_a = getznode(a, bddempty, bddsingle);
-    bddp z_ab = getznode(b, bddempty, z_a);
-    bddp z_ac = getznode(c, bddempty, z_a);
-    bddp z_b = getznode(b, bddempty, bddsingle);
-    bddp z_c = getznode(c, bddempty, bddsingle);
+    bddp z_a = ZDD::getnode(a, bddempty, bddsingle);
+    bddp z_ab = ZDD::getnode(b, bddempty, z_a);
+    bddp z_ac = ZDD::getnode(c, bddempty, z_a);
+    bddp z_b = ZDD::getnode(b, bddempty, bddsingle);
+    bddp z_c = ZDD::getnode(c, bddempty, bddsingle);
 
     bddp F = bddunion(bddunion(z_ab, z_ac), bddunion(z_b, z_c));
     bddp G = bddunion(z_b, z_c);
     bddp Q = bdddiv(F, G);
 
-    bddp expected_q = getznode(a, bddsingle, bddsingle);  // {{∅}, {a}}
+    bddp expected_q = ZDD::getnode(a, bddsingle, bddsingle);  // {{∅}, {a}}
     EXPECT_EQ(Q, expected_q);
 }
 
@@ -3402,11 +3402,11 @@ TEST_F(BDDTest, BdddivWithRemainder) {
     bddvar a = bddnewvar();
     bddvar b = bddnewvar();
     bddvar c = bddnewvar();
-    bddp z_a = getznode(a, bddempty, bddsingle);
-    bddp z_ab = getznode(b, bddempty, z_a);
-    bddp z_c = getznode(c, bddempty, bddsingle);
+    bddp z_a = ZDD::getnode(a, bddempty, bddsingle);
+    bddp z_ab = ZDD::getnode(b, bddempty, z_a);
+    bddp z_c = ZDD::getnode(c, bddempty, bddsingle);
     bddp F = bddunion(z_ab, z_c);
-    bddp G = getznode(b, bddempty, bddsingle);
+    bddp G = ZDD::getnode(b, bddempty, bddsingle);
 
     EXPECT_EQ(bdddiv(F, G), z_a);
 }
@@ -3415,9 +3415,9 @@ TEST_F(BDDTest, ZDDOperatorDiv) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, z_v1.GetID()));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, z_v1.GetID()));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     // {{v1, v2}} / {{v2}} = {{v1}}
     ZDD result = z_v1v2 / z_v2;
@@ -3428,9 +3428,9 @@ TEST_F(BDDTest, ZDDOperatorDivAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, z_v1.GetID()));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, z_v1.GetID()));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     z_v1v2 /= z_v2;
     EXPECT_EQ(z_v1v2, z_v1);
@@ -3448,7 +3448,7 @@ TEST_F(BDDTest, ZDDSymdiffTerminalCases) {
 TEST_F(BDDTest, ZDDSymdiffWithSingleVar) {
     bddvar v1 = bddnewvar();
     // z_v1 = {{v1}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // {{v1}} ^ {} = {{v1}}
     EXPECT_EQ(bddsymdiff(z_v1, bddempty), z_v1);
@@ -3462,8 +3462,8 @@ TEST_F(BDDTest, ZDDSymdiffDisjointFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     // z_v1 = {{v1}}, z_v2 = {{v2}}
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // {{v1}} ^ {{v2}} = {{v1}, {v2}} = union
     bddp result = bddsymdiff(z_v1, z_v2);
@@ -3474,8 +3474,8 @@ TEST_F(BDDTest, ZDDSymdiffDisjointFamilies) {
 TEST_F(BDDTest, ZDDSymdiffOverlappingFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {v2}}, G = {{v2}}
     bddp F = bddunion(z_v1, z_v2);
@@ -3490,9 +3490,9 @@ TEST_F(BDDTest, ZDDSymdiffEqualsSubtractUnion) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
 
     // F = {{v1}, {v2}}, G = {{v2}, {v3}}
     bddp F = bddunion(z_v1, z_v2);
@@ -3506,8 +3506,8 @@ TEST_F(BDDTest, ZDDSymdiffEqualsSubtractUnion) {
 TEST_F(BDDTest, ZDDSymdiffCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
     bddp G = z_v2;                         // {{v2}}
@@ -3517,7 +3517,7 @@ TEST_F(BDDTest, ZDDSymdiffCommutativity) {
 
 TEST_F(BDDTest, ZDDSymdiffWithEmptySet) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // F = {{v1}, {}}, G = {{}}
     bddp F = bddunion(z_v1, bddsingle);
@@ -3531,8 +3531,8 @@ TEST_F(BDDTest, ZDDOperatorSymdiff) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD G = z_v2;
@@ -3546,8 +3546,8 @@ TEST_F(BDDTest, ZDDOperatorSymdiffAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F ^= z_v2;
@@ -3565,7 +3565,7 @@ TEST_F(BDDTest, ZDDJoinTerminalCases) {
 
 TEST_F(BDDTest, ZDDJoinIdentity) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {∅} ⊔ F = F
     EXPECT_EQ(bddjoin(bddsingle, z_v1), z_v1);
@@ -3575,17 +3575,17 @@ TEST_F(BDDTest, ZDDJoinIdentity) {
 TEST_F(BDDTest, ZDDJoinDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // {{v1}} ⊔ {{v2}} = {{v1, v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bddjoin(z_v1, z_v2), z_v1v2);
 }
 
 TEST_F(BDDTest, ZDDJoinSameVar) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {{v1}} ⊔ {{v1}} = {{v1}} (union is idempotent)
     EXPECT_EQ(bddjoin(z_v1, z_v1), z_v1);
@@ -3594,8 +3594,8 @@ TEST_F(BDDTest, ZDDJoinSameVar) {
 TEST_F(BDDTest, ZDDJoinFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // F = {{v1}, {v2}}, G = {{v1}}
     bddp F = bddunion(z_v1, z_v2);
@@ -3603,7 +3603,7 @@ TEST_F(BDDTest, ZDDJoinFamilies) {
 
     // F ⊔ G = { A∪B | A∈F, B∈G }
     //   = {v1}∪{v1}, {v2}∪{v1} = {{v1}, {v1,v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp expected = bddunion(z_v1, z_v1v2);
     EXPECT_EQ(bddjoin(F, G), expected);
 }
@@ -3611,8 +3611,8 @@ TEST_F(BDDTest, ZDDJoinFamilies) {
 TEST_F(BDDTest, ZDDJoinCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
     bddp G = z_v2;                         // {{v2}}
@@ -3623,14 +3623,14 @@ TEST_F(BDDTest, ZDDJoinCommutativity) {
 TEST_F(BDDTest, ZDDJoinWithEmptySet) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {}}, G = {{v2}}
     // F ⊔ G = {{v1,v2}, {v2}} ({}∪{v2}={v2}, {v1}∪{v2}={v1,v2})
     bddp F = bddunion(z_v1, bddsingle);
     bddp G = z_v2;
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp expected = bddunion(z_v2, z_v1v2);
     EXPECT_EQ(bddjoin(F, G), expected);
 }
@@ -3639,12 +3639,12 @@ TEST_F(BDDTest, ZDDOperatorJoin) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     // {{v1}} * {{v2}} = {{v1, v2}}
     ZDD result = z_v1 * z_v2;
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(result.GetID(), z_v1v2);
 }
 
@@ -3652,10 +3652,10 @@ TEST_F(BDDTest, ZDDOperatorJoinAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     z_v1 *= z_v2;
     EXPECT_EQ(z_v1.GetID(), z_v1v2);
 }
@@ -3672,7 +3672,7 @@ TEST_F(BDDTest, ZDDMeetTerminalCases) {
 
 TEST_F(BDDTest, ZDDMeetWithSingle) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {∅} ⊓ {{v1}} = {∅∩{v1}} = {∅}
     EXPECT_EQ(bddmeet(bddsingle, z_v1), bddsingle);
@@ -3681,7 +3681,7 @@ TEST_F(BDDTest, ZDDMeetWithSingle) {
 
 TEST_F(BDDTest, ZDDMeetSameFamily) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {{v1}} ⊓ {{v1}} = {{v1}∩{v1}} = {{v1}}
     EXPECT_EQ(bddmeet(z_v1, z_v1), z_v1);
@@ -3690,8 +3690,8 @@ TEST_F(BDDTest, ZDDMeetSameFamily) {
 TEST_F(BDDTest, ZDDMeetDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // {{v1}} ⊓ {{v2}} = {{v1}∩{v2}} = {∅}
     EXPECT_EQ(bddmeet(z_v1, z_v2), bddsingle);
@@ -3700,8 +3700,8 @@ TEST_F(BDDTest, ZDDMeetDisjointSingletons) {
 TEST_F(BDDTest, ZDDMeetOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));  // {{v1,v2}}
 
     // {{v1,v2}} ⊓ {{v1}} = {{v1,v2}∩{v1}} = {{v1}}
     EXPECT_EQ(bddmeet(z_v1v2, z_v1), z_v1);
@@ -3710,9 +3710,9 @@ TEST_F(BDDTest, ZDDMeetOverlapping) {
 TEST_F(BDDTest, ZDDMeetFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v1,v2}}, G = {{v2}, {v1,v2}}
     bddp F = bddunion(z_v1, z_v1v2);
@@ -3729,9 +3729,9 @@ TEST_F(BDDTest, ZDDMeetFamilies) {
 TEST_F(BDDTest, ZDDMeetCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     bddp F = bddunion(z_v1, z_v1v2);
     bddp G = z_v2;
@@ -3751,7 +3751,7 @@ TEST_F(BDDTest, ZDDDeltaTerminalCases) {
 
 TEST_F(BDDTest, ZDDDeltaIdentity) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {∅} ⊞ F = F (∅⊕A = A)
     EXPECT_EQ(bdddelta(bddsingle, z_v1), z_v1);
@@ -3760,7 +3760,7 @@ TEST_F(BDDTest, ZDDDeltaIdentity) {
 
 TEST_F(BDDTest, ZDDDeltaSameSet) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {{v1}} ⊞ {{v1}} = {{v1}⊕{v1}} = {∅}
     EXPECT_EQ(bdddelta(z_v1, z_v1), bddsingle);
@@ -3769,19 +3769,19 @@ TEST_F(BDDTest, ZDDDeltaSameSet) {
 TEST_F(BDDTest, ZDDDeltaDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // {{v1}} ⊞ {{v2}} = {{v1}⊕{v2}} = {{v1,v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bdddelta(z_v1, z_v2), z_v1v2);
 }
 
 TEST_F(BDDTest, ZDDDeltaFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {v2}}, G = {{v1}}
     bddp F = bddunion(z_v1, z_v2);
@@ -3790,7 +3790,7 @@ TEST_F(BDDTest, ZDDDeltaFamilies) {
     // F ⊞ G = { A⊕B | A∈F, B∈G }
     //   {v1}⊕{v1}=∅, {v2}⊕{v1}={v1,v2}
     //   = {∅, {v1,v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp expected = bddunion(bddsingle, z_v1v2);
     EXPECT_EQ(bdddelta(F, G), expected);
 }
@@ -3798,8 +3798,8 @@ TEST_F(BDDTest, ZDDDeltaFamilies) {
 TEST_F(BDDTest, ZDDDeltaCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     bddp F = bddunion(z_v1, bddsingle);  // {{v1}, {}}
     bddp G = z_v2;                         // {{v2}}
@@ -3811,15 +3811,15 @@ TEST_F(BDDTest, ZDDDeltaThreeVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1,v2}}, G = {{v2,v3}}
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
     bddp F = z_v1v2;
     bddp G = z_v2v3;
 
     // {v1,v2}⊕{v2,v3} = {v1,v3}
-    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bdddelta(F, G), z_v1v3);
 }
 
@@ -3835,8 +3835,8 @@ TEST_F(BDDTest, ZDDRemainderTerminalCases) {
 TEST_F(BDDTest, ZDDRemainderNoDivisor) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // {{v1}} / {{v2}} = {} (no quotient), so remainder = {{v1}} \ ({v2} ⊔ {}) = {{v1}}
     EXPECT_EQ(bddremainder(z_v1, z_v2), z_v1);
@@ -3845,8 +3845,8 @@ TEST_F(BDDTest, ZDDRemainderNoDivisor) {
 TEST_F(BDDTest, ZDDRemainderExactDivision) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));  // {{v1,v2}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // F = {{v1,v2}}, G = {{v2}}
     // F / G = {{v1}}, G ⊔ (F/G) = {{v2}} ⊔ {{v1}} = {{v1,v2}}
@@ -3858,9 +3858,9 @@ TEST_F(BDDTest, ZDDRemainderPartialDivision) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v1v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1,v2}, {v1,v3}}, G = {{v2}}
     bddp F = bddunion(z_v1v2, z_v1v3);
@@ -3876,10 +3876,10 @@ TEST_F(BDDTest, ZDDRemainderDefinition) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
 
     // F = {{v1,v2}, {v2,v3}, {v1}}, G = {{v2}}
     bddp F = bddunion(bddunion(z_v1v2, z_v2v3), z_v1);
@@ -3894,8 +3894,8 @@ TEST_F(BDDTest, ZDDOperatorRemainder) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
 
     // {{v1}} % {{v2}} = {{v1}} (no divisor)
     ZDD result = z_v1 % z_v2;
@@ -3905,10 +3905,10 @@ TEST_F(BDDTest, ZDDOperatorRemainder) {
 TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     ZDD F = ZDD_ID(z_v1v2);  // {{v1,v2}}
-    ZDD G = ZDD_ID(getznode(v2, bddempty, bddsingle));  // {{v2}}
+    ZDD G = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));  // {{v2}}
 
     // {{v1,v2}} % {{v2}} = {} (exact division)
     F %= G;
@@ -3917,13 +3917,13 @@ TEST_F(BDDTest, ZDDOperatorRemainderAssign) {
 
 TEST_F(BDDTest, ZDDRemainderEmptyDividend) {
     bddvar v1 = bddnewvar();
-    bddp g = getznode(v1, bddempty, bddsingle);
+    bddp g = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddremainder(bddempty, g), bddempty);
 }
 
 TEST_F(BDDTest, ZDDRemainderSingletonDivisor) {
     bddvar v1 = bddnewvar();
-    bddp f = getznode(v1, bddempty, bddsingle);
+    bddp f = ZDD::getnode(v1, bddempty, bddsingle);
     // F % {∅} = ∅ (since {∅} divides everything)
     EXPECT_EQ(bddremainder(f, bddsingle), bddempty);
 }
@@ -3931,8 +3931,8 @@ TEST_F(BDDTest, ZDDRemainderSingletonDivisor) {
 TEST_F(BDDTest, ZDDRemainderSelf) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp f = bddunion(getznode(v1, bddempty, bddsingle),
-                       getznode(v2, bddempty, bddsingle));
+    bddp f = bddunion(ZDD::getnode(v1, bddempty, bddsingle),
+                       ZDD::getnode(v2, bddempty, bddsingle));
     // F % F = ∅
     EXPECT_EQ(bddremainder(f, f), bddempty);
 }
@@ -3941,9 +3941,9 @@ TEST_F(BDDTest, ZDDRemainderCacheConsistency) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp sv1 = getznode(v1, bddempty, bddsingle);
-    bddp sv2 = getznode(v2, bddempty, bddsingle);
-    bddp sv3 = getznode(v3, bddempty, bddsingle);
+    bddp sv1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp sv2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp sv3 = ZDD::getnode(v3, bddempty, bddsingle);
     bddp f = bddunion(bddjoin(sv1, sv2), bddjoin(sv1, sv3));
     bddp g = sv1;
     // Call twice — second call should use cache and return same result
@@ -3957,8 +3957,8 @@ TEST_F(BDDTest, ZDDRemainderCacheConsistency) {
 TEST_F(BDDTest, ZDDOperatorPlus) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD result = z_v1 + z_v2;
     EXPECT_EQ(result.GetID(), bddunion(z_v1.GetID(), z_v2.GetID()));
 }
@@ -3966,8 +3966,8 @@ TEST_F(BDDTest, ZDDOperatorPlus) {
 TEST_F(BDDTest, ZDDOperatorPlusAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     bddp expected = bddunion(z_v1.GetID(), z_v2.GetID());
     z_v1 += z_v2;
     EXPECT_EQ(z_v1.GetID(), expected);
@@ -3978,8 +3978,8 @@ TEST_F(BDDTest, ZDDOperatorPlusAssign) {
 TEST_F(BDDTest, ZDDOperatorMinus) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD result = F - z_v2;
     EXPECT_EQ(result, z_v1);
@@ -3988,8 +3988,8 @@ TEST_F(BDDTest, ZDDOperatorMinus) {
 TEST_F(BDDTest, ZDDOperatorMinusAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F -= z_v2;
     EXPECT_EQ(F, z_v1);
@@ -4000,8 +4000,8 @@ TEST_F(BDDTest, ZDDOperatorMinusAssign) {
 TEST_F(BDDTest, ZDDOperatorIntersec) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     ZDD result = F & z_v1;
     EXPECT_EQ(result, z_v1);
@@ -4010,8 +4010,8 @@ TEST_F(BDDTest, ZDDOperatorIntersec) {
 TEST_F(BDDTest, ZDDOperatorIntersecAssign) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v2.GetID()));
     F &= z_v1;
     EXPECT_EQ(F, z_v1);
@@ -4021,8 +4021,8 @@ TEST_F(BDDTest, ZDDOperatorIntersecAssign) {
 
 TEST_F(BDDTest, ZDDOperatorEqual) {
     bddvar v1 = bddnewvar();
-    ZDD a = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD b = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD a = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD b = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_TRUE(a == b);
     EXPECT_FALSE(a != b);
 }
@@ -4030,8 +4030,8 @@ TEST_F(BDDTest, ZDDOperatorEqual) {
 TEST_F(BDDTest, ZDDOperatorNotEqual) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD a = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD b = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD a = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD b = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     EXPECT_FALSE(a == b);
     EXPECT_TRUE(a != b);
 }
@@ -4048,7 +4048,7 @@ TEST_F(BDDTest, ZDDOperatorEqualConstants) {
 TEST_F(BDDTest, ZDDChangeMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD result = z_v1.Change(v2);
     EXPECT_EQ(result.GetID(), bddchange(z_v1.GetID(), v2));
 }
@@ -4058,8 +4058,8 @@ TEST_F(BDDTest, ZDDChangeMethod) {
 TEST_F(BDDTest, ZDDOffsetMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     ZDD result = F.Offset(v2);
     EXPECT_EQ(result, z_v1);
@@ -4070,8 +4070,8 @@ TEST_F(BDDTest, ZDDOffsetMethod) {
 TEST_F(BDDTest, ZDDOnSetMethod) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     ZDD result = F.OnSet(v2);
     EXPECT_EQ(result, z_v1v2);
@@ -4082,8 +4082,8 @@ TEST_F(BDDTest, ZDDOnSetMethod) {
 TEST_F(BDDTest, ZDDOnSet0Method) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
     // OnSet0(v2) returns sets containing v2 with v2 removed = {{v1}}
     ZDD result = F.OnSet0(v2);
@@ -4101,7 +4101,7 @@ TEST_F(BDDTest, ZDDDisjoinTerminalCases) {
 
 TEST_F(BDDTest, ZDDDisjoinIdentity) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {∅} ▷◁˙ F = F
     EXPECT_EQ(bdddisjoin(bddsingle, z_v1), z_v1);
@@ -4111,17 +4111,17 @@ TEST_F(BDDTest, ZDDDisjoinIdentity) {
 TEST_F(BDDTest, ZDDDisjoinDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // {{v1}} ▷◁˙ {{v2}} = {{v1,v2}} (disjoint, same as join)
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bdddisjoin(z_v1, z_v2), z_v1v2);
 }
 
 TEST_F(BDDTest, ZDDDisjoinSameVar) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // {{v1}} ▷◁˙ {{v1}} = {} (v1 ∩ v1 = {v1} ≠ ∅, excluded)
     EXPECT_EQ(bdddisjoin(z_v1, z_v1), bddempty);
@@ -4130,21 +4130,21 @@ TEST_F(BDDTest, ZDDDisjoinSameVar) {
 TEST_F(BDDTest, ZDDDisjoinOverlappingFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {v2}}, G = {{v1}}
     // Pairs: ({v1},{v1}): {v1}∩{v1}≠∅ excluded; ({v2},{v1}): disjoint → {v1,v2}
     bddp F = bddunion(z_v1, z_v2);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bdddisjoin(F, z_v1), z_v1v2);
 }
 
 TEST_F(BDDTest, ZDDDisjoinCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     bddp F = bddunion(z_v1, bddsingle);
     bddp G = bddunion(z_v2, z_v1);
@@ -4157,10 +4157,10 @@ TEST_F(BDDTest, ZDDDisjoinJoinDecomposition) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     bddp F = bddunion(z_v1, z_v1v2);   // {{v1}, {v1,v2}}
     bddp G = bddunion(z_v2, z_v3);      // {{v2}, {v3}}
@@ -4175,9 +4175,9 @@ TEST_F(BDDTest, ZDDDisjoinThreeVars) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1,v2}}, G = {{v2}, {v3}}
     bddp F = z_v1v2;
@@ -4185,7 +4185,7 @@ TEST_F(BDDTest, ZDDDisjoinThreeVars) {
 
     // ({v1,v2},{v2}): {v1,v2}∩{v2}={v2}≠∅ → excluded
     // ({v1,v2},{v3}): disjoint → {v1,v2,v3}
-    bddp z_v1v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp z_v1v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     EXPECT_EQ(bdddisjoin(F, G), z_v1v2v3);
 }
 
@@ -4201,7 +4201,7 @@ TEST_F(BDDTest, ZDDJointjoinTerminalCases) {
 
 TEST_F(BDDTest, ZDDJointjoinWithSingle) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // {∅} ▷◁ˆ {{v1}}: ∅ ∩ {v1} = ∅ → excluded
     EXPECT_EQ(bddjointjoin(bddsingle, z_v1), bddempty);
@@ -4210,7 +4210,7 @@ TEST_F(BDDTest, ZDDJointjoinWithSingle) {
 
 TEST_F(BDDTest, ZDDJointjoinSameVar) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // {{v1}} ▷◁ˆ {{v1}} = {{v1}} ({v1}∩{v1}={v1}≠∅, {v1}∪{v1}={v1})
     EXPECT_EQ(bddjointjoin(z_v1, z_v1), z_v1);
@@ -4219,8 +4219,8 @@ TEST_F(BDDTest, ZDDJointjoinSameVar) {
 TEST_F(BDDTest, ZDDJointjoinDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // {{v1}} ▷◁ˆ {{v2}}: {v1}∩{v2}=∅ → excluded
     EXPECT_EQ(bddjointjoin(z_v1, z_v2), bddempty);
@@ -4229,8 +4229,8 @@ TEST_F(BDDTest, ZDDJointjoinDisjointSingletons) {
 TEST_F(BDDTest, ZDDJointjoinOverlappingFamilies) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {v2}}, G = {{v1}}
     // ({v1},{v1}): {v1}∩{v1}≠∅ → {v1}
@@ -4242,8 +4242,8 @@ TEST_F(BDDTest, ZDDJointjoinOverlappingFamilies) {
 TEST_F(BDDTest, ZDDJointjoinCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     bddp F = bddunion(z_v1, bddsingle);
     bddp G = bddunion(z_v2, z_v1);
@@ -4255,9 +4255,9 @@ TEST_F(BDDTest, ZDDJointjoinComplex) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1,v2}}, G = {{v2}, {v3}}
     bddp F = z_v1v2;
@@ -4273,10 +4273,10 @@ TEST_F(BDDTest, ZDDJointjoinSubsetOfJoin) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     bddp F = bddunion(z_v1, z_v1v2);
     bddp G = bddunion(z_v2, z_v3);
@@ -4292,9 +4292,9 @@ TEST_F(BDDTest, ZDDDisjoinJointjoinCoverJoin) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
 
     // F = {{v1}}, G = {{v2}, {v2,v3}}
     bddp F = z_v1;
@@ -4321,7 +4321,7 @@ TEST_F(BDDTest, ZDDRestrictTerminalCases) {
 
 TEST_F(BDDTest, ZDDRestrictEmptySetFilter) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // G = {∅}: ∅ ⊆ every A → return F
     EXPECT_EQ(bddrestrict(z_v1, bddsingle), z_v1);
@@ -4329,7 +4329,7 @@ TEST_F(BDDTest, ZDDRestrictEmptySetFilter) {
 
 TEST_F(BDDTest, ZDDRestrictSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     EXPECT_EQ(bddrestrict(z_v1, z_v1), z_v1);
 }
@@ -4337,9 +4337,9 @@ TEST_F(BDDTest, ZDDRestrictSelf) {
 TEST_F(BDDTest, ZDDRestrictSubsetFilter) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));  // {{v1,v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));  // {{v1,v2}}
 
     // F = {{v1}, {v2}, {v1,v2}}, G = {{v1}}
     // {v1}⊆{v1}? yes. {v1}⊆{v2}? no. {v1}⊆{v1,v2}? yes.
@@ -4352,8 +4352,8 @@ TEST_F(BDDTest, ZDDRestrictSubsetFilter) {
 TEST_F(BDDTest, ZDDRestrictNoMatch) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);  // {{v2}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);  // {{v2}}
 
     // F = {{v1}}, G = {{v2}}: {v2}⊆{v1}? no → {}
     EXPECT_EQ(bddrestrict(z_v1, z_v2), bddempty);
@@ -4363,11 +4363,11 @@ TEST_F(BDDTest, ZDDRestrictMultipleFilters) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
-    bddp z_v1v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
+    bddp z_v1v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
 
     // F = {{v1,v2}, {v2,v3}, {v1,v2,v3}}, G = {{v1}, {v3}}
     // {v1}⊆{v1,v2}? yes. {v1}⊆{v2,v3}? no. {v3}⊆{v2,v3}? yes.
@@ -4381,8 +4381,8 @@ TEST_F(BDDTest, ZDDRestrictMultipleFilters) {
 TEST_F(BDDTest, ZDDRestrictEmptySetInG) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}}, G = {{v2}} → {v2}⊄{v1} → {}
     EXPECT_EQ(bddrestrict(z_v1, z_v2), bddempty);
@@ -4394,7 +4394,7 @@ TEST_F(BDDTest, ZDDRestrictEmptySetInG) {
 
 TEST_F(BDDTest, ZDDRestrictContainsEmptyCheck) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // F = {∅}, G = {{v1}}: need B⊆∅, so B=∅. ∅∉G → {}
     EXPECT_EQ(bddrestrict(bddsingle, z_v1), bddempty);
@@ -4416,7 +4416,7 @@ TEST_F(BDDTest, ZDDPermitTerminalCases) {
 
 TEST_F(BDDTest, ZDDPermitEmptySetAlwaysPermitted) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
 
     // F = {∅}: ∅ ⊆ any B → {∅}
     EXPECT_EQ(bddpermit(bddsingle, z_v1), bddsingle);
@@ -4424,7 +4424,7 @@ TEST_F(BDDTest, ZDDPermitEmptySetAlwaysPermitted) {
 
 TEST_F(BDDTest, ZDDPermitSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     EXPECT_EQ(bddpermit(z_v1, z_v1), z_v1);
 }
@@ -4432,9 +4432,9 @@ TEST_F(BDDTest, ZDDPermitSelf) {
 TEST_F(BDDTest, ZDDPermitSupersetFilter) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v2}, {v1,v2}}, G = {{v1,v2}}
     // {v1}⊆{v1,v2}? yes. {v2}⊆{v1,v2}? yes. {v1,v2}⊆{v1,v2}? yes.
@@ -4446,9 +4446,9 @@ TEST_F(BDDTest, ZDDPermitSupersetFilter) {
 TEST_F(BDDTest, ZDDPermitStrictFilter) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v2}, {v1,v2}}, G = {{v1}}
     // {v1}⊆{v1}? yes. {v2}⊆{v1}? no. {v1,v2}⊆{v1}? no.
@@ -4460,8 +4460,8 @@ TEST_F(BDDTest, ZDDPermitStrictFilter) {
 TEST_F(BDDTest, ZDDPermitNoMatch) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}}, G = {{v2}}: {v1}⊆{v2}? no → {}
     EXPECT_EQ(bddpermit(z_v1, z_v2), bddempty);
@@ -4470,8 +4470,8 @@ TEST_F(BDDTest, ZDDPermitNoMatch) {
 TEST_F(BDDTest, ZDDPermitWithEmptySet) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F = {{v1}, {∅}}, G = {{v2}}
     // {v1}⊆{v2}? no. ∅⊆{v2}? yes.
@@ -4484,9 +4484,9 @@ TEST_F(BDDTest, ZDDPermitMultipleOptions) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v3}}, G = {{v1,v2}, {v3}}
     // {v1}⊆{v1,v2}? yes. {v3}⊆{v3}? yes.
@@ -4499,8 +4499,8 @@ TEST_F(BDDTest, ZDDPermitMultipleOptions) {
 TEST_F(BDDTest, ZDDPermitGSingletonOnly) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F = {{v1}, {v1,v2}}, G = {∅}
     // A ⊆ ∅ only when A = ∅. Neither {v1} nor {v1,v2} is ∅ → {}
@@ -4520,7 +4520,7 @@ TEST_F(BDDTest, ZDDNonsupTerminalCases) {
 
 TEST_F(BDDTest, ZDDNonsupEmptyG) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // G=∅ → all qualify
     EXPECT_EQ(bddnonsup(z_v1, bddempty), z_v1);
@@ -4528,7 +4528,7 @@ TEST_F(BDDTest, ZDDNonsupEmptyG) {
 
 TEST_F(BDDTest, ZDDNonsupSingleG) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // G={∅}: ∅⊆{v1} → none qualify
     EXPECT_EQ(bddnonsup(z_v1, bddsingle), bddempty);
@@ -4536,7 +4536,7 @@ TEST_F(BDDTest, ZDDNonsupSingleG) {
 
 TEST_F(BDDTest, ZDDNonsupSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     EXPECT_EQ(bddnonsup(z_v1, z_v1), bddempty);
 }
@@ -4544,8 +4544,8 @@ TEST_F(BDDTest, ZDDNonsupSelf) {
 TEST_F(BDDTest, ZDDNonsupNoSubset) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F={{v1}}, G={{v2}}: {v2}⊄{v1} → {{v1}} qualifies
     EXPECT_EQ(bddnonsup(z_v1, z_v2), z_v1);
@@ -4554,9 +4554,9 @@ TEST_F(BDDTest, ZDDNonsupNoSubset) {
 TEST_F(BDDTest, ZDDNonsupPartialMatch) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F={{v1},{v2},{v1,v2}}, G={{v1}}
     // {v1}⊆{v1}? yes→out. {v1}⊆{v2}? no→keep. {v1}⊆{v1,v2}? yes→out.
@@ -4569,10 +4569,10 @@ TEST_F(BDDTest, ZDDNonsupEqualsSubtractRestrict) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v3));
     bddp G = bddunion(z_v1, z_v3);
@@ -4582,7 +4582,7 @@ TEST_F(BDDTest, ZDDNonsupEqualsSubtractRestrict) {
 
 TEST_F(BDDTest, ZDDNonsupCheckEmptyInG) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // F={∅}, G={{v1}}: need ∀B∈G: B⊄∅. {v1}⊄∅? yes → {∅} qualifies
     EXPECT_EQ(bddnonsup(bddsingle, z_v1), bddsingle);
@@ -4604,14 +4604,14 @@ TEST_F(BDDTest, ZDDNonsubTerminalCases) {
 
 TEST_F(BDDTest, ZDDNonsubEmptyG) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     EXPECT_EQ(bddnonsub(z_v1, bddempty), z_v1);
 }
 
 TEST_F(BDDTest, ZDDNonsubSelf) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     EXPECT_EQ(bddnonsub(z_v1, z_v1), bddempty);
 }
@@ -4619,8 +4619,8 @@ TEST_F(BDDTest, ZDDNonsubSelf) {
 TEST_F(BDDTest, ZDDNonsubNoSuperset) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F={{v1}}, G={{v2}}: {v1}⊄{v2} → {{v1}} qualifies
     EXPECT_EQ(bddnonsub(z_v1, z_v2), z_v1);
@@ -4629,9 +4629,9 @@ TEST_F(BDDTest, ZDDNonsubNoSuperset) {
 TEST_F(BDDTest, ZDDNonsubPartialMatch) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F={{v1},{v2},{v1,v2}}, G={{v1,v2}}
     // {v1}⊆{v1,v2}? yes→out. {v2}⊆{v1,v2}? yes→out. {v1,v2}⊆{v1,v2}? yes→out.
@@ -4642,9 +4642,9 @@ TEST_F(BDDTest, ZDDNonsubPartialMatch) {
 TEST_F(BDDTest, ZDDNonsubStrictFilter) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F={{v1},{v2},{v1,v2}}, G={{v1}}
     // {v1}⊆{v1}? yes→out. {v2}⊆{v1}? no→keep. {v1,v2}⊆{v1}? no→keep.
@@ -4658,10 +4658,10 @@ TEST_F(BDDTest, ZDDNonsubEqualsSubtractPermit) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v3));
     bddp G = bddunion(z_v1v2, z_v3);
@@ -4672,9 +4672,9 @@ TEST_F(BDDTest, ZDDNonsubEqualsSubtractPermit) {
 TEST_F(BDDTest, ZDDNonsubFVarNotInG) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // F={{v1},{v1,v2}}, G={{v2}}
     // {v1}⊆{v2}? no→keep. {v1,v2}⊆{v2}? no→keep.
@@ -4685,8 +4685,8 @@ TEST_F(BDDTest, ZDDNonsubFVarNotInG) {
 TEST_F(BDDTest, ZDDNonsubWithEmptySet) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F={{v1},{∅}}, G={{v2}}
     // {v1}⊆{v2}? no→keep. ∅⊆{v2}? yes→out.
@@ -4707,7 +4707,7 @@ TEST_F(BDDTest, BddMaximalSingle) {
 TEST_F(BDDTest, BddMaximalSingleton) {
     // {{v1}} → maximal = {{v1}}
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddmaximal(z_v1), z_v1);
 }
 
@@ -4715,8 +4715,8 @@ TEST_F(BDDTest, BddMaximalSubsetRemoved) {
     // F = {{v1}, {v1,v2}} → {v1} ⊊ {v1,v2}, so maximal = {{v1,v2}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(z_v1, z_v1v2);
     EXPECT_EQ(bddmaximal(F), z_v1v2);
 }
@@ -4725,8 +4725,8 @@ TEST_F(BDDTest, BddMaximalNoSubsets) {
     // F = {{v1}, {v2}} → neither is subset of other → maximal = F
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddmaximal(F), F);
 }
@@ -4736,10 +4736,10 @@ TEST_F(BDDTest, BddMaximalChain) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v1v2v3 = getznode(v3, bddempty,
-        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v1v2v3 = ZDD::getnode(v3, bddempty,
+        ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     bddp F = bddunion(bddunion(z_v1, z_v1v2), z_v1v2v3);
     EXPECT_EQ(bddmaximal(F), z_v1v2v3);
 }
@@ -4747,7 +4747,7 @@ TEST_F(BDDTest, BddMaximalChain) {
 TEST_F(BDDTest, BddMaximalWithEmptySet) {
     // F = {∅, {v1}} → ∅ ⊊ {v1}, so maximal = {{v1}}
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp F = bddunion(bddsingle, z_v1);
     EXPECT_EQ(bddmaximal(F), z_v1);
 }
@@ -4756,9 +4756,9 @@ TEST_F(BDDTest, BddMaximalMixed) {
     // F = {{v1}, {v2}, {v1,v2}} → maximal = {{v1,v2}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
     EXPECT_EQ(bddmaximal(F), z_v1v2);
 }
@@ -4775,7 +4775,7 @@ TEST_F(BDDTest, BddMinimalSingle) {
 
 TEST_F(BDDTest, BddMinimalSingleton) {
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddminimal(z_v1), z_v1);
 }
 
@@ -4783,8 +4783,8 @@ TEST_F(BDDTest, BddMinimalSupersetRemoved) {
     // F = {{v1}, {v1,v2}} → {v1} ⊊ {v1,v2}, so minimal = {{v1}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(z_v1, z_v1v2);
     EXPECT_EQ(bddminimal(F), z_v1);
 }
@@ -4793,8 +4793,8 @@ TEST_F(BDDTest, BddMinimalNoSubsets) {
     // F = {{v1}, {v2}} → minimal = F
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddminimal(F), F);
 }
@@ -4804,10 +4804,10 @@ TEST_F(BDDTest, BddMinimalChain) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v1v2v3 = getznode(v3, bddempty,
-        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v1v2v3 = ZDD::getnode(v3, bddempty,
+        ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     bddp F = bddunion(bddunion(z_v1, z_v1v2), z_v1v2v3);
     EXPECT_EQ(bddminimal(F), z_v1);
 }
@@ -4815,7 +4815,7 @@ TEST_F(BDDTest, BddMinimalChain) {
 TEST_F(BDDTest, BddMinimalWithEmptySet) {
     // F = {∅, {v1}} → minimal = {∅}
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp F = bddunion(bddsingle, z_v1);
     EXPECT_EQ(bddminimal(F), bddsingle);
 }
@@ -4824,9 +4824,9 @@ TEST_F(BDDTest, BddMinimalMixed) {
     // F = {{v1}, {v2}, {v1,v2}} → minimal = {{v1}, {v2}}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
     bddp expected = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddminimal(F), expected);
@@ -4837,10 +4837,10 @@ TEST_F(BDDTest, BddMaximalMinimalInverse) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
     bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v2v3));
     bddp maxF = bddmaximal(F);
     bddp minF = bddminimal(F);
@@ -4863,7 +4863,7 @@ TEST_F(BDDTest, BddMinhitSingle) {
 TEST_F(BDDTest, BddMinhitSingleton) {
     // minhit({{v1}}) = {{v1}} (must contain v1)
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddminhit(z_v1), z_v1);
 }
 
@@ -4871,10 +4871,10 @@ TEST_F(BDDTest, BddMinhitTwoDisjoint) {
     // minhit({{v1}, {v2}}) = {{v1,v2}} (must hit both)
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(bddminhit(F), z_v1v2);
 }
 
@@ -4884,11 +4884,11 @@ TEST_F(BDDTest, BddMinhitTwoOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
     bddp F = bddunion(z_v1v2, z_v2v3);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp expected = bddunion(z_v2, z_v1v3);
     EXPECT_EQ(bddminhit(F), expected);
 }
@@ -4898,9 +4898,9 @@ TEST_F(BDDTest, BddMinhitMultipleSolutions) {
     // But minhit({{v1,v2}}) = {{v1}, {v2}} (pick either element)
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp expected = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddminhit(z_v1v2), expected);
 }
@@ -4908,7 +4908,7 @@ TEST_F(BDDTest, BddMinhitMultipleSolutions) {
 TEST_F(BDDTest, BddMinhitWithEmptySet) {
     // minhit({∅, {v1}}) = ∅ (∅ ∈ F, impossible to hit)
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp F = bddunion(bddsingle, z_v1);
     EXPECT_EQ(bddminhit(F), bddempty);
 }
@@ -4918,8 +4918,8 @@ TEST_F(BDDTest, BddMinhitDoubleApplication) {
     // For F = {{v1}, {v2}}: minhit = {{v1,v2}}, minhit(minhit) = {{v1},{v2}} = F
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
     EXPECT_EQ(bddminhit(bddminhit(F)), F);
 }
@@ -4929,12 +4929,12 @@ TEST_F(BDDTest, BddMinhitThreeWay) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v3);
-    bddp z_v1v2v3 = getznode(v3, bddempty,
-        getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    bddp z_v1v2v3 = ZDD::getnode(v3, bddempty,
+        ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     EXPECT_EQ(bddminhit(F), z_v1v2v3);
 }
 
@@ -4951,7 +4951,7 @@ TEST_F(BDDTest, BddClosureSingle) {
 TEST_F(BDDTest, BddClosureSingleton) {
     // closure({{v1}}) = {{v1}, ∅}
     bddvar v1 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp expected = bddunion(z_v1, bddsingle);
     EXPECT_EQ(bddclosure(z_v1), expected);
 }
@@ -4960,8 +4960,8 @@ TEST_F(BDDTest, BddClosureTwoSets) {
     // closure({{v1}, {v2}}) = {{v1}, {v2}, ∅} ({v1}∩{v2} = ∅)
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
     bddp expected = bddunion(bddunion(z_v1, z_v2), bddsingle);
     EXPECT_EQ(bddclosure(F), expected);
@@ -4971,9 +4971,9 @@ TEST_F(BDDTest, BddClosureSubsets) {
     // closure({{v1}, {v1,v2}}) = {{v1,v2}, {v1}, {v2}, ∅}
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(z_v1, z_v1v2);
     bddp expected = bddunion(bddunion(z_v1v2, bddunion(z_v1, z_v2)), bddsingle);
     EXPECT_EQ(bddclosure(F), expected);
@@ -4984,11 +4984,11 @@ TEST_F(BDDTest, BddClosureThreeSets) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
-    bddp z_v3 = getznode(v3, bddempty, bddsingle);
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp z_v3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
     bddp F = bddunion(z_v1v2, z_v2v3);
     bddp expected = bddunion(bddunion(bddunion(z_v1v2, z_v2v3),
                               bddunion(z_v1, bddunion(z_v2, z_v3))),
@@ -5000,8 +5000,8 @@ TEST_F(BDDTest, BddClosureIdempotent) {
     // closure(closure(F)) = closure(F)
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp F = bddunion(z_v1, z_v2);
     bddp C = bddclosure(F);
     EXPECT_EQ(bddclosure(C), C);
@@ -5012,9 +5012,9 @@ TEST_F(BDDTest, BddClosureContainsOriginal) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
-    bddp z_v1v2 = getznode(v2, bddempty, getznode(v1, bddempty, bddsingle));
-    bddp z_v2v3 = getznode(v3, bddempty, getznode(v2, bddempty, bddsingle));
-    bddp z_v1v3 = getznode(v3, bddempty, getznode(v1, bddempty, bddsingle));
+    bddp z_v1v2 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp z_v2v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
+    bddp z_v1v3 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp F = bddunion(bddunion(z_v1v2, z_v2v3), z_v1v3);
     bddp C = bddclosure(F);
     EXPECT_EQ(bddunion(C, F), C);
@@ -5046,11 +5046,11 @@ TEST_F(BDDTest, BddCardSingleVariable) {
     bddvar v2 = bddnewvar();
 
     // {{v1}} -> 1 element
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddcard(x1), 1u);
 
     // {{v2}} -> 1 element
-    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
     EXPECT_EQ(bddcard(x2), 1u);
 }
 
@@ -5058,7 +5058,7 @@ TEST_F(BDDTest, BddCardUnion) {
     bddvar v1 = bddnewvar();
 
     // {{}, {v1}} -> 2 elements
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp f = bddunion(x1, bddsingle);  // {{v1}} ∪ {{}} = {{}, {v1}}
     EXPECT_EQ(bddcard(f), 2u);
 }
@@ -5069,9 +5069,9 @@ TEST_F(BDDTest, BddCardMultipleVariables) {
     bddvar v3 = bddnewvar();
 
     // {{v1}, {v2}, {v3}} -> 3 elements
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x3 = getznode(v3, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x3 = ZDD::getnode(v3, bddempty, bddsingle);
     bddp f = bddunion(bddunion(x1, x2), x3);
     EXPECT_EQ(bddcard(f), 3u);
 }
@@ -5081,9 +5081,9 @@ TEST_F(BDDTest, BddCardPowerSet) {
     bddvar v2 = bddnewvar();
 
     // Power set of {v1,v2} = {{}, {v1}, {v2}, {v1,v2}} -> 4 elements
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x12 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
     EXPECT_EQ(bddcard(f), 4u);
 }
@@ -5093,7 +5093,7 @@ TEST_F(BDDTest, BddCardComplement) {
 
     // bddnot on ZDD toggles empty set membership
     // {{v1}} -> complement -> {{}, {v1}} if ∅ was not in the family
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddcard(x1), 1u);
     EXPECT_EQ(bddcard(bddnot(x1)), 2u);
 
@@ -5110,7 +5110,7 @@ TEST_F(BDDTest, BddCardComplementWithEmptySet) {
     bddvar v1 = bddnewvar();
 
     // Family {{}, {v1}} contains ∅ -> complement removes ∅ -> {{v1}}
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
     EXPECT_EQ(bddcard(f), 2u);
     EXPECT_EQ(bddcard(bddnot(f)), 1u);
@@ -5122,13 +5122,13 @@ TEST_F(BDDTest, BddCardLargerFamily) {
     bddvar v3 = bddnewvar();
 
     // Build {{v1}, {v2}, {v3}, {v1,v2}, {v1,v3}, {v2,v3}, {v1,v2,v3}} = 7 elements
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x3 = getznode(v3, bddempty, bddsingle);
-    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
-    bddp x13 = getznode(v1, bddempty, getznode(v3, bddempty, bddsingle));
-    bddp x23 = getznode(v2, bddempty, getznode(v3, bddempty, bddsingle));
-    bddp x123 = getznode(v1, bddempty, getznode(v2, bddempty, getznode(v3, bddempty, bddsingle)));
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp x12 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp x13 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp x23 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
+    bddp x123 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
 
     bddp f = bddunion(bddunion(bddunion(x1, x2), bddunion(x3, x12)),
                        bddunion(bddunion(x13, x23), x123));
@@ -5158,10 +5158,10 @@ TEST_F(BDDTest, GetZNodeThrowsWhenNodeMaxExhausted) {
     bddinit(1, 1);
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z1 = getznode(v1, bddempty, bddsingle);
+    bddp z1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddgc_protect(&z1);
     EXPECT_NE(z1, bddnull);
-    EXPECT_THROW(getznode(v2, bddempty, bddsingle), std::overflow_error);
+    EXPECT_THROW(ZDD::getnode(v2, bddempty, bddsingle), std::overflow_error);
     bddgc_unprotect(&z1);
 }
 
@@ -5219,7 +5219,7 @@ TEST_F(BDDTest, BddNullPropagatesThroughBddOps) {
 
 TEST_F(BDDTest, BddNullPropagatesThroughZddOps) {
     bddvar v = bddnewvar();
-    bddp z = getznode(v, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v, bddempty, bddsingle);
 
     // ZDD unary-var ops
     EXPECT_EQ(bddoffset(bddnull, v), bddnull);
@@ -5265,7 +5265,7 @@ TEST_F(BDDTest, BddVarRangeCheckThrowsForInvalidVar) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     bddp f = bddprime(v1);
-    bddp z = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp z = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
 
     // var == 0 is invalid
     EXPECT_THROW(bddprime(0), std::invalid_argument);
@@ -5315,7 +5315,7 @@ TEST_F(BDDTest, BddVarRangeCheckValidVarsStillWork) {
     EXPECT_EQ(r1, bddtrue);
 
     // ZDD ops with valid vars
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_NO_THROW(bddoffset(z, v1));
     EXPECT_NO_THROW(bddonset(z, v1));
     EXPECT_NO_THROW(bddonset0(z, v1));
@@ -5710,7 +5710,7 @@ TEST_F(BDDTest, BDDClassSpreadSingleVar) {
     // Spread(1) on v1: at node v1, f0=false, f1=true
     // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
     // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
-    // getnode(v1, true, true) = true (reduced)
+    // BDD::getnode(v1, true, true) = true (reduced)
     EXPECT_EQ(a.Spread(1), BDD::True);
 }
 
@@ -5728,7 +5728,7 @@ TEST_F(BDDTest, BDDClassSpreadTwoVars) {
     // Spread(1) decomposes by v1: f0 = false, f1 = true
     // lo = f0.Spread(1) | f1.Spread(0) = false | true = true
     // hi = f1.Spread(1) | f0.Spread(0) = true | false = true
-    // result = getnode(v1, true, true) = true
+    // result = BDD::getnode(v1, true, true) = true
     // So Spread(1) on a single var BDD with >1 vars defined = true
     BDD result = a.Spread(1);
     EXPECT_EQ(result, BDD::True);
@@ -6443,7 +6443,7 @@ TEST_F(BDDTest, Bdddump_SingleVar) {
     // f is node_id=2, index=1, var=1, lev=1
     // lo=bddfalse(val 0), hi=bddtrue=~bddfalse -> complement of const 0
     // bddtrue = BDD_CONST_FLAG | 1, but with complement edge representation:
-    // getnode(v, bddfalse, bddtrue): lo=bddfalse (no comp), hi=bddtrue
+    // BDD::getnode(v, bddfalse, bddtrue): lo=bddfalse (no comp), hi=bddtrue
     // bddtrue = 0x800000000001, which has BDD_CONST_FLAG set and value=1
     // So hi is a constant with value 1, no complement edge (BDD_COMP_FLAG=bit0, but
     // BDD_CONST_FLAG is bit 47). bddtrue has bit 0 set but it's a constant value, not comp flag.
@@ -6789,17 +6789,17 @@ TEST_F(BDDTest, BddExactCount_SingleVariable) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddexactcount(x1), bigint::BigInt(1));
 
-    bddp x2 = getznode(v2, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
     EXPECT_EQ(bddexactcount(x2), bigint::BigInt(1));
 }
 
 TEST_F(BDDTest, BddExactCount_Union) {
     bddvar v1 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
     EXPECT_EQ(bddexactcount(f), bigint::BigInt(2));
 }
@@ -6808,9 +6808,9 @@ TEST_F(BDDTest, BddExactCount_PowerSet) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x12 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
     EXPECT_EQ(bddexactcount(f), bigint::BigInt(4));
 }
@@ -6818,7 +6818,7 @@ TEST_F(BDDTest, BddExactCount_PowerSet) {
 TEST_F(BDDTest, BddExactCount_Complement) {
     bddvar v1 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     EXPECT_EQ(bddexactcount(x1), bigint::BigInt(1));
     EXPECT_EQ(bddexactcount(bddnot(x1)), bigint::BigInt(2));
 
@@ -6832,7 +6832,7 @@ TEST_F(BDDTest, BddExactCount_Complement) {
 TEST_F(BDDTest, BddExactCount_ComplementWithEmptySet) {
     bddvar v1 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp f = bddunion(x1, bddsingle);  // {{}, {v1}}
     EXPECT_EQ(bddexactcount(f), bigint::BigInt(2));
     EXPECT_EQ(bddexactcount(bddnot(f)), bigint::BigInt(1));
@@ -6843,13 +6843,13 @@ TEST_F(BDDTest, BddExactCount_LargerFamily) {
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
 
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x3 = getznode(v3, bddempty, bddsingle);
-    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
-    bddp x13 = getznode(v1, bddempty, getznode(v3, bddempty, bddsingle));
-    bddp x23 = getznode(v2, bddempty, getznode(v3, bddempty, bddsingle));
-    bddp x123 = getznode(v1, bddempty, getznode(v2, bddempty, getznode(v3, bddempty, bddsingle)));
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x3 = ZDD::getnode(v3, bddempty, bddsingle);
+    bddp x12 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp x13 = ZDD::getnode(v3, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
+    bddp x23 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, bddsingle));
+    bddp x123 = ZDD::getnode(v3, bddempty, ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
 
     bddp f = bddunion(bddunion(bddunion(x1, x2), bddunion(x3, x12)),
                        bddunion(bddunion(x13, x23), x123));
@@ -6900,7 +6900,7 @@ TEST_F(BDDTest, BddExactCount_ZDDClassMethod) {
 TEST_F(BDDTest, BddExactCount_PowerSet65_Exceeds2pow64) {
     // Power set of 65 variables has 2^65 elements, which exceeds uint64_t max.
     // The ZDD for a power set of {v1,...,vn} needs only n internal nodes:
-    //   node_i = getznode(v_i, node_{i-1}, node_{i-1})
+    //   node_i = ZDD::getnode(v_i, node_{i-1}, node_{i-1})
     // where node_0 = bddsingle.
     const int N = 65;
     bddvar vars[N];
@@ -6911,7 +6911,7 @@ TEST_F(BDDTest, BddExactCount_PowerSet65_Exceeds2pow64) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     bigint::BigInt result = bddexactcount(f);
@@ -6933,7 +6933,7 @@ TEST_F(BDDTest, BddExactCount_PowerSet100) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     bigint::BigInt result = bddexactcount(f);
@@ -6954,7 +6954,7 @@ TEST_F(BDDTest, BddExactCount_PowerSet200) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     bigint::BigInt result = bddexactcount(f);
@@ -6976,7 +6976,7 @@ TEST_F(BDDTest, BddExactCount_PowerSet200_Complement) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     bigint::BigInt result = bddexactcount(bddnot(f));
@@ -7372,9 +7372,9 @@ TEST_F(BDDTest, Bddcardmp16_SmallFamily) {
     bddvar v2 = bddnewvar();
 
     // Power set of 2 vars → 4 = 0x4
-    bddp x1 = getznode(v1, bddempty, bddsingle);
-    bddp x2 = getznode(v2, bddempty, bddsingle);
-    bddp x12 = getznode(v1, bddempty, getznode(v2, bddempty, bddsingle));
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp x2 = ZDD::getnode(v2, bddempty, bddsingle);
+    bddp x12 = ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle));
     bddp f = bddunion(bddunion(bddunion(bddsingle, x1), x2), x12);
 
     char *r = bddcardmp16(f, NULL);
@@ -7384,7 +7384,7 @@ TEST_F(BDDTest, Bddcardmp16_SmallFamily) {
 
 TEST_F(BDDTest, Bddcardmp16_UserBuffer) {
     bddvar v1 = bddnewvar();
-    bddp x1 = getznode(v1, bddempty, bddsingle);
+    bddp x1 = ZDD::getnode(v1, bddempty, bddsingle);
     bddp f = bddunion(x1, bddsingle);  // 2 = 0x2
 
     char buf[64];
@@ -7403,7 +7403,7 @@ TEST_F(BDDTest, Bddcardmp16_PowerSet64_Hex) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     char *r = bddcardmp16(f, NULL);
@@ -7422,7 +7422,7 @@ TEST_F(BDDTest, Bddcardmp16_PowerSet200_Hex) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
 
     char *r = bddcardmp16(f, NULL);
@@ -7445,7 +7445,7 @@ TEST_F(BDDTest, Bddcardmp16_UppercaseLetters) {
     bddp f = bddsingle;
     bddgc_protect(&f);
     for (int i = 0; i < N; i++) {
-        f = getznode(vars[i], f, f);
+        f = ZDD::getnode(vars[i], f, f);
     }
     // f = power set (256 elements), complement removes ∅ → 255
     char *r = bddcardmp16(bddnot(f), NULL);
@@ -7468,7 +7468,7 @@ TEST_F(BDDTest, BddpushSingle) {
     bddvar v1 = bddnewvar();
     // push v1 onto {∅} → {{v1}}
     bddp result = bddpush(bddsingle, v1);
-    // This should be getznode(v1, bddempty, bddsingle) = node(v1, 0-edge=∅, 1-edge={∅})
+    // This should be ZDD::getnode(v1, bddempty, bddsingle) = node(v1, 0-edge=∅, 1-edge={∅})
     // which represents {{v1}}
     EXPECT_EQ(bddcard(result), 1u);
     // The top variable should be v1
@@ -7482,8 +7482,8 @@ TEST_F(BDDTest, BddpushSingle) {
 TEST_F(BDDTest, BddpushOnZDD) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    // Build {{v2}} = getznode(v2, bddempty, bddsingle)
-    bddp f = getznode(v2, bddempty, bddsingle);
+    // Build {{v2}} = ZDD::getnode(v2, bddempty, bddsingle)
+    bddp f = ZDD::getnode(v2, bddempty, bddsingle);
     // push v1 onto {{v2}} → node(v1, bddempty, {{v2}})
     // This represents sets where v1 is always present, and v2 is present
     // So the family is {{v1, v2}}
@@ -7496,7 +7496,7 @@ TEST_F(BDDTest, BddpushNoLevelOrderCheck) {
     bddvar v1 = bddnewvar();  // level 1
     bddvar v2 = bddnewvar();  // level 2
     // Build a ZDD with top variable v1 (level 1)
-    bddp f = getznode(v1, bddempty, bddsingle);  // {{v1}}
+    bddp f = ZDD::getnode(v1, bddempty, bddsingle);  // {{v1}}
     // Push v2 (level 2) on top — this would violate normal ZDD ordering
     // but bddpush should allow it for Sequence BDD support
     bddp result = bddpush(f, v2);
@@ -7507,7 +7507,7 @@ TEST_F(BDDTest, BddpushNoLevelOrderCheck) {
 TEST_F(BDDTest, BddpushSameVar) {
     bddvar v1 = bddnewvar();
     // Build {{v1}}
-    bddp f = getznode(v1, bddempty, bddsingle);
+    bddp f = ZDD::getnode(v1, bddempty, bddsingle);
     // Push v1 again — for Sequence BDD, same variable can appear multiple times
     bddp result = bddpush(f, v1);
     EXPECT_NE(result, bddnull);
@@ -7534,7 +7534,7 @@ TEST_F(BDDTest, ZDD_MeetTerminalCases) {
 
 TEST_F(BDDTest, ZDD_MeetWithSingle) {
     bddvar v1 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));  // {{v1}}
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));  // {{v1}}
     ZDD s(1);
 
     EXPECT_EQ(ZDD_Meet(s, z_v1), s);
@@ -7543,7 +7543,7 @@ TEST_F(BDDTest, ZDD_MeetWithSingle) {
 
 TEST_F(BDDTest, ZDD_MeetSameFamily) {
     bddvar v1 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     EXPECT_EQ(ZDD_Meet(z_v1, z_v1), z_v1);
 }
@@ -7551,8 +7551,8 @@ TEST_F(BDDTest, ZDD_MeetSameFamily) {
 TEST_F(BDDTest, ZDD_MeetDisjointSingletons) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD s(1);
 
     // {{v1}} ⊓ {{v2}} = {∅}
@@ -7562,8 +7562,8 @@ TEST_F(BDDTest, ZDD_MeetDisjointSingletons) {
 TEST_F(BDDTest, ZDD_MeetOverlapping) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
 
     // {{v1,v2}} ⊓ {{v1}} = {{v1}}
     EXPECT_EQ(ZDD_Meet(z_v1v2, z_v1), z_v1);
@@ -7572,9 +7572,9 @@ TEST_F(BDDTest, ZDD_MeetOverlapping) {
 TEST_F(BDDTest, ZDD_MeetCommutativity) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
 
     ZDD F = z_v1 + z_v1v2;
 
@@ -7585,7 +7585,7 @@ TEST_F(BDDTest, ZDD_MeetCommutativity) {
 
 TEST_F(BDDTest, ZDD_ImportIstreamSingle) {
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     bddp p[] = { z };
     std::ostringstream oss;
     bddexport(oss, p, 1);
@@ -7597,8 +7597,8 @@ TEST_F(BDDTest, ZDD_ImportIstreamSingle) {
 TEST_F(BDDTest, ZDD_ImportIstreamVector) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     std::vector<bddp> orig = { z_v1, z_v2 };
     std::ostringstream oss;
     bddexport(oss, orig);
@@ -7613,7 +7613,7 @@ TEST_F(BDDTest, ZDD_ImportIstreamVector) {
 
 TEST_F(BDDTest, ZDD_ImportFilePtrSingle) {
     bddvar v1 = bddnewvar();
-    bddp z = getznode(v1, bddempty, bddsingle);
+    bddp z = ZDD::getnode(v1, bddempty, bddsingle);
     bddp p[] = { z };
     FILE* tmp = std::tmpfile();
     ASSERT_NE(tmp, nullptr);
@@ -7627,8 +7627,8 @@ TEST_F(BDDTest, ZDD_ImportFilePtrSingle) {
 TEST_F(BDDTest, ZDD_ImportFilePtrVector) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     std::vector<bddp> orig = { z_v1, z_v2 };
     FILE* tmp = std::tmpfile();
     ASSERT_NE(tmp, nullptr);
@@ -7647,7 +7647,7 @@ TEST_F(BDDTest, ZDD_ImportFilePtrVector) {
 
 TEST_F(BDDTest, BDD_CacheZDD_Miss) {
     bddvar v1 = bddnewvar();
-    bddp p1 = getznode(v1, bddempty, bddsingle);
+    bddp p1 = ZDD::getnode(v1, bddempty, bddsingle);
     // No prior write: should return ZDD::Null
     EXPECT_EQ(BDD_CacheZDD(BDD_OP_UNION, p1, p1), ZDD::Null);
 }
@@ -7655,8 +7655,8 @@ TEST_F(BDDTest, BDD_CacheZDD_Miss) {
 TEST_F(BDDTest, BDD_CacheZDD_Hit) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp result = bddunion(z_v1, z_v2);
 
     bddwcache(BDD_OP_UNION, z_v1, z_v2, result);
@@ -7667,8 +7667,8 @@ TEST_F(BDDTest, BDD_CacheZDD_Hit) {
 TEST_F(BDDTest, BDD_CacheZDD_DifferentOpMiss) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddp z_v1 = getznode(v1, bddempty, bddsingle);
-    bddp z_v2 = getznode(v2, bddempty, bddsingle);
+    bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
+    bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
     bddp result = bddunion(z_v1, z_v2);
 
     bddwcache(BDD_OP_UNION, z_v1, z_v2, result);
@@ -7726,7 +7726,7 @@ TEST_F(BDDTest, ZDD_Random_DifferentSeedsGiveDifferentResults) {
 TEST_F(BDDTest, ZDD_OperatorLshift) {
     bddvar v1 = bddnewvar();
     bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));  // {{v1}}
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));  // {{v1}}
     ZDD shifted = z << 1;
     EXPECT_EQ(shifted.GetID(), bddlshiftz(z.GetID(), 1));
 }
@@ -7734,7 +7734,7 @@ TEST_F(BDDTest, ZDD_OperatorLshift) {
 TEST_F(BDDTest, ZDD_OperatorLshiftAssign) {
     bddvar v1 = bddnewvar();
     bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     bddp expected = bddlshiftz(z.GetID(), 1);
     z <<= 1;
     EXPECT_EQ(z.GetID(), expected);
@@ -7743,7 +7743,7 @@ TEST_F(BDDTest, ZDD_OperatorLshiftAssign) {
 TEST_F(BDDTest, ZDD_OperatorRshift) {
     bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));  // {{v2}}
+    ZDD z = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));  // {{v2}}
     ZDD shifted = z >> 1;
     EXPECT_EQ(shifted.GetID(), bddrshiftz(z.GetID(), 1));
 }
@@ -7751,7 +7751,7 @@ TEST_F(BDDTest, ZDD_OperatorRshift) {
 TEST_F(BDDTest, ZDD_OperatorRshiftAssign) {
     bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     bddp expected = bddrshiftz(z.GetID(), 1);
     z >>= 1;
     EXPECT_EQ(z.GetID(), expected);
@@ -7761,7 +7761,7 @@ TEST_F(BDDTest, ZDD_LshiftRshiftRoundtrip) {
     bddvar v1 = bddnewvar();
     bddnewvar();
     bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD roundtrip = (z << 2) >> 2;
     EXPECT_EQ(roundtrip, z);
 }
@@ -7807,8 +7807,8 @@ TEST_F(BDDTest, ZDD_RshiftMultipleSetFamily) {
 TEST_F(BDDTest, ZDD_Intersec_MatchesOperatorAnd) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = z_v1 + z_v2;  // {{v1}, {v2}}
 
     EXPECT_EQ(F.Intersec(z_v1), F & z_v1);
@@ -7816,14 +7816,14 @@ TEST_F(BDDTest, ZDD_Intersec_MatchesOperatorAnd) {
 
 TEST_F(BDDTest, ZDD_Intersec_WithSelf) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     EXPECT_EQ(z.Intersec(z), z);
 }
 
 TEST_F(BDDTest, ZDD_Intersec_WithEmpty) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD e(0);
 
     EXPECT_EQ(z.Intersec(e), e);
@@ -7848,7 +7848,7 @@ TEST_F(BDDTest, BDD_TopTerminal) {
 TEST_F(BDDTest, ZDD_Top) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     EXPECT_EQ(z.Top(), bddtop(z.GetID()));
 }
 
@@ -7862,7 +7862,7 @@ TEST_F(BDDTest, ZDD_TopTerminal) {
 TEST_F(BDDTest, ZDD_Support) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     ZDD sup = z.Support();
     EXPECT_EQ(sup.GetID(), bddsupport(z.GetID()));
 }
@@ -7876,7 +7876,7 @@ TEST_F(BDDTest, ZDD_SupportTerminal) {
 // --- ZDD::XPrint ---
 
 TEST_F(BDDTest, ZDD_XPrint) {
-    ZDD z = ZDD_ID(getznode(bddnewvar(), bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(bddnewvar(), bddempty, bddsingle));
     EXPECT_THROW(z.XPrint(), std::logic_error);
 }
 
@@ -7885,8 +7885,8 @@ TEST_F(BDDTest, ZDD_XPrint) {
 TEST_F(BDDTest, ZDD_Size) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = z_v1 + z_v2;
     EXPECT_EQ(F.Size(), bddsize(F.GetID()));
 }
@@ -7896,8 +7896,8 @@ TEST_F(BDDTest, ZDD_Size) {
 TEST_F(BDDTest, ZDD_Lit) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = z_v1 + z_v2;  // {{v1}, {v2}} -> 2 literals total
     EXPECT_EQ(F.Lit(), bddlit(F.GetID()));
 }
@@ -7907,7 +7907,7 @@ TEST_F(BDDTest, ZDD_Lit) {
 TEST_F(BDDTest, ZDD_Len) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1v2 = ZDD_ID(getznode(v2, bddempty, getznode(v1, bddempty, bddsingle)));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     ZDD F = ZDD(1) + z_v1v2;  // {∅, {v1,v2}} -> lengths 0 + 2 = 2
     EXPECT_EQ(F.Len(), bddlen(F.GetID()));
 }
@@ -7917,8 +7917,8 @@ TEST_F(BDDTest, ZDD_Len) {
 TEST_F(BDDTest, ZDD_CardMP16) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = z_v1 + z_v2;  // {{v1}, {v2}} -> card = 2
     char* result = F.CardMP16(nullptr);
     char* expected = bddcardmp16(F.GetID(), nullptr);
@@ -7931,7 +7931,7 @@ TEST_F(BDDTest, ZDD_CardMP16) {
 
 TEST_F(BDDTest, ZDD_ExportOstream) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     std::ostringstream oss1;
     z.Export(oss1);
@@ -7945,7 +7945,7 @@ TEST_F(BDDTest, ZDD_ExportOstream) {
 
 TEST_F(BDDTest, ZDD_ExportFilePtr) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     FILE* tmp = std::tmpfile();
     ASSERT_NE(tmp, nullptr);
@@ -8581,8 +8581,8 @@ TEST(ZDD_DivisorTest, DivisorDivides) {
 TEST_F(BDDTest, ZDD_Meet_MatchesFreeFunction) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
-    ZDD z_v2 = ZDD_ID(getznode(v2, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
     ZDD F = z_v1 + z_v2;  // {{v1}, {v2}}
 
     EXPECT_EQ(F.Meet(z_v1), ZDD_Meet(F, z_v1));
@@ -8590,14 +8590,14 @@ TEST_F(BDDTest, ZDD_Meet_MatchesFreeFunction) {
 
 TEST_F(BDDTest, ZDD_Meet_WithSelf) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
 
     EXPECT_EQ(z.Meet(z), z);
 }
 
 TEST_F(BDDTest, ZDD_Meet_WithEmpty) {
     bddvar v1 = bddnewvar();
-    ZDD z = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD e(0);
 
     EXPECT_EQ(z.Meet(e), e);
@@ -8605,7 +8605,7 @@ TEST_F(BDDTest, ZDD_Meet_WithEmpty) {
 
 TEST_F(BDDTest, ZDD_Meet_WithSingle) {
     bddvar v1 = bddnewvar();
-    ZDD z_v1 = ZDD_ID(getznode(v1, bddempty, bddsingle));
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD s(1);  // {{}}
 
     EXPECT_EQ(z_v1.Meet(s), s);
@@ -9196,7 +9196,7 @@ TEST_F(BDDTest, BDD_Child_InvalidArgThrows) {
 // ZDD raw_child0/1: basic node
 TEST_F(BDDTest, ZDD_RawChild_BasicNode) {
     bddvar v1 = bddnewvar();
-    // {{v1}} = getznode(v1, bddempty, bddsingle)
+    // {{v1}} = ZDD::getnode(v1, bddempty, bddsingle)
     ZDD f = ZDD::Single.Change(v1);
     // Change creates a node with lo=bddempty, hi=bddsingle
     EXPECT_EQ(f.raw_child0().GetID(), bddempty);

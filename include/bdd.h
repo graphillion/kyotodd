@@ -876,7 +876,7 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
         }
         bddp lo = build(v + 1);
         bddp hi = build(v + 1);
-        return getznode(v, lo, hi);
+        return ZDD::getnode_raw(v, lo, hi);
     };
     return ZDD_ID(build(1));
 }

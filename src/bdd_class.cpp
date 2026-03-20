@@ -286,10 +286,10 @@ static bddp combination_rec(bddvar v, bddvar k) {
         }
         return f;
     }
-    // getznode(v, lo, hi): lo = subsets not containing v, hi = subsets containing v
+    // ZDD::getnode_raw(v, lo, hi): lo = subsets not containing v, hi = subsets containing v
     bddp lo = combination_rec(v - 1, k);
     bddp hi = combination_rec(v - 1, k - 1);
-    return getznode(v, lo, hi);
+    return ZDD::getnode_raw(v, lo, hi);
 }
 
 ZDD ZDD::combination(bddvar n, bddvar k) {

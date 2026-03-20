@@ -503,6 +503,38 @@ public:
     /** @brief Write 2-operand cache entry. */
     static void cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result);
 
+    // --- Node creation ---
+
+    /** @brief Create a BDD node with level validation.
+     *
+     * Validates that var is in range and that children's levels are
+     * strictly less than var's level. Applies BDD reduction rules
+     * and complement edge normalization.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child node ID.
+     * @param hi  The high (1-edge) child node ID.
+     * @return The node ID for the (var, lo, hi) triple.
+     * @throws std::invalid_argument if var is out of range or child levels are invalid.
+     */
+    static bddp getnode(bddvar var, bddp lo, bddp hi);
+
+    /** @brief Create a BDD node with level validation (class type version).
+     *
+     * Same as the bddp version but takes and returns BDD objects.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child.
+     * @param hi  The high (1-edge) child.
+     * @return The created BDD node.
+     * @throws std::invalid_argument if var is out of range or child levels are invalid.
+     */
+    static BDD getnode(bddvar var, const BDD& lo, const BDD& hi);
+
+    // Advanced: no error checking — no variable range or level validation.
+    // Use with extreme caution. Incorrect usage may create invalid BDDs.
+    static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
+
     static const BDD False;  /**< @brief Constant false BDD. */
     static const BDD True;   /**< @brief Constant true BDD. */
     static const BDD Null;   /**< @brief Null (error) BDD. */
@@ -970,6 +1002,38 @@ public:
     static ZDD cache_get(uint8_t op, const ZDD& f, const ZDD& g);
     /** @brief Write 2-operand cache entry. */
     static void cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result);
+
+    // --- Node creation ---
+
+    /** @brief Create a ZDD node with level validation.
+     *
+     * Validates that var is in range and that children's levels are
+     * strictly less than var's level. Applies ZDD reduction rules
+     * (zero-suppression) and complement edge normalization.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child node ID.
+     * @param hi  The high (1-edge) child node ID.
+     * @return The node ID for the (var, lo, hi) triple.
+     * @throws std::invalid_argument if var is out of range or child levels are invalid.
+     */
+    static bddp getnode(bddvar var, bddp lo, bddp hi);
+
+    /** @brief Create a ZDD node with level validation (class type version).
+     *
+     * Same as the bddp version but takes and returns ZDD objects.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child.
+     * @param hi  The high (1-edge) child.
+     * @return The created ZDD node.
+     * @throws std::invalid_argument if var is out of range or child levels are invalid.
+     */
+    static ZDD getnode(bddvar var, const ZDD& lo, const ZDD& hi);
+
+    // Advanced: no error checking — no variable range or level validation.
+    // Use with extreme caution. Incorrect usage may create invalid ZDDs.
+    static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

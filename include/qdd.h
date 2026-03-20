@@ -56,17 +56,35 @@ public:
     /** @brief Return a true (1-terminal) QDD. */
     static QDD one() { return QDD(1); }
 
-    /**
-     * @brief Create a QDD node using getqnode().
+    /** @brief Create a QDD node with level validation.
      *
      * Children must be at the expected level (var's level - 1).
+     * Does NOT apply the jump rule (lo == hi nodes are preserved).
+     * Uses BDD complement edge normalization.
+     *
+     * @param var Variable number.
+     * @param lo  The low (0-edge) child node ID.
+     * @param hi  The high (1-edge) child node ID.
+     * @return The node ID for the (var, lo, hi) triple.
+     * @throws std::invalid_argument if children are not at the expected level.
+     */
+    static bddp getnode(bddvar var, bddp lo, bddp hi);
+
+    /** @brief Create a QDD node with level validation (class type version).
+     *
+     * Same as the bddp version but takes and returns QDD objects.
+     *
      * @param var Variable number.
      * @param lo  The low (0-edge) child.
      * @param hi  The high (1-edge) child.
      * @return The created QDD node.
      * @throws std::invalid_argument if children are not at the expected level.
      */
-    static QDD node(bddvar var, const QDD& lo, const QDD& hi);
+    static QDD getnode(bddvar var, const QDD& lo, const QDD& hi);
+
+    // Advanced: no error checking — no level validation.
+    // Use with extreme caution. Incorrect usage may create invalid QDDs.
+    static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
     // --- Operators ---
 

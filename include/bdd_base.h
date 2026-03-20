@@ -206,47 +206,6 @@ bddp BDD_UniqueTableLookup(bddvar var, bddp lo, bddp hi);
 void BDD_UniqueTableInsert(bddvar var, bddp lo, bddp hi, bddp node_id);
 
 /**
- * @brief Create a BDD node with the given variable and children.
- *
- * Applies BDD reduction rules and complement edge normalization.
- * Returns an existing node if one with the same (var, lo, hi) exists.
- *
- * @param var Variable number.
- * @param lo  The low (0-edge) child node ID.
- * @param hi  The high (1-edge) child node ID.
- * @return The node ID for the (var, lo, hi) triple.
- */
-bddp getnode(bddvar var, bddp lo, bddp hi);
-
-/**
- * @brief Create a ZDD node with the given variable and children.
- *
- * Applies ZDD reduction rules and complement edge normalization.
- * Returns an existing node if one with the same (var, lo, hi) exists.
- *
- * @param var Variable number.
- * @param lo  The low (0-edge) child node ID.
- * @param hi  The high (1-edge) child node ID.
- * @return The node ID for the (var, lo, hi) triple.
- */
-bddp getznode(bddvar var, bddp lo, bddp hi);
-
-/**
- * @brief Create a QDD (quasi-reduced) node with the given variable and children.
- *
- * Similar to getnode() but does NOT apply the jump rule (lo == hi does NOT
- * return lo). Validates that children are at the expected level (var's level - 1,
- * or terminal at level 0). Uses BDD complement edge normalization.
- *
- * @param var Variable number.
- * @param lo  The low (0-edge) child node ID.
- * @param hi  The high (1-edge) child node ID.
- * @return The node ID for the (var, lo, hi) triple.
- * @throws std::invalid_argument if children are not at the expected level.
- */
-bddp getqnode(bddvar var, bddp lo, bddp hi);
-
-/**
  * @brief Allocate a raw node slot from the node array.
  *
  * Uses the free list first, then extends the array, then grows via realloc,

@@ -13,7 +13,7 @@ UnreducedBDD UnreducedBDD::node(bddvar var, const UnreducedBDD& lo,
         bddp_is_reduced(lo_id) && bddp_is_reduced(hi_id)) {
         UnreducedBDD result(0);
         result.root = bdd_gc_guard([&]() -> bddp {
-            return getnode(var, lo_id, hi_id);
+            return BDD::getnode_raw(var, lo_id, hi_id);
         });
         return result;
     }
@@ -162,7 +162,7 @@ static bddp reduce_bdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp rlo = reduce_bdd_impl(lo, memo);
     bddp rhi = reduce_bdd_impl(hi, memo);
 
-    bddp result = getnode(node_var(base), rlo, rhi);
+    bddp result = BDD::getnode_raw(node_var(base), rlo, rhi);
     memo[base] = result;
     return comp ? bddnot(result) : result;
 }
@@ -187,7 +187,7 @@ UnreducedZDD UnreducedZDD::node(bddvar var, const UnreducedZDD& lo,
         bddp_is_reduced(lo_id) && bddp_is_reduced(hi_id)) {
         UnreducedZDD result(0);
         result.root = bdd_gc_guard([&]() -> bddp {
-            return getznode(var, lo_id, hi_id);
+            return ZDD::getnode_raw(var, lo_id, hi_id);
         });
         return result;
     }
@@ -333,7 +333,7 @@ static bddp reduce_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp rlo = reduce_zdd_impl(lo, memo);
     bddp rhi = reduce_zdd_impl(hi, memo);
 
-    bddp result = getznode(node_var(base), rlo, rhi);
+    bddp result = ZDD::getnode_raw(node_var(base), rlo, rhi);
     memo[base] = result;
     return comp ? bddnot(result) : result;
 }

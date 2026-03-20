@@ -53,14 +53,14 @@ static bddp bdddisjoin_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bdddisjoin_rec(f_lo, g);
         bddp hi = bdddisjoin_rec(f_hi, g);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bdddisjoin_rec(f, g_lo);
         bddp hi = bdddisjoin_rec(f, g_hi);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else {
         // Same top variable v
         // Both A and B having v means A ∩ B ⊇ {v} ≠ ∅, so that pair is excluded
@@ -75,7 +75,7 @@ static bddp bdddisjoin_rec(bddp f, bddp g) {
         bddp hi_b = bdddisjoin_rec(f_hi, g_lo);
         // Cross-file call: use public wrapper
         bddp hi = bddunion(hi_a, hi_b);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_DISJOIN, f, g, result);
@@ -129,14 +129,14 @@ static bddp bddjointjoin_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bddjointjoin_rec(f_lo, g);
         bddp hi = bddjointjoin_rec(f_hi, g);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else if (g_level > f_level) {
         bddvar top_var = g_var;
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
         bddp lo = bddjointjoin_rec(f, g_lo);
         bddp hi = bddjointjoin_rec(f, g_hi);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     } else {
         // Same top variable v
         // Both having v: A ∩ B ⊇ {v} ≠ ∅, always qualifies → regular join
@@ -152,7 +152,7 @@ static bddp bddjointjoin_rec(bddp f, bddp g) {
         // Cross-file calls: use public wrappers
         bddp hi_c = bddjoin(f_hi, g_hi);  // always qualifies
         bddp hi = bddunion(bddunion(hi_a, hi_b), hi_c);
-        result = getznode(top_var, lo, hi);
+        result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
     bddwcache(BDD_OP_JOINTJOIN, f, g, result);
@@ -202,7 +202,7 @@ static bddp bddrestrict_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bddrestrict_rec(f_lo, g);
         bddp hi = bddrestrict_rec(f_hi, g);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     } else if (g_level > f_level) {
         // F has no g_var: B with g_var can't be ⊆ A, skip to G_lo
         bddp g_lo = node_lo(g);
@@ -220,7 +220,7 @@ static bddp bddrestrict_rec(bddp f, bddp g) {
         bddp lo = bddrestrict_rec(f_lo, g_lo);
         // Cross-file call: use public wrapper
         bddp hi = bddrestrict_rec(f_hi, bddunion(g_lo, g_hi));
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_RESTRICT, f, g, result);
@@ -287,7 +287,7 @@ static bddp bddpermit_rec(bddp f, bddp g) {
         // Cross-file call: use public wrapper
         bddp lo = bddpermit_rec(f_lo, bddunion(g_lo, g_hi));
         bddp hi = bddpermit_rec(f_hi, g_hi);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_PERMIT, f, g, result);
@@ -337,7 +337,7 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bddnonsup_rec(f_lo, g);
         bddp hi = bddnonsup_rec(f_hi, g);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     } else if (g_level > f_level) {
         // F has no g_var: B with g_var can't be ⊆ A, skip to G_lo
         bddp g_lo = node_lo(g);
@@ -355,7 +355,7 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
         bddp lo = bddnonsup_rec(f_lo, g_lo);
         // Cross-file call: use public wrapper
         bddp hi = bddnonsup_rec(f_hi, bddunion(g_lo, g_hi));
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_NONSUP, f, g, result);
@@ -404,7 +404,7 @@ static bddp bddnonsub_rec(bddp f, bddp g) {
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
         bddp lo = bddnonsub_rec(f_lo, g);
-        result = getznode(f_var, lo, f_hi);
+        result = ZDD::getnode_raw(f_var, lo, f_hi);
     } else if (g_level > f_level) {
         // F has no g_var: A⊆(T∪{g_var}) iff A⊆T → union G branches
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
@@ -423,7 +423,7 @@ static bddp bddnonsub_rec(bddp f, bddp g) {
         // Cross-file call: use public wrapper
         bddp lo = bddnonsub_rec(f_lo, bddunion(g_lo, g_hi));
         bddp hi = bddnonsub_rec(f_hi, g_hi);
-        result = getznode(f_var, lo, hi);
+        result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
     bddwcache(BDD_OP_NONSUB, f, g, result);
@@ -462,7 +462,7 @@ static bddp bddmaximal_rec(bddp f) {
     // lo: S∈F₀ is maximal in F iff S is maximal in F₀ AND S is not ⊆ any T∈F₁
     // bddnonsub is cross-file: use public wrapper
     bddp lo = bddnonsub(bddmaximal_rec(f_lo), f_hi);
-    bddp result = getznode(f_var, lo, hi);
+    bddp result = ZDD::getnode_raw(f_var, lo, hi);
 
     bddwcache(BDD_OP_MAXIMAL, f, 0, result);
     return result;
@@ -501,7 +501,7 @@ static bddp bddminimal_rec(bddp f) {
     // hi: S∪{v} is minimal in F iff S is minimal in F₁ AND no S'∈F₀ with S'⊆S
     // bddnonsup is same-file: use _rec
     bddp hi = bddnonsup_rec(bddminimal_rec(f_hi), f_lo);
-    bddp result = getznode(f_var, lo, hi);
+    bddp result = ZDD::getnode_raw(f_var, lo, hi);
 
     bddwcache(BDD_OP_MINIMAL, f, 0, result);
     return result;
@@ -560,7 +560,7 @@ static bddp bddminhit_rec(bddp f) {
     // Filter: keep T∈Q only if no S∈P with S⊆T
     // bddnonsup is same-file: use _rec
     bddp Q_filt = bddnonsup_rec(Q, P);
-    bddp result = getznode(f_var, P, Q_filt);
+    bddp result = ZDD::getnode_raw(f_var, P, Q_filt);
 
     bddwcache(BDD_OP_MINHIT, f, 0, result);
     return result;
@@ -601,7 +601,7 @@ static bddp bddclosure_rec(bddp f) {
     bddp lo = bddunion(C0, C1);
     // hi: closure(F₁)
     bddp hi = C1;
-    bddp result = getznode(f_var, lo, hi);
+    bddp result = ZDD::getnode_raw(f_var, lo, hi);
 
     bddwcache(BDD_OP_CLOSURE, f, 0, result);
     return result;

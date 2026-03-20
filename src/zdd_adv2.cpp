@@ -235,8 +235,8 @@ static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
             bddp f11 = bddonset0(f1, t2);
 
             // Reconstruct sub-ZDDs for each t2-branch and recurse
-            bddp ft2_yes = getznode(v1, f01, f11);
-            bddp ft2_no  = getznode(v1, f00, f10);
+            bddp ft2_yes = ZDD::getnode_raw(v1, f01, f11);
+            bddp ft2_no  = ZDD::getnode_raw(v1, f00, f10);
 
             result = bddsymchk_rec(ft2_yes, v1, v2) &&
                      bddsymchk_rec(ft2_no, v1, v2);

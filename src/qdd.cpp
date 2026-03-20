@@ -7,13 +7,7 @@ const QDD QDD::False(0);
 const QDD QDD::True(1);
 const QDD QDD::Null(-1);
 
-QDD QDD::node(bddvar var, const QDD& lo, const QDD& hi) {
-    QDD q(0);
-    q.root = bdd_gc_guard([&]() -> bddp {
-        return getqnode(var, lo.root, hi.root);
-    });
-    return q;
-}
+// QDD::node is removed; use QDD::getnode instead.
 
 // --- QDD to BDD conversion ---
 
@@ -34,7 +28,7 @@ static bddp qdd_to_bdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp rlo = qdd_to_bdd_impl(lo, memo);
     bddp rhi = qdd_to_bdd_impl(hi, memo);
 
-    bddp result = getnode(node_var(base), rlo, rhi);  // jump rule applied
+    bddp result = BDD::getnode_raw(node_var(base), rlo, rhi);  // jump rule applied
     memo[base] = result;
     return comp ? bddnot(result) : result;
 }
@@ -71,7 +65,7 @@ static bddp qdd_to_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp zlo = qdd_to_zdd_impl(lo, memo);
     bddp zhi = qdd_to_zdd_impl(hi, memo);
 
-    bddp result = getznode(node_var(base), zlo, zhi);
+    bddp result = ZDD::getnode_raw(node_var(base), zlo, zhi);
     memo[f] = result;
     return result;
 }
@@ -98,7 +92,7 @@ static bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level)
     bddp current = child;
     for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
         bddvar var = level2var[lev];
-        current = getqnode(var, current, current);
+        current = QDD::getnode_raw(var, current, current);
     }
     return current;
 }
@@ -111,13 +105,13 @@ static bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_le
     // Build false column incrementally alongside current
     bddp false_col = bddfalse;
     for (bddvar lev = 1; lev <= child_level; ++lev) {
-        false_col = getqnode(level2var[lev], false_col, false_col);
+        false_col = QDD::getnode_raw(level2var[lev], false_col, false_col);
     }
     // Now false_col and current are both at child_level
     for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
         bddvar var = level2var[lev];
-        current = getqnode(var, current, false_col);
-        false_col = getqnode(var, false_col, false_col);
+        current = QDD::getnode_raw(var, current, false_col);
+        false_col = QDD::getnode_raw(var, false_col, false_col);
     }
     return current;
 }
@@ -147,7 +141,7 @@ static bddp bdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp filled_lo = qdd_fill_levels(qlo, bddp_level(qlo), node_level - 1);
     bddp filled_hi = qdd_fill_levels(qhi, bddp_level(qhi), node_level - 1);
 
-    bddp result = getqnode(node_var(base), filled_lo, filled_hi);
+    bddp result = QDD::getnode_raw(node_var(base), filled_lo, filled_hi);
     memo[base] = result;
     return comp ? bddnot(result) : result;
 }
@@ -192,7 +186,7 @@ static bddp zdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp filled_lo = qdd_fill_levels_zdd(qlo, bddp_level(qlo), node_level - 1);
     bddp filled_hi = qdd_fill_levels_zdd(qhi, bddp_level(qhi), node_level - 1);
 
-    bddp result = getqnode(node_var(base), filled_lo, filled_hi);
+    bddp result = QDD::getnode_raw(node_var(base), filled_lo, filled_hi);
     memo[f] = result;  // complement-inclusive key
     return result;
 }
