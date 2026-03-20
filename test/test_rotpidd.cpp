@@ -304,3 +304,22 @@ TEST_F(RotPiDDTest, SetComposition) {
     /* Results: id*id=id, id*(12)=(12), (23)*id=(23), (23)*(12)=(132) => 4 distinct */
     EXPECT_EQ(comp.Card(), 4u);
 }
+
+// --- Terminal API without NewVar ---
+
+TEST_F(RotPiDDTest, TerminalTopXY_NoNewVar) {
+    RotPiDD empty(0);
+    RotPiDD identity(1);
+    EXPECT_EQ(empty.TopX(), 0);
+    EXPECT_EQ(empty.TopY(), 0);
+    EXPECT_EQ(identity.TopX(), 0);
+    EXPECT_EQ(identity.TopY(), 0);
+}
+
+TEST_F(RotPiDDTest, OddEven_Terminal_NoNewVar) {
+    RotPiDD identity(1);
+    RotPiDD odd = identity.Odd();
+    EXPECT_EQ(odd.Card(), 0u);  // identity is even
+    RotPiDD even = identity.Even();
+    EXPECT_EQ(even.Card(), 1u);
+}

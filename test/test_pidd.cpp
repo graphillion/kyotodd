@@ -300,3 +300,22 @@ TEST_F(PiDDTest, CompositionS3) {
     PiDD cycle3 = cycle2 * cycle;
     EXPECT_TRUE(cycle3 == id);
 }
+
+// --- Terminal API without NewVar ---
+
+TEST_F(PiDDTest, TerminalTopXY_NoNewVar) {
+    PiDD empty(0);
+    PiDD identity(1);
+    EXPECT_EQ(empty.TopX(), 0);
+    EXPECT_EQ(empty.TopY(), 0);
+    EXPECT_EQ(identity.TopX(), 0);
+    EXPECT_EQ(identity.TopY(), 0);
+}
+
+TEST_F(PiDDTest, OddEven_Terminal_NoNewVar) {
+    PiDD identity(1);
+    PiDD odd = identity.Odd();
+    EXPECT_EQ(odd.Card(), 0u);  // identity is even
+    PiDD even = identity.Even();
+    EXPECT_EQ(even.Card(), 1u);
+}

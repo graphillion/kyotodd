@@ -10930,3 +10930,4 @@ TEST_F(BDDTest, DDBaseNewVarZeroCountReturnsEmpty) {
     auto vars = DDBase::new_var(0, false);
     EXPECT_TRUE(vars.empty());
 }
+

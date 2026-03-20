@@ -139,12 +139,18 @@ public:
      * @brief Get the x coordinate of the top variable.
      * @return The x value of the highest-level rotation.
      */
-    int TopX() const { return RotPiDD_X_Lev(TopLev()); }
+    int TopX() const {
+        if (zdd_.is_terminal()) return 0;
+        return RotPiDD_X_Lev(TopLev());
+    }
     /**
      * @brief Get the y coordinate of the top variable.
      * @return The y value of the highest-level rotation.
      */
-    int TopY() const { return RotPiDD_Y_Lev(TopLev()); }
+    int TopY() const {
+        if (zdd_.is_terminal()) return 0;
+        return RotPiDD_Y_Lev(TopLev());
+    }
     /**
      * @brief Get the BDD level of the top variable.
      * @return The BDD level of the root node.
