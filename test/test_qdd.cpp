@@ -499,3 +499,58 @@ TEST_F(QDDTest, Binary_FileRoundtrip) {
     std::fclose(fp);
     EXPECT_EQ(f, g);
 }
+
+// --- Multi-root binary format tests ---
+
+TEST_F(QDDTest, BinaryMulti_RoundtripStream) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    QDD f1 = QDD::getnode(v2, QDD::getnode(v1, QDD::zero(), QDD::one()),
+                                QDD::getnode(v1, QDD::one(), QDD::zero()));
+    QDD f2 = QDD::getnode(v2, QDD::getnode(v1, QDD::one(), QDD::one()),
+                                QDD::getnode(v1, QDD::zero(), QDD::one()));
+    std::vector<QDD> qdds = {f1, f2};
+    std::ostringstream oss;
+    QDD::export_binary_multi(oss, qdds);
+    std::istringstream iss(oss.str());
+    std::vector<QDD> result = QDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+}
+
+TEST_F(QDDTest, BinaryMulti_EmptyVector) {
+    std::vector<QDD> qdds;
+    std::ostringstream oss;
+    QDD::export_binary_multi(oss, qdds);
+    std::istringstream iss(oss.str());
+    std::vector<QDD> result = QDD::import_binary_multi(iss);
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(QDDTest, BinaryMulti_TerminalsOnly) {
+    std::vector<QDD> qdds = {QDD::zero(), QDD::one()};
+    std::ostringstream oss;
+    QDD::export_binary_multi(oss, qdds);
+    std::istringstream iss(oss.str());
+    std::vector<QDD> result = QDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], QDD::zero());
+    EXPECT_EQ(result[1], QDD::one());
+}
+
+TEST_F(QDDTest, BinaryMulti_FILE) {
+    bddvar v1 = bddnewvar();
+    QDD f1 = QDD::getnode(v1, QDD::zero(), QDD::one());
+    QDD f2 = QDD::getnode(v1, QDD::one(), QDD::zero());
+    std::vector<QDD> qdds = {f1, f2};
+    FILE* fp = std::tmpfile();
+    ASSERT_NE(fp, nullptr);
+    QDD::export_binary_multi(fp, qdds);
+    std::rewind(fp);
+    std::vector<QDD> result = QDD::import_binary_multi(fp);
+    std::fclose(fp);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+}

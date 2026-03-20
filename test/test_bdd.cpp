@@ -10254,6 +10254,174 @@ TEST_F(BDDTest, Binary_CLevel_ZDD) {
     EXPECT_EQ(f.enumerate(), gz.enumerate());
 }
 
+// --- Multi-root binary format export/import tests ---
+
+TEST_F(BDDTest, BinaryMulti_BDD_RoundtripStream) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f1 = a & b;
+    BDD f2 = a | b;
+    BDD f3 = ~a;
+    std::vector<BDD> bdds = {f1, f2, f3};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    std::vector<BDD> result = BDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+    EXPECT_EQ(result[2], f3);
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_EmptyVector) {
+    std::vector<BDD> bdds;
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    std::vector<BDD> result = BDD::import_binary_multi(iss);
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_TerminalsOnly) {
+    std::vector<BDD> bdds = {BDD::False, BDD::True, BDD::False};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    std::vector<BDD> result = BDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[0], BDD::False);
+    EXPECT_EQ(result[1], BDD::True);
+    EXPECT_EQ(result[2], BDD::False);
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_SharedNodes) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f1 = a & b;
+    BDD f2 = a | b;  // shares nodes with f1
+    std::vector<BDD> bdds = {f1, f2};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    std::vector<BDD> result = BDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_FILE) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f1 = a & b;
+    BDD f2 = ~a;
+    std::vector<BDD> bdds = {f1, f2};
+    FILE* fp = std::tmpfile();
+    BDD::export_binary_multi(fp, bdds);
+    std::rewind(fp);
+    std::vector<BDD> result = BDD::import_binary_multi(fp);
+    std::fclose(fp);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], f1);
+    EXPECT_EQ(result[1], f2);
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_SingleExportMultiImport) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    std::vector<BDD> result = BDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_EQ(result[0], f);
+}
+
+TEST_F(BDDTest, BinaryMulti_BDD_MultiExportSingleImport) {
+    BDD f1 = BDD::prime(1) & BDD::prime(2);
+    BDD f2 = BDD::prime(1) | BDD::prime(2);
+    std::vector<BDD> bdds = {f1, f2};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_binary(iss);
+    EXPECT_EQ(g, f1);
+}
+
+TEST_F(BDDTest, BinaryMulti_ZDD_RoundtripStream) {
+    std::vector<std::vector<bddvar>> sets1 = {{1, 2}, {3}};
+    std::vector<std::vector<bddvar>> sets2 = {{1}, {2, 3}};
+    ZDD f1 = ZDD::from_sets(sets1);
+    ZDD f2 = ZDD::from_sets(sets2);
+    std::vector<ZDD> zdds = {f1, f2};
+    std::ostringstream oss;
+    ZDD::export_binary_multi(oss, zdds);
+    std::istringstream iss(oss.str());
+    std::vector<ZDD> result = ZDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0].enumerate(), f1.enumerate());
+    EXPECT_EQ(result[1].enumerate(), f2.enumerate());
+}
+
+TEST_F(BDDTest, BinaryMulti_ZDD_EmptyVector) {
+    std::vector<ZDD> zdds;
+    std::ostringstream oss;
+    ZDD::export_binary_multi(oss, zdds);
+    std::istringstream iss(oss.str());
+    std::vector<ZDD> result = ZDD::import_binary_multi(iss);
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(BDDTest, BinaryMulti_ZDD_TerminalsOnly) {
+    std::vector<ZDD> zdds = {ZDD::Empty, ZDD::Single, ZDD::Empty};
+    std::ostringstream oss;
+    ZDD::export_binary_multi(oss, zdds);
+    std::istringstream iss(oss.str());
+    std::vector<ZDD> result = ZDD::import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[0], ZDD::Empty);
+    EXPECT_EQ(result[1], ZDD::Single);
+    EXPECT_EQ(result[2], ZDD::Empty);
+}
+
+TEST_F(BDDTest, BinaryMulti_ZDD_FILE) {
+    std::vector<std::vector<bddvar>> sets1 = {{1, 2}, {3}};
+    ZDD f1 = ZDD::from_sets(sets1);
+    ZDD f2 = ZDD::Single;
+    std::vector<ZDD> zdds = {f1, f2};
+    FILE* fp = std::tmpfile();
+    ZDD::export_binary_multi(fp, zdds);
+    std::rewind(fp);
+    std::vector<ZDD> result = ZDD::import_binary_multi(fp);
+    std::fclose(fp);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0].enumerate(), f1.enumerate());
+    EXPECT_EQ(result[1], ZDD::Single);
+}
+
+TEST_F(BDDTest, BinaryMulti_CLevel_BDD) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    bddp roots[2] = {(a & b).GetID(), (a | b).GetID()};
+    std::ostringstream oss;
+    bdd_export_binary_multi(oss, roots, 2);
+    std::istringstream iss(oss.str());
+    std::vector<bddp> result = bdd_import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 2u);
+    EXPECT_EQ(result[0], roots[0]);
+    EXPECT_EQ(result[1], roots[1]);
+}
+
+TEST_F(BDDTest, BinaryMulti_CLevel_ZDD) {
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}};
+    ZDD f = ZDD::from_sets(sets);
+    bddp roots[1] = {f.GetID()};
+    std::ostringstream oss;
+    zdd_export_binary_multi(oss, roots, 1);
+    std::istringstream iss(oss.str());
+    std::vector<bddp> result = zdd_import_binary_multi(iss);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_EQ(ZDD_ID(result[0]).enumerate(), f.enumerate());
+}
+
 // --- Knuth format export/import tests (obsolete format) ---
 
 TEST_F(BDDTest, Knuth_ZDD_TerminalEmpty) {
