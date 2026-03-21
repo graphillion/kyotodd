@@ -5455,6 +5455,30 @@ TEST_F(BDDTest, BDDClassUniv) {
     EXPECT_EQ(f.Univ(v1).GetID(), b.GetID());
 }
 
+TEST_F(BDDTest, BDDClassExistDuplicateVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a & b;
+
+    std::vector<bddvar> vars_dup = {v1, v1};
+    std::vector<bddvar> vars_single = {v1};
+    EXPECT_EQ(f.Exist(vars_dup).GetID(), f.Exist(vars_single).GetID());
+}
+
+TEST_F(BDDTest, BDDClassUnivDuplicateVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    BDD f = a | b;
+
+    std::vector<bddvar> vars_dup = {v1, v1};
+    std::vector<bddvar> vars_single = {v1};
+    EXPECT_EQ(f.Univ(vars_dup).GetID(), f.Univ(vars_single).GetID());
+}
+
 TEST_F(BDDTest, BDDClassCofactor) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();

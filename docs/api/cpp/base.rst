@@ -32,8 +32,6 @@ Node Queries
 Node Creation
 -------------
 
-.. doxygenfunction:: getnode
-.. doxygenfunction:: getznode
 .. doxygenfunction:: bddconst
 .. doxygenfunction:: bddprime
 .. doxygenfunction:: BDD_ID

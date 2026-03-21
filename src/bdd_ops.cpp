@@ -582,11 +582,12 @@ static bddp vars_to_cube(const std::vector<bddvar>& vars) {
             throw std::invalid_argument("bddexist/bdduniv: var out of range");
         }
     }
-    // Build cube BDD: sort by level ascending, chain with hi=bddtrue
+    // Build cube BDD: sort by level ascending, deduplicate, chain with hi=bddtrue
     std::vector<bddvar> sorted(vars);
     std::sort(sorted.begin(), sorted.end(), [](bddvar a, bddvar b) {
         return var2level[a] < var2level[b];
     });
+    sorted.erase(std::unique(sorted.begin(), sorted.end()), sorted.end());
     bddp cube = bddfalse;
     for (size_t i = 0; i < sorted.size(); i++) {
         cube = BDD::getnode_raw(sorted[i], cube, bddtrue);

@@ -87,7 +87,7 @@ The support set is the set of variables a BDD depends on:
 
    # As a list of variable numbers
    vars = f.support_vec()
-   print(vars)  # [1, 2]
+   print(vars)  # [2, 1] (descending level order)
 
    # As a BDD (conjunction of variables)
    sup = f.support()

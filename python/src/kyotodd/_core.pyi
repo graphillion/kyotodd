@@ -27,7 +27,7 @@ class BDD:
         """Create a BDD representing the given variable.
 
         Args:
-            v: Variable number (must have been created with newvar()).
+            v: Variable number (1-based). If the variable has not been created yet, it is automatically created up to v.
 
         Returns:
             A BDD for the variable.
