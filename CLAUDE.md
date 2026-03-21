@@ -97,6 +97,22 @@ Mark-and-sweep GC with free list reuse. Dead nodes are reclaimed without changin
 - `bddgc_protect(bddp* p)` / `bddgc_unprotect(bddp* p)` — Register/unregister a raw `bddp` pointer as a GC root.
 - `bddgc_setthreshold(double)` / `bddgc_getthreshold()` — GC threshold (default 0.9). GC triggers when live nodes exceed `bdd_node_max * threshold` and array is at max capacity.
 - `bddlive()` — Number of live nodes (`bdd_node_used - bdd_free_count`).
+- `bddgc_rootcount()` — Number of registered GC root pointers.
+- `bddfinal()` — Finalize the BDD library and release all resources. Throws `std::runtime_error` if live BDD/ZDD objects still exist.
+- `bdd_check_reduced(bddp root)` — Check that all non-terminal nodes reachable from root are reduced.
+
+### Recursion depth guard
+
+- `BDD_RecurGuard` (RAII): Increments `BDD_RecurCount` on construction, decrements on destruction. Throws `std::overflow_error` if the limit is exceeded.
+- `BDD_RecurLimit` = 8192 (conservative for typical thread stack sizes).
+- `BDD_RecurCount` (extern int): Current recursion depth counter.
+
+### Operation cache
+
+- Fixed-size, lossy computed table using `BddCacheEntry` struct: `fop` (bits [55:48] = op, bits [47:0] = f), `g`, `h` (0 for 2-operand ops), `result`.
+- 2-operand API: `bddrcache(op, f, g)` / `bddwcache(op, f, g, result)`.
+- 3-operand API: `bddrcache3(op, f, g, h)` / `bddwcache3(op, f, g, h, result)`. Used by ITE.
+- Typed wrappers: `BDD::cache_get()` / `BDD::cache_put()`, `ZDD::cache_get()` / `ZDD::cache_put()`, `QDD::cache_get()` / `QDD::cache_put()`.
 
 ### `_rec` separation pattern
 
@@ -118,9 +134,11 @@ Each recursive operation is split into a public wrapper and a static `_rec` func
 - Not intended for polymorphic use; provides shared infrastructure.
 - Protected member `root` (bddp / uint64_t): the root node ID.
 - Constructors/destructors handle GC root registration (`bddgc_protect`/`bddgc_unprotect`).
-- Provides static methods: `init()`, `new_var()`, `var_used()`, `node_count()`, `gc()`, `to_level()`, `to_var()`.
+- Constructors: default (false), `DDBase(int val)` (0=false, 1=true, negative=null), copy, move.
+- Provides static methods: `init()`, `new_var()`, `new_var(int n)`, `var_used()`, `node_count()`, `gc()`, `to_level()`, `to_var()`.
 - Provides query methods: `get_id()`, `is_terminal()`, `is_one()`, `is_zero()`, `top()`, `raw_size()`.
-- Provides child accessors: `raw_child0()`, `raw_child1()`, `raw_child()`.
+- Provides raw child accessors: `raw_child0()`, `raw_child1()`, `raw_child()` (no complement resolution).
+- Each subclass (BDD, ZDD, QDD) adds complement-resolving child accessors: `child0()`, `child1()`, `child()` — BDD/QDD flip both lo/hi, ZDD flips lo only.
 
 ### Class hierarchy
 
@@ -139,6 +157,15 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Inherits from DDBase.
 - Applies BDD reduction rule: `lo == hi` → return lo (jump rule).
 - Uses BDD complement edge semantics (both children flipped).
+- Operators: `&` (AND), `|` (OR), `^` (XOR), `~` (NOT), `<<` / `>>` (shift), `==`, `!=`.
+- Free functions: `bddnand()`, `bddnor()`, `bddxnor()`, `bddsmooth()`, `bddspread()`.
+- Cofactor/quantification: `At0(v)`, `At1(v)`, `Exist()`, `Univ()`, `Cofactor()`, `Swap()`.
+- Literal constructors: `BDD::prime(v)` (positive literal), `BDD::prime_not(v)` (negative literal).
+- Clause/cube constructors: `BDD::cube(lits)` (conjunction), `BDD::clause(lits)` (disjunction). DIMACS sign convention.
+- SAT counting: `count(n)` (double), `exact_count(n)` (BigInt), `exact_count(n, BddCountMemo&)`.
+- Sampling: `uniform_sample(rng, n, BddCountMemo&)` — uniformly sample one satisfying assignment.
+- Conversion: `to_qdd()` — convert BDD to quasi-reduced QDD.
+- I/O: `Export()`, `export_binary()` / `import_binary()`, `export_sapporo()` / `import_sapporo()`, `export_knuth()` / `import_knuth()` (deprecated), `save_graphviz()`, `export_binary_multi()` / `import_binary_multi()`.
 
 ## ZDD class
 
@@ -146,6 +173,24 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - ZDD represents a family of sets. A complement edge toggles membership of the empty set (∅).
 - Applies ZDD zero-suppression rule: `hi == bddempty` → return lo.
 - Uses ZDD complement edge semantics (only lo flipped).
+- Operators: `+` (union), `-` (subtract), `&` (intersec), `*` (join), `/` (div), `%` (remainder), `^` (symdiff), `~` (complement), `<<` / `>>` (shift), `==`, `!=`.
+- Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`.
+- Set operations: `Offset(v)`, `OnSet(v)`, `OnSet0(v)`, `Change(v)`.
+- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`.
+- Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.
+- Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`.
+- Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F.
+- Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family.
+- Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
+- Construction: `ZDD::singleton(v)`, `ZDD::single_set(vars)`, `ZDD::from_sets(sets)`, `ZDD::power_set(n)`, `ZDD::power_set(vars)`, `ZDD::combination(n, k)`, `ZDD::random_family(n, rng)`.
+- Display: `print_sets(os)`, `print_sets(os, delim1, delim2)`, `print_sets(os, delim1, delim2, var_name_map)`, `to_str()`.
+- Conversion: `to_qdd()` — convert ZDD to quasi-reduced QDD.
+- I/O: `Export()`, `export_binary()` / `import_binary()`, `export_sapporo()` / `import_sapporo()`, `export_knuth()` / `import_knuth()` (deprecated), `save_graphviz()`, `export_graphillion()` / `import_graphillion()`, `export_binary_multi()` / `import_binary_multi()`.
+
+### Memo classes
+
+- `ZddCountMemo(f)`: Memo for ZDD exact counting, associated with a specific ZDD root. Stores the memo table for `bddexactcount` results.
+- `BddCountMemo(f, n)`: Memo for BDD exact counting, associated with a specific BDD root and variable count n.
 
 ## QDD class
 
@@ -155,6 +200,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Complement edge semantics are the same as BDD (both lo and hi are flipped).
 - `QDD::getnode(var, lo, hi)` validates that children's levels equal var's level - 1.
 - Conversion to/from BDD/ZDD: `BDD::to_qdd()`, `ZDD::to_qdd()`, `QDD::to_bdd()`, `QDD::to_zdd()`.
+- I/O: `export_binary()` / `import_binary()`, `export_binary_multi()` / `import_binary_multi()`.
 
 ## UnreducedDD class
 
@@ -177,6 +223,8 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Uses composition: wraps a `ZDD` internally (`zdd_` member).
 - Provides string/sequence-specific operations over ZDD.
 - Key operations: `off_set()`, `on_set()`, `on_set0()`, `push()`, `top()`, `size()`, `card()`, `lit()`, `len()`.
+- Operators: `&` (intersection), `+` (union), `-` (difference), `*` (concatenation), `/` (left quotient), `%` (left remainder).
+- Display: `print()`, `print_seq()`, `seq_str()`, `export_to()`.
 
 ## PiDD class
 
@@ -184,13 +232,38 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Uses composition: wraps a `ZDD` internally (`zdd_` member).
 - Represents permutations using transposition algebra.
 - Key operations: `Swap(u, v)`, `Cofact(u, v)`, `Odd()`, `Even()`, `SwapBound(n)`.
+- Operators: `&` (intersection), `+` (union), `-` (difference), `*` (composition), `/` (division), `%` (remainder).
+- Display: `Print()`, `Enum()`, `Enum2()`.
 
 ## RotPiDD class
 
 - Defined in `include/rotpidd.h`. Does NOT inherit from DDBase.
 - Uses composition: wraps a `ZDD` internally (`zdd_` member).
 - Extends PiDD to handle rotations in addition to transpositions.
-- Key operations: `LeftRot(u, v)`, `Reverse(l, r)`, `Order(a, b)`, `Inverse()`, `Insert(p, v)`.
+- Key operations: `LeftRot(u, v)`, `Swap(a, b)`, `Reverse(l, r)`, `Cofact(u, v)`, `Odd()`, `Even()`, `Order(a, b)`, `Inverse()`, `Insert(p, v)`, `RotBound(n)`, `RemoveMax(k)`, `normalizeRotPiDD(k)`.
+- Operators: `&` (intersection), `+` (union), `-` (difference), `*` (composition).
+- Conversion: `VECtoRotPiDD(v)`, `RotPiDDToVectorOfPerms()`, `normalizePerm(v)`.
+- Advanced: `contradictionMaximization()` — weighted contradiction maximization.
+- Display: `Print()`, `Enum()`, `Enum2()`.
+
+## Size functions
+
+- `bddsize(f)` — DAG node count with complement edge sharing.
+- `bddplainsize(f, is_zdd)` — DAG node count without complement edge sharing. Expands complement edges using BDD or ZDD semantics.
+- `bddrawsize(vector<bddp>)` — Shared node count across multiple roots (with complement edge sharing).
+- `bddplainsize(vector<bddp>, is_zdd)` — Shared node count across multiple roots (without complement edge sharing).
+- BDD/ZDD member: `raw_size()` (shared), `plain_size()` (expanded), `raw_size(vector)`, `plain_size(vector)`.
+
+## I/O formats
+
+The library supports multiple import/export formats:
+
+- **Sapporo format**: Text format. `bdd_export_sapporo` / `bdd_import_sapporo`, `zdd_export_sapporo` / `zdd_import_sapporo`.
+- **Binary format**: Compact binary format. Single-root: `bdd_export_binary` / `bdd_import_binary`, `zdd_export_binary` / `zdd_import_binary`, `qdd_export_binary` / `qdd_import_binary`, `unreduced_export_binary` / `unreduced_import_binary`. Multi-root: `bdd_export_binary_multi` / `bdd_import_binary_multi`, etc.
+- **Graphillion format**: ZDD text format for Graphillion interop. `zdd_export_graphillion` / `zdd_import_graphillion`.
+- **Graphviz DOT**: Visualization. `bdd_save_graphviz` / `zdd_save_graphviz`. `GraphvizMode::Expanded` (complement expanded) or `GraphvizMode::Raw` (complement edge markers).
+- **Knuth format** (deprecated): `bdd_export_knuth` / `bdd_import_knuth`, `zdd_export_knuth` / `zdd_import_knuth`.
+- **Legacy Sapporo format**: `bddexport` / `bddimport` / `bddimportz`.
 
 ## Node reduced flag
 
