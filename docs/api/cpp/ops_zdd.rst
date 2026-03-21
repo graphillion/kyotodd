@@ -63,10 +63,11 @@ Counting
 --------
 
 .. doxygenfunction:: bddcard
-.. doxygenfunction:: bddcount
+.. doxygenfunction:: bddcount(bddp f)
 .. doxygenfunction:: bddlit
 .. doxygenfunction:: bddlen
-.. doxygenfunction:: bddexactcount
+.. doxygenfunction:: bddexactcount(bddp f)
+.. doxygenfunction:: bddexactcount(bddp f, CountMemoMap &memo)
 .. doxygenfunction:: bddcardmp16
 .. doxygenfunction:: bddhasempty
 

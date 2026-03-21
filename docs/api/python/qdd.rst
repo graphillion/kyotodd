@@ -184,6 +184,21 @@ QDD Class
       :param bool ignore_type: If True, skip dd_type validation.
       :rtype: list[QDD]
 
+   .. py:staticmethod:: export_binary_multi_file(qdds, path)
+
+      Export multiple QDDs in binary format to a file.
+
+      :param list[QDD] qdds: QDDs to export.
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_binary_multi_file(path, ignore_type=False)
+
+      Import multiple QDDs from a binary format file.
+
+      :param str path: File path to read from.
+      :param bool ignore_type: If True, skip dd_type validation.
+      :rtype: list[QDD]
+
 Example
 -------
 

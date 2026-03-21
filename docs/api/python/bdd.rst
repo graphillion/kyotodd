@@ -396,31 +396,31 @@ BDD Class
 
       :rtype: BDD
 
-   .. py:method:: child(index)
+   .. py:method:: child(child)
 
       Get the child by index (0 or 1) with complement edge resolution.
 
-      :param int index: 0 or 1.
+      :param int child: 0 or 1.
       :rtype: BDD
 
    .. py:method:: raw_child0()
 
-      Get the raw 0-child node ID without complement resolution.
+      Get the raw 0-child without complement resolution.
 
-      :rtype: int
+      :rtype: BDD
 
    .. py:method:: raw_child1()
 
-      Get the raw 1-child node ID without complement resolution.
+      Get the raw 1-child without complement resolution.
 
-      :rtype: int
+      :rtype: BDD
 
-   .. py:method:: raw_child(index)
+   .. py:method:: raw_child(child)
 
-      Get the raw child node ID by index without complement resolution.
+      Get the raw child by index without complement resolution.
 
-      :param int index: 0 or 1.
-      :rtype: int
+      :param int child: 0 or 1.
+      :rtype: BDD
 
    Shared Size
    -----------

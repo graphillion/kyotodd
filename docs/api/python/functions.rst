@@ -131,9 +131,6 @@ Garbage Collection
 
    :rtype: int
 
-   :return: The current threshold value.
-   :rtype: float
-
 Random Generation
 -----------------
 

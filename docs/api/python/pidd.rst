@@ -92,6 +92,8 @@ PiDD Class
                    __isub__(other)
                    __iand__(other)
                    __imul__(other)
+                   __itruediv__(other)
+                   __imod__(other)
 
       In-place variants of the above operators.
 
@@ -109,7 +111,7 @@ PiDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``PiDD(card=...)``.
+      Return string representation: ``PiDD(node_id=...)``.
 
    Core Operations
    ~~~~~~~~~~~~~~~

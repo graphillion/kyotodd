@@ -8,6 +8,28 @@ Type Definitions
 
 .. doxygentypedef:: bddvar
 
+.. doxygentypedef:: CountMemoMap
+
+Enumerations
+------------
+
+.. doxygenenum:: GraphvizMode
+
+Memo Classes
+------------
+
+.. doxygenclass:: ZddCountMemo
+   :members:
+
+.. doxygenclass:: BddCountMemo
+   :members:
+
+DDBase Class
+------------
+
+.. doxygenclass:: DDBase
+   :members:
+
 Node ID Encoding Constants
 --------------------------
 

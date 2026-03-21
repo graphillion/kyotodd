@@ -632,11 +632,12 @@ ZDD Class
 
       :rtype: bytes
 
-   .. py:staticmethod:: import_binary_str(data)
+   .. py:staticmethod:: import_binary_str(data, ignore_type=False)
 
       Import a ZDD from binary format bytes.
 
       :param bytes data: Binary data.
+      :param bool ignore_type: If True, skip type checking.
       :rtype: ZDD
 
    .. py:method:: export_binary_file(path)
@@ -645,11 +646,12 @@ ZDD Class
 
       :param str path: File path to write to.
 
-   .. py:staticmethod:: import_binary_file(path)
+   .. py:staticmethod:: import_binary_file(path, ignore_type=False)
 
       Import a ZDD from a binary format file.
 
       :param str path: File path to read from.
+      :param bool ignore_type: If True, skip type checking.
       :rtype: ZDD
 
    .. py:staticmethod:: export_binary_multi_str(zdds)
@@ -659,11 +661,12 @@ ZDD Class
       :param list[ZDD] zdds: List of ZDD objects.
       :rtype: bytes
 
-   .. py:staticmethod:: import_binary_multi_str(data)
+   .. py:staticmethod:: import_binary_multi_str(data, ignore_type=False)
 
       Import multiple ZDDs from binary format bytes.
 
       :param bytes data: Binary data.
+      :param bool ignore_type: If True, skip type checking.
       :rtype: list[ZDD]
 
    .. py:staticmethod:: export_binary_multi_file(zdds, path)
@@ -673,11 +676,12 @@ ZDD Class
       :param list[ZDD] zdds: List of ZDD objects.
       :param str path: File path to write to.
 
-   .. py:staticmethod:: import_binary_multi_file(path)
+   .. py:staticmethod:: import_binary_multi_file(path, ignore_type=False)
 
       Import multiple ZDDs from a binary format file.
 
       :param str path: File path to read from.
+      :param bool ignore_type: If True, skip type checking.
       :rtype: list[ZDD]
 
    Sapporo I/O

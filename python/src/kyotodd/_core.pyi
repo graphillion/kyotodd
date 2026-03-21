@@ -708,7 +708,7 @@ class ZDD:
         ...
 
     def onset(self, v: int) -> ZDD:
-        """Select sets containing variable v, then remove v.
+        """Select sets containing variable v (v is kept in the result).
 
         Args:
             v: Variable number.
@@ -719,7 +719,7 @@ class ZDD:
         ...
 
     def onset0(self, v: int) -> ZDD:
-        """Select sets NOT containing variable v (same as offset).
+        """Select sets containing variable v, then remove v (1-cofactor).
 
         Args:
             v: Variable number.
@@ -1932,22 +1932,14 @@ class RotPiDD:
 
     def contradiction_maximization(
         self,
-        used_set: int,
-        unused_list: List[int],
         n: int,
         w: List[List[int]],
     ) -> int:
-        """Compute the maximum weighted contradiction value.
-
-        Traverses the RotPiDD to find the permutation assignment
-        that maximizes the sum of weights in the conflict matrix.
+        """Run contradiction maximization algorithm.
 
         Args:
-            used_set: Bitmask of already-assigned positions.
-            unused_list: List of unassigned positions.
-            n: Total number of positions.
-            w: Weight matrix: w[i][j] is the weight for assigning
-               position i to value j.
+            n: Permutation size.
+            w: Weight matrix (n+1 x n+1, 1-indexed).
 
         Returns:
             The maximum contradiction value.

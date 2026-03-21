@@ -110,7 +110,7 @@ RotPiDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``RotPiDD(card=...)``.
+      Return string representation: ``RotPiDD(node_id=...)``.
 
    Core Operations
    ~~~~~~~~~~~~~~~

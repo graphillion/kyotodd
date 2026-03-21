@@ -11,12 +11,14 @@ Initialization
 Variable Management
 -------------------
 
-.. doxygenfunction:: bddnewvar
+.. doxygenfunction:: bddnewvar()
+.. doxygenfunction:: bddnewvar(int n)
 .. doxygenfunction:: BDD_NewVar
 .. doxygenfunction:: bddnewvaroflev
 .. doxygenfunction:: bddlevofvar
 .. doxygenfunction:: bddvaroflev
 .. doxygenfunction:: bddvarused
+.. doxygenfunction:: bddtoplev
 
 Node Queries
 ------------
@@ -28,6 +30,9 @@ Node Queries
 .. doxygenfunction:: bddsize
 .. doxygenfunction:: bddvsize(bddp *p, size_t lim)
 .. doxygenfunction:: bddvsize(const std::vector< bddp > &v)
+.. doxygenfunction:: bddplainsize(bddp f, bool is_zdd)
+.. doxygenfunction:: bddrawsize(const std::vector< bddp > &v)
+.. doxygenfunction:: bddplainsize(const std::vector< bddp > &v, bool is_zdd)
 
 Node Creation
 -------------

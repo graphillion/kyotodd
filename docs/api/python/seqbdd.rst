@@ -92,7 +92,7 @@ SeqBDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``SeqBDD(card=...)``.
+      Return string representation: ``SeqBDD(node_id=...)``.
 
    .. py:method:: __str__()
 

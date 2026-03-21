@@ -65,3 +65,10 @@ Spreading
 ---------
 
 .. doxygenfunction:: bddspread
+
+Satisfiability Counting
+-----------------------
+
+.. doxygenfunction:: bddcount(bddp f, bddvar n)
+.. doxygenfunction:: bddexactcount(bddp f, bddvar n)
+.. doxygenfunction:: bddexactcount(bddp f, bddvar n, CountMemoMap &memo)
