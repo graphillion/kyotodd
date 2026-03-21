@@ -284,8 +284,8 @@ public:
      */
     BDD At1(bddvar v) const;
     /**
-     * @brief Existential quantification by a cube BDD.
-     * @param cube A conjunction of variables to quantify out.
+     * @brief Existential quantification by a variable-set BDD.
+     * @param cube A BDD encoding the set of variables to quantify out (as returned by Support()).
      * @return The resulting BDD.
      */
     BDD Exist(const BDD& cube) const;
@@ -302,8 +302,8 @@ public:
      */
     BDD Exist(bddvar v) const;
     /**
-     * @brief Universal quantification by a cube BDD.
-     * @param cube A conjunction of variables to quantify.
+     * @brief Universal quantification by a variable-set BDD.
+     * @param cube A BDD encoding the set of variables to quantify (as returned by Support()).
      * @return The resulting BDD.
      */
     BDD Univ(const BDD& cube) const;

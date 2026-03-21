@@ -91,6 +91,10 @@ RotPiDD Class
 
       Copy constructor.
 
+   .. cpp:function:: RotPiDD(RotPiDD&& f)
+
+      Move constructor.
+
    .. cpp:function:: explicit RotPiDD(const ZDD& zbdd)
 
       Construct from a ZDD directly.
@@ -113,6 +117,25 @@ RotPiDD Class
 
       Composition. Computes { pi . sigma | sigma in p, pi in q }.
       Decomposes on q's top variable and applies LeftRot recursively.
+
+   **Compound Assignment**
+
+   .. cpp:function:: RotPiDD& operator&=(const RotPiDD& q)
+                     RotPiDD& operator+=(const RotPiDD& q)
+                     RotPiDD& operator-=(const RotPiDD& q)
+                     RotPiDD& operator*=(const RotPiDD& q)
+
+      In-place variants of the above operators.
+
+   **Comparison**
+
+   .. cpp:function:: friend bool operator==(const RotPiDD& p, const RotPiDD& q)
+
+      Equality comparison.
+
+   .. cpp:function:: friend bool operator!=(const RotPiDD& p, const RotPiDD& q)
+
+      Inequality comparison.
 
    **Core Operations**
 

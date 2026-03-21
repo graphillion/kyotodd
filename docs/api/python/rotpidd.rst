@@ -112,6 +112,14 @@ RotPiDD Class
 
       Return string representation: ``RotPiDD(node_id=...)``.
 
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      RotPiDD cannot be converted to bool.
+
+      :raises TypeError: Always.
+
    Core Operations
    ~~~~~~~~~~~~~~~
 
@@ -296,6 +304,40 @@ RotPiDD Class
       :type: ZDD
 
       The internal ZDD representation.
+
+   Display
+   ~~~~~~~
+
+   .. py:method:: print()
+
+      Print RotPiDD statistics and return as string.
+
+      :rtype: str
+
+   .. py:method:: enum()
+
+      Enumerate all permutations in vector notation and return as string.
+
+      :rtype: str
+
+   .. py:method:: enum2()
+
+      Enumerate all permutations in rotation notation and return as string.
+
+      :rtype: str
+
+   Optimization
+   ~~~~~~~~~~~~
+
+   .. py:method:: contradiction_maximization(n, w)
+
+      Find the maximum weighted contradiction value using memoized
+      recursion over the ZDD structure.
+
+      :param int n: Permutation size.
+      :param list[list[int]] w: Weight matrix of size (n+1) x (n+1).
+      :return: The maximum contradiction value.
+      :rtype: int
 
 Example
 -------

@@ -113,6 +113,14 @@ PiDD Class
 
       Return string representation: ``PiDD(node_id=...)``.
 
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      PiDD cannot be converted to bool.
+
+      :raises TypeError: Always.
+
    Core Operations
    ~~~~~~~~~~~~~~~
 
@@ -194,6 +202,27 @@ PiDD Class
       :type: ZDD
 
       The internal ZDD representation.
+
+   Display
+   ~~~~~~~
+
+   .. py:method:: print()
+
+      Print PiDD statistics and return as string.
+
+      :rtype: str
+
+   .. py:method:: enum()
+
+      Enumerate all permutations in vector notation and return as string.
+
+      :rtype: str
+
+   .. py:method:: enum2()
+
+      Enumerate all permutations in transposition notation and return as string.
+
+      :rtype: str
 
 Example
 -------

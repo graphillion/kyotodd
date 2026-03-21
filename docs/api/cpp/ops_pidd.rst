@@ -61,6 +61,10 @@ PiDD Class
 
       Copy constructor.
 
+   .. cpp:function:: PiDD(PiDD&& f)
+
+      Move constructor.
+
    .. cpp:function:: explicit PiDD(const ZDD& zbdd)
 
       Construct from a ZDD directly.
@@ -91,6 +95,27 @@ PiDD Class
    .. cpp:function:: friend PiDD operator%(const PiDD& f, const PiDD& p)
 
       Remainder: ``f - (f / p) * p``.
+
+   **Compound Assignment**
+
+   .. cpp:function:: PiDD& operator&=(const PiDD& q)
+                     PiDD& operator+=(const PiDD& q)
+                     PiDD& operator-=(const PiDD& q)
+                     PiDD& operator*=(const PiDD& q)
+                     PiDD& operator/=(const PiDD& q)
+                     PiDD& operator%=(const PiDD& q)
+
+      In-place variants of the above operators.
+
+   **Comparison**
+
+   .. cpp:function:: friend bool operator==(const PiDD& p, const PiDD& q)
+
+      Equality comparison.
+
+   .. cpp:function:: friend bool operator!=(const PiDD& p, const PiDD& q)
+
+      Inequality comparison.
 
    **Core Operations**
 

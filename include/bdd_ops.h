@@ -112,13 +112,13 @@ bddp bddsupport(bddp f);
 std::vector<bddvar> bddsupport_vec(bddp f);
 
 /**
- * @brief Existential quantification by a cube BDD.
+ * @brief Existential quantification by a variable-set BDD.
  *
- * Eliminates the variables in @p g (given as a conjunction) from @p f
- * by computing f|v=0 OR f|v=1 for each variable v in the cube.
+ * Eliminates the variables in @p g from @p f
+ * by computing f|v=0 OR f|v=1 for each variable v in the set.
  *
  * @param f The BDD to quantify.
- * @param g A cube BDD (conjunction of variables).
+ * @param g A variable-set BDD (as returned by bddsupport()).
  * @return The resulting BDD.
  */
 bddp bddexist(bddp f, bddp g);
@@ -140,13 +140,13 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars);
 bddp bddexistvar(bddp f, bddvar v);
 
 /**
- * @brief Universal quantification by a cube BDD.
+ * @brief Universal quantification by a variable-set BDD.
  *
  * Eliminates the variables in @p g from @p f by computing
- * f|v=0 AND f|v=1 for each variable v in the cube.
+ * f|v=0 AND f|v=1 for each variable v in the set.
  *
  * @param f The BDD to quantify.
- * @param g A cube BDD (conjunction of variables).
+ * @param g A variable-set BDD (as returned by bddsupport()).
  * @return The resulting BDD.
  */
 bddp bdduniv(bddp f, bddp g);

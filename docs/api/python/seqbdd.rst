@@ -94,6 +94,14 @@ SeqBDD Class
 
       Return string representation: ``SeqBDD(node_id=...)``.
 
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      SeqBDD cannot be converted to bool.
+
+      :raises TypeError: Always.
+
    .. py:method:: __str__()
 
       Return human-readable representation of all sequences.
@@ -167,6 +175,27 @@ SeqBDD Class
       :type: ZDD
 
       The internal ZDD representation.
+
+   I/O
+   ~~~
+
+   .. py:method:: export_str()
+
+      Export the internal ZDD in Sapporo format to a string.
+
+      :rtype: str
+
+   .. py:method:: export_file(path)
+
+      Export the internal ZDD in Sapporo format to a file.
+
+      :param str path: File path to write to.
+
+   .. py:method:: print_seq()
+
+      Print all sequences and return as string.
+
+      :rtype: str
 
    Static Methods
    ~~~~~~~~~~~~~~

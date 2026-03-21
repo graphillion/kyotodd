@@ -290,13 +290,13 @@ PYBIND11_MODULE(_core, m) {
 
         // Quantification (lambdas to avoid overload_cast requiring C++14)
         .def("exist", [](const BDD& f, const BDD& cube) { return f.Exist(cube); },
-             py::arg("cube"), "Existential quantification by cube BDD.")
+             py::arg("cube"), "Existential quantification by variable-set BDD (as returned by support()).")
         .def("exist", [](const BDD& f, const std::vector<bddvar>& vars) { return f.Exist(vars); },
              py::arg("vars"), "Existential quantification by variable list.")
         .def("exist", [](const BDD& f, bddvar var) { return f.Exist(var); },
              py::arg("var"), "Existential quantification of a single variable.")
         .def("univ", [](const BDD& f, const BDD& cube) { return f.Univ(cube); },
-             py::arg("cube"), "Universal quantification by cube BDD.")
+             py::arg("cube"), "Universal quantification by variable-set BDD (as returned by support()).")
         .def("univ", [](const BDD& f, const std::vector<bddvar>& vars) { return f.Univ(vars); },
              py::arg("vars"), "Universal quantification by variable list.")
         .def("univ", [](const BDD& f, bddvar var) { return f.Univ(var); },

@@ -160,6 +160,15 @@ BDD Class
 
       Return string representation: ``BDD(node_id=...)``.
 
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      BDD cannot be converted to bool. Use ``== BDD.false_`` or
+      ``== BDD.true_`` instead.
+
+      :raises TypeError: Always.
+
    Cofactoring
    -----------
 
@@ -196,7 +205,7 @@ BDD Class
 
       Can be called with:
 
-      - A BDD cube (conjunction of variables)
+      - A BDD encoding a set of variables (as returned by ``support()``)
       - A list of variable numbers
       - A single variable number
 
@@ -211,7 +220,7 @@ BDD Class
 
       Can be called with:
 
-      - A BDD cube (conjunction of variables)
+      - A BDD encoding a set of variables (as returned by ``support()``)
       - A list of variable numbers
       - A single variable number
 

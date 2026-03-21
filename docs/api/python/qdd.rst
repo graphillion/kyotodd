@@ -45,6 +45,19 @@ QDD Class
    .. py:method:: __ne__(other)
    .. py:method:: __hash__()
 
+   .. py:method:: __repr__()
+
+      Return string representation: ``QDD(node_id=...)``.
+
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      QDD cannot be converted to bool. Use ``== QDD.false_`` or
+      ``== QDD.true_`` instead.
+
+      :raises TypeError: Always.
+
    Node Creation
    ~~~~~~~~~~~~~
 

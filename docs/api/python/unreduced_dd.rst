@@ -54,6 +54,18 @@ UnreducedDD Class
    .. py:method:: __lt__(other)
    .. py:method:: __hash__()
 
+   .. py:method:: __repr__()
+
+      Return string representation: ``UnreducedDD(node_id=...)``.
+
+   .. py:method:: __bool__()
+
+      Always raises :exc:`TypeError`.
+
+      UnreducedDD cannot be converted to bool.
+
+      :raises TypeError: Always.
+
    Node Creation
    ~~~~~~~~~~~~~
 

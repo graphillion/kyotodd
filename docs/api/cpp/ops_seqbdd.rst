@@ -29,6 +29,10 @@ SeqBDD Class
 
       Copy constructor.
 
+   .. cpp:function:: SeqBDD(SeqBDD&& f)
+
+      Move constructor.
+
    .. cpp:function:: explicit SeqBDD(const ZDD& zbdd)
 
       Construct from a ZDD directly.

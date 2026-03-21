@@ -406,6 +406,9 @@ ZDD Class
 
       The number of sets in the family (cardinality).
 
+      .. deprecated::
+         Use :py:meth:`count` or :py:attr:`exact_count` instead.
+
    .. py:property:: exact_count
       :type: int
 
