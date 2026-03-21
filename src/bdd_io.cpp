@@ -514,7 +514,7 @@ static bool read_line(std::istream& strm, char* buf, size_t bufsize) {
 }
 
 template<typename Stream>
-static void knuth_export_core(Stream& strm, bddp f, bool is_hex, int offset) {
+static void knuth_export_core(Stream& strm, bddp f, bool is_hex, int offset, bool is_zdd) {
     if (f == bddnull)
         throw std::invalid_argument("knuth export: null node");
 
@@ -554,7 +554,10 @@ static void knuth_export_core(Stream& strm, bddp f, bool is_hex, int offset) {
         bool comp = (node & BDD_COMP_FLAG) != 0;
         bddp lo = node_lo(raw);
         bddp hi = node_hi(raw);
-        if (comp) lo = bddnot(lo);  // ZDD: only lo affected
+        if (comp) {
+            lo = bddnot(lo);
+            if (!is_zdd) hi = bddnot(hi);  // BDD: both children flipped
+        }
 
         if (!(hi & BDD_CONST_FLAG) && !id_map.count(hi))
             stack.push_back(std::make_pair(hi, false));
@@ -605,7 +608,10 @@ static void knuth_export_core(Stream& strm, bddp f, bool is_hex, int offset) {
 
         bddp lo = node_lo(raw);
         bddp hi = node_hi(raw);
-        if (comp) lo = bddnot(lo);
+        if (comp) {
+            lo = bddnot(lo);
+            if (!is_zdd) hi = bddnot(hi);  // BDD: both children flipped
+        }
 
         uint64_t nid = id_map[node];
         std::snprintf(buf, sizeof(buf), id_fmt, nid,
@@ -618,16 +624,16 @@ static void knuth_export_core(Stream& strm, bddp f, bool is_hex, int offset) {
 }
 
 void bdd_export_knuth(FILE* strm, bddp f, bool is_hex, int offset) {
-    knuth_export_core(strm, f, is_hex, offset);
+    knuth_export_core(strm, f, is_hex, offset, false);
 }
 void bdd_export_knuth(std::ostream& strm, bddp f, bool is_hex, int offset) {
-    knuth_export_core(strm, f, is_hex, offset);
+    knuth_export_core(strm, f, is_hex, offset, false);
 }
 void zdd_export_knuth(FILE* strm, bddp f, bool is_hex, int offset) {
-    knuth_export_core(strm, f, is_hex, offset);
+    knuth_export_core(strm, f, is_hex, offset, true);
 }
 void zdd_export_knuth(std::ostream& strm, bddp f, bool is_hex, int offset) {
-    knuth_export_core(strm, f, is_hex, offset);
+    knuth_export_core(strm, f, is_hex, offset, true);
 }
 
 // --- Knuth format import ---
@@ -670,6 +676,8 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
             if (current_knuth_level > max_knuth_level)
                 max_knuth_level = current_knuth_level;
         } else if (buf[0] != '\0') {
+            if (current_knuth_level == 0)
+                throw std::runtime_error("knuth import: node line before any level header");
             KnuthNode kn;
             kn.knuth_level = current_knuth_level;
             uint64_t id_val, lo_val, hi_val;
@@ -861,7 +869,7 @@ static void binary_export_core(Stream& strm, bddp f, uint8_t dd_type) {
         bddvar lev = var2level[node_var(all_nodes[i])];
         if (lev > max_level) max_level = lev;
     }
-    if (max_level == 0) max_level = 1;  // spec requires max_level >= 1
+    if (max_level == 0 && bddvarused() > 0) max_level = bddvarused();
 
     // Build ID mapping: physical bddp -> binary ID (even)
     std::unordered_map<bddp, uint64_t> id_map;
@@ -996,7 +1004,7 @@ static void binary_export_multi_core(Stream& strm, const bddp* roots, size_t num
         bddvar lev = var2level[node_var(all_nodes[i])];
         if (lev > max_level) max_level = lev;
     }
-    if (max_level == 0) max_level = 1;  // spec requires max_level >= 1
+    if (max_level == 0 && bddvarused() > 0) max_level = bddvarused();
 
     // Build ID mapping: physical bddp -> binary ID (even)
     std::unordered_map<bddp, uint64_t> id_map;
@@ -1089,8 +1097,17 @@ void qdd_export_binary_multi(std::ostream& strm, const bddp* roots, size_t n) { 
 
 // --- Binary format import ---
 
+static const char* dd_type_name(uint8_t t) {
+    switch (t) {
+        case 1: return "QDD";
+        case 2: return "BDD";
+        case 3: return "ZDD";
+        default: return "Unknown";
+    }
+}
+
 template<typename Stream>
-static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t make_node) {
+static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t make_node, uint8_t expected_type) {
     // --- Read magic ---
     uint8_t magic[3];
     if (!read_bytes(strm, magic, 3) ||
@@ -1106,7 +1123,15 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
     if (version != 1)
         throw std::runtime_error("binary import: unsupported version");
 
-    // uint8_t dd_type = header[1];  // we don't enforce type mismatch
+    uint8_t dd_type = header[1];
+    if (expected_type != 0 && dd_type != expected_type) {
+        throw std::runtime_error(
+            std::string("binary import: type mismatch: expected ") +
+            dd_type_name(expected_type) + " (type=" +
+            std::to_string(static_cast<int>(expected_type)) +
+            ") but file contains " + dd_type_name(dd_type) +
+            " (type=" + std::to_string(static_cast<int>(dd_type)) + ")");
+    }
     uint16_t num_arcs = decode_le16(header + 2);
     uint32_t num_terminals = decode_le32(header + 4);
     // header[8]: bits_for_level (unused)
@@ -1119,8 +1144,6 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
         throw std::runtime_error("binary import: number_of_arcs < 2");
     if (bits_for_id == 0 || bits_for_id % 8 != 0)
         throw std::runtime_error("binary import: bits_for_id must be a multiple of 8");
-    if (max_level < 1)
-        throw std::runtime_error("binary import: max_level < 1");
 
     int id_bytes = bits_for_id / 8;
     uint32_t t = num_terminals;
@@ -1247,28 +1270,28 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
 }
 
 template<typename Stream>
-static bddp binary_import_core(Stream& strm, import_nodefn_t make_node) {
-    std::vector<bddp> results = binary_import_multi_core(strm, make_node);
+static bddp binary_import_core(Stream& strm, import_nodefn_t make_node, uint8_t expected_type) {
+    std::vector<bddp> results = binary_import_multi_core(strm, make_node, expected_type);
     if (results.empty())
         throw std::runtime_error("binary import: number_of_roots < 1");
     return results[0];
 }
 
-bddp bdd_import_binary(FILE* strm) { return binary_import_core(strm, BDD::getnode_raw); }
-bddp bdd_import_binary(std::istream& strm) { return binary_import_core(strm, BDD::getnode_raw); }
-bddp zdd_import_binary(FILE* strm) { return binary_import_core(strm, ZDD::getnode_raw); }
-bddp zdd_import_binary(std::istream& strm) { return binary_import_core(strm, ZDD::getnode_raw); }
-bddp qdd_import_binary(FILE* strm) { return binary_import_core(strm, QDD::getnode_raw); }
-bddp qdd_import_binary(std::istream& strm) { return binary_import_core(strm, QDD::getnode_raw); }
-bddp unreduced_import_binary(FILE* strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
-bddp unreduced_import_binary(std::istream& strm) { return binary_import_core(strm, UnreducedDD::getnode_raw); }
+bddp bdd_import_binary(FILE* strm, bool ignore_type) { return binary_import_core(strm, BDD::getnode_raw, ignore_type ? 0 : 2); }
+bddp bdd_import_binary(std::istream& strm, bool ignore_type) { return binary_import_core(strm, BDD::getnode_raw, ignore_type ? 0 : 2); }
+bddp zdd_import_binary(FILE* strm, bool ignore_type) { return binary_import_core(strm, ZDD::getnode_raw, ignore_type ? 0 : 3); }
+bddp zdd_import_binary(std::istream& strm, bool ignore_type) { return binary_import_core(strm, ZDD::getnode_raw, ignore_type ? 0 : 3); }
+bddp qdd_import_binary(FILE* strm, bool ignore_type) { return binary_import_core(strm, QDD::getnode_raw, ignore_type ? 0 : 1); }
+bddp qdd_import_binary(std::istream& strm, bool ignore_type) { return binary_import_core(strm, QDD::getnode_raw, ignore_type ? 0 : 1); }
+bddp unreduced_import_binary(FILE* strm) { return binary_import_core(strm, UnreducedDD::getnode_raw, 0); }
+bddp unreduced_import_binary(std::istream& strm) { return binary_import_core(strm, UnreducedDD::getnode_raw, 0); }
 
-std::vector<bddp> bdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, BDD::getnode_raw); }
-std::vector<bddp> bdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, BDD::getnode_raw); }
-std::vector<bddp> zdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, ZDD::getnode_raw); }
-std::vector<bddp> zdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, ZDD::getnode_raw); }
-std::vector<bddp> qdd_import_binary_multi(FILE* strm) { return binary_import_multi_core(strm, QDD::getnode_raw); }
-std::vector<bddp> qdd_import_binary_multi(std::istream& strm) { return binary_import_multi_core(strm, QDD::getnode_raw); }
+std::vector<bddp> bdd_import_binary_multi(FILE* strm, bool ignore_type) { return binary_import_multi_core(strm, BDD::getnode_raw, ignore_type ? 0 : 2); }
+std::vector<bddp> bdd_import_binary_multi(std::istream& strm, bool ignore_type) { return binary_import_multi_core(strm, BDD::getnode_raw, ignore_type ? 0 : 2); }
+std::vector<bddp> zdd_import_binary_multi(FILE* strm, bool ignore_type) { return binary_import_multi_core(strm, ZDD::getnode_raw, ignore_type ? 0 : 3); }
+std::vector<bddp> zdd_import_binary_multi(std::istream& strm, bool ignore_type) { return binary_import_multi_core(strm, ZDD::getnode_raw, ignore_type ? 0 : 3); }
+std::vector<bddp> qdd_import_binary_multi(FILE* strm, bool ignore_type) { return binary_import_multi_core(strm, QDD::getnode_raw, ignore_type ? 0 : 1); }
+std::vector<bddp> qdd_import_binary_multi(std::istream& strm, bool ignore_type) { return binary_import_multi_core(strm, QDD::getnode_raw, ignore_type ? 0 : 1); }
 
 // --- Sapporo format save/load wrappers ---
 
@@ -1283,13 +1306,17 @@ void bdd_export_sapporo(std::ostream& strm, bddp f) {
 bddp bdd_import_sapporo(FILE* strm) {
     bddp p = bddnull;
     int ret = bddimport(strm, &p, 1);
-    return (ret <= 0) ? bddfalse : p;
+    if (ret <= 0)
+        throw std::runtime_error("sapporo import: parse error");
+    return p;
 }
 
 bddp bdd_import_sapporo(std::istream& strm) {
     bddp p = bddnull;
     int ret = bddimport(strm, &p, 1);
-    return (ret <= 0) ? bddfalse : p;
+    if (ret <= 0)
+        throw std::runtime_error("sapporo import: parse error");
+    return p;
 }
 
 void zdd_export_sapporo(FILE* strm, bddp f) {
@@ -1303,13 +1330,17 @@ void zdd_export_sapporo(std::ostream& strm, bddp f) {
 bddp zdd_import_sapporo(FILE* strm) {
     bddp p = bddnull;
     int ret = bddimportz(strm, &p, 1);
-    return (ret <= 0) ? bddempty : p;
+    if (ret <= 0)
+        throw std::runtime_error("sapporo import: parse error");
+    return p;
 }
 
 bddp zdd_import_sapporo(std::istream& strm) {
     bddp p = bddnull;
     int ret = bddimportz(strm, &p, 1);
-    return (ret <= 0) ? bddempty : p;
+    if (ret <= 0)
+        throw std::runtime_error("sapporo import: parse error");
+    return p;
 }
 
 // --- Graphillion format save/load ---
@@ -1485,7 +1516,10 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
 
     // Determine max level needed and ensure variables exist
     // max level = N + 1 - 1 + offset = N + offset (for g_var=1, nearest root)
-    bddvar max_level = static_cast<bddvar>(static_cast<int>(N) + offset);
+    int max_level_signed = static_cast<int>(N) + offset;
+    if (max_level_signed < 1)
+        throw std::runtime_error("zdd_import_graphillion: offset too negative (max_level < 1)");
+    bddvar max_level = static_cast<bddvar>(max_level_signed);
     while (bddvarused() < max_level) bddnewvar();
 
     // Map: file node ID (string) → internal bddp

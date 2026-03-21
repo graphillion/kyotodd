@@ -271,12 +271,12 @@ inline void BDD::export_binary(std::ostream& strm) const {
     bdd_export_binary(strm, root);
 }
 
-inline BDD BDD::import_binary(FILE* strm) {
-    return BDD_ID(bdd_import_binary(strm));
+inline BDD BDD::import_binary(FILE* strm, bool ignore_type) {
+    return BDD_ID(bdd_import_binary(strm, ignore_type));
 }
 
-inline BDD BDD::import_binary(std::istream& strm) {
-    return BDD_ID(bdd_import_binary(strm));
+inline BDD BDD::import_binary(std::istream& strm, bool ignore_type) {
+    return BDD_ID(bdd_import_binary(strm, ignore_type));
 }
 
 inline void BDD::export_binary_multi(FILE* strm, const std::vector<BDD>& bdds) {
@@ -293,16 +293,16 @@ inline void BDD::export_binary_multi(std::ostream& strm, const std::vector<BDD>&
     bdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
-inline std::vector<BDD> BDD::import_binary_multi(FILE* strm) {
-    std::vector<bddp> raw = bdd_import_binary_multi(strm);
+inline std::vector<BDD> BDD::import_binary_multi(FILE* strm, bool ignore_type) {
+    std::vector<bddp> raw = bdd_import_binary_multi(strm, ignore_type);
     std::vector<BDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(BDD_ID(raw[i]));
     return result;
 }
 
-inline std::vector<BDD> BDD::import_binary_multi(std::istream& strm) {
-    std::vector<bddp> raw = bdd_import_binary_multi(strm);
+inline std::vector<BDD> BDD::import_binary_multi(std::istream& strm, bool ignore_type) {
+    std::vector<bddp> raw = bdd_import_binary_multi(strm, ignore_type);
     std::vector<BDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(BDD_ID(raw[i]));
@@ -703,12 +703,12 @@ inline void ZDD::export_binary(std::ostream& strm) const {
     zdd_export_binary(strm, root);
 }
 
-inline ZDD ZDD::import_binary(FILE* strm) {
-    return ZDD_ID(zdd_import_binary(strm));
+inline ZDD ZDD::import_binary(FILE* strm, bool ignore_type) {
+    return ZDD_ID(zdd_import_binary(strm, ignore_type));
 }
 
-inline ZDD ZDD::import_binary(std::istream& strm) {
-    return ZDD_ID(zdd_import_binary(strm));
+inline ZDD ZDD::import_binary(std::istream& strm, bool ignore_type) {
+    return ZDD_ID(zdd_import_binary(strm, ignore_type));
 }
 
 inline void ZDD::export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds) {
@@ -725,16 +725,16 @@ inline void ZDD::export_binary_multi(std::ostream& strm, const std::vector<ZDD>&
     zdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
-inline std::vector<ZDD> ZDD::import_binary_multi(FILE* strm) {
-    std::vector<bddp> raw = zdd_import_binary_multi(strm);
+inline std::vector<ZDD> ZDD::import_binary_multi(FILE* strm, bool ignore_type) {
+    std::vector<bddp> raw = zdd_import_binary_multi(strm, ignore_type);
     std::vector<ZDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(ZDD_ID(raw[i]));
     return result;
 }
 
-inline std::vector<ZDD> ZDD::import_binary_multi(std::istream& strm) {
-    std::vector<bddp> raw = zdd_import_binary_multi(strm);
+inline std::vector<ZDD> ZDD::import_binary_multi(std::istream& strm, bool ignore_type) {
+    std::vector<bddp> raw = zdd_import_binary_multi(strm, ignore_type);
     std::vector<ZDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(ZDD_ID(raw[i]));
@@ -973,11 +973,11 @@ inline void QDD::export_binary(FILE* strm) const {
 inline void QDD::export_binary(std::ostream& strm) const {
     qdd_export_binary(strm, root);
 }
-inline QDD QDD::import_binary(FILE* strm) {
-    return QDD_ID(qdd_import_binary(strm));
+inline QDD QDD::import_binary(FILE* strm, bool ignore_type) {
+    return QDD_ID(qdd_import_binary(strm, ignore_type));
 }
-inline QDD QDD::import_binary(std::istream& strm) {
-    return QDD_ID(qdd_import_binary(strm));
+inline QDD QDD::import_binary(std::istream& strm, bool ignore_type) {
+    return QDD_ID(qdd_import_binary(strm, ignore_type));
 }
 
 inline void QDD::export_binary_multi(FILE* strm, const std::vector<QDD>& qdds) {
@@ -994,16 +994,16 @@ inline void QDD::export_binary_multi(std::ostream& strm, const std::vector<QDD>&
     qdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
-inline std::vector<QDD> QDD::import_binary_multi(FILE* strm) {
-    std::vector<bddp> raw = qdd_import_binary_multi(strm);
+inline std::vector<QDD> QDD::import_binary_multi(FILE* strm, bool ignore_type) {
+    std::vector<bddp> raw = qdd_import_binary_multi(strm, ignore_type);
     std::vector<QDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(QDD_ID(raw[i]));
     return result;
 }
 
-inline std::vector<QDD> QDD::import_binary_multi(std::istream& strm) {
-    std::vector<bddp> raw = qdd_import_binary_multi(strm);
+inline std::vector<QDD> QDD::import_binary_multi(std::istream& strm, bool ignore_type) {
+    std::vector<bddp> raw = qdd_import_binary_multi(strm, ignore_type);
     std::vector<QDD> result;
     result.reserve(raw.size());
     for (size_t i = 0; i < raw.size(); i++) result.push_back(QDD_ID(raw[i]));

@@ -3,6 +3,7 @@
 #include "bdd_internal.h"
 #include "bigint.hpp"
 #include <algorithm>
+#include <cstring>
 #include <random>
 #include <sstream>
 #include <unordered_set>
@@ -9978,6 +9979,12 @@ TEST_F(BDDTest, Graphillion_FileRoundtrip) {
     EXPECT_EQ(f.enumerate(), g.enumerate());
 }
 
+TEST_F(BDDTest, Graphillion_NegativeOffsetUnderflow) {
+    // offset too negative should throw, not cause unsigned underflow
+    std::istringstream iss("1 2 3\n.\n");
+    EXPECT_THROW(ZDD::import_graphillion(iss, -100), std::runtime_error);
+}
+
 // --- Sapporo format export/import tests ---
 
 TEST_F(BDDTest, Sapporo_BDD_RoundtripStream) {
@@ -10080,6 +10087,23 @@ TEST_F(BDDTest, Sapporo_CLevel_ZDD) {
     bddp g = zdd_import_sapporo(iss);
     ZDD gz = ZDD_ID(g);
     EXPECT_EQ(f.enumerate(), gz.enumerate());
+}
+
+// --- Sapporo import error handling tests ---
+
+TEST_F(BDDTest, Sapporo_BDD_InvalidInputThrows) {
+    std::istringstream iss("garbage\n");
+    EXPECT_THROW(BDD::import_sapporo(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_InvalidInputThrows) {
+    std::istringstream iss("garbage\n");
+    EXPECT_THROW(ZDD::import_sapporo(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Sapporo_BDD_EmptyInputThrows) {
+    std::istringstream iss("");
+    EXPECT_THROW(BDD::import_sapporo(iss), std::runtime_error);
 }
 
 // --- Binary format export/import tests ---
@@ -10419,6 +10443,109 @@ TEST_F(BDDTest, BinaryMulti_CLevel_ZDD) {
     EXPECT_EQ(ZDD_ID(result[0]).enumerate(), f.enumerate());
 }
 
+// --- Binary import type validation tests ---
+
+TEST_F(BDDTest, Binary_TypeMismatch_BDD_from_ZDD) {
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}};
+    ZDD z = ZDD::from_sets(sets);
+    std::ostringstream oss;
+    z.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(BDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_ZDD_from_BDD) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(ZDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_QDD_from_BDD) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(QDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_IgnoreType) {
+    ZDD z = ZDD::from_sets({{1, 2}, {3}});
+    std::ostringstream oss;
+    z.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(BDD::import_binary(iss, true));
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_UnreducedDD_AcceptsAny) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(UnreducedDD::import_binary(iss));
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_UnreducedDD_AcceptsZDD) {
+    ZDD z = ZDD::from_sets({{1}, {2}});
+    std::ostringstream oss;
+    z.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(UnreducedDD::import_binary(iss));
+}
+
+TEST_F(BDDTest, BinaryMulti_TypeMismatch_ZDD_from_BDD) {
+    BDD f1 = BDD::prime(1);
+    BDD f2 = BDD::prime(2);
+    std::vector<BDD> bdds = {f1, f2};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(ZDD::import_binary_multi(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, BinaryMulti_TypeMismatch_IgnoreType) {
+    BDD f1 = BDD::prime(1);
+    BDD f2 = BDD::prime(2);
+    std::vector<BDD> bdds = {f1, f2};
+    std::ostringstream oss;
+    BDD::export_binary_multi(oss, bdds);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(ZDD::import_binary_multi(iss, true));
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_ErrorMessage) {
+    ZDD z = ZDD::from_sets({{1}});
+    std::ostringstream oss;
+    z.export_binary(oss);
+    std::istringstream iss(oss.str());
+    try {
+        BDD::import_binary(iss);
+        FAIL() << "Expected runtime_error";
+    } catch (const std::runtime_error& e) {
+        std::string msg = e.what();
+        EXPECT_NE(msg.find("type mismatch"), std::string::npos);
+        EXPECT_NE(msg.find("BDD"), std::string::npos);
+        EXPECT_NE(msg.find("ZDD"), std::string::npos);
+    }
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_CLevel_BDD_from_ZDD) {
+    ZDD z = ZDD::from_sets({{1, 2}});
+    std::ostringstream oss;
+    zdd_export_binary(oss, z.GetID());
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Binary_TypeMismatch_CLevel_IgnoreType) {
+    ZDD z = ZDD::from_sets({{1, 2}});
+    std::ostringstream oss;
+    zdd_export_binary(oss, z.GetID());
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(bdd_import_binary(iss, true));
+}
+
 // --- Knuth format export/import tests (obsolete format) ---
 
 TEST_F(BDDTest, Knuth_ZDD_TerminalEmpty) {
@@ -10569,6 +10696,60 @@ TEST_F(BDDTest, Knuth_CLevel) {
     bddp g = zdd_import_knuth(iss);
     ZDD gz = ZDD_ID(g);
     EXPECT_EQ(f.enumerate(), gz.enumerate());
+}
+
+// --- Knuth export/import fix tests ---
+
+TEST_F(BDDTest, Knuth_BDD_ComplementEdge) {
+    // BDD complement edge roundtrip: ~x1 should survive export/import
+    BDD f = ~BDD::prime(1);
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_knuth(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Knuth_BDD_ComplementComplex) {
+    // More complex BDD with complement edges
+    BDD f = ~(BDD::prime(1) & BDD::prime(2));
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    std::istringstream iss(oss.str());
+    BDD g = BDD::import_knuth(iss);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(BDDTest, Knuth_ImportNoLevelHeader) {
+    // Node line without preceding level header should throw
+    std::istringstream iss("2:0,1\n");
+    EXPECT_THROW(ZDD::import_knuth(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, Knuth_ImportNoLevelHeaderBDD) {
+    std::istringstream iss("2:0,1\n");
+    EXPECT_THROW(BDD::import_knuth(iss), std::runtime_error);
+}
+
+// --- Binary import terminal-only no variable pollution ---
+
+TEST_F(BDDTest, Binary_TerminalOnly_NoVariablePollution) {
+    // Importing a terminal-only binary should not create variables
+    // when none existed before.
+    // Note: this test relies on being in a fresh bddinit state.
+    // We test by checking that the export of False doesn't force max_level=1.
+    BDD f = BDD::False;
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::string data = oss.str();
+    // The header byte at offset 3+11 (magic 3 + header offset 11) = byte 14
+    // is the start of max_level (uint64_t LE). For terminal-only, it should be 0.
+    // magic(3) + version(1) = offset 4 in header, dd_type(1), num_arcs(2),
+    // num_terminals(4), bits_for_level(1), bits_for_id(1), use_neg(1), max_level starts at header[11]
+    // total offset from start: 3 (magic) + 11 = 14
+    uint64_t max_level = 0;
+    std::memcpy(&max_level, data.data() + 14, 8);
+    EXPECT_EQ(max_level, 0u);
 }
 
 // --- BDD::getnode level validation ---

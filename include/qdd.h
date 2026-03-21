@@ -129,18 +129,19 @@ public:
     void export_binary(FILE* strm) const;
     /** @brief Export this QDD in BDD binary format to an output stream. */
     void export_binary(std::ostream& strm) const;
-    /** @brief Import a QDD from BDD binary format from a FILE stream. */
-    static QDD import_binary(FILE* strm);
+    /** @brief Import a QDD from BDD binary format from a FILE stream.
+     *  @param ignore_type If true, skip dd_type validation (default: false). */
+    static QDD import_binary(FILE* strm, bool ignore_type = false);
     /** @brief Import a QDD from BDD binary format from an input stream. */
-    static QDD import_binary(std::istream& strm);
+    static QDD import_binary(std::istream& strm, bool ignore_type = false);
     /** @brief Export multiple QDDs in binary format to a FILE stream. */
     static void export_binary_multi(FILE* strm, const std::vector<QDD>& qdds);
     /** @brief Export multiple QDDs in binary format to an output stream. */
     static void export_binary_multi(std::ostream& strm, const std::vector<QDD>& qdds);
     /** @brief Import multiple QDDs from binary format from a FILE stream. */
-    static std::vector<QDD> import_binary_multi(FILE* strm);
+    static std::vector<QDD> import_binary_multi(FILE* strm, bool ignore_type = false);
     /** @brief Import multiple QDDs from binary format from an input stream. */
-    static std::vector<QDD> import_binary_multi(std::istream& strm);
+    static std::vector<QDD> import_binary_multi(std::istream& strm, bool ignore_type = false);
 
     // --- Conversion ---
 

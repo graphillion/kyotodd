@@ -359,18 +359,19 @@ public:
     void export_binary(FILE* strm) const;
     /** @brief Export this BDD in BDD binary format to an output stream. */
     void export_binary(std::ostream& strm) const;
-    /** @brief Import a BDD from BDD binary format from a FILE stream. */
-    static BDD import_binary(FILE* strm);
+    /** @brief Import a BDD from BDD binary format from a FILE stream.
+     *  @param ignore_type If true, skip dd_type validation (default: false). */
+    static BDD import_binary(FILE* strm, bool ignore_type = false);
     /** @brief Import a BDD from BDD binary format from an input stream. */
-    static BDD import_binary(std::istream& strm);
+    static BDD import_binary(std::istream& strm, bool ignore_type = false);
     /** @brief Export multiple BDDs in binary format to a FILE stream. */
     static void export_binary_multi(FILE* strm, const std::vector<BDD>& bdds);
     /** @brief Export multiple BDDs in binary format to an output stream. */
     static void export_binary_multi(std::ostream& strm, const std::vector<BDD>& bdds);
     /** @brief Import multiple BDDs from binary format from a FILE stream. */
-    static std::vector<BDD> import_binary_multi(FILE* strm);
+    static std::vector<BDD> import_binary_multi(FILE* strm, bool ignore_type = false);
     /** @brief Import multiple BDDs from binary format from an input stream. */
-    static std::vector<BDD> import_binary_multi(std::istream& strm);
+    static std::vector<BDD> import_binary_multi(std::istream& strm, bool ignore_type = false);
     /** @deprecated Use export_sapporo() or export_binary() instead. */
     void export_knuth(FILE* strm, bool is_hex = false, int offset = 0) const;
     /** @deprecated Use export_sapporo() or export_binary() instead. */
@@ -840,18 +841,19 @@ public:
     void export_binary(FILE* strm) const;
     /** @brief Export this ZDD in BDD binary format to an output stream. */
     void export_binary(std::ostream& strm) const;
-    /** @brief Import a ZDD from BDD binary format from a FILE stream. */
-    static ZDD import_binary(FILE* strm);
+    /** @brief Import a ZDD from BDD binary format from a FILE stream.
+     *  @param ignore_type If true, skip dd_type validation (default: false). */
+    static ZDD import_binary(FILE* strm, bool ignore_type = false);
     /** @brief Import a ZDD from BDD binary format from an input stream. */
-    static ZDD import_binary(std::istream& strm);
+    static ZDD import_binary(std::istream& strm, bool ignore_type = false);
     /** @brief Export multiple ZDDs in binary format to a FILE stream. */
     static void export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds);
     /** @brief Export multiple ZDDs in binary format to an output stream. */
     static void export_binary_multi(std::ostream& strm, const std::vector<ZDD>& zdds);
     /** @brief Import multiple ZDDs from binary format from a FILE stream. */
-    static std::vector<ZDD> import_binary_multi(FILE* strm);
+    static std::vector<ZDD> import_binary_multi(FILE* strm, bool ignore_type = false);
     /** @brief Import multiple ZDDs from binary format from an input stream. */
-    static std::vector<ZDD> import_binary_multi(std::istream& strm);
+    static std::vector<ZDD> import_binary_multi(std::istream& strm, bool ignore_type = false);
     /** @deprecated Use export_sapporo() or export_binary() instead. */
     void export_knuth(FILE* strm, bool is_hex = false, int offset = 0) const;
     /** @deprecated Use export_sapporo() or export_binary() instead. */

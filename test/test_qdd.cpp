@@ -574,3 +574,37 @@ TEST_F(QDDTest, BinaryMulti_FILE) {
     EXPECT_EQ(result[0], f1);
     EXPECT_EQ(result[1], f2);
 }
+
+// --- Binary import type validation tests ---
+
+TEST_F(QDDTest, Binary_TypeMismatch_QDD_from_BDD) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(QDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(QDDTest, Binary_TypeMismatch_QDD_from_ZDD) {
+    ZDD z = ZDD::from_sets({{1}});
+    std::ostringstream oss;
+    z.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_THROW(QDD::import_binary(iss), std::runtime_error);
+}
+
+TEST_F(QDDTest, Binary_TypeMismatch_IgnoreType) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    std::ostringstream oss;
+    f.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(QDD::import_binary(iss, true));
+}
+
+TEST_F(QDDTest, Binary_TypeMatch_QDD) {
+    QDD q = BDD(BDD::prime(1) & BDD::prime(2)).to_qdd();
+    std::ostringstream oss;
+    q.export_binary(oss);
+    std::istringstream iss(oss.str());
+    EXPECT_NO_THROW(QDD::import_binary(iss));
+}

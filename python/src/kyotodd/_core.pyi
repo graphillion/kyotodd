@@ -444,7 +444,7 @@ class BDD:
         ...
 
     @staticmethod
-    def import_binary_str(data: bytes) -> BDD:
+    def import_binary_str(data: bytes, ignore_type: bool = False) -> BDD:
         """Import a BDD from binary format bytes."""
         ...
 
@@ -457,11 +457,12 @@ class BDD:
         ...
 
     @staticmethod
-    def import_binary_file(path: str) -> BDD:
+    def import_binary_file(path: str, ignore_type: bool = False) -> BDD:
         """Import a BDD from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
 
         Returns:
             The reconstructed BDD.
@@ -478,7 +479,7 @@ class BDD:
         ...
 
     @staticmethod
-    def import_binary_multi_str(data: bytes) -> List[BDD]:
+    def import_binary_multi_str(data: bytes, ignore_type: bool = False) -> List[BDD]:
         """Import multiple BDDs from binary format bytes."""
         ...
 
@@ -493,11 +494,12 @@ class BDD:
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str) -> List[BDD]:
+    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[BDD]:
         """Import multiple BDDs from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
         """
         ...
 
@@ -1260,7 +1262,7 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_binary_str(data: bytes) -> ZDD:
+    def import_binary_str(data: bytes, ignore_type: bool = False) -> ZDD:
         """Import a ZDD from binary format bytes."""
         ...
 
@@ -1273,11 +1275,12 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_binary_file(path: str) -> ZDD:
+    def import_binary_file(path: str, ignore_type: bool = False) -> ZDD:
         """Import a ZDD from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
         """
         ...
 
@@ -1291,7 +1294,7 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_binary_multi_str(data: bytes) -> List[ZDD]:
+    def import_binary_multi_str(data: bytes, ignore_type: bool = False) -> List[ZDD]:
         """Import multiple ZDDs from binary format bytes."""
         ...
 
@@ -1306,11 +1309,12 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str) -> List[ZDD]:
+    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[ZDD]:
         """Import multiple ZDDs from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
         """
         ...
 
@@ -2072,7 +2076,7 @@ class QDD:
         ...
 
     @staticmethod
-    def import_binary_str(data: bytes) -> QDD:
+    def import_binary_str(data: bytes, ignore_type: bool = False) -> QDD:
         """Import a QDD from binary format bytes."""
         ...
 
@@ -2085,11 +2089,12 @@ class QDD:
         ...
 
     @staticmethod
-    def import_binary_file(path: str) -> QDD:
+    def import_binary_file(path: str, ignore_type: bool = False) -> QDD:
         """Import a QDD from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
         """
         ...
 
@@ -2103,7 +2108,7 @@ class QDD:
         ...
 
     @staticmethod
-    def import_binary_multi_str(data: bytes) -> List[QDD]:
+    def import_binary_multi_str(data: bytes, ignore_type: bool = False) -> List[QDD]:
         """Import multiple QDDs from binary format bytes."""
         ...
 
@@ -2118,11 +2123,12 @@ class QDD:
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str) -> List[QDD]:
+    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[QDD]:
         """Import multiple QDDs from a binary format file.
 
         Args:
             path: File path to read from.
+            ignore_type: If True, skip dd_type validation.
         """
         ...
 
@@ -2492,11 +2498,11 @@ class SeqBDD:
         ...
 
     def export_str(self) -> str:
-        """Export all sequences as a string."""
+        """Export the internal ZDD in Sapporo format to a string."""
         ...
 
     def export_file(self, path: str) -> None:
-        """Export all sequences to a file.
+        """Export the internal ZDD in Sapporo format to a file.
 
         Args:
             path: File path to write to.

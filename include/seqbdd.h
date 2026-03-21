@@ -123,12 +123,12 @@ public:
     /** @brief Print all sequences to stdout. */
     void print() const;
     /**
-     * @brief Export all sequences to a FILE stream.
+     * @brief Export the internal ZDD in Sapporo format to a FILE stream.
      * @param strm FILE pointer (default: stdout).
      */
     void export_to(FILE* strm = stdout) const;
     /**
-     * @brief Export all sequences to an output stream.
+     * @brief Export the internal ZDD in Sapporo format to an output stream.
      * @param strm Output stream.
      */
     void export_to(std::ostream& strm) const;
