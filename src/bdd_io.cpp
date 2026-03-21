@@ -1144,6 +1144,10 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
         throw std::runtime_error("binary import: number_of_arcs < 2");
     if (bits_for_id == 0 || bits_for_id % 8 != 0)
         throw std::runtime_error("binary import: bits_for_id must be a multiple of 8");
+    if (max_level > bdd_node_max)
+        throw std::runtime_error("binary import: max_level exceeds node limit");
+    if (num_roots > bdd_node_max)
+        throw std::runtime_error("binary import: num_roots exceeds node limit");
 
     int id_bytes = bits_for_id / 8;
     uint32_t t = num_terminals;
@@ -1158,7 +1162,11 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
     }
 
     uint64_t total_nodes = 0;
-    for (uint64_t l = 0; l < max_level; l++) total_nodes += level_counts[l];
+    for (uint64_t l = 0; l < max_level; l++) {
+        if (total_nodes > UINT64_MAX - level_counts[l])
+            throw std::runtime_error("binary import: total_nodes overflow");
+        total_nodes += level_counts[l];
+    }
 
     // --- Read root IDs ---
     std::vector<uint64_t> root_ids(num_roots);

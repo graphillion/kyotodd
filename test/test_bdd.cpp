@@ -11251,3 +11251,32 @@ TEST_F(BDDTest, RecurGuard_CountingFunctions) {
     EXPECT_EQ(BDD_RecurCount, 0);
 }
 
+/* ---- binary_import_multi_core bounds checks ---- */
+TEST_F(BDDTest, BinaryImport_MaxLevelExceedsLimit) {
+    /* Craft a minimal binary header with max_level = UINT64_MAX */
+    std::string data;
+    /* Magic: BDD */
+    data += std::string("\x42\x44\x44", 3);
+    /* Header: 91 bytes */
+    uint8_t header[91] = {};
+    header[0] = 1;  // version
+    header[1] = 2;  // dd_type = BDD
+    /* num_arcs = 2 (little-endian 16-bit) */
+    header[2] = 2; header[3] = 0;
+    /* num_terminals = 2 (little-endian 32-bit) */
+    header[4] = 2; header[5] = 0; header[6] = 0; header[7] = 0;
+    /* bits_for_level = 64 */
+    header[8] = 64;
+    /* bits_for_id = 8 */
+    header[9] = 8;
+    /* use_neg = 0 */
+    header[10] = 0;
+    /* max_level = UINT64_MAX (little-endian 64-bit) */
+    for (int i = 0; i < 8; i++) header[11 + i] = 0xFF;
+    /* num_roots = 1 (little-endian 64-bit) */
+    header[19] = 1;
+    data.append(reinterpret_cast<char*>(header), 91);
+    std::istringstream iss(data);
+    EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
+}
+
