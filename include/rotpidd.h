@@ -327,11 +327,12 @@ public:
      *
      * @param used_set  Bitmask of already-assigned positions.
      * @param unused_list List of unassigned positions.
-     * @param n         Total number of positions.
+     * @param n         Total number of positions (must be <= 63).
      * @param hash      Memoization table (modified in place).
      * @param w         Weight matrix: w[i][j] is the weight for assigning
      *                  position i to value j.
      * @return The maximum contradiction value.
+     * @throws std::invalid_argument if n > 63.
      */
     long long int contradictionMaximization(
         unsigned long long int used_set,

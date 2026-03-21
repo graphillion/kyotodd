@@ -353,3 +353,35 @@ TEST_F(RotPiDDTest, OddEven_Terminal_NoNewVar) {
     RotPiDD even = identity.Even();
     EXPECT_EQ(even.Card(), 1u);
 }
+
+/* ---- contradictionMaximization ---- */
+TEST_F(RotPiDDTest, ContradictionMaximization_NExceeds63) {
+    RotPiDD_NewVar();
+    RotPiDD identity(1);
+    unsigned long long int used_set = 0;
+    std::vector<int> unused_list;
+    for (int i = 1; i <= 64; ++i) unused_list.push_back(i);
+    std::unordered_map<
+        std::pair<bddp, unsigned long long int>,
+        long long int, RotPiDD::hash_func> hash;
+    std::vector<std::vector<int>> w(65, std::vector<int>(65, 0));
+    EXPECT_THROW(identity.contradictionMaximization(used_set, unused_list, 64, hash, w),
+                 std::invalid_argument);
+}
+
+TEST_F(RotPiDDTest, ContradictionMaximization_Small) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+
+    RotPiDD p = RotPiDD::VECtoRotPiDD({2, 1, 3}) + RotPiDD::VECtoRotPiDD({1, 3, 2});
+    unsigned long long int used_set = 0;
+    std::vector<int> unused_list = {1, 2, 3};
+    std::unordered_map<
+        std::pair<bddp, unsigned long long int>,
+        long long int, RotPiDD::hash_func> hash;
+    // w[i][j] = 1 for all i,j: any permutation scores the same
+    std::vector<std::vector<int>> w(4, std::vector<int>(4, 1));
+    long long int result = p.contradictionMaximization(used_set, unused_list, 3, hash, w);
+    EXPECT_GE(result, 0);
+}

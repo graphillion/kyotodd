@@ -1,11 +1,14 @@
 log/
 build/
+build-fix
 __pycache__/
 *.egg-info/
 dist/
 *.so
 *.pyd
+review*.md
 python/build/
+.venv/
 python/.venv/
 docs/_build/
 docs/_doxygen/

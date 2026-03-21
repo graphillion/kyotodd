@@ -784,6 +784,9 @@ long long int RotPiDD::contradictionMaximization(
     std::unordered_map< std::pair<bddp, unsigned long long int>, long long int, hash_func >& hash,
     const std::vector< std::vector<int> >& w) const
 {
+    if (n > 63)
+        throw std::invalid_argument(
+            "contradictionMaximization: n exceeds 63 (bitmask limit)");
     if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull)
         return -1000000000LL;
 

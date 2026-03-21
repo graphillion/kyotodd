@@ -1611,6 +1611,18 @@ PYBIND11_MODULE(_core, m) {
         .def("contradiction_maximization",
             [](const RotPiDD& p, int n,
                const std::vector<std::vector<int>>& w) -> long long int {
+            if (n < 0)
+                throw std::invalid_argument(
+                    "contradiction_maximization: n must be non-negative");
+            size_t required = static_cast<size_t>(n) + 1;
+            if (w.size() < required)
+                throw std::invalid_argument(
+                    "contradiction_maximization: w must have at least n+1 rows");
+            for (size_t i = 0; i < required; ++i) {
+                if (w[i].size() < required)
+                    throw std::invalid_argument(
+                        "contradiction_maximization: each row of w must have at least n+1 elements");
+            }
             unsigned long long int used_set = 0;
             std::vector<int> unused_list;
             for (int i = 1; i <= n; ++i) {
