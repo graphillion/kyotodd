@@ -223,23 +223,34 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `include/bdd_base.h` — Infrastructure function declarations (initialization, variable management, node creation, etc.)
 - `include/bdd_ops.h` — BDD operation function declarations
 - `include/bdd_io.h` — I/O function declarations (export/import)
-- `include/bdd_internal.h` — Internal header (node accessor inline functions)
+- `include/bdd_internal.h` — Internal header (node accessor inline functions, GC guard, shift templates)
 - `include/bdd_node.h` — BddNode struct definition
+- `include/bigint.hpp` — Arbitrary-precision integer (BigInt) header-only library
 - `src/bdd_base.cpp` — Global variables, initialization, variable management, unique table, cache, node creation
 - `src/bdd_ops.cpp` — BDD operations (and, or, xor, ite, cofactor, quantification, etc.)
 - `src/zdd_ops.cpp` — ZDD basic operations (offset, onset, change, union, intersec, subtract, div, join, meet, delta, etc.)
 - `src/zdd_adv.cpp` — ZDD advanced operations (disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card, etc.)
 - `src/zdd_adv2.cpp` — ZDD additional operations (permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset, etc.)
 - `src/bdd_io.cpp` — export/import implementation
-- `src/bdd_class.cpp` — BDD/ZDD static const definitions
+- `src/bdd_class.cpp` — BDD/ZDD/QDD static const definitions, bddhasempty, ZDD::Print
 - `src/qdd.cpp` — QDD implementation (getnode, BDD/ZDD conversion, etc.)
 - `src/unreduced_dd.cpp` — UnreducedDD implementation
+- `src/pidd.cpp` — PiDD implementation (Swap, Cofact, Odd, multiplication, division, etc.)
+- `src/rotpidd.cpp` — RotPiDD implementation (LeftRot, Swap, Reverse, Order, Inverse, Insert, etc.)
+- `src/seqbdd.cpp` — SeqBDD implementation (concatenation, left quotient, print, etc.)
 - `include/qdd.h` — QDD class declaration
 - `include/unreduced_dd.h` — UnreducedDD class declaration
 - `include/seqbdd.h` — SeqBDD class declaration
 - `include/pidd.h` — PiDD class declaration
 - `include/rotpidd.h` — RotPiDD class declaration
 - `src/main.cpp` — Main entry point
-- `test/test_bdd.cpp` — Tests using Google Test
+- `test/test_bdd.cpp` — BDD/ZDD tests using Google Test
 - `test/test_qdd.cpp` — QDD tests
 - `test/test_unreduced_dd.cpp` — UnreducedDD tests
+- `test/test_pidd.cpp` — PiDD tests
+- `test/test_rotpidd.cpp` — RotPiDD tests
+- `test/test_seqbdd.cpp` — SeqBDD tests
+- `test/test_ddbase.cpp` — DDBase tests
+- `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11, all classes)
+- `docs/` — Sphinx documentation (API reference, tutorials, concepts)
+- `app/BDDQueen/` — N-Queens sample applications
