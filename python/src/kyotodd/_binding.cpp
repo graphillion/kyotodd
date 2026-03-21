@@ -13,6 +13,12 @@
 
 namespace py = pybind11;
 
+struct CoutRedirectGuard {
+    std::streambuf* old;
+    CoutRedirectGuard(std::streambuf* buf) : old(std::cout.rdbuf(buf)) {}
+    ~CoutRedirectGuard() { std::cout.rdbuf(old); }
+};
+
 static bool g_initialized = false;
 
 static void reset_pidd_globals() {
@@ -1389,26 +1395,21 @@ PYBIND11_MODULE(_core, m) {
              "In-place remainder.")
 
         .def("print", [](const PiDD& p) -> std::string {
-            // Redirect stdout to capture Print() output
             std::ostringstream oss;
-            // PiDD::Print() writes to stdout, capture via redirect
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Print();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Print PiDD statistics and return as string.")
         .def("enum", [](const PiDD& p) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Enum();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Enumerate all permutations and return as string.")
         .def("enum2", [](const PiDD& p) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Enum2();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
     ;
@@ -1589,23 +1590,20 @@ PYBIND11_MODULE(_core, m) {
 
         .def("print", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Print();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Print RotPiDD statistics and return as string.")
         .def("enum", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Enum();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Enumerate all permutations and return as string.")
         .def("enum2", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             p.Enum2();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
         .def("contradiction_maximization",
@@ -2089,9 +2087,8 @@ PYBIND11_MODULE(_core, m) {
            "    path: File path to write to.\n")
         .def("print_seq", [](const SeqBDD& s) -> std::string {
             std::ostringstream oss;
-            std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+            CoutRedirectGuard guard(oss.rdbuf());
             s.print_seq();
-            std::cout.rdbuf(old);
             return oss.str();
         }, "Print all sequences and return as string.")
     ;
