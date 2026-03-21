@@ -39,3 +39,15 @@ ZDD Class
 
 .. doxygenclass:: ZDD
    :members:
+
+QDD Class
+---------
+
+.. doxygenclass:: QDD
+   :members:
+
+UnreducedDD Class
+-----------------
+
+.. doxygenclass:: UnreducedDD
+   :members:

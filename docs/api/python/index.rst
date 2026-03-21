@@ -7,6 +7,8 @@ Python API
    functions
    bdd
    zdd
+   qdd
+   unreduced_dd
    pidd
    rotpidd
    seqbdd
