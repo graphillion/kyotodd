@@ -62,6 +62,10 @@ std::vector<bddvar> bddnewvar(int n);
  * Inserts a new variable at the given level, shifting existing
  * variables at that level and above upward.
  *
+ * @warning This function does not update PiDD or RotPiDD internal
+ *          level mapping tables. Do not call this while PiDD or
+ *          RotPiDD objects are in use.
+ *
  * @param lev The level at which to insert the new variable.
  * @return The variable number of the newly created variable.
  */

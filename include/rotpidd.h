@@ -48,6 +48,11 @@ extern int* RotPiDD_XOfLev;
  * Allocates the BDD variables needed for rotations and transpositions
  * involving the new element.
  *
+ * @warning RotPiDD internal level tables (RotPiDD_XOfLev / RotPiDD_LevOfX)
+ *          are only updated by this function. Calling bddnewvaroflev() after
+ *          RotPiDD_NewVar() will desynchronize the tables and cause existing
+ *          RotPiDD objects to produce incorrect results.
+ *
  * @return The new permutation size.
  */
 int RotPiDD_NewVar();

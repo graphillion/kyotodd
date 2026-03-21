@@ -38,3 +38,12 @@ the BDD/ZDD class layout and is a significant architectural change.
 - **`BDD(42)` / `ZDD(42)` accept arbitrary integer values without validation** (`python/src/kyotodd/_binding.cpp`).
   The C++ constructors map any non-negative value to true/single. This is
   consistent with C-style boolean semantics.
+
+- **PiDD / RotPiDD internal level tables are not updated by `bddnewvaroflev()`** (`include/pidd.h`, `include/rotpidd.h`, `src/bdd_base.cpp`).
+  `PiDD_XOfLev` / `PiDD_LevOfX` and `RotPiDD_XOfLev` / `RotPiDD_LevOfX` are
+  only built during `PiDD_NewVar()` / `RotPiDD_NewVar()` calls.
+  `bddnewvaroflev()` updates the global `var2level` / `level2var` arrays but
+  does not propagate to PiDD / RotPiDD tables, causing `TopX()`, `TopY()`,
+  `Swap()`, `Cofact()`, and other operations on existing objects to return
+  incorrect results. Do not call `bddnewvaroflev()` while PiDD / RotPiDD
+  objects are in use.

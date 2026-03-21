@@ -32,6 +32,11 @@ extern int* PiDD_XOfLev;
  * Allocates the BDD variables needed for transpositions involving
  * the new element.
  *
+ * @warning PiDD internal level tables (PiDD_XOfLev / PiDD_LevOfX) are
+ *          only updated by this function. Calling bddnewvaroflev() after
+ *          PiDD_NewVar() will desynchronize the tables and cause existing
+ *          PiDD objects to produce incorrect results.
+ *
  * @return The new permutation size.
  */
 int PiDD_NewVar();

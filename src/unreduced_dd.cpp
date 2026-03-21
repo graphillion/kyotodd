@@ -129,6 +129,8 @@ UnreducedDD UnreducedDD::wrap_raw(const QDD& qdd) {
 
 UnreducedDD UnreducedDD::getnode(bddvar var, const UnreducedDD& lo,
                                  const UnreducedDD& hi) {
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("UnreducedDD::getnode: var out of range");
     bddp lo_id = lo.root;
     bddp hi_id = hi.root;
 

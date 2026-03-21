@@ -736,6 +736,8 @@ bddp BDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
     // Apply reduction rule first (no node creation if lo == hi)
     if (lo == hi) return lo;
+    if (lo == bddnull || hi == bddnull)
+        throw std::invalid_argument("BDD::getnode: bddnull child");
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("BDD::getnode: var out of range");
     bddvar var_level = var2level[var];
@@ -793,6 +795,8 @@ bddp ZDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
     // Apply zero-suppression rule first (no node creation if hi == bddempty)
     if (hi == bddempty) return lo;
+    if (lo == bddnull || hi == bddnull)
+        throw std::invalid_argument("ZDD::getnode: bddnull child");
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("ZDD::getnode: var out of range");
     bddvar var_level = var2level[var];
@@ -849,6 +853,8 @@ bddp QDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 }
 
 bddp QDD::getnode(bddvar var, bddp lo, bddp hi) {
+    if (lo == bddnull || hi == bddnull)
+        throw std::invalid_argument("QDD::getnode: bddnull child");
     // Level validation: children must be at var's level - 1
     bddvar expected_child_level = var2level[var] - 1;
 

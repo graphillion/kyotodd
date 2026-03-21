@@ -608,3 +608,11 @@ TEST_F(QDDTest, Binary_TypeMatch_QDD) {
     std::istringstream iss(oss.str());
     EXPECT_NO_THROW(QDD::import_binary(iss));
 }
+
+TEST_F(QDDTest, GetnodeRejectsBddnullChild) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    QDD t = BDD::prime(v1).to_qdd();   // level 1 child for level 2 parent
+    EXPECT_THROW(QDD::getnode(v2, bddnull, t.get_id()), std::invalid_argument);
+    EXPECT_THROW(QDD::getnode(v2, t.get_id(), bddnull), std::invalid_argument);
+}

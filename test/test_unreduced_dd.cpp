@@ -736,3 +736,13 @@ TEST_F(UnreducedDDTest, Binary_ReduceAfterImport) {
     BDD expected = BDD_ID(BDD::getnode(v1, bddfalse, bddtrue));
     EXPECT_EQ(bdd.get_id(), expected.get_id());
 }
+
+TEST_F(UnreducedDDTest, GetnodeRejectsOutOfRangeVar) {
+    EXPECT_THROW(UnreducedDD::getnode(0, UnreducedDD::zero(), UnreducedDD::one()),
+                 std::invalid_argument);
+    EXPECT_THROW(UnreducedDD::getnode(999, UnreducedDD::zero(), UnreducedDD::one()),
+                 std::invalid_argument);
+    // Valid var should succeed
+    bddvar v1 = bddnewvar();
+    EXPECT_NO_THROW(UnreducedDD::getnode(v1, UnreducedDD::zero(), UnreducedDD::one()));
+}

@@ -11164,3 +11164,20 @@ TEST_F(BDDTest, ZDD_Combination_Reordered) {
     }
 }
 
+// --- getnode rejects bddnull children ---
+
+TEST_F(BDDTest, BddGetnodeRejectsBddnullChild) {
+    bddvar v1 = bddnewvar();
+    EXPECT_THROW(BDD::getnode(v1, bddnull, bddtrue), std::invalid_argument);
+    EXPECT_THROW(BDD::getnode(v1, bddfalse, bddnull), std::invalid_argument);
+    // lo == hi == bddnull hits reduction rule (returns lo) before null check
+    EXPECT_EQ(BDD::getnode(v1, bddnull, bddnull), bddnull);
+}
+
+TEST_F(BDDTest, ZddGetnodeRejectsBddnullChild) {
+    bddvar v1 = bddnewvar();
+    EXPECT_THROW(ZDD::getnode(v1, bddnull, bddsingle), std::invalid_argument);
+    EXPECT_THROW(ZDD::getnode(v1, bddempty, bddnull), std::invalid_argument);
+    EXPECT_THROW(ZDD::getnode(v1, bddnull, bddnull), std::invalid_argument);
+}
+
