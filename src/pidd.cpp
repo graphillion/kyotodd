@@ -47,6 +47,7 @@ int PiDD_NewVar()
         while (newsize <= toplev) newsize *= 4;
         int* newtable = new int[newsize];
         std::memcpy(newtable, PiDD_XOfLev, sizeof(int) * PiDD_VarTableSize);
+        std::memset(newtable + PiDD_VarTableSize, 0, sizeof(int) * (newsize - PiDD_VarTableSize));
         delete[] PiDD_XOfLev;
         PiDD_XOfLev = newtable;
         PiDD_VarTableSize = newsize;

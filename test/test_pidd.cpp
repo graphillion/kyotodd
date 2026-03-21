@@ -319,3 +319,19 @@ TEST_F(PiDDTest, OddEven_Terminal_NoNewVar) {
     PiDD even = identity.Even();
     EXPECT_EQ(even.Card(), 1u);
 }
+
+/* ---- XOfLev zero-initialization after resize ---- */
+TEST_F(PiDDTest, XOfLev_ZeroInitAfterResize) {
+    /* Create enough PiDD variables to trigger XOfLev table resize.
+       Initial size is 16; 7 PiDD vars use 1+2+3+4+5+6 = 21 BDD levels,
+       which exceeds 16 and triggers resize. */
+    for (int i = 0; i < 7; i++) {
+        PiDD_NewVar();
+    }
+    EXPECT_GT(PiDD_VarTableSize, 16);
+    /* Check that XOfLev entries beyond those written are 0 */
+    int toplev = static_cast<int>(bddlevofvar(bddvarused()));
+    for (int lev = toplev + 1; lev < PiDD_VarTableSize; lev++) {
+        EXPECT_EQ(PiDD_XOfLev[lev], 0);
+    }
+}

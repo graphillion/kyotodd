@@ -385,3 +385,15 @@ TEST_F(RotPiDDTest, ContradictionMaximization_Small) {
     long long int result = p.contradictionMaximization(used_set, unused_list, 3, hash, w);
     EXPECT_GE(result, 0);
 }
+
+/* ---- XOfLev zero-initialization after resize ---- */
+TEST_F(RotPiDDTest, XOfLev_ZeroInitAfterResize) {
+    for (int i = 0; i < 7; i++) {
+        RotPiDD_NewVar();
+    }
+    EXPECT_GT(RotPiDD_VarTableSize, 16);
+    int toplev = static_cast<int>(bddlevofvar(bddvarused()));
+    for (int lev = toplev + 1; lev < RotPiDD_VarTableSize; lev++) {
+        EXPECT_EQ(RotPiDD_XOfLev[lev], 0);
+    }
+}

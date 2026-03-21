@@ -48,6 +48,7 @@ int RotPiDD_NewVar()
         while (newsize <= toplev) newsize *= 4;
         int* newtable = new int[newsize];
         std::memcpy(newtable, RotPiDD_XOfLev, sizeof(int) * RotPiDD_VarTableSize);
+        std::memset(newtable + RotPiDD_VarTableSize, 0, sizeof(int) * (newsize - RotPiDD_VarTableSize));
         delete[] RotPiDD_XOfLev;
         RotPiDD_XOfLev = newtable;
         RotPiDD_VarTableSize = newsize;
