@@ -710,36 +710,60 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
     while (bddvarused() < static_cast<bddvar>(max_kyoto_level))
         bddnewvar();
 
-    // Build id_map with topological sort (children before parents)
+    // Build id_map with topological sort (worklist approach)
     std::unordered_map<uint64_t, bddp> id_map;
     id_map[0] = bddfalse;
     id_map[1] = bddtrue;
 
-    std::vector<bool> created(nodes.size(), false);
-    uint64_t created_count = 0;
+    // Count pending (unresolved) children per node
+    std::vector<int> pending(nodes.size(), 0);
+    // Map from child Knuth ID to parent node indices that depend on it
+    std::unordered_map<uint64_t, std::vector<size_t>> dependents;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        const KnuthNode& kn = nodes[i];
+        if (!id_map.count(kn.lo_id)) {
+            pending[i]++;
+            dependents[kn.lo_id].push_back(i);
+        }
+        if (!id_map.count(kn.hi_id)) {
+            pending[i]++;
+            dependents[kn.hi_id].push_back(i);
+        }
+    }
 
-    while (created_count < nodes.size()) {
-        bool progress = false;
-        for (size_t i = 0; i < nodes.size(); i++) {
-            if (created[i]) continue;
-            const KnuthNode& kn = nodes[i];
-            if (id_map.count(kn.lo_id) && id_map.count(kn.hi_id)) {
-                int level = static_cast<int>(N) + 1
-                          - static_cast<int>(kn.knuth_level) + offset;
-                if (level < 1)
-                    throw std::runtime_error("knuth import: computed level < 1");
-                bddvar var = bddvaroflev(static_cast<bddvar>(level));
-                bddp lo = id_map[kn.lo_id];
-                bddp hi = id_map[kn.hi_id];
-                id_map[kn.id] = make_node(var, lo, hi);
-                created[i] = true;
-                created_count++;
-                progress = true;
+    // Initialize ready queue with nodes that have all children resolved
+    std::vector<size_t> ready;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        if (pending[i] == 0) ready.push_back(i);
+    }
+
+    uint64_t created_count = 0;
+    while (!ready.empty()) {
+        size_t i = ready.back();
+        ready.pop_back();
+        const KnuthNode& kn = nodes[i];
+        int level = static_cast<int>(N) + 1
+                  - static_cast<int>(kn.knuth_level) + offset;
+        if (level < 1)
+            throw std::runtime_error("knuth import: computed level < 1");
+        bddvar var = bddvaroflev(static_cast<bddvar>(level));
+        bddp lo = id_map[kn.lo_id];
+        bddp hi = id_map[kn.hi_id];
+        id_map[kn.id] = make_node(var, lo, hi);
+        created_count++;
+
+        // Notify dependents
+        std::unordered_map<uint64_t, std::vector<size_t>>::iterator dit = dependents.find(kn.id);
+        if (dit != dependents.end()) {
+            for (size_t j = 0; j < dit->second.size(); j++) {
+                size_t dep = dit->second[j];
+                if (--pending[dep] == 0) ready.push_back(dep);
             }
         }
-        if (!progress)
-            throw std::runtime_error("knuth import: circular dependency");
     }
+
+    if (created_count < nodes.size())
+        throw std::runtime_error("knuth import: circular dependency");
 
     // The first non-terminal node (ID 2) is the root
     if (!id_map.count(2))
@@ -1240,33 +1264,54 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
         }
     }
 
-    // Iterative creation: keep trying until all nodes are created
-    std::vector<bool> created(total_nodes, false);
-    uint64_t created_count = 0;
-    while (created_count < total_nodes) {
-        bool progress = false;
-        for (uint64_t i = 0; i < total_nodes; i++) {
-            if (created[i]) continue;
-            const BinNode& bn = bin_nodes[i];
-            // Check if all children are available
-            bool ready = true;
-            for (uint16_t a = 0; a < num_arcs; a++) {
-                if (!is_resolved(bn.children[a])) { ready = false; break; }
+    // Worklist-based topological sort for node creation
+    // Count pending (unresolved) children per node
+    std::vector<int> pending(total_nodes, 0);
+    // Map from binary ID (even, non-terminal) to node indices that depend on it
+    std::unordered_map<uint64_t, std::vector<uint64_t>> dependents;
+    for (uint64_t i = 0; i < total_nodes; i++) {
+        const BinNode& bn = bin_nodes[i];
+        for (uint16_t a = 0; a < num_arcs; a++) {
+            if (!is_resolved(bn.children[a])) {
+                pending[i]++;
+                uint64_t child_even = (use_neg && (bn.children[a] & 1))
+                    ? bn.children[a] - 1 : bn.children[a];
+                dependents[child_even].push_back(i);
             }
-            if (!ready) continue;
-
-            bddvar var = bddvaroflev(node_levels[i]);
-            bddp lo = resolve(bn.children[0]);
-            bddp hi = resolve(bn.children[1]);
-            uint64_t bin_id = use_neg ? (t + 2 * i) : (t + i);
-            id_map[bin_id] = make_node(var, lo, hi);
-            created[i] = true;
-            created_count++;
-            progress = true;
         }
-        if (!progress)
-            throw std::runtime_error("binary import: circular dependency in node references");
     }
+
+    // Initialize ready queue
+    std::vector<uint64_t> ready_queue;
+    for (uint64_t i = 0; i < total_nodes; i++) {
+        if (pending[i] == 0) ready_queue.push_back(i);
+    }
+
+    uint64_t created_count = 0;
+    while (!ready_queue.empty()) {
+        uint64_t i = ready_queue.back();
+        ready_queue.pop_back();
+        const BinNode& bn = bin_nodes[i];
+
+        bddvar var = bddvaroflev(node_levels[i]);
+        bddp lo = resolve(bn.children[0]);
+        bddp hi = resolve(bn.children[1]);
+        uint64_t bin_id = use_neg ? (t + 2 * i) : (t + i);
+        id_map[bin_id] = make_node(var, lo, hi);
+        created_count++;
+
+        // Notify dependents
+        std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator dit = dependents.find(bin_id);
+        if (dit != dependents.end()) {
+            for (size_t j = 0; j < dit->second.size(); j++) {
+                uint64_t dep = dit->second[j];
+                if (--pending[dep] == 0) ready_queue.push_back(dep);
+            }
+        }
+    }
+
+    if (created_count < total_nodes)
+        throw std::runtime_error("binary import: circular dependency in node references");
 
     // Resolve all roots
     std::vector<bddp> result;
