@@ -12,3 +12,4 @@ python/build/
 python/.venv/
 docs/_build/
 docs/_doxygen/
+conversation/
