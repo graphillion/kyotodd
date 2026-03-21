@@ -21,6 +21,49 @@ BDD Class
       :return: A BDD for the variable.
       :rtype: BDD
 
+   .. py:staticmethod:: prime(v)
+
+      Create a BDD for the positive literal of variable *v*.
+
+      :param int v: Variable number.
+      :rtype: BDD
+
+   .. py:staticmethod:: prime_not(v)
+
+      Create a BDD for the negative literal of variable *v*.
+
+      :param int v: Variable number.
+      :rtype: BDD
+
+   .. py:staticmethod:: cube(lits)
+
+      Create a BDD for the conjunction (AND) of literals.
+
+      Uses DIMACS sign convention: positive int = variable, negative int = negated variable.
+
+      :param list[int] lits: List of literals.
+      :rtype: BDD
+
+   .. py:staticmethod:: clause(lits)
+
+      Create a BDD for the disjunction (OR) of literals.
+
+      Uses DIMACS sign convention: positive int = variable, negative int = negated variable.
+
+      :param list[int] lits: List of literals.
+      :rtype: BDD
+
+   .. py:staticmethod:: getnode(var, lo, hi)
+
+      Create a BDD node with the given variable and children.
+
+      Applies BDD reduction rules (jump rule, complement normalization).
+
+      :param int var: Variable number.
+      :param BDD lo: Low (0) child.
+      :param BDD hi: High (1) child.
+      :rtype: BDD
+
    .. py:staticmethod:: ite(f, g, h)
 
       If-then-else operation: ``(f & g) | (~f & h)``.
@@ -182,7 +225,7 @@ BDD Class
 
    .. py:method:: support()
 
-      Return the support set as a BDD (conjunction of variables).
+      Return the support set as a BDD (disjunction of variables).
 
       :rtype: BDD
 
@@ -287,3 +330,218 @@ BDD Class
       :type: int
 
       The top (root) variable number of this BDD.
+
+   .. py:property:: is_terminal
+      :type: bool
+
+      True if this is a terminal node.
+
+   .. py:property:: is_one
+      :type: bool
+
+      True if this is the 1-terminal (true).
+
+   .. py:property:: is_zero
+      :type: bool
+
+      True if this is the 0-terminal (false).
+
+   Counting and Sampling
+   ---------------------
+
+   .. py:method:: count(n)
+
+      Count the number of satisfying assignments (floating-point).
+
+      :param int n: Number of variables in the Boolean function.
+      :rtype: float
+
+   .. py:method:: exact_count(n)
+
+      Count the number of satisfying assignments (arbitrary precision).
+
+      :param int n: Number of variables in the Boolean function.
+      :rtype: int
+
+   .. py:method:: uniform_sample(n, seed=0)
+
+      Sample a satisfying assignment uniformly at random.
+
+      :param int n: Number of variables.
+      :param int seed: Random seed (default 0).
+      :return: A list of variable numbers set to 1 in the sample.
+      :rtype: list[int]
+
+   Conversion
+   ----------
+
+   .. py:method:: to_qdd()
+
+      Convert to a Quasi-reduced Decision Diagram (QDD).
+
+      :rtype: QDD
+
+   Child Accessors
+   ---------------
+
+   .. py:method:: child0()
+
+      Get the 0-child (lo) with complement edge resolution.
+
+      :rtype: BDD
+
+   .. py:method:: child1()
+
+      Get the 1-child (hi) with complement edge resolution.
+
+      :rtype: BDD
+
+   .. py:method:: child(index)
+
+      Get the child by index (0 or 1) with complement edge resolution.
+
+      :param int index: 0 or 1.
+      :rtype: BDD
+
+   .. py:method:: raw_child0()
+
+      Get the raw 0-child node ID without complement resolution.
+
+      :rtype: int
+
+   .. py:method:: raw_child1()
+
+      Get the raw 1-child node ID without complement resolution.
+
+      :rtype: int
+
+   .. py:method:: raw_child(index)
+
+      Get the raw child node ID by index without complement resolution.
+
+      :param int index: 0 or 1.
+      :rtype: int
+
+   Shared Size
+   -----------
+
+   .. py:staticmethod:: shared_size(bdds)
+
+      Count the total number of shared nodes across multiple BDDs.
+
+      :param list[BDD] bdds: List of BDDs.
+      :rtype: int
+
+   .. py:staticmethod:: shared_plain_size(bdds)
+
+      Count the total number of nodes across multiple BDDs without complement sharing.
+
+      :param list[BDD] bdds: List of BDDs.
+      :rtype: int
+
+   Binary I/O
+   ----------
+
+   .. py:method:: export_binary_str()
+
+      Export this BDD in binary format to a bytes object.
+
+      :rtype: bytes
+
+   .. py:staticmethod:: import_binary_str(data, ignore_type=False)
+
+      Import a BDD from binary format bytes.
+
+      :param bytes data: Binary data.
+      :param bool ignore_type: If True, skip type checking.
+      :rtype: BDD
+
+   .. py:method:: export_binary_file(path)
+
+      Export this BDD in binary format to a file.
+
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_binary_file(path, ignore_type=False)
+
+      Import a BDD from a binary format file.
+
+      :param str path: File path to read from.
+      :param bool ignore_type: If True, skip type checking.
+      :rtype: BDD
+
+   .. py:staticmethod:: export_binary_multi_str(bdds)
+
+      Export multiple BDDs in binary format to a bytes object.
+
+      :param list[BDD] bdds: List of BDDs to export.
+      :rtype: bytes
+
+   .. py:staticmethod:: import_binary_multi_str(data, ignore_type=False)
+
+      Import multiple BDDs from binary format bytes.
+
+      :param bytes data: Binary data.
+      :param bool ignore_type: If True, skip type checking.
+      :rtype: list[BDD]
+
+   .. py:staticmethod:: export_binary_multi_file(bdds, path)
+
+      Export multiple BDDs in binary format to a file.
+
+      :param list[BDD] bdds: List of BDDs to export.
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_binary_multi_file(path, ignore_type=False)
+
+      Import multiple BDDs from a binary format file.
+
+      :param str path: File path to read from.
+      :param bool ignore_type: If True, skip type checking.
+      :rtype: list[BDD]
+
+   Sapporo I/O
+   -----------
+
+   .. py:method:: export_sapporo_str()
+
+      Export this BDD in Sapporo format to a string.
+
+      :rtype: str
+
+   .. py:staticmethod:: import_sapporo_str(s)
+
+      Import a BDD from a Sapporo format string.
+
+      :param str s: Sapporo format string.
+      :rtype: BDD
+
+   .. py:method:: export_sapporo_file(path)
+
+      Export this BDD in Sapporo format to a file.
+
+      :param str path: File path to write to.
+
+   .. py:staticmethod:: import_sapporo_file(path)
+
+      Import a BDD from a Sapporo format file.
+
+      :param str path: File path to read from.
+      :rtype: BDD
+
+   Graphviz Visualization
+   ----------------------
+
+   .. py:method:: save_graphviz_str(raw=False)
+
+      Export this BDD as a Graphviz DOT string.
+
+      :param bool raw: If True, show physical DAG with complement markers. If False (default), expand complement edges.
+      :rtype: str
+
+   .. py:method:: save_graphviz_file(path, raw=False)
+
+      Export this BDD as a Graphviz DOT file.
+
+      :param str path: File path to write to.
+      :param bool raw: If True, show physical DAG with complement markers. If False (default), expand complement edges.

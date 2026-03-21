@@ -34,6 +34,15 @@ Variable Management
    :return: The variable number of the newly created variable.
    :rtype: int
 
+.. py:function:: kyotodd.new_vars(n, reverse=False)
+
+   Create multiple new variables at once.
+
+   :param int n: Number of variables to create.
+   :param bool reverse: If True, insert each at level 1 (reverses var/level ordering).
+   :return: A list of the newly created variable numbers.
+   :rtype: list[int]
+
 .. py:function:: kyotodd.new_var_of_level(lev)
 
    Create a new variable at the specified level.
@@ -64,6 +73,12 @@ Variable Management
 .. py:function:: kyotodd.var_count()
 
    Return the number of variables created so far.
+
+   :rtype: int
+
+.. py:function:: kyotodd.top_level()
+
+   Return the maximum level number (equal to the number of variables).
 
    :rtype: int
 
@@ -106,6 +121,15 @@ Garbage Collection
 .. py:function:: kyotodd.gc_get_threshold()
 
    Get the current GC threshold.
+
+   :return: The current threshold value.
+   :rtype: float
+
+.. py:function:: kyotodd.gc_rootcount()
+
+   Return the number of registered GC root pointers.
+
+   :rtype: int
 
    :return: The current threshold value.
    :rtype: float
