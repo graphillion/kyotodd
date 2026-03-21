@@ -1303,7 +1303,7 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.GetZDD().GetID());
         }, "Hash based on internal ZDD node ID.")
         .def("__repr__", [](const PiDD& a) {
-            return "PiDD(card=" + std::to_string(a.Card()) + ")";
+            return "PiDD(node_id=" + std::to_string(a.GetZDD().GetID()) + ")";
         }, "Return string representation.")
         .def("__bool__", [](const PiDD&) -> bool {
             throw py::type_error(
@@ -1460,7 +1460,7 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.GetZDD().GetID());
         }, "Hash based on internal ZDD node ID.")
         .def("__repr__", [](const RotPiDD& a) {
-            return "RotPiDD(card=" + std::to_string(a.Card()) + ")";
+            return "RotPiDD(node_id=" + std::to_string(a.GetZDD().GetID()) + ")";
         }, "Return string representation.")
         .def("__bool__", [](const RotPiDD&) -> bool {
             throw py::type_error(
@@ -1980,7 +1980,7 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.get_zdd().GetID());
         })
         .def("__repr__", [](const SeqBDD& a) {
-            return "SeqBDD(card=" + std::to_string(a.card()) + ")";
+            return "SeqBDD(node_id=" + std::to_string(a.get_zdd().GetID()) + ")";
         })
         .def("__str__", [](const SeqBDD& a) {
             return a.seq_str();
