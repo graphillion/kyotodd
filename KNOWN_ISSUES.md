@@ -47,6 +47,22 @@ the BDD/ZDD class layout and is a significant architectural change.
   すべて `bddprime()` に依存するため、同じ上限が適用される。65536 を超える
   変数を扱う場合は `BDD::getnode()` で直接ノードを構築すること。
 
+- **`bddnewvaroflev()` invalidates existing DDs and external memo objects**
+  (`src/bdd_base.cpp`).
+  `bddnewvaroflev()` inserts a new variable at an arbitrary level, shifting
+  the levels of all existing variables at or above the target level. This
+  changes the variable-level mapping globally, which means the internal
+  structure of every previously constructed BDD/ZDD/QDD may no longer be
+  consistent with the new mapping. The library clears the operation cache
+  automatically, but it does **not** rebuild existing DDs or invalidate
+  user-held `BddCountMemo` / `ZddCountMemo` objects. Callers must treat
+  `bddnewvaroflev()` as a global state mutation: discard any external memo
+  objects and be aware that operations on previously constructed DDs may
+  produce results under the new level ordering, not the one that was in
+  effect when those DDs were built. This is by design — the cost of
+  automatically detecting or correcting all affected objects would be
+  prohibitive.
+
 - **PiDD / RotPiDD internal level tables are not updated by `bddnewvaroflev()`** (`include/pidd.h`, `include/rotpidd.h`, `src/bdd_base.cpp`).
   `PiDD_XOfLev` / `PiDD_LevOfX` and `RotPiDD_XOfLev` / `RotPiDD_LevOfX` are
   only built during `PiDD_NewVar()` / `RotPiDD_NewVar()` calls.
