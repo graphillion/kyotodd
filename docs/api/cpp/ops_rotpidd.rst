@@ -247,6 +247,8 @@ RotPiDD Class
 
       The number of permutations in the set.
 
+      .. note:: Not available in the Python API. Use ``RotPiDD.exact_count`` instead.
+
    .. cpp:function:: ZDD GetZDD() const
 
       Return the internal ZDD.

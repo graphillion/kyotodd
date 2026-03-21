@@ -63,6 +63,12 @@ Counting
 --------
 
 .. doxygenfunction:: bddcard
+
+.. note::
+
+   ``bddcard`` is not available in the Python API.
+   Use ``ZDD.exact_count`` (arbitrary precision) or ``ZDD.count()`` (float) instead.
+
 .. doxygenfunction:: bddcount(bddp f)
 .. doxygenfunction:: bddlit
 .. doxygenfunction:: bddlen

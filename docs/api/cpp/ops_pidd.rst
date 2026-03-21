@@ -176,6 +176,8 @@ PiDD Class
 
       The number of permutations in the set.
 
+      .. note:: Not available in the Python API. Use ``PiDD.exact_count`` instead.
+
    .. cpp:function:: ZDD GetZDD() const
 
       Return the internal ZDD.

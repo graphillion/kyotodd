@@ -151,7 +151,7 @@ SeqBDD Class
 
       The variable number of the root node (0 for terminals).
 
-   .. py:property:: card
+   .. py:property:: exact_count
       :type: int
 
       The number of sequences in the set.
@@ -236,7 +236,7 @@ Example
 
    # Concatenation: {ab, c} * {bd, epsilon} = {ab, abbd, c, cbd}
    result = lhs * rhs
-   assert result.card == 4
+   assert result.exact_count == 4
    print(result)  # prints level values of sequences
 
    # Left quotient: strip prefix

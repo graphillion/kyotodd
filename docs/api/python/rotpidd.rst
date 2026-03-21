@@ -275,7 +275,7 @@ RotPiDD Class
    Properties
    ~~~~~~~~~~
 
-   .. py:property:: card
+   .. py:property:: exact_count
       :type: int
 
       The number of permutations in the set.
@@ -358,7 +358,7 @@ Example
 
    # Union of permutations
    both = p1 + p2
-   assert both.card == 2
+   assert both.exact_count == 2
 
    # Composition
    composed = p2 * p1
@@ -374,12 +374,12 @@ Example
    all24 = kyotodd.RotPiDD(0)
    for p in permutations(range(1, 5)):
        all24 += kyotodd.rotpidd_from_perm(list(p))
-   assert all24.card == 24
+   assert all24.exact_count == 24
 
    # Even permutations (alternating group A4, order 12)
    a4 = all24.even()
-   assert a4.card == 12
+   assert a4.exact_count == 12
 
    # Permutations where pi(1) < pi(2)
    ordered = all24.order(1, 2)
-   assert ordered.card == 12
+   assert ordered.exact_count == 12

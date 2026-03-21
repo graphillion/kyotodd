@@ -173,7 +173,7 @@ PiDD Class
    Properties
    ~~~~~~~~~~
 
-   .. py:property:: card
+   .. py:property:: exact_count
       :type: int
 
       The number of permutations in the set.
@@ -251,8 +251,8 @@ Example
 
    # Union: set of two permutations
    pair = s12 + s23
-   assert pair.card == 2
+   assert pair.exact_count == 2
 
    # Parity filtering
-   assert s12.odd().card == 1   # single swap is odd
-   assert e.even().card == 1    # identity is even
+   assert s12.odd().exact_count == 1   # single swap is odd
+   assert e.even().exact_count == 1    # identity is even

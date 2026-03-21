@@ -150,6 +150,8 @@ SeqBDD Class
 
       The number of sequences in the set.
 
+      .. note:: Not available in the Python API. Use ``SeqBDD.exact_count`` instead.
+
    .. cpp:function:: uint64_t lit() const
 
       Total symbol count across all sequences.

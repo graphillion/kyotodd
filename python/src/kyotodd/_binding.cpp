@@ -961,9 +961,6 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    The formatted string.\n")
 
-        .def_property_readonly("card", &ZDD::Card,
-             "The number of sets in the family (cardinality).\n\n"
-             ".. deprecated:: Use count or exact_count instead.")
         .def_property_readonly("exact_count", [](const ZDD& z) -> py::int_ {
             bigint::BigInt bi = z.exact_count();
             std::string s = bi.to_string();
@@ -1382,8 +1379,9 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &PiDD::Size,
              "The number of nodes in the internal ZDD.")
-        .def_property_readonly("card", &PiDD::Card,
-             "The number of permutations in the set.")
+        .def_property_readonly("exact_count", [](const PiDD& p) -> uint64_t {
+            return p.Card();
+        }, "The number of permutations in the set.")
         .def_property_readonly("zdd", &PiDD::GetZDD,
              "The internal ZDD representation.")
 
@@ -1583,8 +1581,9 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &RotPiDD::Size,
              "The number of nodes in the internal ZDD.")
-        .def_property_readonly("card", &RotPiDD::Card,
-             "The number of permutations in the set.")
+        .def_property_readonly("exact_count", [](const RotPiDD& p) -> uint64_t {
+            return p.Card();
+        }, "The number of permutations in the set.")
         .def_property_readonly("zdd", &RotPiDD::GetZDD,
              "The internal ZDD representation.")
 
@@ -2048,12 +2047,13 @@ PYBIND11_MODULE(_core, m) {
              "The variable number of the root node.")
         .def_property_readonly("size", &SeqBDD::size,
              "The number of nodes in the internal ZDD.")
-        .def_property_readonly("card", &SeqBDD::card,
-             "The number of sequences in the set.")
         .def_property_readonly("lit", &SeqBDD::lit,
              "Total symbol count across all sequences.")
         .def_property_readonly("len", &SeqBDD::len,
              "Length of the longest sequence.")
+        .def_property_readonly("exact_count", [](const SeqBDD& s) -> uint64_t {
+            return s.card();
+        }, "The number of sequences in the set.")
         .def_property_readonly("zdd", &SeqBDD::get_zdd,
              "The internal ZDD representation.")
 

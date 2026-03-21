@@ -709,6 +709,7 @@ public:
     /**
      * @brief Count the number of sets in the family.
      * @deprecated Use count() or exact_count() instead.
+     * @note Not available in the Python API. Use exact_count or count() instead.
      * @return The cardinality of the family.
      */
     uint64_t Card() const;
