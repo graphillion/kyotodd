@@ -504,3 +504,21 @@ TEST_F(SeqBDDTest, SeqStrEpsilonInSet) {
     /* Should contain "e" for epsilon */
     EXPECT_NE(str.find("e"), std::string::npos);
 }
+
+/* ---- Move semantics ---- */
+TEST_F(SeqBDDTest, MoveConstructor) {
+    bddvar v1 = BDD_NewVar();
+    SeqBDD a = SeqBDD(1).push(static_cast<int>(v1));
+    uint64_t expected_card = a.card();
+    SeqBDD b(std::move(a));
+    EXPECT_EQ(b.card(), expected_card);
+}
+
+TEST_F(SeqBDDTest, MoveAssignment) {
+    bddvar v1 = BDD_NewVar();
+    SeqBDD a = SeqBDD(1).push(static_cast<int>(v1));
+    uint64_t expected_card = a.card();
+    SeqBDD b;
+    b = std::move(a);
+    EXPECT_EQ(b.card(), expected_card);
+}

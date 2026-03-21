@@ -37,6 +37,8 @@ public:
     explicit SeqBDD(int val) : zdd_(val) {}
     /** @brief Copy constructor. */
     SeqBDD(const SeqBDD& f) : zdd_(f.zdd_) {}
+    /** @brief Move constructor. */
+    SeqBDD(SeqBDD&& f) : zdd_(std::move(f.zdd_)) {}
     /**
      * @brief Construct from an existing ZDD.
      * @param zbdd A ZDD to interpret as a sequence set.
@@ -47,6 +49,8 @@ public:
 
     /** @brief Copy assignment operator. */
     SeqBDD& operator=(const SeqBDD& f) { zdd_ = f.zdd_; return *this; }
+    /** @brief Move assignment operator. */
+    SeqBDD& operator=(SeqBDD&& f) { zdd_ = std::move(f.zdd_); return *this; }
 
     /** @brief In-place intersection. */
     SeqBDD& operator&=(const SeqBDD& f) { *this = *this & f; return *this; }

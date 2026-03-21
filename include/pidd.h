@@ -105,6 +105,8 @@ public:
     explicit PiDD(int a) : zdd_(a) {}
     /** @brief Copy constructor. */
     PiDD(const PiDD& f) : zdd_(f.zdd_) {}
+    /** @brief Move constructor. */
+    PiDD(PiDD&& f) : zdd_(std::move(f.zdd_)) {}
     /**
      * @brief Construct from an existing ZDD.
      * @param zbdd A ZDD to interpret as a permutation set.
@@ -115,6 +117,8 @@ public:
 
     /** @brief Copy assignment operator. */
     PiDD& operator=(const PiDD& f) { zdd_ = f.zdd_; return *this; }
+    /** @brief Move assignment operator. */
+    PiDD& operator=(PiDD&& f) { zdd_ = std::move(f.zdd_); return *this; }
 
     /** @brief In-place intersection. */
     PiDD& operator&=(const PiDD& f) { *this = *this & f; return *this; }

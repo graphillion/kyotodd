@@ -120,6 +120,8 @@ public:
     explicit RotPiDD(int a) : zdd_(a) {}
     /** @brief Copy constructor. */
     RotPiDD(const RotPiDD& f) : zdd_(f.zdd_) {}
+    /** @brief Move constructor. */
+    RotPiDD(RotPiDD&& f) : zdd_(std::move(f.zdd_)) {}
     /**
      * @brief Construct from an existing ZDD.
      * @param zbdd A ZDD to interpret as a permutation set.
@@ -130,6 +132,8 @@ public:
 
     /** @brief Copy assignment operator. */
     RotPiDD& operator=(const RotPiDD& f) { zdd_ = f.zdd_; return *this; }
+    /** @brief Move assignment operator. */
+    RotPiDD& operator=(RotPiDD&& f) { zdd_ = std::move(f.zdd_); return *this; }
 
     /** @brief In-place intersection. */
     RotPiDD& operator&=(const RotPiDD& f) { *this = *this & f; return *this; }

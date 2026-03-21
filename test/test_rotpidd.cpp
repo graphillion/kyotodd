@@ -417,6 +417,28 @@ TEST_F(RotPiDDTest, Enum_Output) {
     EXPECT_NE(result.find("+"), std::string::npos);
 }
 
+/* ---- Move semantics ---- */
+TEST_F(RotPiDDTest, MoveConstructor) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD a = RotPiDD(1).LeftRot(2, 1);
+    uint64_t expected_card = a.Card();
+    RotPiDD b(std::move(a));
+    EXPECT_EQ(b.Card(), expected_card);
+}
+
+TEST_F(RotPiDDTest, MoveAssignment) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD a = RotPiDD(1).LeftRot(2, 1);
+    uint64_t expected_card = a.Card();
+    RotPiDD b;
+    b = std::move(a);
+    EXPECT_EQ(b.Card(), expected_card);
+}
+
 TEST_F(RotPiDDTest, Enum2_Output) {
     RotPiDD_NewVar();
     RotPiDD_NewVar();

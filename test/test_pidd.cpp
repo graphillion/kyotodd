@@ -354,6 +354,28 @@ TEST_F(PiDDTest, Enum_Output) {
     EXPECT_NE(result.find("+"), std::string::npos);  // two permutations
 }
 
+/* ---- Move semantics ---- */
+TEST_F(PiDDTest, MoveConstructor) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD a = PiDD(1).Swap(2, 1);
+    uint64_t expected_card = a.Card();
+    PiDD b(std::move(a));
+    EXPECT_EQ(b.Card(), expected_card);
+}
+
+TEST_F(PiDDTest, MoveAssignment) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD a = PiDD(1).Swap(2, 1);
+    uint64_t expected_card = a.Card();
+    PiDD b;
+    b = std::move(a);
+    EXPECT_EQ(b.Card(), expected_card);
+}
+
 TEST_F(PiDDTest, Enum2_Output) {
     PiDD_NewVar();
     PiDD_NewVar();
