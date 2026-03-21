@@ -315,7 +315,9 @@ public:
      */
     struct hash_func {
         size_t operator()(const std::pair<bddp, unsigned long long int>& a) const {
-            return static_cast<size_t>((a.first + 1) * (a.second + 1));
+            size_t h1 = std::hash<bddp>()(a.first);
+            size_t h2 = std::hash<unsigned long long int>()(a.second);
+            return h1 ^ (h2 * 0x9e3779b9U + (h1 << 6) + (h1 >> 2));
         }
     };
 
