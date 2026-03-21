@@ -616,6 +616,8 @@ uint64_t bddcard(bddp f) {
     if (f == bddempty) return 0;
     if (f == bddsingle) return 1;
 
+    BDD_RecurGuard guard;
+
     // Handle complement edge (ZDD: complement toggles empty set membership)
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -676,6 +678,8 @@ uint64_t bddlit(bddp f) {
     if (f == bddempty) return 0;
     if (f == bddsingle) return 0;  // {∅} — empty set has 0 literals
 
+    BDD_RecurGuard guard;
+
     // Complement edge: toggles ∅ membership. ∅ has 0 literals, so lit is unchanged.
     bddp f_raw = f & ~BDD_COMP_FLAG;
 
@@ -717,6 +721,8 @@ uint64_t bddlen(bddp f) {
     if (f == bddempty) return 0;
     if (f == bddsingle) return 0;
 
+    BDD_RecurGuard guard;
+
     // Complement edge toggles ∅ membership; ∅ has size 0,
     // so max element size is unchanged.
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -749,6 +755,8 @@ static double bddcount_rec(
     bddp f, std::unordered_map<bddp, double>& memo) {
     if (f == bddempty) return 0.0;
     if (f == bddsingle) return 1.0;
+
+    BDD_RecurGuard guard;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -788,6 +796,8 @@ static bigint::BigInt bddexactcount_rec(
     // Terminal cases
     if (f == bddempty) return bigint::BigInt(0);
     if (f == bddsingle) return bigint::BigInt(1);
+
+    BDD_RecurGuard guard;
 
     // Handle complement edge (ZDD: complement toggles empty set membership)
     bool comp = (f & BDD_COMP_FLAG) != 0;

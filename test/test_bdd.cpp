@@ -11229,3 +11229,25 @@ TEST_F(BDDTest, ZddGetnodeRejectsBddnullChild) {
     EXPECT_THROW(ZDD::getnode(v1, bddnull, bddnull), std::invalid_argument);
 }
 
+/* ---- RecurGuard in counting functions ---- */
+TEST_F(BDDTest, RecurGuard_CountingFunctions) {
+    /* Verify RecurCount returns to 0 after counting operations,
+       confirming BDD_RecurGuard is properly placed. */
+    for (int i = 0; i < 10; i++) bddnewvar();
+    bddp f = bddsingle;
+    for (bddvar v = 1; v <= 10; v++) {
+        f = ZDD::getnode(v, f, bddsingle);
+    }
+    EXPECT_EQ(BDD_RecurCount, 0);
+    bddcard(f);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    bddlit(f);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    bddlen(f);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    bddcount(f);
+    EXPECT_EQ(BDD_RecurCount, 0);
+    bddexactcount(f);
+    EXPECT_EQ(BDD_RecurCount, 0);
+}
+
