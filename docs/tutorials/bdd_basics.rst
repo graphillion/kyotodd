@@ -148,5 +148,5 @@ Query the DAG size:
 .. code-block:: python
 
    f = a & b & c
-   print(f"Nodes: {f.size}")
+   print(f"Nodes: {f.raw_size}")
    print(f"Top variable: {f.top_var}")

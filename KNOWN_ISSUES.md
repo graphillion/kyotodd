@@ -39,6 +39,14 @@ the BDD/ZDD class layout and is a significant architectural change.
   The C++ constructors map any non-negative value to true/single. This is
   consistent with C-style boolean semantics.
 
+- **`bddprime` 系 API は 65536 (2^16) 変数までに制限されている** (`src/bdd_base.cpp`, `src/bdd_class.cpp`, `src/bdd_ops.cpp`).
+  ノード ID の 31-bit variable number フィールドはより広い範囲を格納できるが、
+  `bddprime()` の内部 prime テーブルは 2^16 エントリで固定サイズであり、
+  これを超える自動拡張は意図的にサポートしていない。`BDD::prime` /
+  `prime_not` / `cube` / `clause`、単変数版 `Exist` / `Univ`、`bddswap` は
+  すべて `bddprime()` に依存するため、同じ上限が適用される。65536 を超える
+  変数を扱う場合は `BDD::getnode()` で直接ノードを構築すること。
+
 - **PiDD / RotPiDD internal level tables are not updated by `bddnewvaroflev()`** (`include/pidd.h`, `include/rotpidd.h`, `src/bdd_base.cpp`).
   `PiDD_XOfLev` / `PiDD_LevOfX` and `RotPiDD_XOfLev` / `RotPiDD_LevOfX` are
   only built during `PiDD_NewVar()` / `RotPiDD_NewVar()` calls.

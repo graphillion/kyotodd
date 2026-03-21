@@ -182,6 +182,10 @@ private:
  *
  * Stores the memo table for bddexactcount results. Once populated via
  * exact_count(), the memo is marked as stored and never changed.
+ *
+ * @warning The memo caches results based on the variable-level mapping at
+ * population time. If the mapping changes (e.g. via bddnewvaroflev()),
+ * discard the memo and create a new one — cached values will be incorrect.
  */
 class BddCountMemo {
 public:
@@ -392,11 +396,12 @@ public:
     void save_graphviz(FILE* strm, GraphvizMode mode = GraphvizMode::Expanded) const;
     /** @brief Save Graphviz DOT representation to an output stream. */
     void save_graphviz(std::ostream& strm, GraphvizMode mode = GraphvizMode::Expanded) const;
-    /** @brief Print BDD summary (ID, Var, Level, Size) to stdout. */
+    /** @brief Print BDD summary (ID, Var, Level, Size) to stdout.
+     *  @throws std::invalid_argument if this is BDD::Null. */
     void Print() const;
-    /** @brief Print BDD graph (bddgraph0 wrapper). */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
     void XPrint0() const;
-    /** @brief Print BDD graph (bddgraph wrapper). */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
     void XPrint() const;
     /**
      * @brief Swap variables v1 and v2 in the BDD.
@@ -933,7 +938,7 @@ public:
      */
     std::string to_str() const;
 
-    /** @brief Print ZDD graph (bddgraph wrapper). */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
     void XPrint() const;
     /** @brief Print in PLA format. */
     void PrintPla() const;

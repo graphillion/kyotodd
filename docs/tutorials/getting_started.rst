@@ -67,7 +67,7 @@ The Python API mirrors the C++ API with Pythonic naming:
    print(f"f => g: {f.imply(g)}")  # 1
 
    # Node count
-   print(f"f has {f.size} nodes")
+   print(f"f has {f.raw_size} nodes")
 
 Key Differences
 ~~~~~~~~~~~~~~~
@@ -82,7 +82,7 @@ Key Differences
      - ``BDD.var(v)``
      - Create a variable BDD
    * - ``f.Size()``
-     - ``f.size``
+     - ``f.raw_size``
      - Node count (property in Python)
    * - ``f.At0(v)``
      - ``f.at0(v)``

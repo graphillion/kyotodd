@@ -7,6 +7,7 @@
 #include <random>
 #include <sstream>
 #include <unordered_set>
+#include <climits>
 
 class BDDTest : public ::testing::Test {
 protected:
@@ -224,6 +225,16 @@ TEST_F(BDDTest, BDD_Cube_ZeroLiteral) {
 
 TEST_F(BDDTest, BDD_Clause_ZeroLiteral) {
     EXPECT_THROW(BDD::clause({0}), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_Cube_INT_MIN) {
+    bddnewvar();
+    EXPECT_THROW(BDD::cube({INT_MIN}), std::invalid_argument);
+}
+
+TEST_F(BDDTest, BDD_Clause_INT_MIN) {
+    bddnewvar();
+    EXPECT_THROW(BDD::clause({INT_MIN}), std::invalid_argument);
 }
 
 // --- BDD_ID ---
@@ -11118,6 +11129,15 @@ TEST_F(BDDTest, UniformSampleWithReorderedVariables) {
             EXPECT_LE(v, 2u) << "out-of-domain variable " << v << " in sample";
         }
     }
+}
+
+TEST_F(BDDTest, BDD_UniformSample_NExceedsVarUsed) {
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    BDD f = BDD::True;
+    std::mt19937_64 rng(42);
+    BddCountMemo memo(f.get_id(), 5);
+    EXPECT_THROW(f.uniform_sample(rng, 5, memo), std::invalid_argument);
 }
 
 // --- ZDD_Import error handling ---

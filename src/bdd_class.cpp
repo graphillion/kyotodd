@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <sstream>
+#include <climits>
 
 const BDD BDD::False(0);
 const BDD BDD::True(1);
@@ -23,6 +24,9 @@ BDD BDD::cube(const std::vector<int>& lits) {
         if (lit == 0) {
             throw std::invalid_argument("BDD::cube: literal 0 is not allowed");
         }
+        if (lit == INT_MIN) {
+            throw std::invalid_argument("BDD::cube: INT_MIN is not a valid literal");
+        }
         bddp l = bddprime(static_cast<bddvar>(lit < 0 ? -lit : lit));
         if (lit < 0) l = bddnot(l);
         f = bddand(f, l);
@@ -35,6 +39,9 @@ BDD BDD::clause(const std::vector<int>& lits) {
     for (int lit : lits) {
         if (lit == 0) {
             throw std::invalid_argument("BDD::clause: literal 0 is not allowed");
+        }
+        if (lit == INT_MIN) {
+            throw std::invalid_argument("BDD::clause: INT_MIN is not a valid literal");
         }
         bddp l = bddprime(static_cast<bddvar>(lit < 0 ? -lit : lit));
         if (lit < 0) l = bddnot(l);
@@ -139,6 +146,10 @@ std::vector<bddvar> BDD::uniform_sample_impl(
     if (memo.n() != n) {
         throw std::invalid_argument(
             "uniform_sample: memo was created with a different n");
+    }
+    if (n > bddvarused()) {
+        throw std::invalid_argument(
+            "uniform_sample: n exceeds the number of created variables");
     }
 
     // Ensure memo is populated
