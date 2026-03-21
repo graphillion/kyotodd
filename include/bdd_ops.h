@@ -588,6 +588,10 @@ bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo);
  * Returns the cardinality as an uppercase hexadecimal string with no
  * leading zeros.
  *
+ * @warning When @p s is non-NULL, the caller must ensure the buffer is
+ *          large enough. No buffer size validation is performed, which
+ *          may cause buffer overflows. Prefer bddexactcount() instead.
+ *
  * @param f A ZDD node ID.
  * @param s If non-NULL, the result is written into this buffer. The caller
  *          must ensure the buffer is large enough (no size check is performed).
@@ -752,7 +756,11 @@ bddp bddsymset(bddp f, bddvar v);
 bddp bddcoimplyset(bddp f, bddvar v);
 
 /**
- * @brief Find a non-trivial divisor of a ZDD family (as polynomial).
+ * @brief Find an approximate divisor of a ZDD family (as polynomial).
+ *
+ * Uses a greedy heuristic to find a non-trivial divisor. The result
+ * is not guaranteed to be optimal (i.e., the best possible divisor).
+ *
  * @param f A ZDD node ID.
  * @return A ZDD representing a divisor, or bddsingle if f is monomial.
  */
