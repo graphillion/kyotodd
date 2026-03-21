@@ -8538,6 +8538,54 @@ TEST(ZDD_CoImplySetTest, TerminalCases) {
     EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
 }
 
+TEST(ZDD_CoImplySetTest, ExhaustiveConsistencyWithChk) {
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    // Test several families where the recursive decomposition hits
+    // the f11==bddempty / f10==bddempty branches
+    std::vector<ZDD> families;
+
+    // f = {{v1,v3}, {v2,v3}, {v2,v4}}
+    families.push_back(
+        ZDD::Single.Change(1).Change(3) +
+        ZDD::Single.Change(2).Change(3) +
+        ZDD::Single.Change(2).Change(4));
+
+    // f = {{v1,v2,v3}, {v3,v4}}
+    families.push_back(
+        ZDD::Single.Change(1).Change(2).Change(3) +
+        ZDD::Single.Change(3).Change(4));
+
+    // f = {{v1}, {v2}, {v3,v4,v5}}
+    families.push_back(
+        ZDD::Single.Change(1) +
+        ZDD::Single.Change(2) +
+        ZDD::Single.Change(3).Change(4).Change(5));
+
+    // f = {{v1,v2}, {v1,v3}, {v2,v4}, {v3,v5}}
+    families.push_back(
+        ZDD::Single.Change(1).Change(2) +
+        ZDD::Single.Change(1).Change(3) +
+        ZDD::Single.Change(2).Change(4) +
+        ZDD::Single.Change(3).Change(5));
+
+    for (const ZDD& f : families) {
+        for (bddvar v = 1; v <= 5; v++) {
+            ZDD cset = f.CoImplySet(v);
+            for (bddvar w = 1; w <= 5; w++) {
+                if (w == v) continue;
+                ZDD sw = ZDD::Single.Change(w);
+                bool in_cset = ((cset & sw) != ZDD::Empty);
+                bool chk = (f.CoImplyChk(v, w) == 1);
+                EXPECT_EQ(in_cset, chk)
+                    << "family=" << f.get_id()
+                    << " v=" << v << " w=" << w;
+            }
+        }
+    }
+}
+
 // --- bdddivisor / ZDD::Divisor ---
 
 TEST(ZDD_DivisorTest, TerminalCases) {
