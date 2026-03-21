@@ -524,8 +524,7 @@ double bddcount(bddp f);
  * For example, if f = {{a,b},{a},{b,c,d}}, returns 2+1+3 = 6.
  *
  * @param f A ZDD node ID.
- * Saturates at (2^39 - 1) for very large families. Use bddexactlit()
- * for exact results beyond this limit.
+ * Saturates at (2^39 - 1) for very large families.
  *
  * @return The total literal count, or (2^39 - 1) if saturated.
  */
