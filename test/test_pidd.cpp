@@ -1,5 +1,6 @@
 #include "pidd.h"
 #include <gtest/gtest.h>
+#include <iostream>
 #include <sstream>
 
 class PiDDTest : public ::testing::Test {
@@ -334,4 +335,35 @@ TEST_F(PiDDTest, XOfLev_ZeroInitAfterResize) {
     for (int lev = toplev + 1; lev < PiDD_VarTableSize; lev++) {
         EXPECT_EQ(PiDD_XOfLev[lev], 0);
     }
+}
+
+/* ---- Enum/Enum2 output ---- */
+TEST_F(PiDDTest, Enum_Output) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD id(1);
+    PiDD swap12 = id.Swap(2, 1);
+    PiDD set = id + swap12;  // {identity, (2 1)}
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    set.Enum();
+    std::cout.rdbuf(old);
+    std::string result = oss.str();
+    EXPECT_FALSE(result.empty());
+    EXPECT_NE(result.find("+"), std::string::npos);  // two permutations
+}
+
+TEST_F(PiDDTest, Enum2_Output) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD id(1);
+    PiDD swap12 = id.Swap(2, 1);
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    swap12.Enum2();
+    std::cout.rdbuf(old);
+    std::string result = oss.str();
+    EXPECT_FALSE(result.empty());
 }

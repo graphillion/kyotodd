@@ -1,6 +1,8 @@
 #include "rotpidd.h"
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <iostream>
+#include <sstream>
 #include <set>
 
 class RotPiDDTest : public ::testing::Test {
@@ -396,4 +398,35 @@ TEST_F(RotPiDDTest, XOfLev_ZeroInitAfterResize) {
     for (int lev = toplev + 1; lev < RotPiDD_VarTableSize; lev++) {
         EXPECT_EQ(RotPiDD_XOfLev[lev], 0);
     }
+}
+
+/* ---- Enum/Enum2 output ---- */
+TEST_F(RotPiDDTest, Enum_Output) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    RotPiDD rot = id.LeftRot(2, 1);
+    RotPiDD set = id + rot;
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    set.Enum();
+    std::cout.rdbuf(old);
+    std::string result = oss.str();
+    EXPECT_FALSE(result.empty());
+    EXPECT_NE(result.find("+"), std::string::npos);
+}
+
+TEST_F(RotPiDDTest, Enum2_Output) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    RotPiDD rot = id.LeftRot(2, 1);
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    rot.Enum2();
+    std::cout.rdbuf(old);
+    std::string result = oss.str();
+    EXPECT_FALSE(result.empty());
 }

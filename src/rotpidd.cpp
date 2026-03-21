@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
+#include <vector>
 
 /* --- Global variables --- */
 int RotPiDD_TopVar = 0;
@@ -699,13 +700,14 @@ void RotPiDD::Enum() const
     if (*this == RotPiDD(1)) { std::cout << "1"; return; }
 
     int dim = RotPiDD_TopVar;
-    RotPiDD_Enum_VarMap = new int[dim];
-    for (int i = 0; i < dim; i++) RotPiDD_Enum_VarMap[i] = i + 1;
+    std::vector<int> varmap(dim);
+    for (int i = 0; i < dim; i++) varmap[i] = i + 1;
+    RotPiDD_Enum_VarMap = varmap.data();
     RotPiDD_Enum_Flag = 0;
 
     RotPiDD_EnumRec(*this, dim);
 
-    delete[] RotPiDD_Enum_VarMap;
+    RotPiDD_Enum_VarMap = nullptr;
 }
 
 /* ================================================================ */
@@ -764,13 +766,14 @@ void RotPiDD::Enum2() const
     if (*this == RotPiDD(1)) { std::cout << "1" << std::endl; return; }
 
     int maxdepth = static_cast<int>(bddvarused());
-    RotPiDD_Enum2_VarMap = new int[maxdepth + 1];
+    std::vector<int> varmap(maxdepth + 1);
+    RotPiDD_Enum2_VarMap = varmap.data();
     RotPiDD_Enum2_Depth = 0;
     RotPiDD_Enum2_Flag = 0;
 
     RotPiDD_Enum2Rec(*this);
 
-    delete[] RotPiDD_Enum2_VarMap;
+    RotPiDD_Enum2_VarMap = nullptr;
     std::cout << std::endl;
 }
 

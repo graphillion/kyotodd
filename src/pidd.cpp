@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 /* --- Global variables --- */
 int PiDD_TopVar = 0;
@@ -359,13 +360,14 @@ void PiDD::Enum() const
     if (*this == PiDD(1)) { std::cout << "1"; return; }
 
     int dim = TopX();
-    PiDD_Enum_VarMap = new int[dim];
-    for (int i = 0; i < dim; i++) PiDD_Enum_VarMap[i] = i + 1;
+    std::vector<int> varmap(dim);
+    for (int i = 0; i < dim; i++) varmap[i] = i + 1;
+    PiDD_Enum_VarMap = varmap.data();
     PiDD_Enum_Flag = 0;
 
     PiDD_EnumRec(*this, dim);
 
-    delete[] PiDD_Enum_VarMap;
+    PiDD_Enum_VarMap = nullptr;
 }
 
 /* ================================================================ */
@@ -424,11 +426,12 @@ void PiDD::Enum2() const
     if (*this == PiDD(1)) { std::cout << "1"; return; }
 
     int maxdepth = static_cast<int>(bddvarused());
-    PiDD_Enum2_VarMap = new int[maxdepth + 1];
+    std::vector<int> varmap(maxdepth + 1);
+    PiDD_Enum2_VarMap = varmap.data();
     PiDD_Enum2_Depth = 0;
     PiDD_Enum2_Flag = 0;
 
     PiDD_Enum2Rec(*this);
 
-    delete[] PiDD_Enum2_VarMap;
+    PiDD_Enum2_VarMap = nullptr;
 }
