@@ -806,8 +806,23 @@ TEST_F(SOPTest, SOPVCubeAndLit) {
     sv += SOPV(xa, 0);
     sv += SOPV(xb, 1);
 
-    // Total cubes = 1 + 1 = 2 (union of two single-cube SOPs)
+    // Total cubes = 1 + 1 = 2 (sum across outputs)
     EXPECT_EQ(sv.Cube(), 2u);
+    EXPECT_EQ(sv.Lit(), 2u);
+}
+
+TEST_F(SOPTest, SOPVCubeAndLitSharedCube) {
+    int a = SOP_NewVar();
+    SOP xa = SOP(1).And1(a);
+
+    // Same cube in both outputs
+    SOPV sv;
+    sv += SOPV(xa, 0);
+    sv += SOPV(xa, 1);
+
+    // Total cubes = 1 + 1 = 2 (sum, not union)
+    EXPECT_EQ(sv.Cube(), 2u);
+    // Total lits = 1 + 1 = 2
     EXPECT_EQ(sv.Lit(), 2u);
 }
 

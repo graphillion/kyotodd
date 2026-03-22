@@ -775,25 +775,25 @@ uint64_t SOPV::Size() const { return _v.Size(); }
 uint64_t SOPV::Cube() const
 {
     int last = Last();
-    SOP total(0);
+    uint64_t total = 0;
     for (int i = 0; i <= last; i++) {
         SOP s = GetSOP(i);
         if (s.GetZBDD().GetID() == bddnull) return 0;
-        total += s;
+        total += s.Cube();
     }
-    return total.Cube();
+    return total;
 }
 
 uint64_t SOPV::Lit() const
 {
     int last = Last();
-    SOP total(0);
+    uint64_t total = 0;
     for (int i = 0; i <= last; i++) {
         SOP s = GetSOP(i);
         if (s.GetZBDD().GetID() == bddnull) return 0;
-        total += s;
+        total += s.Lit();
     }
-    return total.Lit();
+    return total;
 }
 
 int SOPV::Last() const { return _v.Last(); }
