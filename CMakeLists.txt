@@ -24,6 +24,7 @@ set(KYOTODD_LIB_SOURCES
   src/qdd.cpp
   src/bddv.cpp
   src/zbddv.cpp
+  src/sop.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -123,4 +124,11 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(zbddv_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(zbddv_test)
+
+  add_executable(sop_test test/test_sop.cpp)
+  target_link_libraries(sop_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(sop_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(sop_test)
 endif()
