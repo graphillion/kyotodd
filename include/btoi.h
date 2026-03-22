@@ -15,6 +15,8 @@
  * You must explicitly @c \#include @c "btoi.h" to use this class.
  *
  * Requires BDDV_Init() to have been called (from bddv.h).
+ *
+ * No Python binding is provided for this class.
  */
 
 #include "bddv.h"

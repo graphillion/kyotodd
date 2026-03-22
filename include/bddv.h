@@ -12,6 +12,8 @@
  *
  * This header is NOT included by the umbrella header @c bdd.h.
  * You must explicitly @c \#include @c "bddv.h" to use this class.
+ *
+ * No Python binding is provided for this class.
  */
 
 #include "bdd.h"

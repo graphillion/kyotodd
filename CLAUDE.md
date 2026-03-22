@@ -324,6 +324,8 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `test/test_rotpidd.cpp` — RotPiDD tests
 - `test/test_seqbdd.cpp` — SeqBDD tests
 - `test/test_ddbase.cpp` — DDBase tests
-- `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11, all classes)
+- `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11, core classes only)
+  - Bound classes: BDD, ZDD, QDD, UnreducedDD, PiDD, RotPiDD, SeqBDD
+  - **Not bound** (C++ only): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP, SOPV
 - `docs/` — Sphinx documentation (API reference, tutorials, concepts)
 - `app/BDDQueen/` — N-Queens sample applications

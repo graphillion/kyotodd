@@ -17,6 +17,8 @@
  * You must explicitly @c \#include @c "sop.h" to use these classes.
  *
  * Requires BDDV_Init() to have been called (from bddv.h) before using SOPV.
+ *
+ * No Python binding is provided for these classes.
  */
 
 #include "zbddv.h"
