@@ -142,8 +142,7 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out) {
                 _zbddv += ZBDDV(new_fj, j);
 
                 if (_zbddv.GetMetaZBDD().GetID() == bddnull) {
-                    std::cerr << "MLZBDDV: overflow in phase 2" << std::endl;
-                    std::exit(1);
+                    throw std::overflow_error("MLZBDDV: overflow in phase 2");
                 }
             }
         }
