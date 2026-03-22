@@ -23,6 +23,7 @@ set(KYOTODD_LIB_SOURCES
   src/unreduced_dd.cpp
   src/qdd.cpp
   src/bddv.cpp
+  src/zbddv.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
