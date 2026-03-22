@@ -786,6 +786,9 @@ long long int RotPiDD::contradictionMaximization(
     if (n > 63)
         throw std::invalid_argument(
             "contradictionMaximization: n exceeds 63 (bitmask limit)");
+    if (n > static_cast<int>(unused_list.size()))
+        throw std::invalid_argument(
+            "contradictionMaximization: n exceeds unused_list size");
     if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull)
         return -1000000000LL;
 
