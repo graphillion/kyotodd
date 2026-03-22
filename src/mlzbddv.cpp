@@ -118,8 +118,6 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out) {
                 throw std::overflow_error("MLZBDDV: overflow in phase 2");
             }
 
-            std::cout << _sin << std::flush;
-
             bddvar p_top_lev = (p.Top() > 0)
                 ? BDD_LevOfVar(p.Top()) : 0;
 

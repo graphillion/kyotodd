@@ -183,6 +183,30 @@ TEST_F(MLZBDDVTest, Phase2KernelExtraction) {
 }
 
 // ============================================================
+// Constructor does not write to stdout
+// ============================================================
+
+TEST_F(MLZBDDVTest, ConstructorNoStdout) {
+    bddvar v1 = static_cast<bddvar>(BDDV_NewVar());
+    bddvar v2 = static_cast<bddvar>(BDDV_NewVar());
+    bddvar v3 = static_cast<bddvar>(BDDV_NewVar());
+
+    // f0 = {{v1, v2}, {v1, v3}} — triggers phase 2 kernel extraction
+    ZDD f0 = ZDD::Single.Change(v1).Change(v2)
+           + ZDD::Single.Change(v1).Change(v3);
+
+    ZBDDV zv(f0, 0);
+    int pin = compute_pin(zv);
+
+    testing::internal::CaptureStdout();
+    MLZBDDV ml(zv, pin, 1);
+    std::string output = testing::internal::GetCapturedStdout();
+
+    // Constructor must not produce any stdout output
+    EXPECT_EQ(output, "");
+}
+
+// ============================================================
 // N_sin accounts for both phases
 // ============================================================
 
