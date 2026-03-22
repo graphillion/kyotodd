@@ -25,7 +25,7 @@ int BDDV_UserTopLev() {
 }
 
 int BDDV_NewVar() {
-    return static_cast<int>(bddnewvaroflev(1));
+    return static_cast<int>(bddnewvar());
 }
 
 int BDDV_NewVarOfLev(int lev) {
@@ -61,8 +61,9 @@ BDDV::BDDV() : _bdd(0), _len(0), _lev(0) {}
 BDDV::BDDV(const BDDV& fv) : _bdd(fv._bdd), _len(fv._len), _lev(fv._lev) {}
 
 BDDV::BDDV(const BDD& f) : _bdd(f), _len(1), _lev(0) {
+    if (f.GetID() == bddnull) return;
     bddvar top = f.Top();
-    if (top > 0 && BDD_LevOfVar(top) > static_cast<bddvar>(BDDV_UserTopLev())) {
+    if (top > 0 && top <= static_cast<bddvar>(BDDV_SysVarTop)) {
         throw std::invalid_argument("BDDV(BDD): BDD contains system variables");
     }
 }
@@ -73,10 +74,6 @@ BDDV::BDDV(const BDD& f, int len) : _bdd(0), _len(0), _lev(0) {
     }
     if (len > BDDV_MaxLen) {
         throw std::invalid_argument("BDDV(BDD, len): length exceeds BDDV_MaxLen");
-    }
-    bddvar top = f.Top();
-    if (top > 0 && BDD_LevOfVar(top) > static_cast<bddvar>(BDDV_UserTopLev())) {
-        throw std::invalid_argument("BDDV(BDD, len): BDD contains system variables");
     }
     if (f.GetID() == bddnull) {
         _bdd = f;
@@ -127,9 +124,19 @@ BDD BDDV::GetMetaBDD() const {
 }
 
 int BDDV::Uniform() const {
-    bddvar top = _bdd.Top();
-    if (top == 0) return 1;
-    return (BDD_LevOfVar(top) <= static_cast<bddvar>(BDDV_UserTopLev())) ? 1 : 0;
+    if (_bdd.is_terminal()) return 1;
+    if (_lev == 0) return 1;
+    // Check if the meta-BDD depends on any system variable (1.._lev).
+    // In a reduced BDD, variable v is present iff At0(v) != At1(v).
+    // Check from the highest system variable used (_lev) down to 1.
+    BDD cur = _bdd;
+    for (int i = _lev; i >= 1; i--) {
+        BDD a0 = cur.At0(static_cast<bddvar>(i));
+        BDD a1 = cur.At1(static_cast<bddvar>(i));
+        if (a0.GetID() != a1.GetID()) return 0;
+        cur = a0;
+    }
+    return 1;
 }
 
 int BDDV::Len() const {
@@ -318,8 +325,7 @@ BDDV& BDDV::operator>>=(int s) {
 // ============================================================
 
 BDDV BDDV::At0(int v) const {
-    if (v > 0 && BDD_LevOfVar(static_cast<bddvar>(v)) >
-                     static_cast<bddvar>(BDDV_UserTopLev())) {
+    if (v > 0 && v <= BDDV_SysVarTop) {
         throw std::invalid_argument("BDDV::At0: variable is a system variable");
     }
     BDD r = _bdd.At0(static_cast<bddvar>(v));
@@ -332,8 +338,7 @@ BDDV BDDV::At0(int v) const {
 }
 
 BDDV BDDV::At1(int v) const {
-    if (v > 0 && BDD_LevOfVar(static_cast<bddvar>(v)) >
-                     static_cast<bddvar>(BDDV_UserTopLev())) {
+    if (v > 0 && v <= BDDV_SysVarTop) {
         throw std::invalid_argument("BDDV::At1: variable is a system variable");
     }
     BDD r = _bdd.At1(static_cast<bddvar>(v));
@@ -364,12 +369,10 @@ BDDV BDDV::Cofact(const BDDV& fv) const {
 }
 
 BDDV BDDV::Swap(int v1, int v2) const {
-    if (BDD_LevOfVar(static_cast<bddvar>(v1)) >
-        static_cast<bddvar>(BDDV_UserTopLev())) {
+    if (v1 > 0 && v1 <= BDDV_SysVarTop) {
         throw std::invalid_argument("BDDV::Swap: v1 is a system variable");
     }
-    if (BDD_LevOfVar(static_cast<bddvar>(v2)) >
-        static_cast<bddvar>(BDDV_UserTopLev())) {
+    if (v2 > 0 && v2 <= BDDV_SysVarTop) {
         throw std::invalid_argument("BDDV::Swap: v2 is a system variable");
     }
     BDD r = _bdd.Swap(static_cast<bddvar>(v1), static_cast<bddvar>(v2));
@@ -581,9 +584,10 @@ BDDV BDDV_Import(FILE* strm) {
         }
 
         // Build BDD node: (x & f1) | (~x & f0)
-        // level in the import file is a user level;
-        // map to variable number using bddvaroflev
-        bddvar var = bddvaroflev(static_cast<bddvar>(level));
+        // level in the import file is a user level (1-based);
+        // map to actual variable number by offsetting past system variables
+        bddvar actual_level = static_cast<bddvar>(level + BDDV_SysVarTop);
+        bddvar var = bddvaroflev(actual_level);
         BDD x = BDDvar(var);
         BDD node_bdd = (x & f1) | (~x & f0);
         node_map[node_num] = node_bdd;
