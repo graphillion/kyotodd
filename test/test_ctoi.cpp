@@ -722,22 +722,21 @@ TEST_F(CtoITest, MeetWithZero) {
 /* ================================================================ */
 
 TEST_F(CtoITest, ItemVariableBasic) {
-    /* Build CtoI that assigns value 1 to combinations containing item x */
-    /* x is a user variable. BDDV_NewVar() created user vars. */
-    /* Use the first user variable (var ID after system vars) */
-    bddvar user_var = BDD_VarOfLev(1);  /* lowest-level user variable */
+    /* Use actual user/item variables (levels above BDDV_SysVarTop) */
+    bddvar user_var = BDD_VarOfLev(BDDV_SysVarTop + 1);
 
     /* Create a CtoI: {x} → 1, using ZBDD singleton */
     ZDD single = ZDD::singleton(user_var);
     CtoI c(single);
 
     EXPECT_EQ(c.IsBool(), 1);  /* boolean: only items, values 0/1 */
+    EXPECT_EQ(c.IsConst(), 0); /* not constant: depends on item variable */
     EXPECT_EQ(c.TopItem(), static_cast<int>(user_var));
 }
 
 TEST_F(CtoITest, ItemVariableAddition) {
-    bddvar x = BDD_VarOfLev(1);
-    bddvar y = BDD_VarOfLev(2);
+    bddvar x = BDD_VarOfLev(BDDV_SysVarTop + 1);
+    bddvar y = BDD_VarOfLev(BDDV_SysVarTop + 2);
 
     /* CtoI where {x} has value 1 */
     CtoI cx(ZDD::singleton(x));
@@ -753,8 +752,8 @@ TEST_F(CtoITest, ItemVariableAddition) {
 }
 
 TEST_F(CtoITest, FilterThenWithItems) {
-    bddvar x = BDD_VarOfLev(1);
-    bddvar y = BDD_VarOfLev(2);
+    bddvar x = BDD_VarOfLev(BDDV_SysVarTop + 1);
+    bddvar y = BDD_VarOfLev(BDDV_SysVarTop + 2);
 
     /* Build: {x}→1, {y}→1, {x,y}→1 */
     ZDD z = ZDD::singleton(x) + ZDD::singleton(y)
@@ -768,8 +767,8 @@ TEST_F(CtoITest, FilterThenWithItems) {
 }
 
 TEST_F(CtoITest, TotalValWithItems) {
-    bddvar x = BDD_VarOfLev(1);
-    bddvar y = BDD_VarOfLev(2);
+    bddvar x = BDD_VarOfLev(BDDV_SysVarTop + 1);
+    bddvar y = BDD_VarOfLev(BDDV_SysVarTop + 2);
 
     /* {x}→1, {y}→1 → total = 2 */
     CtoI c = CtoI_Union(CtoI(ZDD::singleton(x)), CtoI(ZDD::singleton(y)));

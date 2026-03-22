@@ -113,8 +113,7 @@ int CtoI::TopItem() const
     bddvar v = _zbdd.top();
     if (v == 0) return 0;
     bddvar lev = BDD_LevOfVar(v);
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
-    if (lev <= user_top) return static_cast<int>(v);
+    if (lev > static_cast<bddvar>(BDDV_SysVarTop)) return static_cast<int>(v);
     /* v is a system variable — recurse into children */
     int t0 = Factor0(static_cast<int>(v)).TopItem();
     int t1 = Factor1(static_cast<int>(v)).TopItem();
@@ -130,8 +129,7 @@ int CtoI::TopDigit() const
     bddvar v = _zbdd.top();
     if (v == 0) return 0;
     bddvar lev = BDD_LevOfVar(v);
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
-    if (lev <= user_top) return 0;
+    if (lev > static_cast<bddvar>(BDDV_SysVarTop)) return 0;
     int d0 = Factor0(static_cast<int>(v)).TopDigit();
     int d1 = Factor1(static_cast<int>(v)).TopDigit()
            + (1 << (BDDV_SysVarTop - static_cast<int>(v)));
@@ -143,8 +141,7 @@ int CtoI::IsBool() const
     bddvar v = _zbdd.top();
     if (v == 0) return 1;
     bddvar lev = BDD_LevOfVar(v);
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
-    return (lev <= user_top) ? 1 : 0;
+    return (lev > static_cast<bddvar>(BDDV_SysVarTop)) ? 1 : 0;
 }
 
 int CtoI::IsConst() const
@@ -296,7 +293,6 @@ CtoI operator*(const CtoI& a, const CtoI& b)
     ZDD cached = BDD_CacheZDD(BC_CtoI_MULT, fp, gp);
     if (cached != ZDD::Null) return CtoI(cached);
 
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
     int av = static_cast<int>(atop);
     CtoI a0 = pa->Factor0(av);
     CtoI a1 = pa->Factor1(av);
@@ -304,7 +300,7 @@ CtoI operator*(const CtoI& a, const CtoI& b)
 
     if (atop != btop) {
         /* a has higher top variable */
-        if (alev <= user_top) {
+        if (alev > static_cast<bddvar>(BDDV_SysVarTop)) {
             /* item variable */
             r = CtoI_Union(a0 * *pb, (a1 * *pb).AffixVar(av));
         } else {
@@ -316,7 +312,7 @@ CtoI operator*(const CtoI& a, const CtoI& b)
         int bv = static_cast<int>(btop);
         CtoI b0 = pb->Factor0(bv);
         CtoI b1 = pb->Factor1(bv);
-        if (alev <= user_top) {
+        if (alev > static_cast<bddvar>(BDDV_SysVarTop)) {
             /* item variable */
             r = CtoI_Union(a0 * b0,
                            (a1 * b0 + a0 * b1 + a1 * b1).AffixVar(av));
@@ -579,9 +575,8 @@ CtoI CtoI::FilterThen(const CtoI& a) const
 
     bddvar v = _zbdd.top();
     int vi = static_cast<int>(v);
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
 
-    if (BDD_LevOfVar(v) > user_top) {
+    if (BDD_LevOfVar(v) <= static_cast<bddvar>(BDDV_SysVarTop)) {
         /* System variable: condition is item-only, apply same to both */
         CtoI r0 = Factor0(vi).FilterThen(aa);
         CtoI r1 = Factor1(vi).FilterThen(aa);
@@ -606,9 +601,8 @@ CtoI CtoI::FilterElse(const CtoI& a) const
 
     bddvar v = _zbdd.top();
     int vi = static_cast<int>(v);
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
 
-    if (BDD_LevOfVar(v) > user_top) {
+    if (BDD_LevOfVar(v) <= static_cast<bddvar>(BDDV_SysVarTop)) {
         /* System variable: condition is item-only, apply same to both */
         CtoI r0 = Factor0(vi).FilterElse(aa);
         CtoI r1 = Factor1(vi).FilterElse(aa);
@@ -738,8 +732,7 @@ CtoI CtoI::TotalVal() const
     int vi = static_cast<int>(top);
     CtoI c = Factor0(vi).TotalVal();
 
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
-    if (BDD_LevOfVar(top) <= user_top) {
+    if (BDD_LevOfVar(top) > static_cast<bddvar>(BDDV_SysVarTop)) {
         /* Item variable: just add Factor1's total */
         c = c + Factor1(vi).TotalVal();
     } else {
@@ -765,8 +758,7 @@ CtoI CtoI::TotalValItems() const
     int vi = static_cast<int>(top);
     CtoI c = Factor0(vi).TotalValItems();
 
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
-    if (BDD_LevOfVar(top) <= user_top) {
+    if (BDD_LevOfVar(top) > static_cast<bddvar>(BDDV_SysVarTop)) {
         /* Item variable: add Factor1's TVI + Factor1's TV */
         c = c + Factor1(vi).TotalValItems()
               + Factor1(vi).TotalVal().AffixVar(vi);
@@ -991,14 +983,13 @@ CtoI CtoI_Meet(const CtoI& a, const CtoI& b)
     ZDD cached = BDD_CacheZDD(BC_CtoI_MEET, fp, gp);
     if (cached != ZDD::Null) return CtoI(cached);
 
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
     int av = static_cast<int>(atop);
     CtoI a0 = pa->Factor0(av);
     CtoI a1 = pa->Factor1(av);
     CtoI r;
 
     if (atop != btop) {
-        if (alev <= user_top) {
+        if (alev > static_cast<bddvar>(BDDV_SysVarTop)) {
             /* Item variable */
             r = CtoI_Meet(a0, *pb) + CtoI_Meet(a1, *pb);
         } else {
@@ -1009,7 +1000,7 @@ CtoI CtoI_Meet(const CtoI& a, const CtoI& b)
         int bv = static_cast<int>(btop);
         CtoI b0 = pb->Factor0(bv);
         CtoI b1 = pb->Factor1(bv);
-        if (alev <= user_top) {
+        if (alev > static_cast<bddvar>(BDDV_SysVarTop)) {
             /* Item variable */
             r = CtoI_Union(
                 CtoI_Meet(a0, b0) + CtoI_Meet(a1, b0) + CtoI_Meet(a0, b1),
@@ -1106,7 +1097,6 @@ CtoI CtoI::ReduceItems(const CtoI& b) const
     ZDD cached = BDD_CacheZDD(BC_CtoI_RI, fp, gp);
     if (cached != ZDD::Null) return CtoI(cached);
 
-    bddvar user_top = BDD_TopLev() - BDDV_SysVarTop;
     bddvar alev = (atop != 0) ? BDD_LevOfVar(atop) : 0;
     bddvar blev = (btop != 0) ? BDD_LevOfVar(btop) : 0;
     int avi = static_cast<int>(atop);
@@ -1120,7 +1110,7 @@ CtoI CtoI::ReduceItems(const CtoI& b) const
         /* self is not boolean (has system variables at top) */
         r = Factor0(avi).ReduceItems(bb)
             + Factor1(avi).ReduceItems(bb).ShiftDigit(1 << (BDDV_SysVarTop - avi));
-    } else if (alev == blev && alev <= user_top) {
+    } else if (alev == blev && alev > static_cast<bddvar>(BDDV_SysVarTop)) {
         /* Both are item variables at the same level */
         r = Factor0(avi).ReduceItems(bb.Factor0(bvi))
             + Factor1(avi).ReduceItems(bb.Factor1(bvi));
