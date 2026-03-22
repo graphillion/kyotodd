@@ -389,3 +389,29 @@ TEST_F(PiDDTest, Enum2_Output) {
     std::string result = oss.str();
     EXPECT_FALSE(result.empty());
 }
+
+/* ---- Error handling: exceptions instead of std::exit ---- */
+TEST_F(PiDDTest, SwapThrowsOnOutOfRange) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD id(1);
+    EXPECT_THROW(id.Swap(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.Swap(1, 0), std::invalid_argument);
+    EXPECT_THROW(id.Swap(3, 1), std::invalid_argument);
+    EXPECT_THROW(id.Swap(1, 3), std::invalid_argument);
+}
+
+TEST_F(PiDDTest, CofactThrowsOnOutOfRange) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD id(1);
+    EXPECT_THROW(id.Cofact(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.Cofact(3, 1), std::invalid_argument);
+}
+
+TEST_F(PiDDTest, DivisionByZeroThrows) {
+    PiDD_NewVar();
+    PiDD id(1);
+    PiDD empty(0);
+    EXPECT_THROW(id / empty, std::invalid_argument);
+}

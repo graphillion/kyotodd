@@ -17,8 +17,7 @@ int* PiDD_XOfLev = 0;
 int PiDD_NewVar()
 {
     if (PiDD_TopVar >= PiDD_MaxVar) {
-        std::cerr << "PiDD_NewVar: too many variables" << std::endl;
-        std::exit(1);
+        throw std::overflow_error("PiDD_NewVar: too many variables");
     }
 
     /* First call: allocate PiDD_XOfLev */
@@ -77,8 +76,7 @@ PiDD PiDD::Swap(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
-        std::cerr << "PiDD::Swap: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("PiDD::Swap: variable out of range");
     }
     if (u == v) return *this;
     if (u < v) return Swap(v, u);
@@ -119,8 +117,7 @@ PiDD PiDD::Cofact(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
-        std::cerr << "PiDD::Cofact: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("PiDD::Cofact: variable out of range");
     }
 
     int x = TopX();
@@ -210,8 +207,7 @@ PiDD operator/(const PiDD& f, const PiDD& p)
         return PiDD(-1);
     if (p.zdd_.GetID() == bddsingle) return f;
     if (p.zdd_.GetID() == bddempty) {
-        std::cerr << "PiDD: division by zero" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("PiDD: division by zero");
     }
     if (f.TopX() < p.TopX()) return PiDD(0);
 

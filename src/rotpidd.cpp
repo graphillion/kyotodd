@@ -18,8 +18,7 @@ int* RotPiDD_XOfLev = 0;
 int RotPiDD_NewVar()
 {
     if (RotPiDD_TopVar >= RotPiDD_MaxVar) {
-        std::cerr << "RotPiDD_NewVar: too many variables" << std::endl;
-        std::exit(1);
+        throw std::overflow_error("RotPiDD_NewVar: too many variables");
     }
 
     /* First call: allocate RotPiDD_XOfLev */
@@ -78,8 +77,7 @@ RotPiDD RotPiDD::LeftRot(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (u < 1 || u > RotPiDD_VarUsed() || v < 1 || v > RotPiDD_VarUsed()) {
-        std::cerr << "RotPiDD::LeftRot: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("RotPiDD::LeftRot: variable out of range");
     }
     if (u == v) return *this;
     if (u < v) return LeftRot(v, u);
@@ -142,8 +140,7 @@ RotPiDD RotPiDD::Swap(int a, int b) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (a < 1 || a > RotPiDD_VarUsed() || b < 1 || b > RotPiDD_VarUsed()) {
-        std::cerr << "RotPiDD::Swap: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("RotPiDD::Swap: variable out of range");
     }
     if (a == b) return *this;
     if (a > b) return Swap(b, a);
@@ -176,8 +173,7 @@ RotPiDD RotPiDD::Reverse(int l, int r) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (l < 1 || l > RotPiDD_VarUsed() || r < 1 || r > RotPiDD_VarUsed()) {
-        std::cerr << "RotPiDD::Reverse: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("RotPiDD::Reverse: variable out of range");
     }
     if (l == r) return *this;
     if (l > r) return Reverse(r, l);
@@ -210,8 +206,7 @@ RotPiDD RotPiDD::Cofact(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (u < 1 || u > RotPiDD_VarUsed() || v < 1 || v > RotPiDD_VarUsed()) {
-        std::cerr << "RotPiDD::Cofact: variable out of range" << std::endl;
-        std::exit(1);
+        throw std::invalid_argument("RotPiDD::Cofact: variable out of range");
     }
 
     int x = TopX();

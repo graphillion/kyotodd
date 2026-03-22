@@ -392,6 +392,8 @@ static bddp bddsymset_rec(bddp f0, bddp f1) {
     bddvar f1_top = bddtop(f1);
     bddvar f0_level = (f0_top == 0) ? 0 : var2level[f0_top];
     bddvar f1_level = (f1_top == 0) ? 0 : var2level[f1_top];
+    // Both are terminals -> no non-terminal variable to decompose on
+    if (f0_level == 0 && f1_level == 0) return bddempty;
     bddvar t = (f0_level > f1_level) ? f0_top : f1_top;
 
     // Decompose f0 and f1 at t
@@ -457,6 +459,8 @@ static bddp bddcoimplyset_rec(bddp f0, bddp f1) {
     bddvar f1_top = bddtop(f1);
     bddvar f0_level = (f0_top == 0) ? 0 : var2level[f0_top];
     bddvar f1_level = (f1_top == 0) ? 0 : var2level[f1_top];
+    // Both are terminals -> no non-terminal variable to decompose on
+    if (f0_level == 0 && f1_level == 0) return bddempty;
     bddvar t = (f0_level > f1_level) ? f0_top : f1_top;
 
     // Decompose f0 and f1 at t

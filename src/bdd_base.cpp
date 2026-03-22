@@ -741,10 +741,20 @@ bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("BDD::getnode: var out of range");
     bddvar var_level = var2level[var];
-    if (!(lo & BDD_CONST_FLAG) && var2level[node_var(lo & ~BDD_COMP_FLAG)] >= var_level)
-        throw std::invalid_argument("BDD::getnode: lo child level >= var level");
-    if (!(hi & BDD_CONST_FLAG) && var2level[node_var(hi & ~BDD_COMP_FLAG)] >= var_level)
-        throw std::invalid_argument("BDD::getnode: hi child level >= var level");
+    if (!(lo & BDD_CONST_FLAG)) {
+        bddp lo_phys = lo & ~BDD_COMP_FLAG;
+        if (lo_phys < 2 || lo_phys / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("BDD::getnode: lo child is not a valid node");
+        if (var2level[node_var(lo_phys)] >= var_level)
+            throw std::invalid_argument("BDD::getnode: lo child level >= var level");
+    }
+    if (!(hi & BDD_CONST_FLAG)) {
+        bddp hi_phys = hi & ~BDD_COMP_FLAG;
+        if (hi_phys < 2 || hi_phys / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("BDD::getnode: hi child is not a valid node");
+        if (var2level[node_var(hi_phys)] >= var_level)
+            throw std::invalid_argument("BDD::getnode: hi child level >= var level");
+    }
     return BDD::getnode_raw(var, lo, hi);
 }
 
@@ -800,10 +810,20 @@ bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("ZDD::getnode: var out of range");
     bddvar var_level = var2level[var];
-    if (!(lo & BDD_CONST_FLAG) && var2level[node_var(lo & ~BDD_COMP_FLAG)] >= var_level)
-        throw std::invalid_argument("ZDD::getnode: lo child level >= var level");
-    if (!(hi & BDD_CONST_FLAG) && var2level[node_var(hi & ~BDD_COMP_FLAG)] >= var_level)
-        throw std::invalid_argument("ZDD::getnode: hi child level >= var level");
+    if (!(lo & BDD_CONST_FLAG)) {
+        bddp lo_phys = lo & ~BDD_COMP_FLAG;
+        if (lo_phys < 2 || lo_phys / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("ZDD::getnode: lo child is not a valid node");
+        if (var2level[node_var(lo_phys)] >= var_level)
+            throw std::invalid_argument("ZDD::getnode: lo child level >= var level");
+    }
+    if (!(hi & BDD_CONST_FLAG)) {
+        bddp hi_phys = hi & ~BDD_COMP_FLAG;
+        if (hi_phys < 2 || hi_phys / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("ZDD::getnode: hi child is not a valid node");
+        if (var2level[node_var(hi_phys)] >= var_level)
+            throw std::invalid_argument("ZDD::getnode: hi child level >= var level");
+    }
     return ZDD::getnode_raw(var, lo, hi);
 }
 
@@ -855,12 +875,17 @@ bddp QDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 bddp QDD::getnode(bddvar var, bddp lo, bddp hi) {
     if (lo == bddnull || hi == bddnull)
         throw std::invalid_argument("QDD::getnode: bddnull child");
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("QDD::getnode: var out of range");
     // Level validation: children must be at var's level - 1
     bddvar expected_child_level = var2level[var] - 1;
 
     auto child_level = [](bddp child) -> bddvar {
         if (child & BDD_CONST_FLAG) return 0;  // terminal is level 0
-        return var2level[node_var(child & ~BDD_COMP_FLAG)];
+        bddp phys = child & ~BDD_COMP_FLAG;
+        if (phys < 2 || phys / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("QDD::getnode: child is not a valid node");
+        return var2level[node_var(phys)];
     };
 
     bddvar lo_level = child_level(lo);

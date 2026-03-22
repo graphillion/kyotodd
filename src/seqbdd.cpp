@@ -175,6 +175,9 @@ static void print_seq_rec(std::ostream& os, SeqBDD f,
 
     /* Recurse on sequences starting with ftop */
     SeqBDD f1 = f.on_set0(ftop);
+    if (idx >= static_cast<int>(arr.size())) {
+        throw std::overflow_error("print_seq_rec: sequence depth exceeds expected maximum length");
+    }
     arr[idx] = static_cast<int>(bddlevofvar(static_cast<bddvar>(ftop)));
     idx++;
     print_seq_rec(os, f1, arr, idx, flag);

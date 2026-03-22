@@ -703,6 +703,8 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
         throw std::runtime_error("knuth import: no nodes found");
 
     unsigned N = max_knuth_level;
+    if (N > IMPORT_MAX_LEVEL_LIMIT)
+        throw std::runtime_error("knuth import: max_level exceeds limit");
 
     // Determine max level needed and ensure variables exist
     int max_kyoto_level = static_cast<int>(N) + offset;
@@ -1566,6 +1568,8 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
     if (lines.empty()) return root;  // terminal-only
 
     unsigned N = max_gvar;
+    if (N > IMPORT_MAX_LEVEL_LIMIT)
+        throw std::runtime_error("zdd_import_graphillion: max variable exceeds limit");
 
     // Determine max level needed and ensure variables exist
     // max level = N + 1 - 1 + offset = N + offset (for g_var=1, nearest root)

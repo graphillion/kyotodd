@@ -822,6 +822,9 @@ ZDD ZDD_Random(int lev, int density) {
     if (lev <= 0) {
         return (std::rand() % 100 < density) ? ZDD(1) : ZDD(0);
     }
+    if (static_cast<bddvar>(lev) > bddvarused()) {
+        throw std::invalid_argument("ZDD_Random: lev exceeds number of created variables");
+    }
     bddvar v = bddvaroflev(lev);
     ZDD lo = ZDD_Random(lev - 1, density);
     ZDD hi = ZDD_Random(lev - 1, density).Change(v);

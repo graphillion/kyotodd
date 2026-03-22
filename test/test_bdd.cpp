@@ -11324,3 +11324,44 @@ TEST_F(BDDTest, BinaryImport_MaxLevelExceedsLimit) {
     EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
 }
 
+// --- BDD/ZDD::getnode child validation ---
+
+TEST_F(BDDTest, GetnodeRejectsInvalidChildNode) {
+    bddnewvar();
+    bddp fake_node = 0x100;  // not a valid allocated node
+    EXPECT_THROW(BDD::getnode(1, fake_node, bddfalse), std::invalid_argument);
+    EXPECT_THROW(BDD::getnode(1, bddfalse, fake_node), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZddGetnodeRejectsInvalidChildNode) {
+    bddnewvar();
+    bddp fake_node = 0x100;
+    EXPECT_THROW(ZDD::getnode(1, fake_node, bddtrue), std::invalid_argument);
+    EXPECT_THROW(ZDD::getnode(1, bddfalse, fake_node), std::invalid_argument);
+}
+
+// --- ZDD_Random level validation ---
+
+TEST_F(BDDTest, ZDD_Random_ThrowsOnInvalidLevel) {
+    bddnewvar();
+    bddnewvar();
+    EXPECT_THROW(ZDD_Random(100, 50), std::invalid_argument);
+}
+
+// --- bddsymset / bddcoimplyset terminal safety ---
+
+TEST_F(BDDTest, SymSetTerminalSafety) {
+    bddnewvar();
+    bddnewvar();
+    // bddsymset on terminal ZDDs should not crash
+    EXPECT_EQ(bddsymset(bddempty, 1), bddempty);
+    EXPECT_EQ(bddsymset(bddsingle, 1), bddempty);
+}
+
+TEST_F(BDDTest, CoImplySetTerminalSafety) {
+    bddnewvar();
+    bddnewvar();
+    EXPECT_EQ(bddcoimplyset(bddempty, 1), bddempty);
+    EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
+}
+

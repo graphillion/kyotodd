@@ -616,3 +616,15 @@ TEST_F(QDDTest, GetnodeRejectsBddnullChild) {
     EXPECT_THROW(QDD::getnode(v2, bddnull, t.get_id()), std::invalid_argument);
     EXPECT_THROW(QDD::getnode(v2, t.get_id(), bddnull), std::invalid_argument);
 }
+
+TEST_F(QDDTest, GetnodeRejectsVarOutOfRange) {
+    EXPECT_THROW(QDD::getnode(0, bddfalse, bddfalse), std::invalid_argument);
+    EXPECT_THROW(QDD::getnode(9999, bddfalse, bddfalse), std::invalid_argument);
+}
+
+TEST_F(QDDTest, GetnodeRejectsInvalidChildNode) {
+    bddnewvar();
+    bddp fake_node = 0x100;  // not a valid allocated node
+    EXPECT_THROW(QDD::getnode(1, fake_node, bddfalse), std::invalid_argument);
+    EXPECT_THROW(QDD::getnode(1, bddfalse, fake_node), std::invalid_argument);
+}

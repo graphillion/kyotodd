@@ -452,3 +452,38 @@ TEST_F(RotPiDDTest, Enum2_Output) {
     std::string result = oss.str();
     EXPECT_FALSE(result.empty());
 }
+
+/* ---- Error handling: exceptions instead of std::exit ---- */
+TEST_F(RotPiDDTest, LeftRotThrowsOnOutOfRange) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    EXPECT_THROW(id.LeftRot(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.LeftRot(1, 0), std::invalid_argument);
+    EXPECT_THROW(id.LeftRot(3, 1), std::invalid_argument);
+    EXPECT_THROW(id.LeftRot(1, 3), std::invalid_argument);
+}
+
+TEST_F(RotPiDDTest, SwapThrowsOnOutOfRange) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    EXPECT_THROW(id.Swap(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.Swap(3, 1), std::invalid_argument);
+}
+
+TEST_F(RotPiDDTest, ReverseThrowsOnOutOfRange) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    EXPECT_THROW(id.Reverse(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.Reverse(3, 1), std::invalid_argument);
+}
+
+TEST_F(RotPiDDTest, CofactThrowsOnOutOfRange) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD id(1);
+    EXPECT_THROW(id.Cofact(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.Cofact(3, 1), std::invalid_argument);
+}
