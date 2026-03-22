@@ -821,10 +821,18 @@ int CtoI::GetInt() const
         /* Sign bit: weight is -2 */
         return f0.GetInt() - 2 * f1.GetInt();
     }
-    /* Regular system variable */
+    /* Regular system variable: weight = 2^(2^(SysVarTop - vi)) */
     int shift = 1 << (BDDV_SysVarTop - vi);
+    if (shift >= 63) {
+        /* Shift too large for long long — value is unrepresentable as int */
+        return (f1.GetInt() != 0) ? INT_MAX : f0.GetInt();
+    }
     long long multiplier = 1LL << shift;
-    return f0.GetInt() + static_cast<int>(multiplier * f1.GetInt());
+    long long result = static_cast<long long>(f0.GetInt())
+                     + multiplier * static_cast<long long>(f1.GetInt());
+    if (result > INT_MAX) return INT_MAX;
+    if (result < INT_MIN) return INT_MIN;
+    return static_cast<int>(result);
 }
 
 /* ================================================================ */

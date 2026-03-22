@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 int BDDV_Active = 0;
 
@@ -211,8 +213,10 @@ BDDV operator^(const BDDV& fv, const BDDV& gv) {
 }
 
 BDDV BDDV::operator~() const {
+    BDD r = ~_bdd;
+    if (r.GetID() == bddnull) return make_null_bddv();
     BDDV result;
-    result._bdd = ~_bdd;
+    result._bdd = r;
     result._len = _len;
     result._lev = _lev;
     return result;
@@ -629,10 +633,11 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
     // type: 0=f, 1=fd, 2=fr, 3=fdr
     int type = 0;
     bool header_done = false;
+    // Collect non-header lines encountered before header is complete
+    std::vector<std::string> pending_lines;
 
-    // Parse header
+    // Parse header and collect product term lines
     while (fgets(line, sizeof(line), strm) != NULL) {
-        // Skip comments and empty lines
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
 
         if (line[0] == '.') {
@@ -660,10 +665,8 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
         if (n_in <= 0 || n_out <= 0) continue;
 
         if (!header_done) {
-            // Allocate input variables
             while (BDDV_UserTopLev() < n_in) {
                 if (sopf) {
-                    // For SOP compatibility, insert at even levels
                     int cur = BDDV_UserTopLev();
                     BDDV_NewVarOfLev((cur + 1) * 2);
                 } else {
@@ -673,71 +676,9 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
             header_done = true;
         }
 
-        // Parse product term line
-        // Format: <input_pattern> <output_pattern>
-        // or: <input_pattern> (whitespace) <output_pattern>
-        char* p = line;
-
-        // Read input pattern
-        BDD cube(1);
-        for (int i = 0; i < n_in; i++) {
-            while (*p == ' ' || *p == '\t') p++;
-            if (*p == '\0' || *p == '\n') return make_null_bddv();
-            char c = *p++;
-            // Map input index i to user variable
-            // User variables start at BDDV_SysVarTop + 1
-            bddvar var = static_cast<bddvar>(BDDV_SysVarTop + 1 + i);
-            if (c == '0') {
-                cube = cube & ~BDDvar(var);
-            } else if (c == '1') {
-                cube = cube & BDDvar(var);
-            } else if (c == '-') {
-                // don't care: no restriction
-            } else {
-                return make_null_bddv();
-            }
-        }
-
-        // Skip whitespace between input and output
-        while (*p == ' ' || *p == '\t' || *p == '|') p++;
-
-        // Read output pattern
-        for (int j = 0; j < n_out; j++) {
-            if (*p == '\0' || *p == '\n' || *p == '\r') {
-                return make_null_bddv();
-            }
-            char c = *p++;
-
-            // Build onset, offset, dcset per output
-            // For now, simple approach: accumulate each output's onset BDD
-            // We need to maintain per-output BDDs
-            (void)c; // handled below
-            p--; // back up to re-read below
-            break;
-        }
-        // We need a different approach — reset p and do it properly
-        // Back to after input pattern + whitespace skip
-        p = line;
-        for (int i = 0; i < n_in; i++) {
-            while (*p == ' ' || *p == '\t') p++;
-            p++;
-        }
-        while (*p == ' ' || *p == '\t' || *p == '|') p++;
-
-        // This is tricky to do in one pass; let's use a simpler method
-        // We'll just break out and use a separate parsing strategy
-        (void)cube;
-        (void)p;
-        // Reset: we need to process all lines at once
-        break;
+        // Save this product term line for processing below
+        pending_lines.push_back(line);
     }
-
-    // --- Re-implementation: read all lines first, then process ---
-    // Rewind is not possible with a general FILE*; instead, we'll
-    // re-implement from scratch using a two-pass approach.
-
-    // For this implementation, we restart. The above partial parse
-    // gave us n_in, n_out, type, header_done.
 
     if (n_in <= 0 || n_out <= 0) return make_null_bddv();
 
@@ -752,27 +693,21 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
         }
     }
 
-    // Initialize per-output BDDVs: onset, offset, dcset
-    // Each is a single BDD per output, accumulated as OR of cubes
     std::vector<BDD> onset(static_cast<size_t>(n_out), BDD(0));
     std::vector<BDD> offset(static_cast<size_t>(n_out), BDD(0));
     std::vector<BDD> dcset(static_cast<size_t>(n_out), BDD(0));
 
-    // Process the line we already partially parsed, then continue
-    // We need to re-process from the current file position
-    // The first product-term line was already read into `line` but
-    // we need to parse it. Let's parse it and then continue reading.
-
     auto parse_product_term = [&](const char* ln) -> bool {
         const char* p = ln;
 
-        // Read input pattern → build cube BDD
         BDD cube(1);
         for (int i = 0; i < n_in; i++) {
             while (*p == ' ' || *p == '\t') p++;
             if (*p == '\0' || *p == '\n' || *p == '\r') return false;
             char c = *p++;
-            bddvar var = static_cast<bddvar>(BDDV_SysVarTop + 1 + i);
+            // Map input index i to user variable via level
+            bddvar var = bddvaroflev(
+                static_cast<bddvar>(BDDV_SysVarTop + 1 + i));
             if (c == '0') {
                 cube = cube & ~BDDvar(var);
             } else if (c == '1') {
@@ -784,10 +719,8 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
             }
         }
 
-        // Skip whitespace
         while (*p == ' ' || *p == '\t' || *p == '|') p++;
 
-        // Read output pattern
         for (int j = 0; j < n_out; j++) {
             if (*p == '\0' || *p == '\n' || *p == '\r') return false;
             char c = *p++;
@@ -803,35 +736,12 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
         return true;
     };
 
-    // Parse the first line we already read
-    {
-        char* p = line;
-        // Skip to the first non-whitespace, non-dot character
-        // (It should be the product term)
-        if (line[0] != '.' && line[0] != '#' && line[0] != '\n') {
-            parse_product_term(line);
-        }
-    }
-
-    // Continue reading product terms
-    while (fgets(line, sizeof(line), strm) != NULL) {
-        if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
-        if (line[0] == '.') {
-            char keyword[64];
-            sscanf(line, "%63s", keyword);
-            if (strcmp(keyword, ".e") == 0 || strcmp(keyword, ".end") == 0) break;
-            continue;
-        }
-        parse_product_term(line);
+    // Process all collected product term lines
+    for (size_t k = 0; k < pending_lines.size(); k++) {
+        parse_product_term(pending_lines[k].c_str());
     }
 
     // Determine final onset and dcset based on type
-    // type 0 (f): onset is given, dcset = ~(onset | offset) if offset known,
-    //             else dcset = 0
-    // type 1 (fd): onset and dcset given directly
-    // type 2 (fr): onset given, offset given; dcset = ~(onset | offset)
-    // type 3 (fdr): all three given directly
-
     std::vector<BDD> final_onset(static_cast<size_t>(n_out));
     std::vector<BDD> final_dcset(static_cast<size_t>(n_out));
 
@@ -857,7 +767,6 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
         }
     }
 
-    // Build result: onset_bddv || dcset_bddv
     BDDV onset_bddv;
     for (int j = 0; j < n_out; j++) {
         onset_bddv = onset_bddv || BDDV(final_onset[static_cast<size_t>(j)]);

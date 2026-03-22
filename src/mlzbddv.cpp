@@ -1,5 +1,6 @@
 #include "mlzbddv.h"
 #include <iostream>
+#include <stdexcept>
 
 // ============================================================
 // Constructors, destructor, assignment
@@ -76,8 +77,7 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out) {
             _zbddv += ZBDDV(new_f, j);
 
             if (_zbddv.GetMetaZBDD().GetID() == bddnull) {
-                std::cerr << "MLZBDDV: overflow in phase 1" << std::endl;
-                std::exit(1);
+                throw std::overflow_error("MLZBDDV: overflow in phase 1");
             }
         }
     }
@@ -115,8 +115,7 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out) {
             _zbddv += ZBDDV(new_f, i);
 
             if (_zbddv.GetMetaZBDD().GetID() == bddnull) {
-                std::cerr << "MLZBDDV: overflow in phase 2" << std::endl;
-                std::exit(1);
+                throw std::overflow_error("MLZBDDV: overflow in phase 2");
             }
 
             std::cout << _sin << std::flush;
