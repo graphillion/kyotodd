@@ -341,7 +341,7 @@ static int PrintPla_rec(const ZBDDV& fv, int top_var, int n_out,
         std::cout << pattern << " ";
         for (int j = 0; j < n_out; j++) {
             ZDD elem = fv.GetZBDD(j);
-            std::cout << ((elem.GetID() != bddempty) ? "1" : "~");
+            std::cout << ((elem.GetID() != bddempty) ? "1" : "0");
         }
         std::cout << std::endl;
         return 0;

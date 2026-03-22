@@ -864,7 +864,7 @@ static void PrintPla_rec(const SOPV& sv, int lev, int min_lev,
             if (sp == bddsingle) {
                 putchar('1');
             } else {
-                putchar('~');
+                putchar('0');
             }
         }
         putchar('\n');
@@ -931,7 +931,7 @@ int SOPV::PrintPla() const
             if (sp == bddsingle) {
                 putchar('1');
             } else {
-                putchar('~');
+                putchar('0');
             }
         }
         putchar('\n');

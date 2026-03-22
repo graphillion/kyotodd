@@ -874,6 +874,29 @@ TEST_F(SOPTest, SOPVPrintPlaNoCrash) {
     EXPECT_FALSE(output.empty());
 }
 
+TEST_F(SOPTest, SOPVPrintPlaOutputUsesZeroNotTilde) {
+    int va = SOP_NewVar();
+    int vb = SOP_NewVar();
+    SOP xa = SOP(1).And1(va);
+    SOP xb = SOP(1).And1(vb);
+    // Output 0 has cube xa, output 1 has cube xb
+    // For cube xa: output is "10". For cube xb: output is "01".
+    SOPV sv;
+    sv += SOPV(xa, 0);
+    sv += SOPV(xb, 1);
+
+    testing::internal::CaptureStdout();
+    sv.PrintPla();
+    fflush(stdout);
+    std::string output = testing::internal::GetCapturedStdout();
+
+    // PLA output must use '0' for false outputs, not '~'
+    EXPECT_EQ(output.find('~'), std::string::npos);
+    // Should contain "10" and "01" in the output columns
+    EXPECT_NE(output.find("10"), std::string::npos);
+    EXPECT_NE(output.find("01"), std::string::npos);
+}
+
 /* ================================================================ */
 /*  SOPV_ISOP                                                        */
 /* ================================================================ */

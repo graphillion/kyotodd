@@ -410,6 +410,23 @@ TEST_F(ZBDDVTest, PrintPlaConstant) {
     EXPECT_NE(output.find(".o 1"), std::string::npos);
 }
 
+TEST_F(ZBDDVTest, PrintPlaOutputUsesZeroNotTilde) {
+    // Multi-output ZBDDV where some outputs are empty for a given cube
+    int va = BDDV_NewVar();
+    bddvar v = static_cast<bddvar>(va);
+    ZDD s = ZDD::singleton(v);
+    // Output 0 and 2 have singleton {v}, output 1 is empty
+    ZBDDV zv = ZBDDV(s, 0) + ZBDDV(s, 2);
+
+    testing::internal::CaptureStdout();
+    zv.PrintPla();
+    std::string output = testing::internal::GetCapturedStdout();
+
+    // PLA output must use '0' for false outputs, not '~'
+    EXPECT_EQ(output.find('~'), std::string::npos);
+    EXPECT_NE(output.find("101"), std::string::npos);
+}
+
 // ============================================================
 // Import
 // ============================================================
