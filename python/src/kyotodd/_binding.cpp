@@ -863,14 +863,26 @@ PYBIND11_MODULE(_core, m) {
                 "ZDD cannot be converted to bool. "
                 "Use == ZDD.empty or == ZDD.single instead.");
         })
-        .def("__lshift__", [](const ZDD& a, int s) { return a << s; },
+        .def("__lshift__", [](const ZDD& a, int s) {
+                 if (s < 0) throw py::value_error("shift amount must be non-negative");
+                 return a << static_cast<bddvar>(s);
+             },
              "Left shift: increase variable numbers by s.")
-        .def("__rshift__", [](const ZDD& a, int s) { return a >> s; },
+        .def("__rshift__", [](const ZDD& a, int s) {
+                 if (s < 0) throw py::value_error("shift amount must be non-negative");
+                 return a >> static_cast<bddvar>(s);
+             },
              "Right shift: decrease variable numbers by s.")
-        .def("__ilshift__", [](ZDD& a, int s) -> ZDD& { a <<= s; return a; },
+        .def("__ilshift__", [](ZDD& a, int s) -> ZDD& {
+                 if (s < 0) throw py::value_error("shift amount must be non-negative");
+                 a <<= static_cast<bddvar>(s); return a;
+             },
              py::return_value_policy::reference_internal,
              "In-place left shift.")
-        .def("__irshift__", [](ZDD& a, int s) -> ZDD& { a >>= s; return a; },
+        .def("__irshift__", [](ZDD& a, int s) -> ZDD& {
+                 if (s < 0) throw py::value_error("shift amount must be non-negative");
+                 a >>= static_cast<bddvar>(s); return a;
+             },
              py::return_value_policy::reference_internal,
              "In-place right shift.")
 
