@@ -34,6 +34,12 @@ static void check_even_shift(int n, const char* func)
 
 int SOP_NewVar()
 {
+    // Ensure the first of the pair gets an odd VarID.
+    // VarIDs are sequential (1, 2, 3, ...), so if the current count
+    // is odd, the next VarID would be even — skip one to fix parity.
+    if (bddvarused() % 2 != 0) {
+        BDD_NewVar();  // padding to align parity
+    }
     BDD_NewVar();  // odd VarID (negative literal)
     bddvar v = BDD_NewVar();  // even VarID (positive literal)
     return static_cast<int>(v);
@@ -42,6 +48,10 @@ int SOP_NewVar()
 int SOP_NewVarOfLev(int lev)
 {
     check_even_shift(lev, "SOP_NewVarOfLev");
+    // Ensure the first of the pair gets an odd VarID.
+    if (bddvarused() % 2 != 0) {
+        BDD_NewVar();  // padding to align parity
+    }
     BDD_NewVarOfLev(static_cast<bddvar>(lev - 1));  // odd level
     bddvar v = BDD_NewVarOfLev(static_cast<bddvar>(lev));  // even level
     return static_cast<int>(v);

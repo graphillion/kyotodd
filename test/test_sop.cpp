@@ -30,6 +30,17 @@ TEST_F(SOPTest, NewVar) {
     EXPECT_GT(v, 0);
 }
 
+TEST_F(SOPTest, NewVarAfterOddNonSOPVar) {
+    // Creating an odd number of non-SOP variables before SOP_NewVar
+    // used to break parity. Now SOP_NewVar pads if needed.
+    BDDV_NewVar();  // one extra variable (makes var count odd)
+    int v = SOP_NewVar();
+    EXPECT_EQ(v & 1, 0);  // must still be even
+    EXPECT_GT(v, 0);
+    // Must be usable with SOP operations
+    EXPECT_NO_THROW(SOP(1).And1(v));
+}
+
 TEST_F(SOPTest, NewVarOddLevThrows) {
     EXPECT_THROW(SOP_NewVarOfLev(3), std::invalid_argument);
 }
