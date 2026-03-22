@@ -996,8 +996,14 @@ static double bddcount_bdd_rec(
         double lo_count = bddcount_bdd_rec(lo, n, memo);
         double hi_count = bddcount_bdd_rec(hi, n, memo);
 
-        count = ldexp(lo_count, f_level - 1 - lo_level)
-              + ldexp(hi_count, f_level - 1 - hi_level);
+        int exp_lo = static_cast<int>(f_level) - 1 - static_cast<int>(lo_level);
+        int exp_hi = static_cast<int>(f_level) - 1 - static_cast<int>(hi_level);
+        if (exp_lo < 0 || exp_hi < 0) {
+            throw std::logic_error(
+                "bddcount: invalid BDD structure (child level >= parent level)");
+        }
+        count = ldexp(lo_count, exp_lo)
+              + ldexp(hi_count, exp_hi);
 
         memo[f_raw] = count;
     }
@@ -1055,8 +1061,14 @@ static bigint::BigInt bddexactcount_bdd_rec(
         bigint::BigInt lo_count = bddexactcount_bdd_rec(lo, n, memo);
         bigint::BigInt hi_count = bddexactcount_bdd_rec(hi, n, memo);
 
-        count = (lo_count << static_cast<std::size_t>(f_level - 1 - lo_level))
-              + (hi_count << static_cast<std::size_t>(f_level - 1 - hi_level));
+        int shift_lo = static_cast<int>(f_level) - 1 - static_cast<int>(lo_level);
+        int shift_hi = static_cast<int>(f_level) - 1 - static_cast<int>(hi_level);
+        if (shift_lo < 0 || shift_hi < 0) {
+            throw std::logic_error(
+                "bddexactcount: invalid BDD structure (child level >= parent level)");
+        }
+        count = (lo_count << static_cast<std::size_t>(shift_lo))
+              + (hi_count << static_cast<std::size_t>(shift_hi));
 
         memo[f_raw] = count;
     }
