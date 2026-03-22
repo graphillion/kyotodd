@@ -26,6 +26,7 @@ set(KYOTODD_LIB_SOURCES
   src/zbddv.cpp
   src/sop.cpp
   src/btoi.cpp
+  src/ctoi.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -139,4 +140,11 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(btoi_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(btoi_test)
+
+  add_executable(ctoi_test test/test_ctoi.cpp)
+  target_link_libraries(ctoi_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(ctoi_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(ctoi_test)
 endif()
