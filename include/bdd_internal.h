@@ -87,6 +87,38 @@ bddp bdd_gc_guard(F func) {
 }
 
 /**
+ * @brief Validate that a bddp value is a well-formed node reference.
+ *
+ * Returns true if f is bddnull, a constant (terminal), or a valid
+ * non-terminal node ID that falls within the allocated node array.
+ * Does NOT check whether the node is live (not garbage-collected).
+ *
+ * @param f The node ID to validate.
+ * @return true if the ID is structurally valid.
+ */
+inline bool bddp_is_valid(bddp f) {
+    if (f == bddnull) return true;
+    if (f & BDD_CONST_FLAG) return true;
+    bddp fn = f & ~BDD_COMP_FLAG;
+    if (fn < 2) return false;
+    uint64_t idx = fn / 2 - 1;
+    return idx < bdd_node_used;
+}
+
+/**
+ * @brief Throw std::invalid_argument if f is not a valid bddp.
+ *
+ * @param f    The node ID to validate.
+ * @param func Name of the calling function (for error message).
+ */
+inline void bddp_validate(bddp f, const char* func) {
+    if (!bddp_is_valid(f)) {
+        throw std::invalid_argument(
+            std::string(func) + ": invalid node ID");
+    }
+}
+
+/**
  * @brief Convert a node ID to its array index.
  *
  * Strips the complement flag and computes the index into bdd_nodes[].

@@ -7,6 +7,8 @@
 static bddp bddand_rec(bddp f, bddp g);
 
 bddp bddand(bddp f, bddp g) {
+    bddp_validate(f, "bddand");
+    bddp_validate(g, "bddand");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddfalse || g == bddfalse) return bddfalse;
@@ -101,6 +103,8 @@ bddp bddnor(bddp f, bddp g) {
 static bddp bddxor_rec(bddp f, bddp g);
 
 bddp bddxor(bddp f, bddp g) {
+    bddp_validate(f, "bddxor");
+    bddp_validate(g, "bddxor");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddfalse) return g;
@@ -184,6 +188,9 @@ bddp bddxnor(bddp f, bddp g) {
 static bddp bddite_rec(bddp f, bddp g, bddp h);
 
 bddp bddite(bddp f, bddp g, bddp h) {
+    bddp_validate(f, "bddite");
+    bddp_validate(g, "bddite");
+    bddp_validate(h, "bddite");
     if (f == bddnull || g == bddnull || h == bddnull) return bddnull;
     // Terminal cases for f
     if (f == bddtrue) return g;
@@ -297,6 +304,7 @@ static bddp bddite_rec(bddp f, bddp g, bddp h) {
 static bddp bddat0_rec(bddp f, bddvar v);
 
 bddp bddat0(bddp f, bddvar v) {
+    bddp_validate(f, "bddat0");
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddat0: var out of range");
     }
@@ -347,6 +355,7 @@ static bddp bddat0_rec(bddp f, bddvar v) {
 static bddp bddat1_rec(bddp f, bddvar v);
 
 bddp bddat1(bddp f, bddvar v) {
+    bddp_validate(f, "bddat1");
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddat1: var out of range");
     }
@@ -395,6 +404,8 @@ static bddp bddat1_rec(bddp f, bddvar v) {
 }
 
 int bddimply(bddp f, bddp g) {
+    bddp_validate(f, "bddimply");
+    bddp_validate(g, "bddimply");
     if (f == bddnull || g == bddnull) return -1;
     // Terminal cases: is there an assignment where f=1 and g=0?
     if (f == bddfalse) return 1;   // f is never true
@@ -472,6 +483,7 @@ static void bddsupport_collect(bddp f, std::unordered_set<bddvar>& vars,
 }
 
 bddp bddsupport(bddp f) {
+    bddp_validate(f, "bddsupport");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddfalse;
 
@@ -497,6 +509,7 @@ bddp bddsupport(bddp f) {
 }
 
 std::vector<bddvar> bddsupport_vec(bddp f) {
+    bddp_validate(f, "bddsupport_vec");
     std::vector<bddvar> vars;
     if (f == bddnull) return vars;
     if (f & BDD_CONST_FLAG) return vars;
@@ -515,6 +528,8 @@ std::vector<bddvar> bddsupport_vec(bddp f) {
 static bddp bddexist_rec(bddp f, bddp g);
 
 bddp bddexist(bddp f, bddp g) {
+    bddp_validate(f, "bddexist");
+    bddp_validate(g, "bddexist");
     if (f == bddnull || g == bddnull) return bddnull;
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
@@ -596,6 +611,7 @@ static bddp vars_to_cube(const std::vector<bddvar>& vars) {
 }
 
 bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
+    bddp_validate(f, "bddexist");
     if (f == bddnull) return bddnull;
     return bdd_gc_guard([&]() -> bddp {
         bddp cube = vars_to_cube(vars);
@@ -610,6 +626,8 @@ bddp bddexistvar(bddp f, bddvar v) {
 static bddp bdduniv_rec(bddp f, bddp g);
 
 bddp bdduniv(bddp f, bddp g) {
+    bddp_validate(f, "bdduniv");
+    bddp_validate(g, "bdduniv");
     if (f == bddnull || g == bddnull) return bddnull;
     // Cube represents a variable set; complement is meaningless — strip it.
     g = g & ~BDD_COMP_FLAG;
@@ -672,6 +690,7 @@ static bddp bdduniv_rec(bddp f, bddp g) {
 }
 
 bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
+    bddp_validate(f, "bdduniv");
     if (f == bddnull) return bddnull;
     return bdd_gc_guard([&]() -> bddp {
         bddp cube = vars_to_cube(vars);
@@ -684,6 +703,7 @@ bddp bddunivvar(bddp f, bddvar v) {
 }
 
 bddp bddlshiftb(bddp f, bddvar shift) {
+    bddp_validate(f, "bddlshiftb");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
@@ -694,6 +714,7 @@ bddp bddlshiftb(bddp f, bddvar shift) {
 }
 
 bddp bddrshiftb(bddp f, bddvar shift) {
+    bddp_validate(f, "bddrshiftb");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
@@ -716,6 +737,8 @@ bddp bddrshift(bddp f, bddvar shift) {
 static bddp bddcofactor_rec(bddp f, bddp g);
 
 bddp bddcofactor(bddp f, bddp g) {
+    bddp_validate(f, "bddcofactor");
+    bddp_validate(g, "bddcofactor");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;   // f is constant
@@ -855,6 +878,7 @@ static bddp bddswap_rec(bddp f, bddvar v1, bddvar v2,
 }
 
 bddp bddswap(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddswap");
     if (f == bddnull) return bddnull;
     if (v1 == v2) return f;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
@@ -911,6 +935,7 @@ static bddp bddsmooth_rec(bddp f, bddvar v) {
 }
 
 bddp bddsmooth(bddp f, bddvar v) {
+    bddp_validate(f, "bddsmooth");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddsmooth: var out of range");
@@ -953,6 +978,7 @@ static bddp bddspread_rec(bddp f, int k) {
 }
 
 bddp bddspread(bddp f, int k) {
+    bddp_validate(f, "bddspread");
     if (f == bddnull) return bddnull;
     if (k < 0) {
         throw std::invalid_argument("bddspread: k must be >= 0");
@@ -1017,6 +1043,7 @@ static double bddcount_bdd_rec(
 }
 
 double bddcount(bddp f, bddvar n) {
+    bddp_validate(f, "bddcount");
     if (f == bddnull) return 0.0;
     if (f == bddfalse) return 0.0;
     if (f == bddtrue) return ldexp(1.0, n);
@@ -1083,6 +1110,7 @@ static bigint::BigInt bddexactcount_bdd_rec(
 }
 
 bigint::BigInt bddexactcount(bddp f, bddvar n) {
+    bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
     if (f == bddfalse) return bigint::BigInt(0);
     if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);
@@ -1100,6 +1128,7 @@ bigint::BigInt bddexactcount(bddp f, bddvar n) {
 }
 
 bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
+    bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
     if (f == bddfalse) return bigint::BigInt(0);
     if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);

@@ -7,6 +7,7 @@
 // --- bddispoly ---
 
 int bddispoly(bddp f) {
+    bddp_validate(f, "bddispoly");
     if (f == bddnull) return -1;
 
     while (!(f & BDD_CONST_FLAG)) {
@@ -24,6 +25,7 @@ int bddispoly(bddp f) {
 // --- bddswapz ---
 
 bddp bddswapz(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddswapz");
     if (f == bddnull) return bddnull;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
         throw std::invalid_argument("bddswapz: variable out of range");
@@ -50,6 +52,7 @@ bddp bddswapz(bddp f, bddvar v1, bddvar v2) {
 // --- bddimplychk ---
 
 int bddimplychk(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddimplychk");
     if (f == bddnull) return -1;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
         throw std::invalid_argument("bddimplychk: variable out of range");
@@ -69,6 +72,7 @@ int bddimplychk(bddp f, bddvar v1, bddvar v2) {
 // --- bddcoimplychk ---
 
 int bddcoimplychk(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddcoimplychk");
     if (f == bddnull) return -1;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
         throw std::invalid_argument("bddcoimplychk: variable out of range");
@@ -94,6 +98,7 @@ int bddcoimplychk(bddp f, bddvar v1, bddvar v2) {
 static bddp bddpermitsym_rec(bddp f, int n);
 
 bddp bddpermitsym(bddp f, int n) {
+    bddp_validate(f, "bddpermitsym");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
@@ -131,6 +136,7 @@ static bddp bddpermitsym_rec(bddp f, int n) {
 static bddp bddalways_rec(bddp f);
 
 bddp bddalways(bddp f) {
+    bddp_validate(f, "bddalways");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -172,6 +178,7 @@ static bddp bddalways_rec(bddp f) {
 static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2);
 
 int bddsymchk(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddsymchk");
     if (f == bddnull) return -1;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
         throw std::invalid_argument("bddsymchk: variable out of range");
@@ -252,6 +259,7 @@ static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
 // --- bddimplyset ---
 
 bddp bddimplyset(bddp f, bddvar v) {
+    bddp_validate(f, "bddimplyset");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddimplyset: variable out of range");
@@ -271,6 +279,7 @@ bddp bddimplyset(bddp f, bddvar v) {
 // --- bddsymgrp ---
 
 bddp bddsymgrp(bddp f) {
+    bddp_validate(f, "bddsymgrp");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -310,6 +319,7 @@ bddp bddsymgrp(bddp f) {
 // --- bddsymgrpnaive ---
 
 bddp bddsymgrpnaive(bddp f) {
+    bddp_validate(f, "bddsymgrpnaive");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
 
@@ -365,6 +375,7 @@ static bddp support_to_singletons(bddp f) {
 static bddp bddsymset_rec(bddp f0, bddp f1);
 
 bddp bddsymset(bddp f, bddvar v) {
+    bddp_validate(f, "bddsymset");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddsymset: variable out of range");
@@ -428,6 +439,7 @@ static bddp bddsymset_rec(bddp f0, bddp f1) {
 static bddp bddcoimplyset_rec(bddp f0, bddp f1);
 
 bddp bddcoimplyset(bddp f, bddvar v) {
+    bddp_validate(f, "bddcoimplyset");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddcoimplyset: variable out of range");
@@ -491,6 +503,7 @@ static bddp bddcoimplyset_rec(bddp f0, bddp f1) {
 // --- bdddivisor ---
 
 bddp bdddivisor(bddp f) {
+    bddp_validate(f, "bdddivisor");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (!bddispoly(f)) return bddsingle;

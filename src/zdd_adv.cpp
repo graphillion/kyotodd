@@ -9,6 +9,8 @@
 static bddp bdddisjoin_rec(bddp f, bddp g);
 
 bddp bdddisjoin(bddp f, bddp g) {
+    bddp_validate(f, "bdddisjoin");
+    bddp_validate(g, "bdddisjoin");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
@@ -85,6 +87,8 @@ static bddp bdddisjoin_rec(bddp f, bddp g) {
 static bddp bddjointjoin_rec(bddp f, bddp g);
 
 bddp bddjointjoin(bddp f, bddp g) {
+    bddp_validate(f, "bddjointjoin");
+    bddp_validate(g, "bddjointjoin");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
@@ -162,6 +166,8 @@ static bddp bddjointjoin_rec(bddp f, bddp g) {
 static bddp bddrestrict_rec(bddp f, bddp g);
 
 bddp bddrestrict(bddp f, bddp g) {
+    bddp_validate(f, "bddrestrict");
+    bddp_validate(g, "bddrestrict");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -230,6 +236,8 @@ static bddp bddrestrict_rec(bddp f, bddp g) {
 static bddp bddpermit_rec(bddp f, bddp g);
 
 bddp bddpermit(bddp f, bddp g) {
+    bddp_validate(f, "bddpermit");
+    bddp_validate(g, "bddpermit");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -297,6 +305,8 @@ static bddp bddpermit_rec(bddp f, bddp g) {
 static bddp bddnonsup_rec(bddp f, bddp g);
 
 bddp bddnonsup(bddp f, bddp g) {
+    bddp_validate(f, "bddnonsup");
+    bddp_validate(g, "bddnonsup");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -365,6 +375,8 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
 static bddp bddnonsub_rec(bddp f, bddp g);
 
 bddp bddnonsub(bddp f, bddp g) {
+    bddp_validate(f, "bddnonsub");
+    bddp_validate(g, "bddnonsub");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -433,6 +445,7 @@ static bddp bddnonsub_rec(bddp f, bddp g) {
 static bddp bddmaximal_rec(bddp f);
 
 bddp bddmaximal(bddp f) {
+    bddp_validate(f, "bddmaximal");
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -471,6 +484,7 @@ static bddp bddmaximal_rec(bddp f) {
 static bddp bddminimal_rec(bddp f);
 
 bddp bddminimal(bddp f) {
+    bddp_validate(f, "bddminimal");
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -522,6 +536,7 @@ bool bddhasempty(bddp f) {
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {
+    bddp_validate(f, "bddminhit");
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddsingle;  // no constraints → {∅}
@@ -570,6 +585,7 @@ static bddp bddminhit_rec(bddp f) {
 static bddp bddclosure_rec(bddp f);
 
 bddp bddclosure(bddp f) {
+    bddp_validate(f, "bddclosure");
     if (f == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -611,6 +627,7 @@ static bddp bddclosure_rec(bddp f) {
 static const uint64_t BDDCARD_MAX = (UINT64_C(1) << 39) - 1;
 
 uint64_t bddcard(bddp f) {
+    bddp_validate(f, "bddcard");
     if (f == bddnull) return 0;
     // Terminal cases
     if (f == bddempty) return 0;
@@ -673,6 +690,7 @@ uint64_t bddcard(bddp f) {
 static const uint64_t BDDLIT_MAX = (UINT64_C(1) << 39) - 1;
 
 uint64_t bddlit(bddp f) {
+    bddp_validate(f, "bddlit");
     if (f == bddnull) return 0;
     // Terminal cases
     if (f == bddempty) return 0;
@@ -717,6 +735,7 @@ uint64_t bddlit(bddp f) {
 static const uint64_t BDDLEN_MAX = (UINT64_C(1) << 39) - 1;
 
 uint64_t bddlen(bddp f) {
+    bddp_validate(f, "bddlen");
     if (f == bddnull) return 0;
     if (f == bddempty) return 0;
     if (f == bddsingle) return 0;
@@ -786,6 +805,7 @@ static double bddcount_rec(
 }
 
 double bddcount(bddp f) {
+    bddp_validate(f, "bddcount");
     if (f == bddnull) return 0.0;
     std::unordered_map<bddp, double> memo;
     return bddcount_rec(f, memo);
@@ -835,12 +855,14 @@ static bigint::BigInt bddexactcount_rec(
 }
 
 bigint::BigInt bddexactcount(bddp f) {
+    bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
     std::unordered_map<bddp, bigint::BigInt> memo;
     return bddexactcount_rec(f, memo);
 }
 
 bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo) {
+    bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
     return bddexactcount_rec(f, memo);
 }

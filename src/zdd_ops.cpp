@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 bddp bddpush(bddp f, bddvar v) {
+    bddp_validate(f, "bddpush");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
         throw std::invalid_argument("bddpush: var out of range");
@@ -14,6 +15,7 @@ bddp bddpush(bddp f, bddvar v) {
 static bddp bddoffset_rec(bddp f, bddvar var);
 
 bddp bddoffset(bddp f, bddvar var) {
+    bddp_validate(f, "bddoffset");
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddoffset: var out of range");
     }
@@ -64,6 +66,7 @@ static bddp bddoffset_rec(bddp f, bddvar var) {
 static bddp bddonset_rec(bddp f, bddvar var);
 
 bddp bddonset(bddp f, bddvar var) {
+    bddp_validate(f, "bddonset");
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddonset: var out of range");
     }
@@ -114,6 +117,7 @@ static bddp bddonset_rec(bddp f, bddvar var) {
 static bddp bddonset0_rec(bddp f, bddvar var);
 
 bddp bddonset0(bddp f, bddvar var) {
+    bddp_validate(f, "bddonset0");
     if (var < 1 || var > bdd_varcount) {
         throw std::invalid_argument("bddonset0: var out of range");
     }
@@ -163,6 +167,7 @@ static bddp bddonset0_rec(bddp f, bddvar var) {
 static bddp bddchange_rec(bddp f, bddvar var);
 
 bddp bddchange(bddp f, bddvar var) {
+    bddp_validate(f, "bddchange");
     if (var < 1) {
         throw std::invalid_argument("bddchange: var out of range");
     }
@@ -221,6 +226,8 @@ static bddp bddchange_rec(bddp f, bddvar var) {
 static bddp bddunion_rec(bddp f, bddp g);
 
 bddp bddunion(bddp f, bddp g) {
+    bddp_validate(f, "bddunion");
+    bddp_validate(g, "bddunion");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return g;
@@ -290,6 +297,8 @@ static bddp bddunion_rec(bddp f, bddp g) {
 static bddp bddintersec_rec(bddp f, bddp g);
 
 bddp bddintersec(bddp f, bddp g) {
+    bddp_validate(f, "bddintersec");
+    bddp_validate(g, "bddintersec");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -354,6 +363,8 @@ static bddp bddintersec_rec(bddp f, bddp g) {
 static bddp bddsubtract_rec(bddp f, bddp g);
 
 bddp bddsubtract(bddp f, bddp g) {
+    bddp_validate(f, "bddsubtract");
+    bddp_validate(g, "bddsubtract");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -414,6 +425,8 @@ static bddp bddsubtract_rec(bddp f, bddp g) {
 static bddp bdddiv_rec(bddp f, bddp g);
 
 bddp bdddiv(bddp f, bddp g) {
+    bddp_validate(f, "bdddiv");
+    bddp_validate(g, "bdddiv");
     if (f == bddnull || g == bddnull) return bddnull;
     // Base cases
     if (g == bddsingle) return f;     // F / {∅} = F
@@ -480,6 +493,8 @@ static bddp bdddiv_rec(bddp f, bddp g) {
 static bddp bddsymdiff_rec(bddp f, bddp g);
 
 bddp bddsymdiff(bddp f, bddp g) {
+    bddp_validate(f, "bddsymdiff");
+    bddp_validate(g, "bddsymdiff");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return g;
@@ -548,6 +563,8 @@ static bddp bddsymdiff_rec(bddp f, bddp g) {
 static bddp bddjoin_rec(bddp f, bddp g);
 
 bddp bddjoin(bddp f, bddp g) {
+    bddp_validate(f, "bddjoin");
+    bddp_validate(g, "bddjoin");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
@@ -627,6 +644,8 @@ static bddp bddjoin_rec(bddp f, bddp g) {
 static bddp bddmeet_rec(bddp f, bddp g);
 
 bddp bddmeet(bddp f, bddp g) {
+    bddp_validate(f, "bddmeet");
+    bddp_validate(g, "bddmeet");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
@@ -700,6 +719,8 @@ static bddp bddmeet_rec(bddp f, bddp g) {
 static bddp bdddelta_rec(bddp f, bddp g);
 
 bddp bdddelta(bddp f, bddp g) {
+    bddp_validate(f, "bdddelta");
+    bddp_validate(g, "bdddelta");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
@@ -779,6 +800,8 @@ static bddp bdddelta_rec(bddp f, bddp g) {
 }
 
 bddp bddremainder(bddp f, bddp g) {
+    bddp_validate(f, "bddremainder");
+    bddp_validate(g, "bddremainder");
     if (f == bddnull || g == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (g == bddsingle) return bddempty;  // F/{∅}=F, {∅}⊔F=F, F\F=∅
@@ -799,6 +822,7 @@ bddp bddremainder(bddp f, bddp g) {
 }
 
 bddp bddlshiftz(bddp f, bddvar shift) {
+    bddp_validate(f, "bddlshiftz");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
@@ -809,6 +833,7 @@ bddp bddlshiftz(bddp f, bddvar shift) {
 }
 
 bddp bddrshiftz(bddp f, bddvar shift) {
+    bddp_validate(f, "bddrshiftz");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;

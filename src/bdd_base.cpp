@@ -398,6 +398,7 @@ bddvar bddtoplev() {
 }
 
 bddvar bddtop(bddp f) {
+    bddp_validate(f, "bddtop");
     if (f == bddnull) {
         throw std::invalid_argument("bddtop: bddnull");
     }
@@ -567,6 +568,7 @@ static void bddplainsize_traverse(bddp f, bool is_zdd,
 }
 
 uint64_t bddplainsize(bddp f, bool is_zdd) {
+    bddp_validate(f, "bddplainsize");
     if (f == bddnull) return 0;
     std::unordered_set<bddp> visited;
     bddplainsize_traverse(f, is_zdd, visited);
@@ -590,6 +592,7 @@ uint64_t bddplainsize(const std::vector<bddp>& v, bool is_zdd) {
 }
 
 uint64_t bddsize(bddp f) {
+    bddp_validate(f, "bddsize");
     if (f == bddnull) return 0;
     std::unordered_set<bddp> visited;
     bddsize_traverse(f, visited);
