@@ -276,10 +276,19 @@ TEST_F(BtoITest, ShiftCompound) {
 /*  Equality / comparison                                            */
 /* ================================================================ */
 
-TEST_F(BtoITest, StructuralEquality) {
+TEST_F(BtoITest, Equality) {
     EXPECT_EQ(BtoI(5) == BtoI(5), 1);
     EXPECT_EQ(BtoI(5) != BtoI(3), 1);
     EXPECT_EQ(BtoI(5) == BtoI(3), 0);
+}
+
+TEST_F(BtoITest, EqualityNonCanonical) {
+    // BtoI(0) uses a length-1 BDDV, while BDDV(BDD(0), 2)
+    // creates a length-2 BDDV. Both represent integer 0.
+    BtoI a(0);
+    BtoI b(BDDV(BDD(0), 2));
+    EXPECT_EQ(a == b, 1);
+    EXPECT_EQ(a != b, 0);
 }
 
 TEST_F(BtoITest, BtoI_EQ_Constants) {

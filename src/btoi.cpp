@@ -146,7 +146,9 @@ BtoI BtoI::operator!() const
 
 int operator==(const BtoI& a, const BtoI& b)
 {
-    return (a._bddv == b._bddv) ? 1 : 0;
+    BtoI sa = a.Sup();
+    BtoI sb = b.Sup();
+    return (sa._bddv == sb._bddv) ? 1 : 0;
 }
 
 int operator!=(const BtoI& a, const BtoI& b)
