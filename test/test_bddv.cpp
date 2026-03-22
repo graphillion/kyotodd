@@ -100,6 +100,15 @@ TEST_F(BDDVTest, ConstructFromBDDNull) {
     EXPECT_EQ(v.Len(), 1); // null forces len=1
 }
 
+TEST_F(BDDVTest, ConstructFromBDDWithLenRejectsSystemVar) {
+    // System variable 1 should be rejected (same as the length-1 constructor)
+    BDD sys = BDDvar(1);
+    EXPECT_THROW(BDDV(sys, 2), std::invalid_argument);
+    EXPECT_THROW(BDDV(sys, 4), std::invalid_argument);
+    // Null BDD is still allowed (error value)
+    EXPECT_NO_THROW(BDDV(BDD(-1), 2));
+}
+
 TEST_F(BDDVTest, CopyConstructor) {
     BDDV v1(BDD(1), 3);
     BDDV v2(v1);

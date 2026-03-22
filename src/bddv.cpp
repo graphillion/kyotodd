@@ -77,6 +77,12 @@ BDDV::BDDV(const BDD& f, int len) : _bdd(0), _len(0), _lev(0) {
     if (len > BDDV_MaxLen) {
         throw std::invalid_argument("BDDV(BDD, len): length exceeds BDDV_MaxLen");
     }
+    if (f.GetID() != bddnull) {
+        bddvar top = f.Top();
+        if (top > 0 && top <= static_cast<bddvar>(BDDV_SysVarTop)) {
+            throw std::invalid_argument("BDDV(BDD, len): BDD contains system variables");
+        }
+    }
     if (f.GetID() == bddnull) {
         _bdd = f;
         _len = 1;
