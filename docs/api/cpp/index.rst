@@ -13,4 +13,10 @@ C++ API
    ops_pidd
    ops_rotpidd
    ops_seqbdd
+   ops_bddv
+   ops_zbddv
+   ops_mlzbddv
+   ops_btoi
+   ops_ctoi
+   ops_sop
    io
