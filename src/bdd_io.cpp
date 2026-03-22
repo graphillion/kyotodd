@@ -909,7 +909,11 @@ static void binary_export_core(Stream& strm, bddp f, uint8_t dd_type) {
         if (edge == bddtrue) return 1;
         bddp phys = edge & ~BDD_COMP_FLAG;
         bool comp = (edge & BDD_COMP_FLAG) != 0;
-        uint64_t bin_id = id_map[phys];
+        auto it = id_map.find(phys);
+        if (it == id_map.end()) {
+            throw std::logic_error("binary export: child node not in id_map");
+        }
+        uint64_t bin_id = it->second;
         return comp ? (bin_id | 1) : bin_id;
     };
 
@@ -948,6 +952,9 @@ static void binary_export_core(Stream& strm, bddp f, uint8_t dd_type) {
     std::vector<uint64_t> level_counts(max_level, 0);
     for (size_t i = 0; i < all_nodes.size(); i++) {
         bddvar lev = var2level[node_var(all_nodes[i])];
+        if (lev < 1 || lev > max_level) {
+            throw std::logic_error("binary export: node has invalid level");
+        }
         level_counts[lev - 1]++;
     }
     for (bddvar l = 0; l < max_level; l++) {
@@ -985,6 +992,9 @@ void unreduced_export_binary(std::ostream& strm, bddp f) { binary_export_core(st
 
 template<typename Stream>
 static void binary_export_multi_core(Stream& strm, const bddp* roots, size_t num_roots, uint8_t dd_type) {
+    if (num_roots > 0 && roots == nullptr) {
+        throw std::invalid_argument("binary export: roots pointer is null");
+    }
     for (size_t r = 0; r < num_roots; r++) {
         if (roots[r] == bddnull)
             throw std::invalid_argument("binary export: null node");
@@ -1044,7 +1054,11 @@ static void binary_export_multi_core(Stream& strm, const bddp* roots, size_t num
         if (edge == bddtrue) return 1;
         bddp phys = edge & ~BDD_COMP_FLAG;
         bool comp = (edge & BDD_COMP_FLAG) != 0;
-        uint64_t bin_id = id_map[phys];
+        auto it = id_map.find(phys);
+        if (it == id_map.end()) {
+            throw std::logic_error("binary export: child node not in id_map");
+        }
+        uint64_t bin_id = it->second;
         return comp ? (bin_id | 1) : bin_id;
     };
 
@@ -1085,6 +1099,9 @@ static void binary_export_multi_core(Stream& strm, const bddp* roots, size_t num
     std::vector<uint64_t> level_counts(max_level, 0);
     for (size_t i = 0; i < all_nodes.size(); i++) {
         bddvar lev = var2level[node_var(all_nodes[i])];
+        if (lev < 1 || lev > max_level) {
+            throw std::logic_error("binary export: node has invalid level");
+        }
         level_counts[lev - 1]++;
     }
     for (bddvar l = 0; l < max_level; l++) {
@@ -1261,6 +1278,10 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
         uint64_t idx = 0;
         for (uint64_t l = 0; l < max_level; l++) {
             for (uint64_t c = 0; c < level_counts[l]; c++) {
+                if (idx >= total_nodes) {
+                    throw std::runtime_error(
+                        "binary import: level_counts sum exceeds total_nodes");
+                }
                 node_levels[idx++] = static_cast<bddvar>(l + 1);
             }
         }
