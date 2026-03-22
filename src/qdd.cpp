@@ -91,6 +91,10 @@ static bddvar bddp_level(bddp f) {
 // BDD skipped levels mean "don't care" — the function is independent of
 // the variable, so both branches lead to the same child.
 static bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level) {
+    if (target_level > bdd_varcount) {
+        throw std::invalid_argument(
+            "qdd_fill_levels: target_level exceeds bdd_varcount");
+    }
     bddp current = child;
     for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
         bddvar var = level2var[lev];
@@ -103,6 +107,10 @@ static bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level)
 // ZDD zero-suppressed levels mean "variable not in set", so in BDD terms:
 // lo (var=0) = continue, hi (var=1) = false.
 static bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_level) {
+    if (target_level > bdd_varcount) {
+        throw std::invalid_argument(
+            "qdd_fill_levels_zdd: target_level exceeds bdd_varcount");
+    }
     bddp current = child;
     // Build false column incrementally alongside current
     bddp false_col = bddfalse;
