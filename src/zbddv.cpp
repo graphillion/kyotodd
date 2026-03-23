@@ -476,7 +476,10 @@ ZBDDV ZBDDV_Import(FILE* strm) {
         } else if (strcmp(lo_str, "T") == 0) {
             f0 = ZDD(1);
         } else {
-            int lo_num = atoi(lo_str);
+            char* endptr;
+            long lo_num_l = strtol(lo_str, &endptr, 10);
+            if (*endptr != '\0') return ZBDDV(ZDD(-1));
+            int lo_num = static_cast<int>(lo_num_l);
             auto it = node_map.find(lo_num);
             if (it == node_map.end()) return ZBDDV(ZDD(-1));
             f0 = it->second;
@@ -489,7 +492,10 @@ ZBDDV ZBDDV_Import(FILE* strm) {
         } else if (strcmp(hi_str, "T") == 0) {
             f1 = ZDD(1);
         } else {
-            int hi_num = atoi(hi_str);
+            char* endptr;
+            long hi_num_l = strtol(hi_str, &endptr, 10);
+            if (*endptr != '\0') return ZBDDV(ZDD(-1));
+            int hi_num = static_cast<int>(hi_num_l);
             bool hi_union_single = false;
             if (hi_num % 2 != 0) {
                 hi_union_single = true;
@@ -521,7 +527,10 @@ ZBDDV ZBDDV_Import(FILE* strm) {
         } else if (strcmp(out_str, "T") == 0) {
             out_zdd = ZDD(1);
         } else {
-            int out_num = atoi(out_str);
+            char* endptr;
+            long out_num_l = strtol(out_str, &endptr, 10);
+            if (*endptr != '\0') return ZBDDV(ZDD(-1));
+            int out_num = static_cast<int>(out_num_l);
             bool out_union_single = false;
             if (out_num % 2 != 0) {
                 out_union_single = true;

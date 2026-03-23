@@ -35,24 +35,24 @@ class TestRotPiDDConstruction:
     def test_empty(self):
         _setup_rotpidd(3)
         r = kyotodd.RotPiDD(0)
-        assert r.card == 0
+        assert r.exact_count == 0
 
     def test_identity(self):
         _setup_rotpidd(3)
         r = kyotodd.RotPiDD(1)
-        assert r.card == 1
+        assert r.exact_count == 1
 
     def test_repr(self):
         _setup_rotpidd(3)
         r = kyotodd.RotPiDD(1)
-        assert "card=1" in repr(r)
+        assert "node_id=" in repr(r)
 
 
 class TestRotPiDDFromPerm:
     def test_single_perm(self):
         _setup_rotpidd(4)
         r = kyotodd.rotpidd_from_perm([2, 3, 1, 4])
-        assert r.card == 1
+        assert r.exact_count == 1
         perms = r.to_perms()
         assert len(perms) == 1
         assert perms[0] == [2, 3, 1, 4]
@@ -69,14 +69,14 @@ class TestRotPiDDSetOperations:
         a = kyotodd.rotpidd_from_perm([1, 2, 3])
         b = kyotodd.rotpidd_from_perm([2, 1, 3])
         c = a + b
-        assert c.card == 2
+        assert c.exact_count == 2
 
     def test_intersection(self):
         _setup_rotpidd(3)
         a = kyotodd.rotpidd_from_perm([1, 2, 3])
         b = kyotodd.rotpidd_from_perm([2, 1, 3])
         u = a + b
-        assert (u & a).card == 1
+        assert (u & a).exact_count == 1
         assert (u & a) == a
 
     def test_difference(self):
@@ -91,7 +91,7 @@ class TestRotPiDDSetOperations:
         a = kyotodd.rotpidd_from_perm([1, 2, 3])
         b = kyotodd.rotpidd_from_perm([2, 1, 3])
         a += b
-        assert a.card == 2
+        assert a.exact_count == 2
 
 
 class TestRotPiDDLeftRot:
@@ -128,7 +128,7 @@ class TestRotPiDDComposition:
         a = kyotodd.rotpidd_from_perm([1, 2, 3]) + kyotodd.rotpidd_from_perm([2, 1, 3])
         b = kyotodd.rotpidd_from_perm([1, 2, 3]) + kyotodd.rotpidd_from_perm([1, 3, 2])
         comp = b * a
-        assert comp.card == 4
+        assert comp.exact_count == 4
 
 
 class TestRotPiDDSwap:
@@ -158,9 +158,9 @@ class TestRotPiDDOddEven:
         all_perms = kyotodd.RotPiDD(0)
         for p in [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]:
             all_perms += kyotodd.rotpidd_from_perm(p)
-        assert all_perms.card == 6
-        assert all_perms.odd().card == 3
-        assert all_perms.even().card == 3
+        assert all_perms.exact_count == 6
+        assert all_perms.odd().exact_count == 3
+        assert all_perms.even().exact_count == 3
 
 
 class TestRotPiDDInverse:
@@ -180,7 +180,7 @@ class TestRotPiDDOrder:
             all_perms += kyotodd.rotpidd_from_perm(p)
         # pi(1) < pi(2): [1,2,3], [1,3,2], [2,3,1] → 3 perms
         ordered = all_perms.order(1, 2)
-        assert ordered.card == 3
+        assert ordered.exact_count == 3
 
 
 class TestRotPiDDCofact:
@@ -191,7 +191,7 @@ class TestRotPiDDCofact:
             all_perms += kyotodd.rotpidd_from_perm(p)
         # cofact(1, 2): perms where position 1 has value 2 → 2 perms
         cf = all_perms.cofact(1, 2)
-        assert cf.card == 2
+        assert cf.exact_count == 2
 
 
 class TestRotPiDDExtractOne:
@@ -199,7 +199,7 @@ class TestRotPiDDExtractOne:
         _setup_rotpidd(3)
         r = kyotodd.rotpidd_from_perm([2, 3, 1]) + kyotodd.rotpidd_from_perm([3, 1, 2])
         one = r.extract_one()
-        assert one.card == 1
+        assert one.exact_count == 1
         assert (one & r) == one
 
 
@@ -220,7 +220,7 @@ class TestRotPiDDProperties:
         _setup_rotpidd(3)
         r = kyotodd.rotpidd_from_perm([2, 3, 1])
         assert r.size >= 1
-        assert r.card == 1
+        assert r.exact_count == 1
         assert isinstance(r.zdd, kyotodd.ZDD)
 
 

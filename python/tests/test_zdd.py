@@ -212,10 +212,10 @@ class TestZDDProperties:
         assert a.top_var == 2
 
     def test_card_empty(self):
-        assert ZDD.empty.card == 0
+        assert ZDD.empty.exact_count == 0
 
     def test_card_single(self):
-        assert ZDD.single.card == 1
+        assert ZDD.single.exact_count == 1
 
     def test_card_family(self):
         kyotodd.new_var()
@@ -223,7 +223,7 @@ class TestZDDProperties:
         a = _make_singleton(1)
         b = _make_singleton(2)
         u = a + b  # {{1}, {2}}
-        assert u.card == 2
+        assert u.exact_count == 2
 
 
 class TestZDDMethods:
@@ -301,7 +301,7 @@ class TestZDDMethods:
         # closure({{1}, {2}}) = {{1}, {2}, {}} since {1}∩{2} = {}
         u = a + b  # {{1}, {2}}
         c = u.closure()
-        assert c.card == 3  # {{1}, {2}, {}}
+        assert c.exact_count == 3  # {{1}, {2}, {}}
 
     def test_minhit(self):
         a, b, _ = self._setup()

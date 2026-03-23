@@ -204,7 +204,7 @@ class TestZDDAlways:
         ab = a * b  # {{1,2}}
         # always({{1,2}}): both 1 and 2 are in every set → {{1},{2}}
         result = ab.always()
-        assert result.card == 2
+        assert result.exact_count == 2
         assert result != ZDD.empty
 
     def test_always_two_sets(self):

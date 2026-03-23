@@ -450,6 +450,42 @@ TEST_F(ZBDDVTest, ImportBasic) {
     EXPECT_GE(result.Last(), 0);
 }
 
+TEST_F(ZBDDVTest, ImportTrailingJunkInNodeToken) {
+    // "2junk" should be rejected (not silently treated as node 2)
+    const char* data = "_i 1 _o 1 _n 1\n2 1 F T\n2junk\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) {
+        BDDV_NewVar();
+    }
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
+
+TEST_F(ZBDDVTest, ImportTrailingJunkInChildToken) {
+    // "2junk" as a child token should be rejected
+    const char* data = "_i 2 _o 1 _n 2\n2 1 F T\n4 2 F 2junk\n4\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    while (BDDV_UserTopLev() < 2) {
+        BDDV_NewVar();
+    }
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
+
 // ============================================================
 // Larger integration tests
 // ============================================================

@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cinttypes>
 #include <vector>
 #include "bdd.h"
 
@@ -27,7 +28,7 @@ int main(int argc, char *argv[])
   else bddlimit = bddnull;
 
   printf("problem_size:  %d\n", q);
-  sprintf(s, "%lu", (unsigned long)(bddlimit));
+  sprintf(s, "%" PRIu64, (uint64_t)(bddlimit));
   printf("bdd_node_limit:%s\n", s);
 
   /**** Initialize BDD package ****/
@@ -68,9 +69,9 @@ int main(int argc, char *argv[])
       fflush(stdout);
     }
     for(i=0; i<q-3; i++) putchar(' ');
-    sprintf(s, "%lu", (unsigned long)F.raw_size());
+    sprintf(s, "%" PRIu64, (uint64_t)F.raw_size());
     printf("size:%s ", s);
-    sprintf(s, "%lu", (unsigned long)bddused());
+    sprintf(s, "%" PRIu64, (uint64_t)bddused());
     printf("used:%s\n", s);
 
     /**** Generating BDDs for column constraints ****/
@@ -92,9 +93,9 @@ int main(int argc, char *argv[])
       fflush(stdout);
     }
     for(i=0; i<q-3; i++) putchar(' ');
-    sprintf(s, "%lu", (unsigned long)F.raw_size());
+    sprintf(s, "%" PRIu64, (uint64_t)F.raw_size());
     printf("size:%s ", s);
-    sprintf(s, "%lu", (unsigned long)bddused());
+    sprintf(s, "%" PRIu64, (uint64_t)bddused());
     printf("used:%s\n", s);
 
     /**** Generating BDDs for upward diagonal constraints ****/
@@ -120,9 +121,9 @@ int main(int argc, char *argv[])
       printf(".");
       fflush(stdout);
     }
-    sprintf(s, "%lu", (unsigned long)F.raw_size());
+    sprintf(s, "%" PRIu64, (uint64_t)F.raw_size());
     printf("size:%s ", s);
-    sprintf(s, "%lu", (unsigned long)bddused());
+    sprintf(s, "%" PRIu64, (uint64_t)bddused());
     printf("used:%s\n", s);
 
     /**** Generating BDDs for downward diagonal constraints ****/
@@ -148,9 +149,9 @@ int main(int argc, char *argv[])
       printf(".");
       fflush(stdout);
     }
-    sprintf(s, "%lu", (unsigned long)F.raw_size());
+    sprintf(s, "%" PRIu64, (uint64_t)F.raw_size());
     printf("size:%s ", s);
-    sprintf(s, "%lu", (unsigned long)bddused());
+    sprintf(s, "%" PRIu64, (uint64_t)bddused());
     printf("used:%s\n", s);
 
     /**** Check memory overflow ****/

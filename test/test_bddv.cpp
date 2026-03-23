@@ -716,6 +716,40 @@ TEST_F(BDDVTest, ImportInvalidReturnsNull) {
     EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
 }
 
+TEST_F(BDDVTest, ImportTrailingJunkInNodeToken) {
+    // "2junk" should be rejected (not silently treated as node 2)
+    const char* data = "_i 1 _o 1 _n 1\n2 1 F T\n2junk\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) {
+        BDDV_NewVar();
+    }
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
+TEST_F(BDDVTest, ImportTrailingJunkInChildToken) {
+    // "2junk" as a child token should be rejected
+    const char* data = "_i 2 _o 1 _n 2\n2 1 F T\n4 2 F 2junk\n4\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    while (BDDV_UserTopLev() < 2) {
+        BDDV_NewVar();
+    }
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
 // ============================================================
 // BDDV_ImportPla
 // ============================================================

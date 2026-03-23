@@ -5,10 +5,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include "bdd.h"
 
 #define B_STRTOI strtoull
-#define B_ITOSTR(n, s) sprintf(s, "%lu", (unsigned long)(n))
+#define B_ITOSTR(n, s) sprintf(s, "%" PRIu64, (uint64_t)(n))
 
 int main(int argc, char *argv[])
 {

@@ -38,17 +38,17 @@ class TestPiDDConstruction:
     def test_empty(self):
         _setup_pidd(3)
         p = kyotodd.PiDD(0)
-        assert p.card == 0
+        assert p.exact_count == 0
 
     def test_identity(self):
         _setup_pidd(3)
         p = kyotodd.PiDD(1)
-        assert p.card == 1
+        assert p.exact_count == 1
 
     def test_repr(self):
         _setup_pidd(3)
         p = kyotodd.PiDD(1)
-        assert "card=1" in repr(p)
+        assert "node_id=" in repr(p)
 
 
 class TestPiDDSetOperations:
@@ -57,14 +57,14 @@ class TestPiDDSetOperations:
         a = kyotodd.PiDD(1)
         b = a.swap(2, 1)
         c = a + b
-        assert c.card == 2
+        assert c.exact_count == 2
 
     def test_intersection(self):
         _setup_pidd(3)
         a = kyotodd.PiDD(1)
         b = a.swap(2, 1)
         c = (a + b) & a
-        assert c.card == 1
+        assert c.exact_count == 1
         assert c == a
 
     def test_difference(self):
@@ -72,7 +72,7 @@ class TestPiDDSetOperations:
         a = kyotodd.PiDD(1)
         b = a.swap(2, 1)
         c = (a + b) - a
-        assert c.card == 1
+        assert c.exact_count == 1
         assert c == b
 
 
@@ -104,21 +104,21 @@ class TestPiDDComposition:
         s12 = a.swap(2, 1)
         s23 = a.swap(3, 2)
         comp = s23 * s12
-        assert comp.card == 1
+        assert comp.exact_count == 1
 
 
 class TestPiDDOddEven:
     def test_identity_is_even(self):
         _setup_pidd(3)
         a = kyotodd.PiDD(1)
-        assert a.odd().card == 0
-        assert a.even().card == 1
+        assert a.odd().exact_count == 0
+        assert a.even().exact_count == 1
 
     def test_single_swap_is_odd(self):
         _setup_pidd(3)
         a = kyotodd.PiDD(1).swap(2, 1)
-        assert a.odd().card == 1
-        assert a.even().card == 0
+        assert a.odd().exact_count == 1
+        assert a.even().exact_count == 0
 
 
 class TestPiDDCofact:
@@ -128,7 +128,7 @@ class TestPiDDCofact:
         a = kyotodd.PiDD(1) + kyotodd.PiDD(1).swap(2, 1)
         # cofact(2, 1): perms with position 2 = value 1 → {[2,1,3]}
         cf = a.cofact(2, 1)
-        assert cf.card == 1
+        assert cf.exact_count == 1
 
 
 class TestPiDDProperties:
@@ -136,7 +136,7 @@ class TestPiDDProperties:
         _setup_pidd(3)
         a = kyotodd.PiDD(1).swap(3, 1)
         assert a.size >= 1
-        assert a.card == 1
+        assert a.exact_count == 1
         assert isinstance(a.zdd, kyotodd.ZDD)
 
 

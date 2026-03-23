@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cinttypes>
 #include <vector>
 #include "bdd.h"
 
@@ -27,7 +28,7 @@ int main(int argc, char *argv[])
   else bddlimit = bddnull;
 
   printf("problem_size:  %d\n", q);
-  sprintf(s, "%lu", (unsigned long)(bddlimit));
+  sprintf(s, "%" PRIu64, (uint64_t)(bddlimit));
   printf("bdd_node_limit:%s\n", s);
 
   /**** Initialize BDD package ****/
@@ -89,9 +90,9 @@ int main(int argc, char *argv[])
       fflush(stdout);
     }
 
-    sprintf(s, "%lu", (unsigned long)F.raw_size());
+    sprintf(s, "%" PRIu64, (uint64_t)F.raw_size());
     printf(" size:%s", s);
-    sprintf(s, "%lu", (unsigned long)bddused());
+    sprintf(s, "%" PRIu64, (uint64_t)bddused());
     printf(" used:%s", s);
     sprintf(s, "%.0f", F.count());
     printf(" solutions:%s\n", s);

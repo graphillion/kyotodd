@@ -23,19 +23,19 @@ def _vars(n):
 class TestSeqBDDConstruction:
     def test_empty(self):
         s = kyotodd.SeqBDD(0)
-        assert s.card == 0
+        assert s.exact_count == 0
 
     def test_epsilon(self):
         s = kyotodd.SeqBDD(1)
-        assert s.card == 1
+        assert s.exact_count == 1
 
     def test_default(self):
         s = kyotodd.SeqBDD()
-        assert s.card == 0
+        assert s.exact_count == 0
 
     def test_repr(self):
         s = kyotodd.SeqBDD(1)
-        assert repr(s) == "SeqBDD(card=1)"
+        assert "SeqBDD(node_id=" in repr(s)
 
     def test_equality(self):
         a = kyotodd.SeqBDD(0)
@@ -59,13 +59,13 @@ class TestSeqBDDFromList:
     def test_single_element(self):
         v1, = _vars(1)
         s = kyotodd.SeqBDD.from_list([v1])
-        assert s.card == 1
+        assert s.exact_count == 1
         assert s.top == v1
 
     def test_multiple_elements(self):
         v1, v2, v3 = _vars(3)
         s = kyotodd.SeqBDD.from_list([v1, v2, v3])
-        assert s.card == 1
+        assert s.exact_count == 1
         assert s.len == 3
 
     def test_empty_list(self):
@@ -75,7 +75,7 @@ class TestSeqBDDFromList:
     def test_repeated_variable(self):
         v1, = _vars(1)
         s = kyotodd.SeqBDD.from_list([v1, v1])
-        assert s.card == 1
+        assert s.exact_count == 1
         assert s.len == 2
 
 
@@ -83,7 +83,7 @@ class TestSeqBDDPush:
     def test_push_on_epsilon(self):
         v1, = _vars(1)
         s = kyotodd.SeqBDD(1).push(v1)
-        assert s.card == 1
+        assert s.exact_count == 1
         assert s.top == v1
 
     def test_push_on_empty(self):
@@ -98,7 +98,7 @@ class TestSeqBDDSetOps:
         a = kyotodd.SeqBDD.from_list([v1])
         b = kyotodd.SeqBDD.from_list([v2])
         u = a + b
-        assert u.card == 2
+        assert u.exact_count == 2
 
     def test_intersection(self):
         v1, v2 = _vars(2)
@@ -118,7 +118,7 @@ class TestSeqBDDSetOps:
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1])
         s += kyotodd.SeqBDD.from_list([v2])
-        assert s.card == 2
+        assert s.exact_count == 2
 
 
 class TestSeqBDDOnSetOffSet:
@@ -183,7 +183,7 @@ class TestSeqBDDConcatenation:
         rhs = bd + kyotodd.SeqBDD(1)
 
         result = lhs * rhs
-        assert result.card == 4
+        assert result.exact_count == 4
 
         abbd = kyotodd.SeqBDD.from_list([a, b, b, d])
         cbd = kyotodd.SeqBDD.from_list([c, b, d])
@@ -256,7 +256,7 @@ class TestSeqBDDProperties:
     def test_card(self):
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1]) + kyotodd.SeqBDD.from_list([v2])
-        assert s.card == 2
+        assert s.exact_count == 2
 
     def test_len(self):
         v1, v2, v3 = _vars(3)
@@ -274,7 +274,7 @@ class TestSeqBDDProperties:
         s = kyotodd.SeqBDD.from_list([v1])
         z = s.zdd
         assert isinstance(z, kyotodd.ZDD)
-        assert z.card == 1
+        assert z.exact_count == 1
 
 
 class TestSeqBDDStr:

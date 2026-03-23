@@ -1025,10 +1025,6 @@ class ZDD:
         ...
 
     @property
-    def card(self) -> int:
-        """The number of sets in the family (cardinality)."""
-        ...
-    @property
     def exact_count(self) -> int:
         """The number of sets in the family (arbitrary precision Python int)."""
         ...
@@ -1653,7 +1649,7 @@ class PiDD:
         """The number of nodes in the internal ZDD."""
         ...
     @property
-    def card(self) -> int:
+    def exact_count(self) -> int:
         """The number of permutations in the set."""
         ...
     @property
@@ -1910,7 +1906,7 @@ class RotPiDD:
         """The number of nodes in the internal ZDD."""
         ...
     @property
-    def card(self) -> int:
+    def exact_count(self) -> int:
         """The number of permutations in the set."""
         ...
     @property
@@ -2375,7 +2371,7 @@ class SeqBDD:
         """Hash based on internal ZDD node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: SeqBDD(card=...)."""
+        """Return string representation: SeqBDD(node_id=...)."""
         ...
     def __str__(self) -> str:
         """Return the sequence string representation."""
@@ -2473,7 +2469,7 @@ class SeqBDD:
         """The number of nodes in the internal ZDD."""
         ...
     @property
-    def card(self) -> int:
+    def exact_count(self) -> int:
         """The number of sequences in the set."""
         ...
     @property
