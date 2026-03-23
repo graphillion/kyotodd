@@ -301,3 +301,28 @@ class TestSeqBDDStr:
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1]) + kyotodd.SeqBDD.from_list([v2])
         assert " + " in str(s)
+
+
+class TestSeqBDDExactCountPrecision:
+    def test_exact_count_matches_zdd(self):
+        v1, v2 = _vars(2)
+        s = kyotodd.SeqBDD.from_list([v1]) + kyotodd.SeqBDD.from_list([v2])
+        assert s.exact_count == s.zdd.exact_count
+
+    def test_exact_count_is_python_int(self):
+        s = kyotodd.SeqBDD(1)
+        assert isinstance(s.exact_count, int)
+
+
+class TestSeqBDDFromZDD:
+    def test_roundtrip(self):
+        v1, v2 = _vars(2)
+        a = kyotodd.SeqBDD.from_list([v1, v2])
+        z = a.zdd
+        b = kyotodd.SeqBDD(z)
+        assert a == b
+
+    def test_epsilon_roundtrip(self):
+        a = kyotodd.SeqBDD(1)
+        b = kyotodd.SeqBDD(a.zdd)
+        assert a == b

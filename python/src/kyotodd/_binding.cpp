@@ -200,6 +200,34 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    A random ZDD.\n");
 
+    // Memo classes
+    py::class_<BddCountMemo>(m, "BddCountMemo",
+        "Memo for BDD exact counting.\n\n"
+        "Caches exact_count results so they can be reused across\n"
+        "multiple exact_count and uniform_sample calls on the same BDD.")
+        .def(py::init([](const BDD& f, bddvar n) {
+            return BddCountMemo(f, n);
+        }), py::arg("bdd"), py::arg("n"),
+           "Create a BDD count memo.\n\n"
+           "Args:\n"
+           "    bdd: The BDD to count.\n"
+           "    n: Number of variables.\n")
+        .def_property_readonly("stored", &BddCountMemo::stored,
+             "Whether the memo has been populated.");
+
+    py::class_<ZddCountMemo>(m, "ZddCountMemo",
+        "Memo for ZDD exact counting.\n\n"
+        "Caches exact_count results so they can be reused across\n"
+        "multiple exact_count and uniform_sample calls on the same ZDD.")
+        .def(py::init([](const ZDD& f) {
+            return ZddCountMemo(f);
+        }), py::arg("zdd"),
+           "Create a ZDD count memo.\n\n"
+           "Args:\n"
+           "    zdd: The ZDD to count.\n")
+        .def_property_readonly("stored", &ZddCountMemo::stored,
+             "Whether the memo has been populated.");
+
     // BDD class
     py::class_<BDD>(m, "BDD",
         "A Binary Decision Diagram representing a Boolean function.\n\n"
@@ -415,6 +443,17 @@ PYBIND11_MODULE(_core, m) {
            "    n: Number of variables in the Boolean function.\n\n"
            "Returns:\n"
            "    The number of satisfying assignments as a Python int.\n")
+        .def("exact_count_with_memo", [](const BDD& b, bddvar n, BddCountMemo& memo) -> py::int_ {
+            bigint::BigInt bi = b.exact_count(n, memo);
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, py::arg("n"), py::arg("memo"),
+           "Count satisfying assignments using a memo for caching.\n\n"
+           "Args:\n"
+           "    n: Number of variables in the Boolean function.\n"
+           "    memo: A BddCountMemo object for caching.\n\n"
+           "Returns:\n"
+           "    The number of satisfying assignments as a Python int.\n")
         .def("uniform_sample", [](BDD& b, bddvar n, uint64_t seed) -> std::vector<bddvar> {
             std::mt19937_64 rng(seed);
             BddCountMemo memo(b, n);
@@ -423,6 +462,17 @@ PYBIND11_MODULE(_core, m) {
            "Sample a satisfying assignment uniformly at random.\n\n"
            "Args:\n"
            "    n: Number of variables in the Boolean function.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers set to 1 in the sampled assignment.\n")
+        .def("uniform_sample_with_memo", [](BDD& b, bddvar n, BddCountMemo& memo, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            return b.uniform_sample(rng, n, memo);
+        }, py::arg("n"), py::arg("memo"), py::arg("seed") = 0,
+           "Sample a satisfying assignment using a memo for caching.\n\n"
+           "Args:\n"
+           "    n: Number of variables in the Boolean function.\n"
+           "    memo: A BddCountMemo object for caching.\n"
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of variable numbers set to 1 in the sampled assignment.\n")
@@ -1013,6 +1063,16 @@ PYBIND11_MODULE(_core, m) {
              "Count the number of sets in the family (floating-point).\n\n"
              "Returns:\n"
              "    The number of sets as a float.\n")
+        .def("exact_count_with_memo", [](const ZDD& z, ZddCountMemo& memo) -> py::int_ {
+            bigint::BigInt bi = z.exact_count(memo);
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, py::arg("memo"),
+           "Count the number of sets using a memo for caching.\n\n"
+           "Args:\n"
+           "    memo: A ZddCountMemo object for caching.\n\n"
+           "Returns:\n"
+           "    The number of sets as a Python int.\n")
         .def("uniform_sample", [](ZDD& z, uint64_t seed) -> std::vector<bddvar> {
             std::mt19937_64 rng(seed);
             ZddCountMemo memo(z);
@@ -1020,6 +1080,16 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("seed") = 0,
            "Sample a set uniformly at random from the family.\n\n"
            "Args:\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
+        .def("uniform_sample_with_memo", [](ZDD& z, ZddCountMemo& memo, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            return z.uniform_sample(rng, memo);
+        }, py::arg("memo"), py::arg("seed") = 0,
+           "Sample a set using a memo for caching.\n\n"
+           "Args:\n"
+           "    memo: A ZddCountMemo object for caching.\n"
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of variable numbers in the sampled set.\n")
@@ -1090,6 +1160,18 @@ PYBIND11_MODULE(_core, m) {
            "    k: Subset size.\n\n"
            "Returns:\n"
            "    A ZDD representing C(n,k).\n")
+        .def_static("random_family", [](bddvar n, uint64_t seed) -> ZDD {
+            ensure_init();
+            std::mt19937_64 rng(seed);
+            return ZDD::random_family(n, rng);
+        }, py::arg("n"), py::arg("seed") = 0,
+           "Generate a uniformly random family over {1, ..., n}.\n\n"
+           "Selects one of the 2^(2^n) possible families uniformly at random.\n\n"
+           "Args:\n"
+           "    n: Universe size.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A ZDD representing the randomly chosen family.\n")
         .def_static("getnode", [](bddvar var, const ZDD& lo, const ZDD& hi) -> ZDD {
             ensure_init();
             return ZDD::getnode(var, lo, hi);
@@ -1309,6 +1391,12 @@ PYBIND11_MODULE(_core, m) {
            "Construct a PiDD from an integer value.\n\n"
            "Args:\n"
            "    val: 0 for empty set, 1 for {identity}, negative for null.\n")
+        .def(py::init([](const ZDD& z) {
+            return PiDD(z);
+        }), py::arg("zdd"),
+           "Construct a PiDD from an existing ZDD.\n\n"
+           "Args:\n"
+           "    zdd: A ZDD to interpret as a permutation set.\n")
 
         .def("__eq__", [](const PiDD& a, const PiDD& b) { return a == b; },
              "Equality comparison.")
@@ -1391,9 +1479,11 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &PiDD::Size,
              "The number of nodes in the internal ZDD.")
-        .def_property_readonly("exact_count", [](const PiDD& p) -> uint64_t {
-            return p.Card();
-        }, "The number of permutations in the set.")
+        .def_property_readonly("exact_count", [](const PiDD& p) -> py::int_ {
+            bigint::BigInt bi = p.GetZDD().exact_count();
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, "The number of permutations in the set (arbitrary precision Python int).")
         .def_property_readonly("zdd", &PiDD::GetZDD,
              "The internal ZDD representation.")
 
@@ -1462,6 +1552,12 @@ PYBIND11_MODULE(_core, m) {
            "Construct a RotPiDD from an integer value.\n\n"
            "Args:\n"
            "    val: 0 for empty set, 1 for {identity}, negative for null.\n")
+        .def(py::init([](const ZDD& z) {
+            return RotPiDD(z);
+        }), py::arg("zdd"),
+           "Construct a RotPiDD from an existing ZDD.\n\n"
+           "Args:\n"
+           "    zdd: A ZDD to interpret as a permutation set.\n")
 
         .def("__eq__", [](const RotPiDD& a, const RotPiDD& b) { return a == b; },
              "Equality comparison.")
@@ -1593,9 +1689,11 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &RotPiDD::Size,
              "The number of nodes in the internal ZDD.")
-        .def_property_readonly("exact_count", [](const RotPiDD& p) -> uint64_t {
-            return p.Card();
-        }, "The number of permutations in the set.")
+        .def_property_readonly("exact_count", [](const RotPiDD& p) -> py::int_ {
+            bigint::BigInt bi = p.GetZDD().exact_count();
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, "The number of permutations in the set (arbitrary precision Python int).")
         .def_property_readonly("zdd", &RotPiDD::GetZDD,
              "The internal ZDD representation.")
 
@@ -1982,6 +2080,12 @@ PYBIND11_MODULE(_core, m) {
            "Construct a SeqBDD.\n\n"
            "Args:\n"
            "    val: 0 for empty set, 1 for {epsilon}, negative for null.\n")
+        .def(py::init([](const ZDD& z) {
+            return SeqBDD(z);
+        }), py::arg("zdd"),
+           "Construct a SeqBDD from an existing ZDD.\n\n"
+           "Args:\n"
+           "    zdd: A ZDD to interpret as a sequence set.\n")
 
         .def("__eq__", [](const SeqBDD& a, const SeqBDD& b) { return a == b; })
         .def("__ne__", [](const SeqBDD& a, const SeqBDD& b) { return a != b; })
@@ -2063,9 +2167,11 @@ PYBIND11_MODULE(_core, m) {
              "Total symbol count across all sequences.")
         .def_property_readonly("len", &SeqBDD::len,
              "Length of the longest sequence.")
-        .def_property_readonly("exact_count", [](const SeqBDD& s) -> uint64_t {
-            return s.card();
-        }, "The number of sequences in the set.")
+        .def_property_readonly("exact_count", [](const SeqBDD& s) -> py::int_ {
+            bigint::BigInt bi = s.get_zdd().exact_count();
+            std::string s_str = bi.to_string();
+            return py::int_(py::str(s_str));
+        }, "The number of sequences in the set (arbitrary precision Python int).")
         .def_property_readonly("zdd", &SeqBDD::get_zdd,
              "The internal ZDD representation.")
 

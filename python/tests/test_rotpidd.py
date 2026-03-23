@@ -242,3 +242,32 @@ class TestRotPiDDEquality:
         a = kyotodd.RotPiDD(1)
         b = kyotodd.RotPiDD(1)
         assert hash(a) == hash(b)
+
+
+class TestRotPiDDExactCountPrecision:
+    def test_exact_count_matches_zdd(self):
+        _setup_rotpidd(3)
+        all_perms = kyotodd.RotPiDD(0)
+        for p in [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]:
+            all_perms += kyotodd.rotpidd_from_perm(p)
+        assert all_perms.exact_count == all_perms.zdd.exact_count
+
+    def test_exact_count_is_python_int(self):
+        _setup_rotpidd(3)
+        r = kyotodd.RotPiDD(1)
+        assert isinstance(r.exact_count, int)
+
+
+class TestRotPiDDFromZDD:
+    def test_roundtrip(self):
+        _setup_rotpidd(3)
+        a = kyotodd.rotpidd_from_perm([2, 3, 1])
+        z = a.zdd
+        b = kyotodd.RotPiDD(z)
+        assert a == b
+
+    def test_identity_roundtrip(self):
+        _setup_rotpidd(3)
+        a = kyotodd.RotPiDD(1)
+        b = kyotodd.RotPiDD(a.zdd)
+        assert a == b

@@ -158,3 +158,30 @@ class TestPiDDEquality:
         a = kyotodd.PiDD(1)
         b = kyotodd.PiDD(1)
         assert hash(a) == hash(b)
+
+
+class TestPiDDExactCountPrecision:
+    def test_exact_count_matches_zdd(self):
+        _setup_pidd(3)
+        a = kyotodd.PiDD(1) + kyotodd.PiDD(1).swap(2, 1)
+        assert a.exact_count == a.zdd.exact_count
+
+    def test_exact_count_is_python_int(self):
+        _setup_pidd(3)
+        a = kyotodd.PiDD(1)
+        assert isinstance(a.exact_count, int)
+
+
+class TestPiDDFromZDD:
+    def test_roundtrip(self):
+        _setup_pidd(3)
+        a = kyotodd.PiDD(1).swap(2, 1)
+        z = a.zdd
+        b = kyotodd.PiDD(z)
+        assert a == b
+
+    def test_identity_roundtrip(self):
+        _setup_pidd(3)
+        a = kyotodd.PiDD(1)
+        b = kyotodd.PiDD(a.zdd)
+        assert a == b

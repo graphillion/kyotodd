@@ -409,3 +409,60 @@ class TestZDDPrintSets:
     def test_complement_edge(self):
         f = ~ZDD(0)
         assert f.to_str() == "{}"
+
+
+class TestZDDRandomFamily:
+    def test_basic(self):
+        rf = ZDD.random_family(3, seed=42)
+        assert isinstance(rf, ZDD)
+        assert rf.exact_count >= 0
+
+    def test_deterministic(self):
+        a = ZDD.random_family(3, seed=42)
+        b = ZDD.random_family(3, seed=42)
+        assert a == b
+
+    def test_different_seeds(self):
+        a = ZDD.random_family(4, seed=1)
+        b = ZDD.random_family(4, seed=2)
+        # Different seeds very likely produce different families
+        # (not guaranteed but astronomically unlikely for n=4)
+        assert a != b
+
+
+class TestZddCountMemo:
+    def test_bdd_count_memo(self):
+        b = kyotodd.BDD.prime(1) & kyotodd.BDD.prime(2)
+        memo = kyotodd.BddCountMemo(b, 3)
+        count = b.exact_count_with_memo(3, memo)
+        assert count == b.exact_count(3)
+        assert memo.stored
+
+    def test_bdd_sample_with_memo(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        b = kyotodd.BDD.prime(1) | kyotodd.BDD.prime(2)
+        memo = kyotodd.BddCountMemo(b, 3)
+        sample = b.uniform_sample_with_memo(3, memo, seed=42)
+        assert isinstance(sample, list)
+        assert any(v in sample for v in [1, 2])
+
+    def test_zdd_count_memo(self):
+        z = ZDD.power_set(4)
+        memo = kyotodd.ZddCountMemo(z)
+        count = z.exact_count_with_memo(memo)
+        assert count == z.exact_count
+        assert memo.stored
+
+    def test_zdd_sample_with_memo(self):
+        z = ZDD.power_set(4)
+        memo = kyotodd.ZddCountMemo(z)
+        sample = z.uniform_sample_with_memo(memo, seed=42)
+        assert isinstance(sample, list)
+
+    def test_memo_reuse(self):
+        z = ZDD.power_set(4)
+        memo = kyotodd.ZddCountMemo(z)
+        count1 = z.exact_count_with_memo(memo)
+        count2 = z.exact_count_with_memo(memo)
+        assert count1 == count2
