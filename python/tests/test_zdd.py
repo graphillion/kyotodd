@@ -466,3 +466,49 @@ class TestZddCountMemo:
         count1 = z.exact_count_with_memo(memo)
         count2 = z.exact_count_with_memo(memo)
         assert count1 == count2
+
+
+class TestCacheGetPut:
+    def test_bdd_cache_miss(self):
+        a = kyotodd.BDD.prime(1)
+        b = kyotodd.BDD.prime(2)
+        miss = kyotodd.BDD.cache_get(200, a, b)
+        assert miss == kyotodd.BDD.null
+
+    def test_bdd_cache_roundtrip(self):
+        a = kyotodd.BDD.prime(1)
+        b = kyotodd.BDD.prime(2)
+        r = a & b
+        kyotodd.BDD.cache_put(200, a, b, r)
+        hit = kyotodd.BDD.cache_get(200, a, b)
+        assert hit == r
+
+    def test_zdd_cache_miss(self):
+        z1 = ZDD.singleton(1)
+        z2 = ZDD.singleton(2)
+        miss = ZDD.cache_get(201, z1, z2)
+        assert miss == ZDD.null
+
+    def test_zdd_cache_roundtrip(self):
+        z1 = ZDD.singleton(1)
+        z2 = ZDD.singleton(2)
+        zu = z1 + z2
+        ZDD.cache_put(201, z1, z2, zu)
+        hit = ZDD.cache_get(201, z1, z2)
+        assert hit == zu
+
+    def test_qdd_cache_miss(self):
+        a = kyotodd.BDD.prime(1).to_qdd()
+        b = kyotodd.BDD.prime(2).to_qdd()
+        miss = kyotodd.QDD.cache_get(202, a, b)
+        assert miss == kyotodd.QDD.null
+
+    def test_qdd_cache_roundtrip(self):
+        a = kyotodd.BDD.prime(1)
+        b = kyotodd.BDD.prime(2)
+        qa = a.to_qdd()
+        qb = b.to_qdd()
+        qr = (a & b).to_qdd()
+        kyotodd.QDD.cache_put(202, qa, qb, qr)
+        hit = kyotodd.QDD.cache_get(202, qa, qb)
+        assert hit == qr

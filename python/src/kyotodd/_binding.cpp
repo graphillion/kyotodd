@@ -530,6 +530,25 @@ PYBIND11_MODULE(_core, m) {
            "    hi: The high (1-edge) child.\n\n"
            "Returns:\n"
            "    The created BDD node.\n")
+        .def_static("cache_get", [](uint8_t op, const BDD& f, const BDD& g) -> BDD {
+            return BDD::cache_get(op, f, g);
+        }, py::arg("op"), py::arg("f"), py::arg("g"),
+           "Read a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand BDD.\n"
+           "    g: Second operand BDD.\n\n"
+           "Returns:\n"
+           "    The cached BDD result, or BDD.null on miss.\n")
+        .def_static("cache_put", [](uint8_t op, const BDD& f, const BDD& g, const BDD& result) {
+            BDD::cache_put(op, f, g, result);
+        }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
+           "Write a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand BDD.\n"
+           "    g: Second operand BDD.\n"
+           "    result: The result BDD to cache.\n")
         .def_static("shared_size", [](const std::vector<BDD>& v) -> uint64_t {
             return BDD::raw_size(v);
         }, py::arg("bdds"),
@@ -1184,6 +1203,25 @@ PYBIND11_MODULE(_core, m) {
            "    hi: The high (1-edge) child.\n\n"
            "Returns:\n"
            "    The created ZDD node.\n")
+        .def_static("cache_get", [](uint8_t op, const ZDD& f, const ZDD& g) -> ZDD {
+            return ZDD::cache_get(op, f, g);
+        }, py::arg("op"), py::arg("f"), py::arg("g"),
+           "Read a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand ZDD.\n"
+           "    g: Second operand ZDD.\n\n"
+           "Returns:\n"
+           "    The cached ZDD result, or ZDD.null on miss.\n")
+        .def_static("cache_put", [](uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result) {
+            ZDD::cache_put(op, f, g, result);
+        }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
+           "Write a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand ZDD.\n"
+           "    g: Second operand ZDD.\n"
+           "    result: The result ZDD to cache.\n")
         .def_static("shared_size", [](const std::vector<ZDD>& v) -> uint64_t {
             return ZDD::raw_size(v);
         }, py::arg("zdds"),
@@ -1810,6 +1848,25 @@ PYBIND11_MODULE(_core, m) {
            "    hi: The high (1-edge) child.\n\n"
            "Returns:\n"
            "    The created QDD node.\n")
+        .def_static("cache_get", [](uint8_t op, const QDD& f, const QDD& g) -> QDD {
+            return QDD::cache_get(op, f, g);
+        }, py::arg("op"), py::arg("f"), py::arg("g"),
+           "Read a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand QDD.\n"
+           "    g: Second operand QDD.\n\n"
+           "Returns:\n"
+           "    The cached QDD result, or QDD.null on miss.\n")
+        .def_static("cache_put", [](uint8_t op, const QDD& f, const QDD& g, const QDD& result) {
+            QDD::cache_put(op, f, g, result);
+        }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
+           "Write a 2-operand cache entry.\n\n"
+           "Args:\n"
+           "    op: Operation code (0-255).\n"
+           "    f: First operand QDD.\n"
+           "    g: Second operand QDD.\n"
+           "    result: The result QDD to cache.\n")
 
         // Child accessors
         .def("child0", [](const QDD& q) { return q.child0(); },

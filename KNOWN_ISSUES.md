@@ -70,8 +70,6 @@ binding.
 
 - **`BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw` / `UnreducedDD::getnode_raw`** — Internal low-level node constructors without validation. The safe `getnode()` with level validation is available in Python.
 
-- **`BDD::cache_get/cache_put` / `ZDD::cache_get/cache_put` / `QDD::cache_get/cache_put`** — Direct operation cache manipulation. This is an internal optimization detail; misuse can cause correctness issues.
-
 - **`RotPiDD::normalizePerm()`** — Rank-normalizes a permutation vector in place. In Python, `rotpidd_from_perm()` calls this automatically.
 
 - **`SeqBDD::print()`** — Prints the internal ZDD structure to stdout. In Python, use `print_seq()`, `seq_str()`, or access the internal ZDD via the `.zdd` property.
