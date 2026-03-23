@@ -550,3 +550,38 @@ TEST_F(BtoITest, IntMinThrows) {
     int val = INT_MIN;
     EXPECT_THROW({ BtoI tmp(val); (void)tmp; }, std::overflow_error);
 }
+
+/* ================================================================ */
+/*  Constrained UpperBound / LowerBound                              */
+/* ================================================================ */
+
+TEST_F(BtoITest, BoundsConstrainedSingleValue) {
+    int v = static_cast<int>(BDDV_NewVar());
+    BDD x = BDD::prime(static_cast<bddvar>(v));
+    BtoI a = BtoI_ITE(x, BtoI(10), BtoI(-3));
+
+    EXPECT_EQ(a.UpperBound().GetInt(), 10);
+    EXPECT_EQ(a.LowerBound().GetInt(), -3);
+
+    /* Under x, only value is 10 */
+    EXPECT_EQ(a.UpperBound(x).GetInt(), 10);
+    EXPECT_EQ(a.LowerBound(x).GetInt(), 10);
+
+    /* Under ~x, only value is -3 */
+    EXPECT_EQ(a.UpperBound(~x).GetInt(), -3);
+    EXPECT_EQ(a.LowerBound(~x).GetInt(), -3);
+}
+
+TEST_F(BtoITest, BoundsConstrainedAllNegative) {
+    int v = static_cast<int>(BDDV_NewVar());
+    BDD x = BDD::prime(static_cast<bddvar>(v));
+    BtoI a = BtoI_ITE(x, BtoI(-3), BtoI(-7));
+
+    EXPECT_EQ(a.UpperBound().GetInt(), -3);
+    EXPECT_EQ(a.LowerBound().GetInt(), -7);
+
+    EXPECT_EQ(a.UpperBound(x).GetInt(), -3);
+    EXPECT_EQ(a.LowerBound(x).GetInt(), -3);
+    EXPECT_EQ(a.UpperBound(~x).GetInt(), -7);
+    EXPECT_EQ(a.LowerBound(~x).GetInt(), -7);
+}

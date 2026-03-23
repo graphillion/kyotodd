@@ -791,3 +791,57 @@ TEST_F(BDDVTest, NonUniformShift) {
     // Element 0 should be shifted
     EXPECT_NE(shifted.GetBDD(0).GetID(), x.GetID());
 }
+
+// ============================================================
+// BDDV_ImportPla sopf=1
+// ============================================================
+
+TEST_F(BDDVTest, ImportPlaSopfBasic) {
+    // 1-input 1-output PLA with sopf=1
+    const char* data = ".i 1\n.o 1\n1 1\n.e\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    BDDV result = BDDV_ImportPla(f, 1);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 2);  // onset || dcset
+    BDD onset = result.GetBDD(0);
+    EXPECT_NE(onset.GetID(), BDD(0).GetID());
+}
+
+TEST_F(BDDVTest, ImportPlaSopfMultiInput) {
+    // 2-input, 1-output: onset = x0 & x1
+    const char* data = ".i 2\n.o 1\n11 1\n.e\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    BDDV result = BDDV_ImportPla(f, 1);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 2);
+    BDD onset = result.GetBDD(0);
+    EXPECT_NE(onset.GetID(), BDD(0).GetID());
+
+    // onset should have two variables (at even user levels)
+    bddvar v0 = bddvaroflev(
+        static_cast<bddvar>(BDDV_SysVarTop + 2));
+    bddvar v1 = bddvaroflev(
+        static_cast<bddvar>(BDDV_SysVarTop + 4));
+    EXPECT_EQ(onset.At1(v0).At1(v1).GetID(), bddsingle);
+    EXPECT_EQ(onset.At0(v0).GetID(), bddempty);
+}
+
+// ============================================================
+// BDDV_ImportPla malformed product term
+// ============================================================
+
+TEST_F(BDDVTest, ImportPlaMalformedThrows) {
+    // Input character '2' is invalid
+    const char* data = ".i 1\n.o 1\n2 1\n.e\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    EXPECT_THROW(BDDV_ImportPla(f), std::invalid_argument);
+    fclose(f);
+}

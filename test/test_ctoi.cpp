@@ -848,3 +848,19 @@ TEST_F(CtoITest, MultiplicationConsistency) {
         }
     }
 }
+
+/* ================================================================ */
+/*  MaxVal / MinVal with null                                        */
+/* ================================================================ */
+
+TEST_F(CtoITest, MaxValNull) {
+    CtoI n = CtoI_Null();
+    CtoI mx = n.MaxVal();
+    EXPECT_EQ(mx.GetZBDD().GetID(), bddnull);
+}
+
+TEST_F(CtoITest, MinValNull) {
+    CtoI n = CtoI_Null();
+    CtoI mn = n.MinVal();
+    EXPECT_EQ(mn.GetZBDD().GetID(), bddnull);
+}
