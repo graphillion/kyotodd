@@ -193,6 +193,18 @@ class TestBDDOperators:
         assert ~(x & y) == (~x | ~y)
         assert ~(x | y) == (~x & ~y)
 
+    def test_nand(self):
+        x, y = self._make_vars()
+        assert x.nand(y) == ~(x & y)
+
+    def test_nor(self):
+        x, y = self._make_vars()
+        assert x.nor(y) == ~(x | y)
+
+    def test_xnor(self):
+        x, y = self._make_vars()
+        assert x.xnor(y) == ~(x ^ y)
+
 
 class TestBDDCompoundAssignment:
     def _make_vars(self):

@@ -168,6 +168,39 @@ class BDD:
         """Return string representation: BDD(node_id=...)."""
         ...
 
+    def nand(self, other: BDD) -> BDD:
+        """Logical NAND: ~(self & other).
+
+        Args:
+            other: The other BDD.
+
+        Returns:
+            The resulting BDD.
+        """
+        ...
+
+    def nor(self, other: BDD) -> BDD:
+        """Logical NOR: ~(self | other).
+
+        Args:
+            other: The other BDD.
+
+        Returns:
+            The resulting BDD.
+        """
+        ...
+
+    def xnor(self, other: BDD) -> BDD:
+        """Logical XNOR: ~(self ^ other).
+
+        Args:
+            other: The other BDD.
+
+        Returns:
+            The resulting BDD.
+        """
+        ...
+
     def at0(self, v: int) -> BDD:
         """Cofactor: restrict variable v to 0.
 

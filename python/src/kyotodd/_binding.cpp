@@ -304,6 +304,20 @@ PYBIND11_MODULE(_core, m) {
              py::return_value_policy::reference_internal,
              "In-place right shift.")
 
+        // Named binary operations
+        .def("nand", [](const BDD& a, const BDD& b) {
+            return BDD_ID(bddnand(a.GetID(), b.GetID()));
+        }, py::arg("other"),
+             "Logical NAND: ~(self & other).")
+        .def("nor", [](const BDD& a, const BDD& b) {
+            return BDD_ID(bddnor(a.GetID(), b.GetID()));
+        }, py::arg("other"),
+             "Logical NOR: ~(self | other).")
+        .def("xnor", [](const BDD& a, const BDD& b) {
+            return BDD_ID(bddxnor(a.GetID(), b.GetID()));
+        }, py::arg("other"),
+             "Logical XNOR: ~(self ^ other).")
+
         // Methods
         .def("at0", &BDD::At0, py::arg("v"),
              "Cofactor: restrict variable v to 0.")
