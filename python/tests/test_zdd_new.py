@@ -147,7 +147,7 @@ class TestZDDSingleSet:
         kyotodd.new_var()
         kyotodd.new_var()
         z = ZDD.single_set([1, 2])
-        assert z.enumerate() == [[2, 1]]
+        assert z.enumerate() == [[1, 2]]
 
 
 class TestZDDPowerSet:

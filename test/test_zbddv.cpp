@@ -486,6 +486,49 @@ TEST_F(ZBDDVTest, ImportTrailingJunkInChildToken) {
     EXPECT_EQ(meta.GetID(), bddnull);
 }
 
+TEST_F(ZBDDVTest, ImportLevelZeroReturnsNull) {
+    const char* data = "_i 1 _o 1 _n 1\n2 0 F T\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
+
+TEST_F(ZBDDVTest, ImportLevelExceedsInputsReturnsNull) {
+    const char* data = "_i 1 _o 1 _n 1\n2 2 F T\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
+
+TEST_F(ZBDDVTest, ImportNegativeNodeCountReturnsNull) {
+    const char* data = "_i 1 _o 1 _n -1\nT\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
+
 // ============================================================
 // Larger integration tests
 // ============================================================

@@ -750,6 +750,48 @@ TEST_F(BDDVTest, ImportTrailingJunkInChildToken) {
     EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
 }
 
+TEST_F(BDDVTest, ImportLevelZeroReturnsNull) {
+    // level=0 is below valid range (1..n_in), should return null
+    const char* data = "_i 1 _o 1 _n 1\n2 0 F T\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
+TEST_F(BDDVTest, ImportLevelExceedsInputsReturnsNull) {
+    // level=2 exceeds n_in=1
+    const char* data = "_i 1 _o 1 _n 1\n2 2 F T\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
+TEST_F(BDDVTest, ImportNegativeNodeCountReturnsNull) {
+    const char* data = "_i 1 _o 1 _n -1\nT\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
 // ============================================================
 // BDDV_ImportPla
 // ============================================================

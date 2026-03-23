@@ -542,7 +542,8 @@ BDDV BDDV_Import(FILE* strm) {
         }
     }
 
-    if (n_out <= 0 || n_out > BDDV_MaxLenImport) return make_null_bddv();
+    if (n_in < 0 || n_out <= 0 || n_out > BDDV_MaxLenImport || n_nd < 0)
+        return make_null_bddv();
 
     // Ensure enough input variables exist
     while (BDDV_UserTopLev() < n_in) {
@@ -598,6 +599,9 @@ BDDV BDDV_Import(FILE* strm) {
             f1 = it->second;
             if (hi_neg) f1 = ~f1;
         }
+
+        // Validate level range (1-based user level)
+        if (level < 1 || level > n_in) return make_null_bddv();
 
         // Build BDD node: (x & f1) | (~x & f0)
         // level in the import file is a user level (1-based);

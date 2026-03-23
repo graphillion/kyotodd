@@ -10068,6 +10068,12 @@ TEST_F(BDDTest, Graphillion_NegativeOffsetUnderflow) {
     EXPECT_THROW(ZDD::import_graphillion(iss, -100), std::runtime_error);
 }
 
+TEST_F(BDDTest, Graphillion_ImportVarZeroThrows) {
+    // g_var=0 is invalid (variables are 1-based)
+    std::istringstream iss("2 1 B T\n4 0 B 2\n.\n");
+    EXPECT_THROW(ZDD::import_graphillion(iss, 0), std::runtime_error);
+}
+
 // --- Sapporo format export/import tests ---
 
 TEST_F(BDDTest, Sapporo_BDD_RoundtripStream) {

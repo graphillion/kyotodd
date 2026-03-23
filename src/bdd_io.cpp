@@ -1567,7 +1567,7 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
         if (!read_token(strm, vbuf))
             throw std::runtime_error("zdd_import_graphillion: missing variable number");
         nl.g_var = static_cast<unsigned>(std::strtoul(vbuf, &endptr, 10));
-        if (endptr == vbuf || *endptr != '\0')
+        if (endptr == vbuf || *endptr != '\0' || nl.g_var == 0)
             throw std::runtime_error("zdd_import_graphillion: invalid variable number");
 
         // Read lo child

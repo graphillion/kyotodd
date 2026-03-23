@@ -445,7 +445,7 @@ ZBDDV ZBDDV_Import(FILE* strm) {
         }
     }
 
-    if (n_out <= 0 || n_out > BDDV_MaxLenImport) {
+    if (n_in < 0 || n_out <= 0 || n_out > BDDV_MaxLenImport || n_nd < 0) {
         ZBDDV r;
         r = ZBDDV(ZDD(-1));
         return r;
@@ -506,6 +506,9 @@ ZBDDV ZBDDV_Import(FILE* strm) {
             f1 = it->second;
             if (hi_union_single) f1 = f1 + ZDD(1);
         }
+
+        // Validate level range (1-based user level)
+        if (level < 1 || level > n_in) return ZBDDV(ZDD(-1));
 
         // Build ZDD node: f1.Change(var) + f0
         // Level in file is user level; offset past system variables
