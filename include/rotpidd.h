@@ -277,6 +277,9 @@ public:
      *
      * Replaces the values in-place with their rank ordering.
      *
+     * @note C++ only. Not available in the Python binding.
+     *       In Python, rotpidd_from_perm() calls this automatically.
+     *
      * @param v Permutation vector to normalize (modified in place).
      */
     static void normalizePerm(std::vector<int>& v);

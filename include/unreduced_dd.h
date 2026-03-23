@@ -125,6 +125,8 @@ public:
      * normalization, no reduction rules, no unique table insertion.
      * Matches the import_nodefn_t signature for binary import.
      *
+     * @note C++ only. Not available in the Python binding.
+     *
      * @param var Variable number.
      * @param lo  The low (0-edge) child node ID.
      * @param hi  The high (1-edge) child node ID.

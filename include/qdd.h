@@ -84,6 +84,7 @@ public:
 
     // Advanced: no error checking — no level validation.
     // Use with extreme caution. Incorrect usage may create invalid QDDs.
+    // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
     // --- Operators ---
@@ -150,9 +151,11 @@ public:
     /** @brief Convert QDD to canonical ZDD. */
     ZDD to_zdd() const;
 
-    /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss.
+     * @note C++ only. Not available in the Python binding. */
     static QDD cache_get(uint8_t op, const QDD& f, const QDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     * @note C++ only. Not available in the Python binding. */
     static void cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result);
 
     static const QDD False;  /**< @brief Constant false QDD. */

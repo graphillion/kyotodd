@@ -63,6 +63,19 @@ the BDD/ZDD class layout and is a significant architectural change.
   automatically detecting or correcting all affected objects would be
   prohibitive.
 
+## C++ Only APIs (Not Exposed to Python)
+
+The following public C++ APIs are intentionally not provided in the Python
+binding.
+
+- **`BDD::getnode_raw` / `ZDD::getnode_raw` / `QDD::getnode_raw` / `UnreducedDD::getnode_raw`** — Internal low-level node constructors without validation. The safe `getnode()` with level validation is available in Python.
+
+- **`BDD::cache_get/cache_put` / `ZDD::cache_get/cache_put` / `QDD::cache_get/cache_put`** — Direct operation cache manipulation. This is an internal optimization detail; misuse can cause correctness issues.
+
+- **`RotPiDD::normalizePerm()`** — Rank-normalizes a permutation vector in place. In Python, `rotpidd_from_perm()` calls this automatically.
+
+- **`SeqBDD::print()`** — Prints the internal ZDD structure to stdout. In Python, use `print_seq()`, `seq_str()`, or access the internal ZDD via the `.zdd` property.
+
 - **PiDD / RotPiDD internal level tables are not updated by `bddnewvaroflev()`** (`include/pidd.h`, `include/rotpidd.h`, `src/bdd_base.cpp`).
   `PiDD_XOfLev` / `PiDD_LevOfX` and `RotPiDD_XOfLev` / `RotPiDD_LevOfX` are
   only built during `PiDD_NewVar()` / `RotPiDD_NewVar()` calls.

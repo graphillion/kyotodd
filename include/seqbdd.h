@@ -124,7 +124,9 @@ public:
      */
     SeqBDD push(int v) const;
 
-    /** @brief Print all sequences to stdout. */
+    /** @brief Print all sequences to stdout.
+     * @note C++ only. Not available in the Python binding.
+     *       Use print_seq() or seq_str() instead. */
     void print() const;
     /**
      * @brief Export the internal ZDD in Sapporo format to a FILE stream.

@@ -522,9 +522,11 @@ public:
     /** @brief Return the disjunction of literals (DIMACS sign convention: positive = var, negative = ¬var). */
     static BDD clause(const std::vector<int>& lits);
 
-    /** @brief Read 2-operand cache and return as BDD. Returns BDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as BDD. Returns BDD::Null on miss.
+     * @note C++ only. Not available in the Python binding. */
     static BDD cache_get(uint8_t op, const BDD& f, const BDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     * @note C++ only. Not available in the Python binding. */
     static void cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result);
 
     // --- Node creation ---
@@ -557,6 +559,7 @@ public:
 
     // Advanced: no error checking — no variable range or level validation.
     // Use with extreme caution. Incorrect usage may create invalid BDDs.
+    // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
     static const BDD False;  /**< @brief Constant false BDD. */
@@ -1040,9 +1043,11 @@ public:
     template<typename RNG>
     static ZDD random_family(bddvar n, RNG& rng);
 
-    /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss.
+     * @note C++ only. Not available in the Python binding. */
     static ZDD cache_get(uint8_t op, const ZDD& f, const ZDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     * @note C++ only. Not available in the Python binding. */
     static void cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result);
 
     // --- Node creation ---
@@ -1075,6 +1080,7 @@ public:
 
     // Advanced: no error checking — no variable range or level validation.
     // Use with extreme caution. Incorrect usage may create invalid ZDDs.
+    // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
