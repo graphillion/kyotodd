@@ -1,6 +1,6 @@
 import pytest
 import kyotodd
-from kyotodd import BDD, ZDD, UnreducedDD, SeqBDD
+from kyotodd import BDD, ZDD, QDD, UnreducedDD, SeqBDD, BddCountMemo, ZddCountMemo
 
 
 class TestBDDExportImportStr:
@@ -230,3 +230,21 @@ class TestSeqBDDSeqStr:
         s = SeqBDD(0)
         result = s.seq_str()
         assert isinstance(result, str)
+
+
+class TestFinalizeResetsPiDDGlobals:
+    def test_pidd_var_used_reset(self):
+        kyotodd.init()
+        kyotodd.pidd_newvar()
+        assert kyotodd.pidd_var_used() > 0
+        kyotodd.finalize()
+        kyotodd.init()
+        assert kyotodd.pidd_var_used() == 0
+
+    def test_rotpidd_var_used_reset(self):
+        kyotodd.init()
+        kyotodd.rotpidd_newvar()
+        assert kyotodd.rotpidd_var_used() > 0
+        kyotodd.finalize()
+        kyotodd.init()
+        assert kyotodd.rotpidd_var_used() == 0

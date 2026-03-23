@@ -96,6 +96,8 @@ PYBIND11_MODULE(_core, m) {
                 "Delete all BDD/ZDD objects first.");
         }
         bddfinal();
+        reset_pidd_globals();
+        reset_rotpidd_globals();
         g_initialized = false;
     }, "Finalize the BDD library and release all resources.\n\n"
        "Raises RuntimeError if called while BDD/ZDD objects exist.\n"

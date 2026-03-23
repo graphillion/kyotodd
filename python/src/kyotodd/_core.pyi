@@ -1,5 +1,49 @@
 from typing import List, Union, overload
 
+
+class BddCountMemo:
+    """Memo for BDD exact counting.
+
+    Caches exact_count results so they can be reused across
+    multiple exact_count and uniform_sample calls on the same BDD.
+    """
+
+    def __init__(self, bdd: "BDD", n: int) -> None:
+        """Create a BDD count memo.
+
+        Args:
+            bdd: The BDD to count.
+            n: Number of variables.
+        """
+        ...
+
+    @property
+    def stored(self) -> bool:
+        """Whether the memo has been populated."""
+        ...
+
+
+class ZddCountMemo:
+    """Memo for ZDD exact counting.
+
+    Caches exact_count results so they can be reused across
+    multiple exact_count and uniform_sample calls on the same ZDD.
+    """
+
+    def __init__(self, zdd: "ZDD") -> None:
+        """Create a ZDD count memo.
+
+        Args:
+            zdd: The ZDD to count.
+        """
+        ...
+
+    @property
+    def stored(self) -> bool:
+        """Whether the memo has been populated."""
+        ...
+
+
 class BDD:
     """A Binary Decision Diagram representing a Boolean function.
 
@@ -321,6 +365,31 @@ class BDD:
         """
         ...
 
+    def exact_count_with_memo(self, n: int, memo: BddCountMemo) -> int:
+        """Count satisfying assignments using a memo for caching.
+
+        Args:
+            n: Number of variables in the Boolean function.
+            memo: A BddCountMemo object for caching.
+
+        Returns:
+            The number of satisfying assignments as a Python int.
+        """
+        ...
+
+    def uniform_sample_with_memo(self, n: int, memo: BddCountMemo, seed: int = 0) -> List[int]:
+        """Sample a satisfying assignment using a memo for caching.
+
+        Args:
+            n: Number of variables in the Boolean function.
+            memo: A BddCountMemo object for caching.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers set to 1 in the sampled assignment.
+        """
+        ...
+
     @staticmethod
     def prime(v: int) -> BDD:
         """Create a BDD for the positive literal of variable v.
@@ -412,6 +481,32 @@ class BDD:
 
         Returns:
             The number of nodes.
+        """
+        ...
+
+    @staticmethod
+    def cache_get(op: int, f: BDD, g: BDD) -> BDD:
+        """Read a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand BDD.
+            g: Second operand BDD.
+
+        Returns:
+            The cached BDD result, or BDD.null on miss.
+        """
+        ...
+
+    @staticmethod
+    def cache_put(op: int, f: BDD, g: BDD, result: BDD) -> None:
+        """Write a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand BDD.
+            g: Second operand BDD.
+            result: The result BDD to cache.
         """
         ...
 
@@ -1162,6 +1257,29 @@ class ZDD:
         """
         ...
 
+    def exact_count_with_memo(self, memo: ZddCountMemo) -> int:
+        """Count the number of sets using a memo for caching.
+
+        Args:
+            memo: A ZddCountMemo object for caching.
+
+        Returns:
+            The number of sets as a Python int.
+        """
+        ...
+
+    def uniform_sample_with_memo(self, memo: ZddCountMemo, seed: int = 0) -> List[int]:
+        """Sample a set using a memo for caching.
+
+        Args:
+            memo: A ZddCountMemo object for caching.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
     def enumerate(self) -> List[List[int]]:
         """Enumerate all sets in the family.
 
@@ -1252,6 +1370,21 @@ class ZDD:
         ...
 
     @staticmethod
+    def random_family(n: int, seed: int = 0) -> ZDD:
+        """Generate a uniformly random family over {1, ..., n}.
+
+        Selects one of the 2^(2^n) possible families uniformly at random.
+
+        Args:
+            n: Universe size.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A ZDD representing the randomly chosen family.
+        """
+        ...
+
+    @staticmethod
     def getnode(var: int, lo: ZDD, hi: ZDD) -> ZDD:
         """Create a ZDD node with the given variable and children.
 
@@ -1288,6 +1421,32 @@ class ZDD:
 
         Returns:
             The number of nodes.
+        """
+        ...
+
+    @staticmethod
+    def cache_get(op: int, f: ZDD, g: ZDD) -> ZDD:
+        """Read a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand ZDD.
+            g: Second operand ZDD.
+
+        Returns:
+            The cached ZDD result, or ZDD.null on miss.
+        """
+        ...
+
+    @staticmethod
+    def cache_put(op: int, f: ZDD, g: ZDD, result: ZDD) -> None:
+        """Write a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand ZDD.
+            g: Second operand ZDD.
+            result: The result ZDD to cache.
         """
         ...
 
@@ -2156,6 +2315,32 @@ class QDD:
 
     def to_zdd(self) -> ZDD:
         """Convert to a canonical ZDD."""
+        ...
+
+    @staticmethod
+    def cache_get(op: int, f: QDD, g: QDD) -> QDD:
+        """Read a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand QDD.
+            g: Second operand QDD.
+
+        Returns:
+            The cached QDD result, or QDD.null on miss.
+        """
+        ...
+
+    @staticmethod
+    def cache_put(op: int, f: QDD, g: QDD, result: QDD) -> None:
+        """Write a 2-operand cache entry.
+
+        Args:
+            op: Operation code (0-255).
+            f: First operand QDD.
+            g: Second operand QDD.
+            result: The result QDD to cache.
+        """
         ...
 
     @property
