@@ -399,9 +399,11 @@ public:
     /** @brief Print BDD summary (ID, Var, Level, Size) to stdout.
      *  @throws std::invalid_argument if this is BDD::Null. */
     void Print() const;
-    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
+     *  @note C++ only. Not available in the Python binding. */
     void XPrint0() const;
-    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
+     *  @note C++ only. Not available in the Python binding. */
     void XPrint() const;
     /**
      * @brief Swap variables v1 and v2 in the BDD.
@@ -838,6 +840,7 @@ public:
     /**
      * @brief Return the cardinality as a hexadecimal string.
      * @deprecated Use count() or exact_count() instead.
+     * @note C++ only. Not available in the Python binding.
      */
     char* CardMP16(char* s) const;
     /** @brief Export to a FILE stream. */
@@ -940,7 +943,8 @@ public:
      */
     std::string to_str() const;
 
-    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead. */
+    /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
+     *  @note C++ only. Not available in the Python binding. */
     void XPrint() const;
     /** @brief Print in PLA format. */
     void PrintPla() const;
