@@ -486,25 +486,25 @@ BtoI BtoI::UpperBound(const BDD& f) const
 {
     if (_bddv.GetBDD(0).GetID() == bddnull) return *this;
     if (f.GetID() == bddnull) return BtoI(BDD(-1));
+    if (f.GetID() == bddempty) return BtoI(BDD(-1));
 
     int len = Len();
     BDD d = _bddv.GetBDD(len - 1);  // sign bit
 
-    /* Use Univ: sign is 1 for ALL f-assignments → definitely negative */
-    BDD signUniv = d.Univ(f);
-
+    /* In 2's complement the sign bit has weight -2^(n-1).
+       To maximise, prefer sign=0 (avoid large negative contribution).
+       Restrict to f-satisfying assignments throughout. */
     BDD sign_result;
     BDD cond;
 
-    if (signUniv.GetID() == bddempty) {
+    BDD nonneg = f & ~d;  /* f-satisfying assignments where sign=0 */
+    if (nonneg.GetID() != bddempty) {
         sign_result = BDD(0);
-        cond = BDD(1);
-    } else if (signUniv.GetID() == bddsingle) {
-        sign_result = BDD(1);
-        cond = BDD(1);
+        cond = nonneg;
     } else {
-        sign_result = BDD(0);
-        cond = ~signUniv;
+        /* All f-satisfying assignments are negative */
+        sign_result = BDD(1);
+        cond = f;
     }
 
     std::vector<BDD> bits(len);
@@ -512,7 +512,7 @@ BtoI BtoI::UpperBound(const BDD& f) const
 
     for (int i = len - 2; i >= 0; i--) {
         d = _bddv.GetBDD(i);
-        BDD c0 = (cond & d).Exist(f);
+        BDD c0 = cond & d;
 
         if (c0.GetID() == bddnull) return BtoI(BDD(-1));
 

@@ -643,7 +643,7 @@ CtoI CtoI::FilterPermitSym(int n) const
 
 CtoI CtoI::MaxVal() const
 {
-    if (_zbdd == ZDD(-1)) return CtoI(0);
+    if (_zbdd == ZDD(-1)) return CtoI_Null();
     if (*this == CtoI(0)) return CtoI(0);
 
     /* For constant CtoI, just return self */

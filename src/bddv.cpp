@@ -671,13 +671,9 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
         if (n_in <= 0 || n_out <= 0) continue;
 
         if (!header_done) {
-            while (BDDV_UserTopLev() < n_in) {
-                if (sopf) {
-                    int cur = BDDV_UserTopLev();
-                    BDDV_NewVarOfLev((cur + 1) * 2);
-                } else {
-                    BDDV_NewVar();
-                }
+            int need = sopf ? n_in * 2 : n_in;
+            while (BDDV_UserTopLev() < need) {
+                BDDV_NewVar();
             }
             header_done = true;
         }
@@ -689,13 +685,9 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
     if (n_in <= 0 || n_out <= 0) return make_null_bddv();
 
     if (!header_done) {
-        while (BDDV_UserTopLev() < n_in) {
-            if (sopf) {
-                int cur = BDDV_UserTopLev();
-                BDDV_NewVarOfLev((cur + 1) * 2);
-            } else {
-                BDDV_NewVar();
-            }
+        int need = sopf ? n_in * 2 : n_in;
+        while (BDDV_UserTopLev() < need) {
+            BDDV_NewVar();
         }
     }
 
@@ -711,9 +703,14 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
             while (*p == ' ' || *p == '\t') p++;
             if (*p == '\0' || *p == '\n' || *p == '\r') return false;
             char c = *p++;
-            // Map input index i to user variable via level
-            bddvar var = bddvaroflev(
-                static_cast<bddvar>(BDDV_SysVarTop + 1 + i));
+            // Map input index i to user variable via level.
+            // sopf=1: pairs (neg/pos) at user levels 1,2,3,4,...
+            //   positive literal is at even user level 2*(i+1).
+            // sopf=0: single variable at user level i+1.
+            bddvar lev = sopf
+                ? static_cast<bddvar>(BDDV_SysVarTop + 2 * (i + 1))
+                : static_cast<bddvar>(BDDV_SysVarTop + 1 + i);
+            bddvar var = bddvaroflev(lev);
             if (c == '0') {
                 cube = cube & ~BDDvar(var);
             } else if (c == '1') {
@@ -744,7 +741,11 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
 
     // Process all collected product term lines
     for (size_t k = 0; k < pending_lines.size(); k++) {
-        parse_product_term(pending_lines[k].c_str());
+        if (!parse_product_term(pending_lines[k].c_str())) {
+            throw std::invalid_argument(
+                "BDDV_ImportPla: malformed product term: " +
+                pending_lines[k]);
+        }
     }
 
     // Determine final onset and dcset based on type
