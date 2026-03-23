@@ -864,3 +864,19 @@ TEST_F(CtoITest, MinValNull) {
     CtoI mn = n.MinVal();
     EXPECT_EQ(mn.GetZBDD().GetID(), bddnull);
 }
+
+/* ================================================================ */
+/*  CtoI_atoi invalid string rejection                               */
+/* ================================================================ */
+
+TEST_F(CtoITest, AtoiInvalidBinaryThrows) {
+    EXPECT_THROW(CtoI_atoi("0b102"), std::invalid_argument);
+}
+
+TEST_F(CtoITest, AtoiInvalidDecimalThrows) {
+    EXPECT_THROW(CtoI_atoi("12x34"), std::invalid_argument);
+}
+
+TEST_F(CtoITest, AtoiInvalidHexThrows) {
+    EXPECT_THROW(CtoI_atoi("0x1g"), std::invalid_argument);
+}

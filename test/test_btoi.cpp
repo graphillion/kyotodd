@@ -585,3 +585,46 @@ TEST_F(BtoITest, BoundsConstrainedAllNegative) {
     EXPECT_EQ(a.UpperBound(~x).GetInt(), -7);
     EXPECT_EQ(a.LowerBound(~x).GetInt(), -7);
 }
+
+/* ================================================================ */
+/*  GetInt / StrNum10 / StrNum16 non-constant rejection              */
+/* ================================================================ */
+
+TEST_F(BtoITest, GetIntNonConstantThrows) {
+    int v = static_cast<int>(BDDV_NewVar());
+    BDD x = BDD::prime(static_cast<bddvar>(v));
+    BtoI bi(x);
+    EXPECT_THROW(bi.GetInt(), std::invalid_argument);
+}
+
+TEST_F(BtoITest, StrNum10NonConstantThrows) {
+    int v = static_cast<int>(BDDV_NewVar());
+    BDD x = BDD::prime(static_cast<bddvar>(v));
+    BtoI bi(x);
+    char buf[256];
+    EXPECT_THROW(bi.StrNum10(buf), std::invalid_argument);
+}
+
+TEST_F(BtoITest, StrNum16NonConstantThrows) {
+    int v = static_cast<int>(BDDV_NewVar());
+    BDD x = BDD::prime(static_cast<bddvar>(v));
+    BtoI bi(x);
+    char buf[256];
+    EXPECT_THROW(bi.StrNum16(buf), std::invalid_argument);
+}
+
+/* ================================================================ */
+/*  BtoI_atoi invalid string rejection                               */
+/* ================================================================ */
+
+TEST_F(BtoITest, AtoiInvalidBinaryThrows) {
+    EXPECT_THROW(BtoI_atoi("0b102"), std::invalid_argument);
+}
+
+TEST_F(BtoITest, AtoiInvalidDecimalThrows) {
+    EXPECT_THROW(BtoI_atoi("12x34"), std::invalid_argument);
+}
+
+TEST_F(BtoITest, AtoiInvalidHexThrows) {
+    EXPECT_THROW(BtoI_atoi("0x1g"), std::invalid_argument);
+}

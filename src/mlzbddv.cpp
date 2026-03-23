@@ -147,6 +147,12 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out) {
             }
         }
     }
+
+    /* _sin currently counts phase 1 (_out) + phase 2 variables.
+       N_sin() should report only the phase 2 sub-expression count,
+       which matches the definitions stored at GetZBDDV() indices
+       N_out() and above. */
+    _sin -= _out;
 }
 
 MLZBDDV::~MLZBDDV() {}

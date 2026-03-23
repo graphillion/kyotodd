@@ -341,7 +341,8 @@ SOPV Class
 
    .. cpp:function:: SOPV Mask(int start, int length = 1) const
 
-      Extract a sub-range.
+      Mask elements from *start* to ``start + length - 1``, zeroing all
+      other indices. Original indices are preserved (not rebased to 0).
 
    .. cpp:function:: SOPV Swap(int v1, int v2) const
 

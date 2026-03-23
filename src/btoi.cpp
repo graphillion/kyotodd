@@ -591,9 +591,9 @@ int BtoI::Len() const { return _bddv.Len(); }
 
 int BtoI::GetInt() const
 {
+    if (_bddv.GetBDD(0).GetID() == bddnull) return 0;
     if (Top() > 0) {
-        if (_bddv.GetBDD(0).GetID() == bddnull) return 0;
-        return At0(Top()).GetInt();
+        throw std::invalid_argument("BtoI::GetInt: non-constant BtoI");
     }
 
     /* Check sign */
@@ -627,13 +627,11 @@ int BtoI::StrNum10(char* s) const
         std::strcpy(s, "0");
         return 1;
     }
+    if (Top() > 0) {
+        throw std::invalid_argument("BtoI::StrNum10: non-constant BtoI");
+    }
 
     BtoI f = *this;
-
-    /* Fix all variables to 0 */
-    while (f.Top() > 0) {
-        f = f.At0(f.Top());
-    }
 
     /* Handle negative */
     bool neg = false;
@@ -743,11 +741,11 @@ int BtoI::StrNum16(char* s) const
         std::strcpy(s, "0");
         return 1;
     }
+    if (Top() > 0) {
+        throw std::invalid_argument("BtoI::StrNum16: non-constant BtoI");
+    }
 
     BtoI f = *this;
-    while (f.Top() > 0) {
-        f = f.At0(f.Top());
-    }
 
     bool neg = false;
     if (f.GetSignBDD().GetID() != bddempty) {
@@ -898,9 +896,25 @@ BtoI BtoI_NE(const BtoI& a, const BtoI& b)
 /*  BtoI_atoi                                                        */
 /* ================================================================ */
 
+static bool is_hex_digit(char c)
+{
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+           (c >= 'A' && c <= 'F');
+}
+
 static BtoI atoi16(const char* s)
 {
     int slen = static_cast<int>(std::strlen(s));
+    if (slen == 0) {
+        throw std::invalid_argument("BtoI_atoi: empty hex string");
+    }
+    for (int k = 0; k < slen; k++) {
+        if (!is_hex_digit(s[k])) {
+            throw std::invalid_argument(
+                std::string("BtoI_atoi: invalid hex character '") +
+                s[k] + "'");
+        }
+    }
     BtoI result(0);
     int i = 0;
     while (i < slen) {
@@ -921,6 +935,16 @@ static BtoI atoi16(const char* s)
 
 static BtoI atoi2(const char* s)
 {
+    if (s[0] == '\0') {
+        throw std::invalid_argument("BtoI_atoi: empty binary string");
+    }
+    for (int k = 0; s[k] != '\0'; k++) {
+        if (s[k] != '0' && s[k] != '1') {
+            throw std::invalid_argument(
+                std::string("BtoI_atoi: invalid binary character '") +
+                s[k] + "'");
+        }
+    }
     BtoI result(0);
     for (int i = 0; s[i] != '\0'; i++) {
         result = (result << BtoI(1)) + BtoI(s[i] == '1' ? 1 : 0);
@@ -931,6 +955,16 @@ static BtoI atoi2(const char* s)
 static BtoI atoi10(const char* s)
 {
     int slen = static_cast<int>(std::strlen(s));
+    if (slen == 0) {
+        throw std::invalid_argument("BtoI_atoi: empty decimal string");
+    }
+    for (int k = 0; k < slen; k++) {
+        if (s[k] < '0' || s[k] > '9') {
+            throw std::invalid_argument(
+                std::string("BtoI_atoi: invalid decimal character '") +
+                s[k] + "'");
+        }
+    }
     BtoI result(0);
     int i = 0;
     while (i < slen) {

@@ -1025,10 +1025,28 @@ CtoI CtoI_Meet(const CtoI& a, const CtoI& b)
 /*  CtoI_atoi                                                        */
 /* ================================================================ */
 
+static bool is_valid_digit(char c, int base)
+{
+    if (base == 2)  return c == '0' || c == '1';
+    if (base == 10) return c >= '0' && c <= '9';
+    /* base == 16 */
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+           (c >= 'A' && c <= 'F');
+}
+
 static CtoI atoiX(const char* s, int base, int block)
 {
     int len = static_cast<int>(std::strlen(s));
-    if (len == 0) return CtoI(0);
+    if (len == 0) {
+        throw std::invalid_argument("CtoI_atoi: empty digit string");
+    }
+    for (int k = 0; k < len; k++) {
+        if (!is_valid_digit(s[k], base)) {
+            throw std::invalid_argument(
+                std::string("CtoI_atoi: invalid character '") +
+                s[k] + "' for base " + std::to_string(base));
+        }
+    }
 
     /* Process last block */
     int blen = (len < block) ? len : block;

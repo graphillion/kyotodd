@@ -128,7 +128,9 @@ ZBDDV Class
 
    .. cpp:function:: ZBDDV Mask(int start, int length = 1) const
 
-      Extract a sub-array from *start* to ``start + length - 1``.
+      Mask elements from *start* to ``start + length - 1``, zeroing all
+      other indices. The returned ZBDDV preserves the original indices
+      (i.e., elements are **not** rebased to index 0).
 
    **Output / Export**
 

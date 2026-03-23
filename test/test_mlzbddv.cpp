@@ -53,7 +53,7 @@ TEST_F(MLZBDDVTest, SingleOutputNoFactor) {
 
     EXPECT_EQ(ml.N_pin(), pin);
     EXPECT_EQ(ml.N_out(), 1);
-    EXPECT_EQ(ml.N_sin(), 1);
+    EXPECT_EQ(ml.N_sin(), 0);
 
     // Output should still represent the same function
     ZDD out0 = ml.GetZBDDV().GetZBDD(0);
@@ -207,10 +207,10 @@ TEST_F(MLZBDDVTest, ConstructorNoStdout) {
 }
 
 // ============================================================
-// N_sin accounts for both phases
+// N_sin counts phase 2 sub-expression extractions only
 // ============================================================
 
-TEST_F(MLZBDDVTest, SinCountsBothPhases) {
+TEST_F(MLZBDDVTest, SinCountsPhase2Only) {
     bddvar v1 = static_cast<bddvar>(BDDV_NewVar());
     bddvar v2 = static_cast<bddvar>(BDDV_NewVar());
     bddvar v3 = static_cast<bddvar>(BDDV_NewVar());
@@ -231,7 +231,7 @@ TEST_F(MLZBDDVTest, SinCountsBothPhases) {
     MLZBDDV ml(zv, pin, 2);
 
     EXPECT_EQ(ml.N_out(), 2);
-    // Phase 1: _out = 2 sub-expressions allocated
+    // Phase 2 should extract kernels from both outputs
     EXPECT_GE(ml.N_sin(), 2);
 }
 
