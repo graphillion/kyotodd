@@ -408,27 +408,3 @@ class TestZDDDivisor:
         assert d != ZDD.empty
         # The divisor should actually divide f
         assert f % d == ZDD.empty
-
-
-# ===== Module-level functions =====
-
-class TestZDDRandom:
-    def test_zdd_random(self):
-        kyotodd.new_var()
-        kyotodd.new_var()
-        kyotodd.new_var()
-        r = kyotodd.zdd_random(3)
-        # result is a valid ZDD
-        assert r != ZDD.null
-
-    def test_zdd_random_density_0(self):
-        kyotodd.new_var()
-        kyotodd.new_var()
-        r = kyotodd.zdd_random(2, 0)
-        assert r == ZDD.empty
-
-    def test_zdd_random_density_100(self):
-        kyotodd.new_var()
-        kyotodd.new_var()
-        r = kyotodd.zdd_random(2, 100)
-        assert r != ZDD.empty

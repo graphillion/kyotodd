@@ -1821,20 +1821,6 @@ def top_level() -> int:
     """Return the maximum level number (equal to the number of variables)."""
     ...
 
-def zdd_random(lev: int, density: int = 50) -> ZDD:
-    """Generate a random ZDD over the lowest lev levels.
-
-    Variables for levels 1..lev must have been created (via newvar())
-    before calling this function.
-
-    Args:
-        lev: Number of variable levels to use.
-        density: Probability (0-100) for each terminal to be 1 (default: 50).
-
-    Returns:
-        A random ZDD.
-    """
-    ...
 
 
 # ================================================================

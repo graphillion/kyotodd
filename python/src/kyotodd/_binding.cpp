@@ -189,18 +189,8 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    The top level number.\n");
 
-    m.def("zdd_random", [](int lev, int density) -> ZDD {
-        ensure_init();
-        return ZDD_Random(lev, density);
-    }, py::arg("lev"), py::arg("density") = 50,
-       "Generate a random ZDD over the lowest lev levels.\n\n"
-       "Variables for levels 1..lev must have been created (via newvar())\n"
-       "before calling this function.\n\n"
-       "Args:\n"
-       "    lev: Number of variable levels to use.\n"
-       "    density: Probability (0-100) for each terminal to be 1 (default: 50).\n\n"
-       "Returns:\n"
-       "    A random ZDD.\n");
+    // ZDD_Random: no Python binding (use ZDD.random_family instead)
+    // bdd_check_reduced: no Python binding (internal debugging utility)
 
     // Memo classes
     py::class_<BddCountMemo>(m, "BddCountMemo",
