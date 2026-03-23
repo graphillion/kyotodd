@@ -661,6 +661,58 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("path"),
            "Import a BDD from a Sapporo format file.")
 
+        // Knuth I/O (deprecated)
+        .def("export_knuth_str", [](const BDD& b, bool is_hex, int offset) -> std::string {
+            std::ostringstream oss;
+            b.export_knuth(oss, is_hex, offset);
+            return oss.str();
+        }, py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this BDD in Knuth format to a string (deprecated).\n\n"
+           "Args:\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    A Knuth format string.\n\n"
+           ".. deprecated:: Use export_sapporo_str() or export_binary_str() instead.\n")
+        .def_static("import_knuth_str", [](const std::string& s, bool is_hex, int offset) -> BDD {
+            ensure_init();
+            std::istringstream iss(s);
+            return BDD::import_knuth(iss, is_hex, offset);
+        }, py::arg("s"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a BDD from a Knuth format string (deprecated).\n\n"
+           "Args:\n"
+           "    s: The Knuth format string.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed BDD.\n\n"
+           ".. deprecated:: Use import_sapporo_str() or import_binary_str() instead.\n")
+        .def("export_knuth_file", [](const BDD& b, const std::string& path, bool is_hex, int offset) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            b.export_knuth(ofs, is_hex, offset);
+        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this BDD in Knuth format to a file (deprecated).\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           ".. deprecated:: Use export_sapporo_file() or export_binary_file() instead.\n")
+        .def_static("import_knuth_file", [](const std::string& path, bool is_hex, int offset) -> BDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return BDD::import_knuth(ifs, is_hex, offset);
+        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a BDD from a Knuth format file (deprecated).\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed BDD.\n\n"
+           ".. deprecated:: Use import_sapporo_file() or import_binary_file() instead.\n")
+
         // Graphviz
         .def("save_graphviz_str", [](const BDD& b, bool raw) -> std::string {
             std::ostringstream oss;
@@ -683,6 +735,13 @@ PYBIND11_MODULE(_core, m) {
            "    path: File path to write to.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
+
+        .def("print", [](const BDD& b) -> std::string {
+            std::ostringstream oss;
+            CoutRedirectGuard guard(oss.rdbuf());
+            b.Print();
+            return oss.str();
+        }, "Print BDD summary (ID, Var, Level, Size) and return as string.")
     ;
 
     // ZDD class
@@ -1378,6 +1437,58 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    The reconstructed ZDD.\n")
 
+        // Knuth I/O (deprecated)
+        .def("export_knuth_str", [](const ZDD& z, bool is_hex, int offset) -> std::string {
+            std::ostringstream oss;
+            z.export_knuth(oss, is_hex, offset);
+            return oss.str();
+        }, py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this ZDD in Knuth format to a string (deprecated).\n\n"
+           "Args:\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    A Knuth format string.\n\n"
+           ".. deprecated:: Use export_sapporo_str() or export_binary_str() instead.\n")
+        .def_static("import_knuth_str", [](const std::string& s, bool is_hex, int offset) -> ZDD {
+            ensure_init();
+            std::istringstream iss(s);
+            return ZDD::import_knuth(iss, is_hex, offset);
+        }, py::arg("s"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a ZDD from a Knuth format string (deprecated).\n\n"
+           "Args:\n"
+           "    s: The Knuth format string.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n\n"
+           ".. deprecated:: Use import_sapporo_str() or import_binary_str() instead.\n")
+        .def("export_knuth_file", [](const ZDD& z, const std::string& path, bool is_hex, int offset) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            z.export_knuth(ofs, is_hex, offset);
+        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this ZDD in Knuth format to a file (deprecated).\n\n"
+           "Args:\n"
+           "    path: File path to write to.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           ".. deprecated:: Use export_sapporo_file() or export_binary_file() instead.\n")
+        .def_static("import_knuth_file", [](const std::string& path, bool is_hex, int offset) -> ZDD {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            return ZDD::import_knuth(ifs, is_hex, offset);
+        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a ZDD from a Knuth format file (deprecated).\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n"
+           "    is_hex: If True, use hexadecimal node IDs.\n"
+           "    offset: Variable number offset (default: 0).\n\n"
+           "Returns:\n"
+           "    The reconstructed ZDD.\n\n"
+           ".. deprecated:: Use import_sapporo_file() or import_binary_file() instead.\n")
+
         // Graphviz
         .def("save_graphviz_str", [](const ZDD& z, bool raw) -> std::string {
             std::ostringstream oss;
@@ -1400,6 +1511,13 @@ PYBIND11_MODULE(_core, m) {
            "    path: File path to write to.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
+
+        .def("print", [](const ZDD& z) -> std::string {
+            std::ostringstream oss;
+            CoutRedirectGuard guard(oss.rdbuf());
+            z.Print();
+            return oss.str();
+        }, "Print ZDD statistics (ID, Var, Size, Card, Lit, Len) and return as string.")
     ;
 
     // ================================================================
@@ -2017,6 +2135,16 @@ PYBIND11_MODULE(_core, m) {
              "The complement bit has no semantics in UnreducedDD;\n"
              "it is only interpreted at reduce time.")
 
+        // Static factory functions
+        .def_static("zero", []() -> UnreducedDD {
+            ensure_init();
+            return UnreducedDD::zero();
+        }, "Return a 0-terminal UnreducedDD.")
+        .def_static("one", []() -> UnreducedDD {
+            ensure_init();
+            return UnreducedDD::one();
+        }, "Return a 1-terminal UnreducedDD.")
+
         // Node creation
         .def_static("getnode", [](bddvar var, const UnreducedDD& lo,
                                   const UnreducedDD& hi) -> UnreducedDD {
@@ -2266,5 +2394,11 @@ PYBIND11_MODULE(_core, m) {
             s.print_seq();
             return oss.str();
         }, "Print all sequences and return as string.")
+        .def("seq_str", [](const SeqBDD& s) -> std::string {
+            return s.seq_str();
+        }, "Get all sequences as a string.\n\n"
+           "Equivalent to str(self).\n\n"
+           "Returns:\n"
+           "    A string representation of all sequences.\n")
     ;
 }

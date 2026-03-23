@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, overload
 
 class BDD:
     """A Binary Decision Diagram representing a Boolean function.
@@ -529,6 +529,64 @@ class BDD:
         """
         ...
 
+    def export_knuth_str(self, is_hex: bool = False, offset: int = 0) -> str:
+        """Export this BDD in Knuth format to a string (deprecated).
+
+        Args:
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            A Knuth format string.
+
+        .. deprecated:: Use export_sapporo_str() or export_binary_str() instead.
+        """
+        ...
+
+    @staticmethod
+    def import_knuth_str(s: str, is_hex: bool = False, offset: int = 0) -> BDD:
+        """Import a BDD from a Knuth format string (deprecated).
+
+        Args:
+            s: The Knuth format string.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed BDD.
+
+        .. deprecated:: Use import_sapporo_str() or import_binary_str() instead.
+        """
+        ...
+
+    def export_knuth_file(self, path: str, is_hex: bool = False, offset: int = 0) -> None:
+        """Export this BDD in Knuth format to a file (deprecated).
+
+        Args:
+            path: File path to write to.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        .. deprecated:: Use export_sapporo_file() or export_binary_file() instead.
+        """
+        ...
+
+    @staticmethod
+    def import_knuth_file(path: str, is_hex: bool = False, offset: int = 0) -> BDD:
+        """Import a BDD from a Knuth format file (deprecated).
+
+        Args:
+            path: File path to read from.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed BDD.
+
+        .. deprecated:: Use import_sapporo_file() or import_binary_file() instead.
+        """
+        ...
+
     def save_graphviz_str(self, raw: bool = False) -> str:
         """Export this BDD as a Graphviz DOT string.
 
@@ -549,6 +607,10 @@ class BDD:
             raw: If True, show physical DAG with complement markers.
                  If False (default), expand complement edges into full nodes.
         """
+        ...
+
+    def print(self) -> str:
+        """Print BDD summary (ID, Var, Level, Size) and return as string."""
         ...
 
 
@@ -1340,6 +1402,64 @@ class ZDD:
         """
         ...
 
+    def export_knuth_str(self, is_hex: bool = False, offset: int = 0) -> str:
+        """Export this ZDD in Knuth format to a string (deprecated).
+
+        Args:
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            A Knuth format string.
+
+        .. deprecated:: Use export_sapporo_str() or export_binary_str() instead.
+        """
+        ...
+
+    @staticmethod
+    def import_knuth_str(s: str, is_hex: bool = False, offset: int = 0) -> ZDD:
+        """Import a ZDD from a Knuth format string (deprecated).
+
+        Args:
+            s: The Knuth format string.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed ZDD.
+
+        .. deprecated:: Use import_sapporo_str() or import_binary_str() instead.
+        """
+        ...
+
+    def export_knuth_file(self, path: str, is_hex: bool = False, offset: int = 0) -> None:
+        """Export this ZDD in Knuth format to a file (deprecated).
+
+        Args:
+            path: File path to write to.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        .. deprecated:: Use export_sapporo_file() or export_binary_file() instead.
+        """
+        ...
+
+    @staticmethod
+    def import_knuth_file(path: str, is_hex: bool = False, offset: int = 0) -> ZDD:
+        """Import a ZDD from a Knuth format file (deprecated).
+
+        Args:
+            path: File path to read from.
+            is_hex: If True, use hexadecimal node IDs.
+            offset: Variable number offset (default: 0).
+
+        Returns:
+            The reconstructed ZDD.
+
+        .. deprecated:: Use import_sapporo_file() or import_binary_file() instead.
+        """
+        ...
+
     def export_graphillion_str(self, offset: int = 0) -> str:
         """Export this ZDD in Graphillion format to a string.
 
@@ -1406,6 +1526,10 @@ class ZDD:
             raw: If True, show physical DAG with complement markers.
                  If False (default), expand complement edges into full nodes.
         """
+        ...
+
+    def print(self) -> str:
+        """Print ZDD statistics (ID, Var, Size, Card, Lit, Len) and return as string."""
         ...
 
 
@@ -2133,6 +2257,7 @@ class UnreducedDD:
     when reduce_as_bdd(), reduce_as_zdd(), or reduce_as_qdd() is called.
     """
 
+    @overload
     def __init__(self, val: int = 0) -> None:
         """Construct an UnreducedDD from an integer value.
 
@@ -2140,25 +2265,22 @@ class UnreducedDD:
             val: 0 for 0-terminal, 1 for 1-terminal, negative for null.
         """
         ...
-
-    @staticmethod
-    def from_bdd(bdd: BDD) -> UnreducedDD:
+    @overload
+    def __init__(self, bdd: BDD) -> None:
         """Convert a BDD to an UnreducedDD with complement expansion.
 
         Recursively expands all complement edges using BDD semantics.
         """
         ...
-
-    @staticmethod
-    def from_zdd(zdd: ZDD) -> UnreducedDD:
+    @overload
+    def __init__(self, zdd: ZDD) -> None:
         """Convert a ZDD to an UnreducedDD with complement expansion.
 
         Recursively expands all complement edges using ZDD semantics.
         """
         ...
-
-    @staticmethod
-    def from_qdd(qdd: QDD) -> UnreducedDD:
+    @overload
+    def __init__(self, qdd: QDD) -> None:
         """Convert a QDD to an UnreducedDD with complement expansion.
 
         Uses BDD complement semantics.
@@ -2353,11 +2475,20 @@ class SeqBDD:
     where the same symbol may appear multiple times.
     """
 
+    @overload
     def __init__(self, val: int = 0) -> None:
         """Construct a SeqBDD.
 
         Args:
             val: 0 for empty set, 1 for {epsilon}, negative for null.
+        """
+        ...
+    @overload
+    def __init__(self, zdd: ZDD) -> None:
+        """Construct a SeqBDD from an existing ZDD.
+
+        Args:
+            zdd: A ZDD to interpret as a sequence set.
         """
         ...
 
@@ -2497,6 +2628,28 @@ class SeqBDD:
         """
         ...
 
+    @staticmethod
+    def from_list(vars: List[int]) -> SeqBDD:
+        """Create a SeqBDD representing a single sequence.
+
+        Args:
+            vars: List of variable numbers for the sequence.
+
+        Returns:
+            A SeqBDD containing the single sequence.
+        """
+        ...
+
     def print_seq(self) -> str:
         """Print all sequences in a human-readable format and return as string."""
+        ...
+
+    def seq_str(self) -> str:
+        """Get all sequences as a string.
+
+        Equivalent to str(self).
+
+        Returns:
+            A string representation of all sequences.
+        """
         ...
