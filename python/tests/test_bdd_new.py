@@ -237,8 +237,10 @@ class TestBDDBinaryIO:
         v1 = kyotodd.new_var()
         b = kyotodd.BDD.var(v1)
         path = str(tmp_path / "test.bdd")
-        b.export_binary_file(path)
-        b2 = kyotodd.BDD.import_binary_file(path)
+        with open(path, 'wb') as f:
+            b.export_binary_file(f)
+        with open(path, 'rb') as f:
+            b2 = kyotodd.BDD.import_binary_file(f)
         assert b == b2
 
     def test_terminal_roundtrip(self):
@@ -267,8 +269,10 @@ class TestBDDBinaryMultiIO:
         v2 = kyotodd.new_var()
         bdds = [kyotodd.BDD.var(v1), kyotodd.BDD.var(v2)]
         path = str(tmp_path / "multi.bdd")
-        kyotodd.BDD.export_binary_multi_file(bdds, path)
-        bdds2 = kyotodd.BDD.import_binary_multi_file(path)
+        with open(path, 'wb') as f:
+            kyotodd.BDD.export_binary_multi_file(bdds, f)
+        with open(path, 'rb') as f:
+            bdds2 = kyotodd.BDD.import_binary_multi_file(f)
         assert len(bdds2) == 2
         assert bdds[0] == bdds2[0]
         assert bdds[1] == bdds2[1]
@@ -293,8 +297,10 @@ class TestBDDSapporoIO:
         v1 = kyotodd.new_var()
         b = kyotodd.BDD.var(v1)
         path = str(tmp_path / "test.sapporo")
-        b.export_sapporo_file(path)
-        b2 = kyotodd.BDD.import_sapporo_file(path)
+        with open(path, 'w') as f:
+            b.export_sapporo_file(f)
+        with open(path, 'r') as f:
+            b2 = kyotodd.BDD.import_sapporo_file(f)
         assert b == b2
 
 
@@ -315,7 +321,8 @@ class TestBDDGraphviz:
         v1 = kyotodd.new_var()
         b = kyotodd.BDD.var(v1)
         path = str(tmp_path / "test.dot")
-        b.save_graphviz_file(path)
+        with open(path, 'w') as f:
+            b.save_graphviz_file(f)
         with open(path) as f:
             content = f.read()
         assert "digraph" in content
@@ -324,7 +331,8 @@ class TestBDDGraphviz:
         v1 = kyotodd.new_var()
         b = kyotodd.BDD.var(v1)
         path = str(tmp_path / "test_raw.dot")
-        b.save_graphviz_file(path, raw=True)
+        with open(path, 'w') as f:
+            b.save_graphviz_file(f, raw=True)
         with open(path) as f:
             content = f.read()
         assert "digraph" in content

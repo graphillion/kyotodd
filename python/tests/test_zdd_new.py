@@ -346,8 +346,10 @@ class TestZDDBinaryIO:
         kyotodd.new_var()
         z = _make_singleton(1)
         path = str(tmp_path / "test.zdd")
-        z.export_binary_file(path)
-        z2 = ZDD.import_binary_file(path)
+        with open(path, 'wb') as f:
+            z.export_binary_file(f)
+        with open(path, 'rb') as f:
+            z2 = ZDD.import_binary_file(f)
         assert z == z2
 
     def test_terminal_roundtrip(self):
@@ -376,8 +378,10 @@ class TestZDDBinaryMultiIO:
         kyotodd.new_var()
         zdds = [_make_singleton(1), _make_singleton(2)]
         path = str(tmp_path / "multi.zdd")
-        ZDD.export_binary_multi_file(zdds, path)
-        zdds2 = ZDD.import_binary_multi_file(path)
+        with open(path, 'wb') as f:
+            ZDD.export_binary_multi_file(zdds, f)
+        with open(path, 'rb') as f:
+            zdds2 = ZDD.import_binary_multi_file(f)
         assert len(zdds2) == 2
         assert zdds[0] == zdds2[0]
         assert zdds[1] == zdds2[1]
@@ -402,8 +406,10 @@ class TestZDDSapporoIO:
         kyotodd.new_var()
         z = _make_singleton(1)
         path = str(tmp_path / "test.sapporo")
-        z.export_sapporo_file(path)
-        z2 = ZDD.import_sapporo_file(path)
+        with open(path, 'w') as f:
+            z.export_sapporo_file(f)
+        with open(path, 'r') as f:
+            z2 = ZDD.import_sapporo_file(f)
         assert z == z2
 
 
@@ -421,8 +427,10 @@ class TestZDDGraphillionIO:
         kyotodd.new_var()
         z = _make_singleton(1)
         path = str(tmp_path / "test.graphillion")
-        z.export_graphillion_file(path)
-        z2 = ZDD.import_graphillion_file(path)
+        with open(path, 'w') as f:
+            z.export_graphillion_file(f)
+        with open(path, 'r') as f:
+            z2 = ZDD.import_graphillion_file(f)
         assert z == z2
 
     def test_offset_export(self):
@@ -452,7 +460,8 @@ class TestZDDGraphviz:
         kyotodd.new_var()
         z = _make_singleton(1)
         path = str(tmp_path / "test.dot")
-        z.save_graphviz_file(path)
+        with open(path, 'w') as f:
+            z.save_graphviz_file(f)
         with open(path) as f:
             content = f.read()
         assert "digraph" in content
@@ -461,7 +470,8 @@ class TestZDDGraphviz:
         kyotodd.new_var()
         z = _make_singleton(1)
         path = str(tmp_path / "test_raw.dot")
-        z.save_graphviz_file(path, raw=True)
+        with open(path, 'w') as f:
+            z.save_graphviz_file(f, raw=True)
         with open(path) as f:
             content = f.read()
         assert "digraph" in content

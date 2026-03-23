@@ -66,8 +66,10 @@ class TestQDDBinaryIO:
         b = BDD.var(1)
         q = b.to_qdd()
         path = str(tmp_path / "test.qdd")
-        q.export_binary_file(path)
-        q2 = QDD.import_binary_file(path)
+        with open(path, 'wb') as f:
+            q.export_binary_file(f)
+        with open(path, 'rb') as f:
+            q2 = QDD.import_binary_file(f)
         assert q == q2
 
     def test_terminal_roundtrip(self):
@@ -96,8 +98,10 @@ class TestQDDBinaryMultiIO:
         kyotodd.new_var()
         qdds = [BDD.var(1).to_qdd(), BDD.var(2).to_qdd()]
         path = str(tmp_path / "multi.qdd")
-        QDD.export_binary_multi_file(qdds, path)
-        qdds2 = QDD.import_binary_multi_file(path)
+        with open(path, 'wb') as f:
+            QDD.export_binary_multi_file(qdds, f)
+        with open(path, 'rb') as f:
+            qdds2 = QDD.import_binary_multi_file(f)
         assert len(qdds2) == 2
         assert qdds[0] == qdds2[0]
         assert qdds[1] == qdds2[1]
@@ -127,8 +131,10 @@ class TestUnreducedDDBinaryIO:
         kyotodd.new_var()
         u = UnreducedDD.getnode(1, UnreducedDD(0), UnreducedDD(1))
         path = str(tmp_path / "test.udd")
-        u.export_binary_file(path)
-        u2 = UnreducedDD.import_binary_file(path)
+        with open(path, 'wb') as f:
+            u.export_binary_file(f)
+        with open(path, 'rb') as f:
+            u2 = UnreducedDD.import_binary_file(f)
         assert u.reduce_as_bdd() == u2.reduce_as_bdd()
 
     def test_terminal_roundtrip(self):
@@ -270,7 +276,8 @@ class TestSeqBDDExport:
         kyotodd.new_var()
         s = SeqBDD.from_list([1, 2])
         path = str(tmp_path / "test.seq")
-        s.export_file(path)
+        with open(path, 'w') as f:
+            s.export_file(f)
         with open(path) as f:
             content = f.read()
         assert len(content) > 0

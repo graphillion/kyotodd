@@ -1,4 +1,4 @@
-from typing import List, Union, overload
+from typing import IO, List, Union, overload
 
 
 class BddCountMemo:
@@ -108,11 +108,11 @@ class BDD:
         ...
 
     @staticmethod
-    def import_file(path: str) -> BDD:
+    def import_file(stream: IO) -> BDD:
         """Import a BDD from a file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
 
         Returns:
             The reconstructed BDD.
@@ -319,11 +319,11 @@ class BDD:
         """Export this BDD to a string representation."""
         ...
 
-    def export_file(self, path: str) -> None:
+    def export_file(self, stream: IO) -> None:
         """Export this BDD to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
@@ -352,21 +352,21 @@ class BDD:
         ...
 
     @staticmethod
-    def export_multi_file(bdds: List[BDD], path: str) -> None:
+    def export_multi_file(bdds: List[BDD], stream: IO) -> None:
         """Export multiple BDDs to a file.
 
         Args:
             bdds: List of BDD objects.
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_multi_file(path: str) -> List[BDD]:
+    def import_multi_file(stream: IO) -> List[BDD]:
         """Import multiple BDDs from a file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
 
         Returns:
             A list of BDD objects.
@@ -622,20 +622,20 @@ class BDD:
         """Import a BDD from binary format bytes."""
         ...
 
-    def export_binary_file(self, path: str) -> None:
+    def export_binary_file(self, stream: IO) -> None:
         """Export this BDD in binary format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_file(path: str, ignore_type: bool = False) -> BDD:
+    def import_binary_file(stream: IO, ignore_type: bool = False) -> BDD:
         """Import a BDD from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
 
         Returns:
@@ -658,21 +658,21 @@ class BDD:
         ...
 
     @staticmethod
-    def export_binary_multi_file(bdds: List[BDD], path: str) -> None:
+    def export_binary_multi_file(bdds: List[BDD], stream: IO) -> None:
         """Export multiple BDDs in binary format to a file.
 
         Args:
             bdds: List of BDD objects.
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[BDD]:
+    def import_binary_multi_file(stream: IO, ignore_type: bool = False) -> List[BDD]:
         """Import multiple BDDs from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
         ...
@@ -686,20 +686,20 @@ class BDD:
         """Import a BDD from a Sapporo format string."""
         ...
 
-    def export_sapporo_file(self, path: str) -> None:
+    def export_sapporo_file(self, stream: IO) -> None:
         """Export this BDD in Sapporo format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_sapporo_file(path: str) -> BDD:
+    def import_sapporo_file(stream: IO) -> BDD:
         """Import a BDD from a Sapporo format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
         """
         ...
 
@@ -733,11 +733,11 @@ class BDD:
         """
         ...
 
-    def export_knuth_file(self, path: str, is_hex: bool = False, offset: int = 0) -> None:
+    def export_knuth_file(self, stream: IO, is_hex: bool = False, offset: int = 0) -> None:
         """Export this BDD in Knuth format to a file (deprecated).
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
             is_hex: If True, use hexadecimal node IDs.
             offset: Variable number offset (default: 0).
 
@@ -746,11 +746,11 @@ class BDD:
         ...
 
     @staticmethod
-    def import_knuth_file(path: str, is_hex: bool = False, offset: int = 0) -> BDD:
+    def import_knuth_file(stream: IO, is_hex: bool = False, offset: int = 0) -> BDD:
         """Import a BDD from a Knuth format file (deprecated).
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             is_hex: If True, use hexadecimal node IDs.
             offset: Variable number offset (default: 0).
 
@@ -773,11 +773,11 @@ class BDD:
         """
         ...
 
-    def save_graphviz_file(self, path: str, raw: bool = False) -> None:
+    def save_graphviz_file(self, stream: IO, raw: bool = False) -> None:
         """Export this BDD as a Graphviz DOT file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
             raw: If True, show physical DAG with complement markers.
                  If False (default), expand complement edges into full nodes.
         """
@@ -826,11 +826,11 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_file(path: str) -> ZDD:
+    def import_file(stream: IO) -> ZDD:
         """Import a ZDD from a file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
 
         Returns:
             The reconstructed ZDD.
@@ -1252,11 +1252,11 @@ class ZDD:
         """Export this ZDD to a string representation."""
         ...
 
-    def export_file(self, path: str) -> None:
+    def export_file(self, stream: IO) -> None:
         """Export this ZDD to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
@@ -1285,21 +1285,21 @@ class ZDD:
         ...
 
     @staticmethod
-    def export_multi_file(zdds: List["ZDD"], path: str) -> None:
+    def export_multi_file(zdds: List["ZDD"], stream: IO) -> None:
         """Export multiple ZDDs to a file.
 
         Args:
             zdds: List of ZDD objects.
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_multi_file(path: str) -> List["ZDD"]:
+    def import_multi_file(stream: IO) -> List["ZDD"]:
         """Import multiple ZDDs from a file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
 
         Returns:
             A list of ZDD objects.
@@ -1608,20 +1608,20 @@ class ZDD:
         """Import a ZDD from binary format bytes."""
         ...
 
-    def export_binary_file(self, path: str) -> None:
+    def export_binary_file(self, stream: IO) -> None:
         """Export this ZDD in binary format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_file(path: str, ignore_type: bool = False) -> ZDD:
+    def import_binary_file(stream: IO, ignore_type: bool = False) -> ZDD:
         """Import a ZDD from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
         ...
@@ -1641,21 +1641,21 @@ class ZDD:
         ...
 
     @staticmethod
-    def export_binary_multi_file(zdds: List[ZDD], path: str) -> None:
+    def export_binary_multi_file(zdds: List[ZDD], stream: IO) -> None:
         """Export multiple ZDDs in binary format to a file.
 
         Args:
             zdds: List of ZDD objects.
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[ZDD]:
+    def import_binary_multi_file(stream: IO, ignore_type: bool = False) -> List[ZDD]:
         """Import multiple ZDDs from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
         ...
@@ -1669,20 +1669,20 @@ class ZDD:
         """Import a ZDD from a Sapporo format string."""
         ...
 
-    def export_sapporo_file(self, path: str) -> None:
+    def export_sapporo_file(self, stream: IO) -> None:
         """Export this ZDD in Sapporo format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_sapporo_file(path: str) -> ZDD:
+    def import_sapporo_file(stream: IO) -> ZDD:
         """Import a ZDD from a Sapporo format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
         """
         ...
 
@@ -1716,11 +1716,11 @@ class ZDD:
         """
         ...
 
-    def export_knuth_file(self, path: str, is_hex: bool = False, offset: int = 0) -> None:
+    def export_knuth_file(self, stream: IO, is_hex: bool = False, offset: int = 0) -> None:
         """Export this ZDD in Knuth format to a file (deprecated).
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
             is_hex: If True, use hexadecimal node IDs.
             offset: Variable number offset (default: 0).
 
@@ -1729,11 +1729,11 @@ class ZDD:
         ...
 
     @staticmethod
-    def import_knuth_file(path: str, is_hex: bool = False, offset: int = 0) -> ZDD:
+    def import_knuth_file(stream: IO, is_hex: bool = False, offset: int = 0) -> ZDD:
         """Import a ZDD from a Knuth format file (deprecated).
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             is_hex: If True, use hexadecimal node IDs.
             offset: Variable number offset (default: 0).
 
@@ -1768,21 +1768,21 @@ class ZDD:
         """
         ...
 
-    def export_graphillion_file(self, path: str, offset: int = 0) -> None:
+    def export_graphillion_file(self, stream: IO, offset: int = 0) -> None:
         """Export this ZDD in Graphillion format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
             offset: Variable number offset (default: 0).
         """
         ...
 
     @staticmethod
-    def import_graphillion_file(path: str, offset: int = 0) -> ZDD:
+    def import_graphillion_file(stream: IO, offset: int = 0) -> ZDD:
         """Import a ZDD from a Graphillion format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             offset: Variable number offset (default: 0).
 
         Returns:
@@ -1802,11 +1802,11 @@ class ZDD:
         """
         ...
 
-    def save_graphviz_file(self, path: str, raw: bool = False) -> None:
+    def save_graphviz_file(self, stream: IO, raw: bool = False) -> None:
         """Export this ZDD as a Graphviz DOT file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
             raw: If True, show physical DAG with complement markers.
                  If False (default), expand complement edges into full nodes.
         """
@@ -2488,20 +2488,20 @@ class QDD:
         """Import a QDD from binary format bytes."""
         ...
 
-    def export_binary_file(self, path: str) -> None:
+    def export_binary_file(self, stream: IO) -> None:
         """Export this QDD in binary format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_file(path: str, ignore_type: bool = False) -> QDD:
+    def import_binary_file(stream: IO, ignore_type: bool = False) -> QDD:
         """Import a QDD from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
         ...
@@ -2521,21 +2521,21 @@ class QDD:
         ...
 
     @staticmethod
-    def export_binary_multi_file(qdds: List[QDD], path: str) -> None:
+    def export_binary_multi_file(qdds: List[QDD], stream: IO) -> None:
         """Export multiple QDDs in binary format to a file.
 
         Args:
             qdds: List of QDD objects.
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_multi_file(path: str, ignore_type: bool = False) -> List[QDD]:
+    def import_binary_multi_file(stream: IO, ignore_type: bool = False) -> List[QDD]:
         """Import multiple QDDs from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
         ...
@@ -2742,20 +2742,20 @@ class UnreducedDD:
         """Import an UnreducedDD from binary format bytes."""
         ...
 
-    def export_binary_file(self, path: str) -> None:
+    def export_binary_file(self, stream: IO) -> None:
         """Export this UnreducedDD in binary format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 
     @staticmethod
-    def import_binary_file(path: str) -> UnreducedDD:
+    def import_binary_file(stream: IO) -> UnreducedDD:
         """Import an UnreducedDD from a binary format file.
 
         Args:
-            path: File path to read from.
+            stream: A readable stream.
         """
         ...
 
@@ -2916,11 +2916,11 @@ class SeqBDD:
         """Export the internal ZDD in Sapporo format to a string."""
         ...
 
-    def export_file(self, path: str) -> None:
+    def export_file(self, stream: IO) -> None:
         """Export the internal ZDD in Sapporo format to a file.
 
         Args:
-            path: File path to write to.
+            stream: A writable stream.
         """
         ...
 

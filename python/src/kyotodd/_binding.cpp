@@ -364,31 +364,29 @@ PYBIND11_MODULE(_core, m) {
            "    The reconstructed BDD.\n\n"
            "Raises:\n"
            "    RuntimeError: If import fails.\n")
-        .def("export_file", [](const BDD& b, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+        .def("export_file", [](const BDD& b, py::object stream) {
+            std::ostringstream oss;
             bddp p = b.GetID();
-            bddexport(ofs, &p, 1);
-        }, py::arg("path"),
-           "Export this BDD to a file.\n\n"
+            bddexport(oss, &p, 1);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"),
+           "Export this BDD to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n")
-        .def_static("import_file", [](const std::string& path) -> BDD {
+           "    stream: A writable text stream (e.g. open('f.txt', 'w')).\n")
+        .def_static("import_file", [](py::object stream) -> BDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
             bddp p;
-            int ret = bddimport(ifs, &p, 1);
+            int ret = bddimport(iss, &p, 1);
             if (ret < 1) throw std::runtime_error("BDD import failed");
             return BDD_ID(p);
-        }, py::arg("path"),
-           "Import a BDD from a file.\n\n"
+        }, py::arg("stream"),
+           "Import a BDD from a text stream.\n\n"
            "Args:\n"
-           "    path: File path to read from.\n\n"
+           "    stream: A readable text stream (e.g. open('f.txt', 'r')).\n\n"
            "Returns:\n"
-           "    The reconstructed BDD.\n\n"
-           "Raises:\n"
-           "    RuntimeError: If import fails or file cannot be opened.\n")
+           "    The reconstructed BDD.\n")
 
         // Multi-root legacy I/O
         .def_static("export_multi_str", [](const std::vector<BDD>& bdds) -> std::string {
@@ -421,33 +419,34 @@ PYBIND11_MODULE(_core, m) {
            "    s: The serialized string.\n\n"
            "Returns:\n"
            "    A list of BDD objects.\n")
-        .def_static("export_multi_file", [](const std::vector<BDD>& bdds, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+        .def_static("export_multi_file", [](const std::vector<BDD>& bdds, py::object stream) {
+            std::ostringstream oss;
             std::vector<bddp> v;
             v.reserve(bdds.size());
             for (auto& b : bdds) v.push_back(b.GetID());
-            bddexport(ofs, v);
-        }, py::arg("bdds"), py::arg("path"),
-           "Export multiple BDDs to a file.\n\n"
+            bddexport(oss, v);
+            stream.attr("write")(oss.str());
+        }, py::arg("bdds"), py::arg("stream"),
+           "Export multiple BDDs to a text stream.\n\n"
            "Args:\n"
            "    bdds: List of BDD objects.\n"
-           "    path: File path to write to.\n")
-        .def_static("import_multi_file", [](const std::string& path) -> std::vector<BDD> {
+           "    stream: A writable text stream.\n")
+        .def_static("import_multi_file", [](py::object stream) -> std::vector<BDD> {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            if (s.empty()) return {};
+            std::istringstream iss(s);
             std::vector<bddp> v;
-            int ret = bddimport(ifs, v);
+            int ret = bddimport(iss, v);
             if (ret < 0) throw std::runtime_error("BDD multi import failed");
             std::vector<BDD> result;
             result.reserve(v.size());
             for (auto p : v) result.push_back(BDD_ID(p));
             return result;
-        }, py::arg("path"),
-           "Import multiple BDDs from a file.\n\n"
+        }, py::arg("stream"),
+           "Import multiple BDDs from a text stream.\n\n"
            "Args:\n"
-           "    path: File path to read from.\n\n"
+           "    stream: A readable text stream.\n\n"
            "Returns:\n"
            "    A list of BDD objects.\n")
 
@@ -661,19 +660,19 @@ PYBIND11_MODULE(_core, m) {
             return BDD::import_binary(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import a BDD from binary format bytes.")
-        .def("export_binary_file", [](const BDD& b, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            b.export_binary(ofs);
-        }, py::arg("path"),
-           "Export this BDD in binary format to a file.")
-        .def_static("import_binary_file", [](const std::string& path, bool ignore_type) -> BDD {
+        .def("export_binary_file", [](const BDD& b, py::object stream) {
+            std::ostringstream oss;
+            b.export_binary(oss);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("stream"),
+           "Export this BDD in binary format to a binary stream.")
+        .def_static("import_binary_file", [](py::object stream, bool ignore_type) -> BDD {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return BDD::import_binary(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import a BDD from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return BDD::import_binary(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import a BDD from a binary stream.")
 
         // Multi-root binary I/O
         .def_static("export_binary_multi_str", [](const std::vector<BDD>& bdds) -> py::bytes {
@@ -688,19 +687,19 @@ PYBIND11_MODULE(_core, m) {
             return BDD::import_binary_multi(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import multiple BDDs from binary format bytes.")
-        .def_static("export_binary_multi_file", [](const std::vector<BDD>& bdds, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            BDD::export_binary_multi(ofs, bdds);
-        }, py::arg("bdds"), py::arg("path"),
-           "Export multiple BDDs in binary format to a file.")
-        .def_static("import_binary_multi_file", [](const std::string& path, bool ignore_type) -> std::vector<BDD> {
+        .def_static("export_binary_multi_file", [](const std::vector<BDD>& bdds, py::object stream) {
+            std::ostringstream oss;
+            BDD::export_binary_multi(oss, bdds);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("bdds"), py::arg("stream"),
+           "Export multiple BDDs in binary format to a binary stream.")
+        .def_static("import_binary_multi_file", [](py::object stream, bool ignore_type) -> std::vector<BDD> {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return BDD::import_binary_multi(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import multiple BDDs from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return BDD::import_binary_multi(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import multiple BDDs from a binary stream.")
 
         // Sapporo I/O
         .def("export_sapporo_str", [](const BDD& b) -> std::string {
@@ -714,19 +713,19 @@ PYBIND11_MODULE(_core, m) {
             return BDD::import_sapporo(iss);
         }, py::arg("s"),
            "Import a BDD from a Sapporo format string.")
-        .def("export_sapporo_file", [](const BDD& b, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            b.export_sapporo(ofs);
-        }, py::arg("path"),
-           "Export this BDD in Sapporo format to a file.")
-        .def_static("import_sapporo_file", [](const std::string& path) -> BDD {
+        .def("export_sapporo_file", [](const BDD& b, py::object stream) {
+            std::ostringstream oss;
+            b.export_sapporo(oss);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"),
+           "Export this BDD in Sapporo format to a text stream.")
+        .def_static("import_sapporo_file", [](py::object stream) -> BDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return BDD::import_sapporo(ifs);
-        }, py::arg("path"),
-           "Import a BDD from a Sapporo format file.")
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
+            return BDD::import_sapporo(iss);
+        }, py::arg("stream"),
+           "Import a BDD from a Sapporo format text stream.")
 
         // Knuth I/O (deprecated)
         .def("export_knuth_str", [](const BDD& b, bool is_hex, int offset) -> std::string {
@@ -754,26 +753,26 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    The reconstructed BDD.\n\n"
            ".. deprecated:: Use import_sapporo_str() or import_binary_str() instead.\n")
-        .def("export_knuth_file", [](const BDD& b, const std::string& path, bool is_hex, int offset) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            b.export_knuth(ofs, is_hex, offset);
-        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
-           "Export this BDD in Knuth format to a file (deprecated).\n\n"
+        .def("export_knuth_file", [](const BDD& b, py::object stream, bool is_hex, int offset) {
+            std::ostringstream oss;
+            b.export_knuth(oss, is_hex, offset);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this BDD in Knuth format to a text stream (deprecated).\n\n"
            "Args:\n"
-           "    path: File path to write to.\n"
+           "    stream: A writable text stream.\n"
            "    is_hex: If True, use hexadecimal node IDs.\n"
            "    offset: Variable number offset (default: 0).\n\n"
            ".. deprecated:: Use export_sapporo_file() or export_binary_file() instead.\n")
-        .def_static("import_knuth_file", [](const std::string& path, bool is_hex, int offset) -> BDD {
+        .def_static("import_knuth_file", [](py::object stream, bool is_hex, int offset) -> BDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return BDD::import_knuth(ifs, is_hex, offset);
-        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
-           "Import a BDD from a Knuth format file (deprecated).\n\n"
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
+            return BDD::import_knuth(iss, is_hex, offset);
+        }, py::arg("stream"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a BDD from a Knuth format text stream (deprecated).\n\n"
            "Args:\n"
-           "    path: File path to read from.\n"
+           "    stream: A readable text stream.\n"
            "    is_hex: If True, use hexadecimal node IDs.\n"
            "    offset: Variable number offset (default: 0).\n\n"
            "Returns:\n"
@@ -792,14 +791,14 @@ PYBIND11_MODULE(_core, m) {
            "         If False (default), expand complement edges into full nodes.\n\n"
            "Returns:\n"
            "    A DOT format string.\n")
-        .def("save_graphviz_file", [](const BDD& b, const std::string& path, bool raw) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            b.save_graphviz(ofs, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
-        }, py::arg("path"), py::arg("raw") = false,
-           "Export this BDD as a Graphviz DOT file.\n\n"
+        .def("save_graphviz_file", [](const BDD& b, py::object stream, bool raw) {
+            std::ostringstream oss;
+            b.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"), py::arg("raw") = false,
+           "Export this BDD as a Graphviz DOT to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n"
+           "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
@@ -1105,31 +1104,29 @@ PYBIND11_MODULE(_core, m) {
            "    The reconstructed ZDD.\n\n"
            "Raises:\n"
            "    RuntimeError: If import fails.\n")
-        .def("export_file", [](const ZDD& z, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+        .def("export_file", [](const ZDD& z, py::object stream) {
+            std::ostringstream oss;
             bddp p = z.GetID();
-            bddexport(ofs, &p, 1);
-        }, py::arg("path"),
-           "Export this ZDD to a file.\n\n"
+            bddexport(oss, &p, 1);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"),
+           "Export this ZDD to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n")
-        .def_static("import_file", [](const std::string& path) -> ZDD {
+           "    stream: A writable text stream (e.g. open('f.txt', 'w')).\n")
+        .def_static("import_file", [](py::object stream) -> ZDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
             bddp p;
-            int ret = bddimportz(ifs, &p, 1);
+            int ret = bddimportz(iss, &p, 1);
             if (ret < 1) throw std::runtime_error("ZDD import failed");
             return ZDD_ID(p);
-        }, py::arg("path"),
-           "Import a ZDD from a file.\n\n"
+        }, py::arg("stream"),
+           "Import a ZDD from a text stream.\n\n"
            "Args:\n"
-           "    path: File path to read from.\n\n"
+           "    stream: A readable text stream (e.g. open('f.txt', 'r')).\n\n"
            "Returns:\n"
-           "    The reconstructed ZDD.\n\n"
-           "Raises:\n"
-           "    RuntimeError: If import fails or file cannot be opened.\n")
+           "    The reconstructed ZDD.\n")
         // Multi-root legacy I/O
         .def_static("export_multi_str", [](const std::vector<ZDD>& zdds) -> std::string {
             std::ostringstream oss;
@@ -1161,33 +1158,34 @@ PYBIND11_MODULE(_core, m) {
            "    s: The serialized string.\n\n"
            "Returns:\n"
            "    A list of ZDD objects.\n")
-        .def_static("export_multi_file", [](const std::vector<ZDD>& zdds, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+        .def_static("export_multi_file", [](const std::vector<ZDD>& zdds, py::object stream) {
+            std::ostringstream oss;
             std::vector<bddp> v;
             v.reserve(zdds.size());
             for (auto& z : zdds) v.push_back(z.GetID());
-            bddexport(ofs, v);
-        }, py::arg("zdds"), py::arg("path"),
-           "Export multiple ZDDs to a file.\n\n"
+            bddexport(oss, v);
+            stream.attr("write")(oss.str());
+        }, py::arg("zdds"), py::arg("stream"),
+           "Export multiple ZDDs to a text stream.\n\n"
            "Args:\n"
            "    zdds: List of ZDD objects.\n"
-           "    path: File path to write to.\n")
-        .def_static("import_multi_file", [](const std::string& path) -> std::vector<ZDD> {
+           "    stream: A writable text stream.\n")
+        .def_static("import_multi_file", [](py::object stream) -> std::vector<ZDD> {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            if (s.empty()) return {};
+            std::istringstream iss(s);
             std::vector<bddp> v;
-            int ret = bddimportz(ifs, v);
+            int ret = bddimportz(iss, v);
             if (ret < 0) throw std::runtime_error("ZDD multi import failed");
             std::vector<ZDD> result;
             result.reserve(v.size());
             for (auto p : v) result.push_back(ZDD_ID(p));
             return result;
-        }, py::arg("path"),
-           "Import multiple ZDDs from a file.\n\n"
+        }, py::arg("stream"),
+           "Import multiple ZDDs from a text stream.\n\n"
            "Args:\n"
-           "    path: File path to read from.\n\n"
+           "    stream: A readable text stream.\n\n"
            "Returns:\n"
            "    A list of ZDD objects.\n")
 
@@ -1454,19 +1452,19 @@ PYBIND11_MODULE(_core, m) {
             return ZDD::import_binary(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import a ZDD from binary format bytes.")
-        .def("export_binary_file", [](const ZDD& z, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            z.export_binary(ofs);
-        }, py::arg("path"),
-           "Export this ZDD in binary format to a file.")
-        .def_static("import_binary_file", [](const std::string& path, bool ignore_type) -> ZDD {
+        .def("export_binary_file", [](const ZDD& z, py::object stream) {
+            std::ostringstream oss;
+            z.export_binary(oss);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("stream"),
+           "Export this ZDD in binary format to a binary stream.")
+        .def_static("import_binary_file", [](py::object stream, bool ignore_type) -> ZDD {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return ZDD::import_binary(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import a ZDD from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return ZDD::import_binary(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import a ZDD from a binary stream.")
 
         // Multi-root binary I/O
         .def_static("export_binary_multi_str", [](const std::vector<ZDD>& zdds) -> py::bytes {
@@ -1481,19 +1479,19 @@ PYBIND11_MODULE(_core, m) {
             return ZDD::import_binary_multi(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import multiple ZDDs from binary format bytes.")
-        .def_static("export_binary_multi_file", [](const std::vector<ZDD>& zdds, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            ZDD::export_binary_multi(ofs, zdds);
-        }, py::arg("zdds"), py::arg("path"),
-           "Export multiple ZDDs in binary format to a file.")
-        .def_static("import_binary_multi_file", [](const std::string& path, bool ignore_type) -> std::vector<ZDD> {
+        .def_static("export_binary_multi_file", [](const std::vector<ZDD>& zdds, py::object stream) {
+            std::ostringstream oss;
+            ZDD::export_binary_multi(oss, zdds);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("zdds"), py::arg("stream"),
+           "Export multiple ZDDs in binary format to a binary stream.")
+        .def_static("import_binary_multi_file", [](py::object stream, bool ignore_type) -> std::vector<ZDD> {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return ZDD::import_binary_multi(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import multiple ZDDs from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return ZDD::import_binary_multi(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import multiple ZDDs from a binary stream.")
 
         // Sapporo I/O
         .def("export_sapporo_str", [](const ZDD& z) -> std::string {
@@ -1507,19 +1505,19 @@ PYBIND11_MODULE(_core, m) {
             return ZDD::import_sapporo(iss);
         }, py::arg("s"),
            "Import a ZDD from a Sapporo format string.")
-        .def("export_sapporo_file", [](const ZDD& z, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            z.export_sapporo(ofs);
-        }, py::arg("path"),
-           "Export this ZDD in Sapporo format to a file.")
-        .def_static("import_sapporo_file", [](const std::string& path) -> ZDD {
+        .def("export_sapporo_file", [](const ZDD& z, py::object stream) {
+            std::ostringstream oss;
+            z.export_sapporo(oss);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"),
+           "Export this ZDD in Sapporo format to a text stream.")
+        .def_static("import_sapporo_file", [](py::object stream) -> ZDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return ZDD::import_sapporo(ifs);
-        }, py::arg("path"),
-           "Import a ZDD from a Sapporo format file.")
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
+            return ZDD::import_sapporo(iss);
+        }, py::arg("stream"),
+           "Import a ZDD from a Sapporo format text stream.")
 
         // Graphillion I/O
         .def("export_graphillion_str", [](const ZDD& z, int offset) -> std::string {
@@ -1543,24 +1541,24 @@ PYBIND11_MODULE(_core, m) {
            "    offset: Variable number offset (default: 0).\n\n"
            "Returns:\n"
            "    The reconstructed ZDD.\n")
-        .def("export_graphillion_file", [](const ZDD& z, const std::string& path, int offset) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            z.export_graphillion(ofs, offset);
-        }, py::arg("path"), py::arg("offset") = 0,
-           "Export this ZDD in Graphillion format to a file.\n\n"
+        .def("export_graphillion_file", [](const ZDD& z, py::object stream, int offset) {
+            std::ostringstream oss;
+            z.export_graphillion(oss, offset);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"), py::arg("offset") = 0,
+           "Export this ZDD in Graphillion format to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n"
+           "    stream: A writable text stream.\n"
            "    offset: Variable number offset (default: 0).\n")
-        .def_static("import_graphillion_file", [](const std::string& path, int offset) -> ZDD {
+        .def_static("import_graphillion_file", [](py::object stream, int offset) -> ZDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return ZDD::import_graphillion(ifs, offset);
-        }, py::arg("path"), py::arg("offset") = 0,
-           "Import a ZDD from a Graphillion format file.\n\n"
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
+            return ZDD::import_graphillion(iss, offset);
+        }, py::arg("stream"), py::arg("offset") = 0,
+           "Import a ZDD from a Graphillion format text stream.\n\n"
            "Args:\n"
-           "    path: File path to read from.\n"
+           "    stream: A readable text stream.\n"
            "    offset: Variable number offset (default: 0).\n\n"
            "Returns:\n"
            "    The reconstructed ZDD.\n")
@@ -1591,26 +1589,26 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    The reconstructed ZDD.\n\n"
            ".. deprecated:: Use import_sapporo_str() or import_binary_str() instead.\n")
-        .def("export_knuth_file", [](const ZDD& z, const std::string& path, bool is_hex, int offset) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            z.export_knuth(ofs, is_hex, offset);
-        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
-           "Export this ZDD in Knuth format to a file (deprecated).\n\n"
+        .def("export_knuth_file", [](const ZDD& z, py::object stream, bool is_hex, int offset) {
+            std::ostringstream oss;
+            z.export_knuth(oss, is_hex, offset);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Export this ZDD in Knuth format to a text stream (deprecated).\n\n"
            "Args:\n"
-           "    path: File path to write to.\n"
+           "    stream: A writable text stream.\n"
            "    is_hex: If True, use hexadecimal node IDs.\n"
            "    offset: Variable number offset (default: 0).\n\n"
            ".. deprecated:: Use export_sapporo_file() or export_binary_file() instead.\n")
-        .def_static("import_knuth_file", [](const std::string& path, bool is_hex, int offset) -> ZDD {
+        .def_static("import_knuth_file", [](py::object stream, bool is_hex, int offset) -> ZDD {
             ensure_init();
-            std::ifstream ifs(path);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return ZDD::import_knuth(ifs, is_hex, offset);
-        }, py::arg("path"), py::arg("is_hex") = false, py::arg("offset") = 0,
-           "Import a ZDD from a Knuth format file (deprecated).\n\n"
+            std::string s = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(s);
+            return ZDD::import_knuth(iss, is_hex, offset);
+        }, py::arg("stream"), py::arg("is_hex") = false, py::arg("offset") = 0,
+           "Import a ZDD from a Knuth format text stream (deprecated).\n\n"
            "Args:\n"
-           "    path: File path to read from.\n"
+           "    stream: A readable text stream.\n"
            "    is_hex: If True, use hexadecimal node IDs.\n"
            "    offset: Variable number offset (default: 0).\n\n"
            "Returns:\n"
@@ -1629,14 +1627,14 @@ PYBIND11_MODULE(_core, m) {
            "         If False (default), expand complement edges into full nodes.\n\n"
            "Returns:\n"
            "    A DOT format string.\n")
-        .def("save_graphviz_file", [](const ZDD& z, const std::string& path, bool raw) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            z.save_graphviz(ofs, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
-        }, py::arg("path"), py::arg("raw") = false,
-           "Export this ZDD as a Graphviz DOT file.\n\n"
+        .def("save_graphviz_file", [](const ZDD& z, py::object stream, bool raw) {
+            std::ostringstream oss;
+            z.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"), py::arg("raw") = false,
+           "Export this ZDD as a Graphviz DOT to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n"
+           "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
@@ -2163,19 +2161,19 @@ PYBIND11_MODULE(_core, m) {
             return QDD::import_binary(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import a QDD from binary format bytes.")
-        .def("export_binary_file", [](const QDD& q, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            q.export_binary(ofs);
-        }, py::arg("path"),
-           "Export this QDD in binary format to a file.")
-        .def_static("import_binary_file", [](const std::string& path, bool ignore_type) -> QDD {
+        .def("export_binary_file", [](const QDD& q, py::object stream) {
+            std::ostringstream oss;
+            q.export_binary(oss);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("stream"),
+           "Export this QDD in binary format to a binary stream.")
+        .def_static("import_binary_file", [](py::object stream, bool ignore_type) -> QDD {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return QDD::import_binary(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import a QDD from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return QDD::import_binary(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import a QDD from a binary stream.")
 
         // Multi-root binary I/O
         .def_static("export_binary_multi_str", [](const std::vector<QDD>& qdds) -> py::bytes {
@@ -2190,19 +2188,19 @@ PYBIND11_MODULE(_core, m) {
             return QDD::import_binary_multi(iss, ignore_type);
         }, py::arg("data"), py::arg("ignore_type") = false,
            "Import multiple QDDs from binary format bytes.")
-        .def_static("export_binary_multi_file", [](const std::vector<QDD>& qdds, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            QDD::export_binary_multi(ofs, qdds);
-        }, py::arg("qdds"), py::arg("path"),
-           "Export multiple QDDs in binary format to a file.")
-        .def_static("import_binary_multi_file", [](const std::string& path, bool ignore_type) -> std::vector<QDD> {
+        .def_static("export_binary_multi_file", [](const std::vector<QDD>& qdds, py::object stream) {
+            std::ostringstream oss;
+            QDD::export_binary_multi(oss, qdds);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("qdds"), py::arg("stream"),
+           "Export multiple QDDs in binary format to a binary stream.")
+        .def_static("import_binary_multi_file", [](py::object stream, bool ignore_type) -> std::vector<QDD> {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return QDD::import_binary_multi(ifs, ignore_type);
-        }, py::arg("path"), py::arg("ignore_type") = false,
-           "Import multiple QDDs from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return QDD::import_binary_multi(iss, ignore_type);
+        }, py::arg("stream"), py::arg("ignore_type") = false,
+           "Import multiple QDDs from a binary stream.")
     ;
 
     // ================================================================
@@ -2363,19 +2361,19 @@ PYBIND11_MODULE(_core, m) {
             return UnreducedDD::import_binary(iss);
         }, py::arg("data"),
            "Import an UnreducedDD from binary format bytes.")
-        .def("export_binary_file", [](const UnreducedDD& u, const std::string& path) {
-            std::ofstream ofs(path, std::ios::binary);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            u.export_binary(ofs);
-        }, py::arg("path"),
-           "Export this UnreducedDD in binary format to a file.")
-        .def_static("import_binary_file", [](const std::string& path) -> UnreducedDD {
+        .def("export_binary_file", [](const UnreducedDD& u, py::object stream) {
+            std::ostringstream oss;
+            u.export_binary(oss);
+            stream.attr("write")(py::bytes(oss.str()));
+        }, py::arg("stream"),
+           "Export this UnreducedDD in binary format to a binary stream.")
+        .def_static("import_binary_file", [](py::object stream) -> UnreducedDD {
             ensure_init();
-            std::ifstream ifs(path, std::ios::binary);
-            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-            return UnreducedDD::import_binary(ifs);
-        }, py::arg("path"),
-           "Import an UnreducedDD from a binary format file.")
+            std::string data = py::cast<std::string>(stream.attr("read")());
+            std::istringstream iss(data);
+            return UnreducedDD::import_binary(iss);
+        }, py::arg("stream"),
+           "Import an UnreducedDD from a binary stream.")
     ;
 
     // ================================================================
@@ -2508,14 +2506,14 @@ PYBIND11_MODULE(_core, m) {
             s.export_to(oss);
             return oss.str();
         }, "Export the internal ZDD in Sapporo format to a string.")
-        .def("export_file", [](const SeqBDD& s, const std::string& path) {
-            std::ofstream ofs(path);
-            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
-            s.export_to(ofs);
-        }, py::arg("path"),
-           "Export the internal ZDD in Sapporo format to a file.\n\n"
+        .def("export_file", [](const SeqBDD& s, py::object stream) {
+            std::ostringstream oss;
+            s.export_to(oss);
+            stream.attr("write")(oss.str());
+        }, py::arg("stream"),
+           "Export the internal ZDD in Sapporo format to a text stream.\n\n"
            "Args:\n"
-           "    path: File path to write to.\n")
+           "    stream: A writable text stream.\n")
         .def("print_seq", [](const SeqBDD& s) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());

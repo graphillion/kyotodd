@@ -1,4 +1,3 @@
-import pytest
 import kyotodd
 from kyotodd import BDD, ZDD, QDD, UnreducedDD, SeqBDD, BddCountMemo, ZddCountMemo
 
@@ -43,13 +42,11 @@ class TestBDDExportImportFile:
         x, y = BDD.var(1), BDD.var(2)
         f = x & y
         path = str(tmp_path / "bdd.txt")
-        f.export_file(path)
-        result = BDD.import_file(path)
+        with open(path, 'w') as fh:
+            f.export_file(fh)
+        with open(path, 'r') as fh:
+            result = BDD.import_file(fh)
         assert result == f
-
-    def test_import_nonexistent_file(self):
-        with pytest.raises(RuntimeError):
-            BDD.import_file("/nonexistent/path/file.txt")
 
 
 class TestZDDExportImportStr:
@@ -92,13 +89,11 @@ class TestZDDExportImportFile:
         b = ZDD(1).change(2)
         f = a + b
         path = str(tmp_path / "zdd.txt")
-        f.export_file(path)
-        result = ZDD.import_file(path)
+        with open(path, 'w') as fh:
+            f.export_file(fh)
+        with open(path, 'r') as fh:
+            result = ZDD.import_file(fh)
         assert result == f
-
-    def test_import_nonexistent_file(self):
-        with pytest.raises(RuntimeError):
-            ZDD.import_file("/nonexistent/path/file.txt")
 
 
 class TestBDDKnuthIO:
@@ -131,13 +126,11 @@ class TestBDDKnuthIO:
         x, y = BDD.var(1), BDD.var(2)
         f = x | y
         path = str(tmp_path / "bdd_knuth.txt")
-        f.export_knuth_file(path)
-        result = BDD.import_knuth_file(path)
+        with open(path, 'w') as fh:
+            f.export_knuth_file(fh)
+        with open(path, 'r') as fh:
+            result = BDD.import_knuth_file(fh)
         assert result == f
-
-    def test_import_nonexistent_file(self):
-        with pytest.raises(RuntimeError):
-            BDD.import_knuth_file("/nonexistent/path/file.txt")
 
 
 class TestZDDKnuthIO:
@@ -172,13 +165,11 @@ class TestZDDKnuthIO:
         b = ZDD(1).change(2)
         f = a + b
         path = str(tmp_path / "zdd_knuth.txt")
-        f.export_knuth_file(path)
-        result = ZDD.import_knuth_file(path)
+        with open(path, 'w') as fh:
+            f.export_knuth_file(fh)
+        with open(path, 'r') as fh:
+            result = ZDD.import_knuth_file(fh)
         assert result == f
-
-    def test_import_nonexistent_file(self):
-        with pytest.raises(RuntimeError):
-            ZDD.import_knuth_file("/nonexistent/path/file.txt")
 
 
 class TestBDDPrint:
@@ -291,8 +282,10 @@ class TestBDDExportImportMultiFile:
         a, b = BDD.var(1), BDD.var(2)
         f = a | b
         path = str(tmp_path / "bdd_multi.txt")
-        BDD.export_multi_file([a, b, f], path)
-        result = BDD.import_multi_file(path)
+        with open(path, 'w') as fh:
+            BDD.export_multi_file([a, b, f], fh)
+        with open(path, 'r') as fh:
+            result = BDD.import_multi_file(fh)
         assert len(result) == 3
         assert result[0] == a
         assert result[1] == b
@@ -341,8 +334,10 @@ class TestZDDExportImportMultiFile:
         y = ZDD.singleton(2)
         z = x + y
         path = str(tmp_path / "zdd_multi.txt")
-        ZDD.export_multi_file([x, y, z], path)
-        result = ZDD.import_multi_file(path)
+        with open(path, 'w') as fh:
+            ZDD.export_multi_file([x, y, z], fh)
+        with open(path, 'r') as fh:
+            result = ZDD.import_multi_file(fh)
         assert len(result) == 3
         assert result[0] == x
         assert result[1] == y
