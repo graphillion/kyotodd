@@ -197,6 +197,12 @@ SeqBDD Class
 
       :rtype: str
 
+   .. py:method:: seq_str()
+
+      Get all sequences as a string. Equivalent to ``str(self)``.
+
+      :rtype: str
+
    Static Methods
    ~~~~~~~~~~~~~~
 

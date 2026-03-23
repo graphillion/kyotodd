@@ -66,6 +66,21 @@ UnreducedDD Class
 
       :raises TypeError: Always.
 
+   Terminal Factories
+   ~~~~~~~~~~~~~~~~~~
+
+   .. py:staticmethod:: zero()
+
+      Return a 0-terminal UnreducedDD.
+
+      :rtype: UnreducedDD
+
+   .. py:staticmethod:: one()
+
+      Return a 1-terminal UnreducedDD.
+
+      :rtype: UnreducedDD
+
    Node Creation
    ~~~~~~~~~~~~~
 

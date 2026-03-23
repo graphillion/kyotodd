@@ -438,6 +438,22 @@ ZDD Class
       :return: A list of variable numbers in the sampled set.
       :rtype: list[int]
 
+   .. py:method:: exact_count_with_memo(memo)
+
+      Count the number of sets using a memo for caching.
+
+      :param ZddCountMemo memo: A ZddCountMemo object for caching.
+      :rtype: int
+
+   .. py:method:: uniform_sample_with_memo(memo, seed=0)
+
+      Sample a set using a memo for caching.
+
+      :param ZddCountMemo memo: A ZddCountMemo object for caching.
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
    Constructors
    ------------
 
@@ -482,6 +498,16 @@ ZDD Class
 
       :param int n: Universe size.
       :param int k: Subset size.
+      :rtype: ZDD
+
+   .. py:staticmethod:: random_family(n, seed=0)
+
+      Generate a uniformly random family over ``{1, ..., n}``.
+
+      Selects one of the ``2^(2^n)`` possible families uniformly at random.
+
+      :param int n: Universe size.
+      :param int seed: Random seed (default: 0).
       :rtype: ZDD
 
    Node Operations
@@ -550,6 +576,37 @@ ZDD Class
 
       :param list[ZDD] zdds: List of ZDD objects.
       :rtype: int
+
+   Operation Cache
+   ---------------
+
+   .. py:staticmethod:: cache_get(op, f, g)
+
+      Read a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param ZDD f: First operand ZDD.
+      :param ZDD g: Second operand ZDD.
+      :return: The cached ZDD result, or ``ZDD.null`` on miss.
+      :rtype: ZDD
+
+   .. py:staticmethod:: cache_put(op, f, g, result)
+
+      Write a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param ZDD f: First operand ZDD.
+      :param ZDD g: Second operand ZDD.
+      :param ZDD result: The result ZDD to cache.
+
+   Summary
+   -------
+
+   .. py:method:: print()
+
+      Print ZDD statistics (ID, Var, Size, Card, Lit, Len) and return as string.
+
+      :rtype: str
 
    Conversion
    ----------
@@ -706,6 +763,46 @@ ZDD Class
       Import a ZDD from a Sapporo format file.
 
       :param str path: File path to read from.
+      :rtype: ZDD
+
+   Knuth I/O (deprecated)
+   ^^^^^^^^^^^^^^^^^^^^^^
+
+   .. deprecated::
+      Use Sapporo or binary I/O instead.
+
+   .. py:method:: export_knuth_str(is_hex=False, offset=0)
+
+      Export this ZDD in Knuth format to a string.
+
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: str
+
+   .. py:staticmethod:: import_knuth_str(s, is_hex=False, offset=0)
+
+      Import a ZDD from a Knuth format string.
+
+      :param str s: The Knuth format string.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: ZDD
+
+   .. py:method:: export_knuth_file(path, is_hex=False, offset=0)
+
+      Export this ZDD in Knuth format to a file.
+
+      :param str path: File path to write to.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+
+   .. py:staticmethod:: import_knuth_file(path, is_hex=False, offset=0)
+
+      Import a ZDD from a Knuth format file.
+
+      :param str path: File path to read from.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
       :rtype: ZDD
 
    Graphillion I/O

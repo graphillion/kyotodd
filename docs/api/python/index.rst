@@ -12,6 +12,7 @@ Python API
    pidd
    rotpidd
    seqbdd
+   memo
 
 C++ only classes
 ----------------

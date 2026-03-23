@@ -118,6 +118,28 @@ QDD Class
 
       :rtype: ZDD
 
+   Operation Cache
+   ~~~~~~~~~~~~~~~
+
+   .. py:staticmethod:: cache_get(op, f, g)
+
+      Read a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param QDD f: First operand QDD.
+      :param QDD g: Second operand QDD.
+      :return: The cached QDD result, or ``QDD.null`` on miss.
+      :rtype: QDD
+
+   .. py:staticmethod:: cache_put(op, f, g, result)
+
+      Write a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param QDD f: First operand QDD.
+      :param QDD g: Second operand QDD.
+      :param QDD result: The result QDD to cache.
+
    Properties
    ~~~~~~~~~~
 

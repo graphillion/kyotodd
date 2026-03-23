@@ -381,6 +381,24 @@ BDD Class
       :return: A list of variable numbers set to 1 in the sample.
       :rtype: list[int]
 
+   .. py:method:: exact_count_with_memo(n, memo)
+
+      Count satisfying assignments using a memo for caching.
+
+      :param int n: Number of variables in the Boolean function.
+      :param BddCountMemo memo: A BddCountMemo object for caching.
+      :rtype: int
+
+   .. py:method:: uniform_sample_with_memo(n, memo, seed=0)
+
+      Sample a satisfying assignment using a memo for caching.
+
+      :param int n: Number of variables in the Boolean function.
+      :param BddCountMemo memo: A BddCountMemo object for caching.
+      :param int seed: Random seed (default 0).
+      :return: A list of variable numbers set to 1 in the sample.
+      :rtype: list[int]
+
    Conversion
    ----------
 
@@ -447,6 +465,37 @@ BDD Class
 
       :param list[BDD] bdds: List of BDDs.
       :rtype: int
+
+   Operation Cache
+   ---------------
+
+   .. py:staticmethod:: cache_get(op, f, g)
+
+      Read a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param BDD f: First operand BDD.
+      :param BDD g: Second operand BDD.
+      :return: The cached BDD result, or ``BDD.null`` on miss.
+      :rtype: BDD
+
+   .. py:staticmethod:: cache_put(op, f, g, result)
+
+      Write a 2-operand cache entry.
+
+      :param int op: Operation code (0-255).
+      :param BDD f: First operand BDD.
+      :param BDD g: Second operand BDD.
+      :param BDD result: The result BDD to cache.
+
+   Summary
+   -------
+
+   .. py:method:: print()
+
+      Print BDD summary (ID, Var, Level, Size) and return as string.
+
+      :rtype: str
 
    Binary I/O
    ----------
@@ -536,6 +585,46 @@ BDD Class
       Import a BDD from a Sapporo format file.
 
       :param str path: File path to read from.
+      :rtype: BDD
+
+   Knuth I/O (deprecated)
+   ----------------------
+
+   .. deprecated::
+      Use Sapporo or binary I/O instead.
+
+   .. py:method:: export_knuth_str(is_hex=False, offset=0)
+
+      Export this BDD in Knuth format to a string.
+
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: str
+
+   .. py:staticmethod:: import_knuth_str(s, is_hex=False, offset=0)
+
+      Import a BDD from a Knuth format string.
+
+      :param str s: The Knuth format string.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+      :rtype: BDD
+
+   .. py:method:: export_knuth_file(path, is_hex=False, offset=0)
+
+      Export this BDD in Knuth format to a file.
+
+      :param str path: File path to write to.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
+
+   .. py:staticmethod:: import_knuth_file(path, is_hex=False, offset=0)
+
+      Import a BDD from a Knuth format file.
+
+      :param str path: File path to read from.
+      :param bool is_hex: If True, use hexadecimal node IDs.
+      :param int offset: Variable number offset (default: 0).
       :rtype: BDD
 
    Graphviz Visualization
