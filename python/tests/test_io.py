@@ -248,3 +248,102 @@ class TestFinalizeResetsPiDDGlobals:
         kyotodd.finalize()
         kyotodd.init()
         assert kyotodd.rotpidd_var_used() == 0
+
+
+class TestBDDExportImportMultiStr:
+    def test_roundtrip(self):
+        kyotodd.new_vars(3)
+        a, b, c = BDD.var(1), BDD.var(2), BDD.var(3)
+        f = a & b
+        bdds = [a, f, c]
+        s = BDD.export_multi_str(bdds)
+        result = BDD.import_multi_str(s)
+        assert len(result) == 3
+        assert result[0] == a
+        assert result[1] == f
+        assert result[2] == c
+
+    def test_single(self):
+        kyotodd.new_var()
+        x = BDD.var(1)
+        s = BDD.export_multi_str([x])
+        result = BDD.import_multi_str(s)
+        assert len(result) == 1
+        assert result[0] == x
+
+    def test_empty(self):
+        s = BDD.export_multi_str([])
+        result = BDD.import_multi_str(s)
+        assert len(result) == 0
+
+    def test_terminals(self):
+        bdds = [BDD.false_, BDD.true_]
+        s = BDD.export_multi_str(bdds)
+        result = BDD.import_multi_str(s)
+        assert len(result) == 2
+        assert result[0] == BDD.false_
+        assert result[1] == BDD.true_
+
+
+class TestBDDExportImportMultiFile:
+    def test_roundtrip(self, tmp_path):
+        kyotodd.new_vars(2)
+        a, b = BDD.var(1), BDD.var(2)
+        f = a | b
+        path = str(tmp_path / "bdd_multi.txt")
+        BDD.export_multi_file([a, b, f], path)
+        result = BDD.import_multi_file(path)
+        assert len(result) == 3
+        assert result[0] == a
+        assert result[1] == b
+        assert result[2] == f
+
+
+class TestZDDExportImportMultiStr:
+    def test_roundtrip(self):
+        kyotodd.new_vars(3)
+        x = ZDD.singleton(1)
+        y = ZDD.singleton(2)
+        z = x + y
+        s = ZDD.export_multi_str([x, y, z])
+        result = ZDD.import_multi_str(s)
+        assert len(result) == 3
+        assert result[0] == x
+        assert result[1] == y
+        assert result[2] == z
+
+    def test_single(self):
+        kyotodd.new_var()
+        x = ZDD.singleton(1)
+        s = ZDD.export_multi_str([x])
+        result = ZDD.import_multi_str(s)
+        assert len(result) == 1
+        assert result[0] == x
+
+    def test_empty(self):
+        s = ZDD.export_multi_str([])
+        result = ZDD.import_multi_str(s)
+        assert len(result) == 0
+
+    def test_terminals(self):
+        zdds = [ZDD.empty, ZDD.single]
+        s = ZDD.export_multi_str(zdds)
+        result = ZDD.import_multi_str(s)
+        assert len(result) == 2
+        assert result[0] == ZDD.empty
+        assert result[1] == ZDD.single
+
+
+class TestZDDExportImportMultiFile:
+    def test_roundtrip(self, tmp_path):
+        kyotodd.new_vars(2)
+        x = ZDD.singleton(1)
+        y = ZDD.singleton(2)
+        z = x + y
+        path = str(tmp_path / "zdd_multi.txt")
+        ZDD.export_multi_file([x, y, z], path)
+        result = ZDD.import_multi_file(path)
+        assert len(result) == 3
+        assert result[0] == x
+        assert result[1] == y
+        assert result[2] == z

@@ -390,6 +390,67 @@ PYBIND11_MODULE(_core, m) {
            "Raises:\n"
            "    RuntimeError: If import fails or file cannot be opened.\n")
 
+        // Multi-root legacy I/O
+        .def_static("export_multi_str", [](const std::vector<BDD>& bdds) -> std::string {
+            std::ostringstream oss;
+            std::vector<bddp> v;
+            v.reserve(bdds.size());
+            for (auto& b : bdds) v.push_back(b.GetID());
+            bddexport(oss, v);
+            return oss.str();
+        }, py::arg("bdds"),
+           "Export multiple BDDs to a string.\n\n"
+           "Args:\n"
+           "    bdds: List of BDD objects.\n\n"
+           "Returns:\n"
+           "    The serialized string.\n")
+        .def_static("import_multi_str", [](const std::string& s) -> std::vector<BDD> {
+            ensure_init();
+            if (s.empty()) return {};
+            std::istringstream iss(s);
+            std::vector<bddp> v;
+            int ret = bddimport(iss, v);
+            if (ret < 0) throw std::runtime_error("BDD multi import failed");
+            std::vector<BDD> result;
+            result.reserve(v.size());
+            for (auto p : v) result.push_back(BDD_ID(p));
+            return result;
+        }, py::arg("s"),
+           "Import multiple BDDs from a string.\n\n"
+           "Args:\n"
+           "    s: The serialized string.\n\n"
+           "Returns:\n"
+           "    A list of BDD objects.\n")
+        .def_static("export_multi_file", [](const std::vector<BDD>& bdds, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            std::vector<bddp> v;
+            v.reserve(bdds.size());
+            for (auto& b : bdds) v.push_back(b.GetID());
+            bddexport(ofs, v);
+        }, py::arg("bdds"), py::arg("path"),
+           "Export multiple BDDs to a file.\n\n"
+           "Args:\n"
+           "    bdds: List of BDD objects.\n"
+           "    path: File path to write to.\n")
+        .def_static("import_multi_file", [](const std::string& path) -> std::vector<BDD> {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::vector<bddp> v;
+            int ret = bddimport(ifs, v);
+            if (ret < 0) throw std::runtime_error("BDD multi import failed");
+            std::vector<BDD> result;
+            result.reserve(v.size());
+            for (auto p : v) result.push_back(BDD_ID(p));
+            return result;
+        }, py::arg("path"),
+           "Import multiple BDDs from a file.\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n\n"
+           "Returns:\n"
+           "    A list of BDD objects.\n")
+
         .def("swap", &BDD::Swap, py::arg("v1"), py::arg("v2"),
              "Swap variables v1 and v2 in the BDD.\n\n"
              "Args:\n"
@@ -1069,6 +1130,67 @@ PYBIND11_MODULE(_core, m) {
            "    The reconstructed ZDD.\n\n"
            "Raises:\n"
            "    RuntimeError: If import fails or file cannot be opened.\n")
+        // Multi-root legacy I/O
+        .def_static("export_multi_str", [](const std::vector<ZDD>& zdds) -> std::string {
+            std::ostringstream oss;
+            std::vector<bddp> v;
+            v.reserve(zdds.size());
+            for (auto& z : zdds) v.push_back(z.GetID());
+            bddexport(oss, v);
+            return oss.str();
+        }, py::arg("zdds"),
+           "Export multiple ZDDs to a string.\n\n"
+           "Args:\n"
+           "    zdds: List of ZDD objects.\n\n"
+           "Returns:\n"
+           "    The serialized string.\n")
+        .def_static("import_multi_str", [](const std::string& s) -> std::vector<ZDD> {
+            ensure_init();
+            if (s.empty()) return {};
+            std::istringstream iss(s);
+            std::vector<bddp> v;
+            int ret = bddimportz(iss, v);
+            if (ret < 0) throw std::runtime_error("ZDD multi import failed");
+            std::vector<ZDD> result;
+            result.reserve(v.size());
+            for (auto p : v) result.push_back(ZDD_ID(p));
+            return result;
+        }, py::arg("s"),
+           "Import multiple ZDDs from a string.\n\n"
+           "Args:\n"
+           "    s: The serialized string.\n\n"
+           "Returns:\n"
+           "    A list of ZDD objects.\n")
+        .def_static("export_multi_file", [](const std::vector<ZDD>& zdds, const std::string& path) {
+            std::ofstream ofs(path);
+            if (!ofs) throw std::runtime_error("Cannot open file: " + path);
+            std::vector<bddp> v;
+            v.reserve(zdds.size());
+            for (auto& z : zdds) v.push_back(z.GetID());
+            bddexport(ofs, v);
+        }, py::arg("zdds"), py::arg("path"),
+           "Export multiple ZDDs to a file.\n\n"
+           "Args:\n"
+           "    zdds: List of ZDD objects.\n"
+           "    path: File path to write to.\n")
+        .def_static("import_multi_file", [](const std::string& path) -> std::vector<ZDD> {
+            ensure_init();
+            std::ifstream ifs(path);
+            if (!ifs) throw std::runtime_error("Cannot open file: " + path);
+            std::vector<bddp> v;
+            int ret = bddimportz(ifs, v);
+            if (ret < 0) throw std::runtime_error("ZDD multi import failed");
+            std::vector<ZDD> result;
+            result.reserve(v.size());
+            for (auto p : v) result.push_back(ZDD_ID(p));
+            return result;
+        }, py::arg("path"),
+           "Import multiple ZDDs from a file.\n\n"
+           "Args:\n"
+           "    path: File path to read from.\n\n"
+           "Returns:\n"
+           "    A list of ZDD objects.\n")
+
         .def("print_sets", [](const ZDD& z,
                               const std::string& delim1,
                               const std::string& delim2,

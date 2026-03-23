@@ -327,6 +327,52 @@ class BDD:
         """
         ...
 
+    @staticmethod
+    def export_multi_str(bdds: List[BDD]) -> str:
+        """Export multiple BDDs to a string.
+
+        Args:
+            bdds: List of BDD objects.
+
+        Returns:
+            The serialized string.
+        """
+        ...
+
+    @staticmethod
+    def import_multi_str(s: str) -> List[BDD]:
+        """Import multiple BDDs from a string.
+
+        Args:
+            s: The serialized string.
+
+        Returns:
+            A list of BDD objects.
+        """
+        ...
+
+    @staticmethod
+    def export_multi_file(bdds: List[BDD], path: str) -> None:
+        """Export multiple BDDs to a file.
+
+        Args:
+            bdds: List of BDD objects.
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_multi_file(path: str) -> List[BDD]:
+        """Import multiple BDDs from a file.
+
+        Args:
+            path: File path to read from.
+
+        Returns:
+            A list of BDD objects.
+        """
+        ...
+
     @property
     def raw_size(self) -> int:
         """The number of nodes in the DAG of this BDD."""
@@ -1211,6 +1257,52 @@ class ZDD:
 
         Args:
             path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def export_multi_str(zdds: List["ZDD"]) -> str:
+        """Export multiple ZDDs to a string.
+
+        Args:
+            zdds: List of ZDD objects.
+
+        Returns:
+            The serialized string.
+        """
+        ...
+
+    @staticmethod
+    def import_multi_str(s: str) -> List["ZDD"]:
+        """Import multiple ZDDs from a string.
+
+        Args:
+            s: The serialized string.
+
+        Returns:
+            A list of ZDD objects.
+        """
+        ...
+
+    @staticmethod
+    def export_multi_file(zdds: List["ZDD"], path: str) -> None:
+        """Export multiple ZDDs to a file.
+
+        Args:
+            zdds: List of ZDD objects.
+            path: File path to write to.
+        """
+        ...
+
+    @staticmethod
+    def import_multi_file(path: str) -> List["ZDD"]:
+        """Import multiple ZDDs from a file.
+
+        Args:
+            path: File path to read from.
+
+        Returns:
+            A list of ZDD objects.
         """
         ...
 
