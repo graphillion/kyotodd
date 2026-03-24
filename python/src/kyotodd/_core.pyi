@@ -48,7 +48,7 @@ class CostBoundMemo:
     """Interval-memoization table for cost-bounded enumeration.
 
     Caches intermediate results using the interval-memoizing technique
-    (BkTrk-IntervalMemo) so that repeated cost_bound calls with
+    (BkTrk-IntervalMemo) so that repeated cost_bound_le/cost_bound_ge calls with
     different bounds on the same ZDD and weights are efficient.
 
     A single CostBoundMemo must only be used with one weights vector.
@@ -1525,7 +1525,7 @@ class ZDD:
         """
         ...
 
-    def cost_bound(self, weights: List[int], b: int) -> ZDD:
+    def cost_bound_le(self, weights: List[int], b: int) -> ZDD:
         """Extract all sets whose total cost is at most b.
 
         Returns a ZDD representing {X in F | Cost(X) <= b}, where
@@ -1546,11 +1546,11 @@ class ZDD:
         """
         ...
 
-    def cost_bound_with_memo(self, weights: List[int], b: int, memo: CostBoundMemo) -> ZDD:
-        """Extract cost-bounded sets, reusing a memo for efficiency.
+    def cost_bound_le_with_memo(self, weights: List[int], b: int, memo: CostBoundMemo) -> ZDD:
+        """Extract cost-bounded sets (<= b), reusing a memo for efficiency.
 
         The memo caches intermediate results using interval-memoizing.
-        When calling cost_bound repeatedly with different bounds on
+        When calling cost_bound_le repeatedly with different bounds on
         the same ZDD and weights, passing a CostBoundMemo can be
         significantly faster.
 
@@ -1562,6 +1562,45 @@ class ZDD:
 
         Returns:
             A ZDD containing all cost-bounded sets.
+
+        Raises:
+            ValueError: If the ZDD is null, weights is too small,
+                        or a different weights vector was used with this memo.
+        """
+        ...
+
+    def cost_bound_ge(self, weights: List[int], b: int) -> ZDD:
+        """Extract all sets whose total cost is at least b.
+
+        Returns a ZDD representing {X in F | Cost(X) >= b}, where
+        Cost(X) = sum of weights[v] for v in X.
+
+        Implemented by negating weights and calling cost_bound_le.
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost >= b are included.
+
+        Returns:
+            A ZDD containing all sets with cost >= b.
+
+        Raises:
+            ValueError: If the ZDD is null or weights is too small.
+        """
+        ...
+
+    def cost_bound_ge_with_memo(self, weights: List[int], b: int, memo: CostBoundMemo) -> ZDD:
+        """Extract sets with cost >= b, reusing a memo for efficiency.
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost >= b are included.
+            memo: A CostBoundMemo object for caching across calls.
+
+        Returns:
+            A ZDD containing all sets with cost >= b.
 
         Raises:
             ValueError: If the ZDD is null, weights is too small,
