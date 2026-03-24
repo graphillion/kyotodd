@@ -917,7 +917,10 @@ static bigint::BigInt bddweightsum_rec(
 
 bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights) {
     bddp_validate(f, "bddweightsum");
-    if (f == bddnull || f == bddempty || f == bddsingle)
+    if (f == bddnull) {
+        throw std::invalid_argument("bddweightsum: null ZDD");
+    }
+    if (f == bddempty || f == bddsingle)
         return bigint::BigInt(0);
     bddvar top = bddtop(f);
     if (weights.size() <= static_cast<size_t>(top)) {

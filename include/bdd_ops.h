@@ -775,7 +775,7 @@ bddp bdddivisor(bddp f);
  * @param weights Weight vector indexed by variable number.
  *                Size must be > top variable of f.
  * @return The total weight sum.
- * @throws std::invalid_argument if weights is too small.
+ * @throws std::invalid_argument if f is bddnull or weights is too small.
  */
 bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights);
 

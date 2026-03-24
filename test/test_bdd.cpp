@@ -12131,7 +12131,7 @@ TEST_F(BDDTest, WeightSum_PowerSetLarge) {
 
 TEST_F(BDDTest, WeightSum_FreeFunctionNull) {
     std::vector<int> w = {0};
-    EXPECT_EQ(bddweightsum(bddnull, w), bigint::BigInt(0));
+    EXPECT_THROW(bddweightsum(bddnull, w), std::invalid_argument);
 }
 
 TEST_F(BDDTest, WeightSum_WeightsTooSmallThrows) {
