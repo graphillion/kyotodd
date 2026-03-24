@@ -1457,6 +1457,37 @@ PYBIND11_MODULE(_core, m) {
            "    ValueError: If the ZDD is null, weights is too small,\n"
            "                or a different weights vector was used with this memo.\n")
 
+        // Cost-bounded enumeration (==)
+        .def("cost_bound_eq", [](const ZDD& z, const std::vector<int>& weights, long long b) -> ZDD {
+            return z.cost_bound_eq(weights, b);
+        }, py::arg("weights"), py::arg("b"),
+           "Extract all sets whose total cost is exactly b.\n\n"
+           "Returns a ZDD representing {X in F | Cost(X) = b}.\n"
+           "Computed as cost_bound_le(b) - cost_bound_le(b - 1).\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    b: Cost bound. Sets with total cost exactly b are included.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with cost == b.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null or weights is too small.\n")
+        .def("cost_bound_eq_with_memo", [](const ZDD& z, const std::vector<int>& weights,
+                                            long long b, CostBoundMemo& memo) -> ZDD {
+            return z.cost_bound_eq(weights, b, memo);
+        }, py::arg("weights"), py::arg("b"), py::arg("memo"),
+           "Extract sets with cost == b, reusing a memo for efficiency.\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    b: Cost bound. Sets with total cost exactly b are included.\n"
+           "    memo: A CostBoundMemo object for caching across calls.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with cost == b.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null, weights is too small,\n"
+           "                or a different weights vector was used with this memo.\n")
+
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {
             ensure_init();

@@ -983,3 +983,30 @@ ZDD Class
       :rtype: ZDD
       :raises ValueError: If the ZDD is null, weights is too small,
                           or a different weights vector was used with this memo.
+
+   .. py:method:: cost_bound_eq(weights, b)
+
+      Extract all sets whose total cost is exactly *b*.
+
+      Returns a ZDD representing {X ∈ F | Cost(X) = b}.
+      Computed as ``cost_bound_le(b) - cost_bound_le(b - 1)``.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int b: Cost bound. Sets with total cost = b are included.
+      :return: A ZDD containing all sets with cost = b.
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null or weights is too small.
+
+   .. py:method:: cost_bound_eq_with_memo(weights, b, memo)
+
+      Extract sets with cost = b, reusing a memo for efficiency.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int b: Cost bound. Sets with total cost = b are included.
+      :param CostBoundMemo memo: Memo object for caching across calls.
+      :return: A ZDD containing all sets with cost = b.
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null, weights is too small,
+                          or a different weights vector was used with this memo.

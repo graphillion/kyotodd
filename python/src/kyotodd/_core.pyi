@@ -1608,6 +1608,43 @@ class ZDD:
         """
         ...
 
+    def cost_bound_eq(self, weights: List[int], b: int) -> ZDD:
+        """Extract all sets whose total cost is exactly b.
+
+        Returns a ZDD representing {X in F | Cost(X) = b}.
+        Computed as cost_bound_le(b) - cost_bound_le(b - 1).
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost exactly b are included.
+
+        Returns:
+            A ZDD containing all sets with cost == b.
+
+        Raises:
+            ValueError: If the ZDD is null or weights is too small.
+        """
+        ...
+
+    def cost_bound_eq_with_memo(self, weights: List[int], b: int, memo: CostBoundMemo) -> ZDD:
+        """Extract sets with cost == b, reusing a memo for efficiency.
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost exactly b are included.
+            memo: A CostBoundMemo object for caching across calls.
+
+        Returns:
+            A ZDD containing all sets with cost == b.
+
+        Raises:
+            ValueError: If the ZDD is null, weights is too small,
+                        or a different weights vector was used with this memo.
+        """
+        ...
+
     @staticmethod
     def singleton(v: int) -> ZDD:
         """Create the ZDD {{v}} (a family with one singleton set).
