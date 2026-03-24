@@ -11826,3 +11826,124 @@ TEST_F(BDDTest, CostBound_ReorderedVariables) {
     EXPECT_EQ(h20, ZDD::Empty);             // 25 > 20: rejected
 }
 
+// ==================== CostBoundGe ====================
+
+TEST_F(BDDTest, CostBoundGe_EmptyFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.cost_bound_ge(w, 0), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_ge(w, -1), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundGe_UnitFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Single;  // {∅}, cost(∅) = 0
+    EXPECT_EQ(f.cost_bound_ge(w, 0), ZDD::Single);   // 0 >= 0: accepted
+    EXPECT_EQ(f.cost_bound_ge(w, -1), ZDD::Single);  // 0 >= -1: accepted
+    EXPECT_EQ(f.cost_bound_ge(w, 1), ZDD::Empty);    // 0 < 1: rejected
+}
+
+TEST_F(BDDTest, CostBoundGe_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}, cost = 5
+    EXPECT_EQ(f.cost_bound_ge(w, 5), f);             // 5 >= 5: accepted
+    EXPECT_EQ(f.cost_bound_ge(w, 4), f);             // 5 >= 4: accepted
+    EXPECT_EQ(f.cost_bound_ge(w, 6), ZDD::Empty);    // 5 < 6: rejected
+}
+
+TEST_F(BDDTest, CostBoundGe_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 8};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1},{v2}}, costs 3, 8
+
+    // b=5: only {v2} (cost 8) has cost >= 5
+    ZDD h5 = f.cost_bound_ge(w, 5);
+    EXPECT_EQ(h5, ZDD::singleton(v2));
+
+    // b=3: both have cost >= 3
+    ZDD h3 = f.cost_bound_ge(w, 3);
+    EXPECT_EQ(h3, f);
+
+    // b=9: neither has cost >= 9
+    ZDD h9 = f.cost_bound_ge(w, 9);
+    EXPECT_EQ(h9, ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundGe_FamilyWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 4};
+    ZDD f = ZDD::Single + ZDD::singleton(v1);  // {{},{v1}}, costs 0, 4
+
+    // b=0: both have cost >= 0
+    ZDD h0 = f.cost_bound_ge(w, 0);
+    EXPECT_EQ(h0, f);
+
+    // b=1: only {v1} (cost 4) has cost >= 1
+    ZDD h1 = f.cost_bound_ge(w, 1);
+    EXPECT_EQ(h1, ZDD::singleton(v1));
+
+    // b=5: neither has cost >= 5
+    ZDD h5 = f.cost_bound_ge(w, 5);
+    EXPECT_EQ(h5, ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundGe_CrossValidateWithEnumerate) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 2, 5, 10};
+    ZDD f = ZDD::power_set(3);  // all subsets of {1,2,3}
+
+    auto all_sets = f.enumerate();
+
+    for (long long b = -1; b <= 18; ++b) {
+        ZDD h = f.cost_bound_ge(w, b);
+        auto result_sets = h.enumerate();
+
+        // Filter manually: keep sets with cost >= b.
+        std::vector<std::vector<bddvar>> expected;
+        for (const auto& s : all_sets) {
+            long long cost = 0;
+            for (bddvar v : s) cost += w[v];
+            if (cost >= b) expected.push_back(s);
+        }
+
+        std::vector<std::vector<bddvar>> sorted_result = result_sets;
+        std::vector<std::vector<bddvar>> sorted_expected = expected;
+        std::sort(sorted_result.begin(), sorted_result.end());
+        std::sort(sorted_expected.begin(), sorted_expected.end());
+        EXPECT_EQ(sorted_result, sorted_expected)
+            << "Mismatch at b=" << b;
+    }
+}
+
+TEST_F(BDDTest, CostBoundGe_MemoReuse) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 5, 10, 20};
+    ZDD f = ZDD::power_set(3);
+
+    CostBoundMemo memo;
+    ZDD h5 = f.cost_bound_ge(w, 5, memo);
+    ZDD h15 = f.cost_bound_ge(w, 15, memo);
+    ZDD h25 = f.cost_bound_ge(w, 25, memo);
+
+    // Verify against non-memo version
+    EXPECT_EQ(h5, f.cost_bound_ge(w, 5));
+    EXPECT_EQ(h15, f.cost_bound_ge(w, 15));
+    EXPECT_EQ(h25, f.cost_bound_ge(w, 25));
+}
+
+TEST_F(BDDTest, CostBoundGe_SimpleOverload) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD f = ZDD::singleton(v1);
+    ZDD h = f.cost_bound_ge(w, 5);
+    EXPECT_EQ(h, f);
+}
+
