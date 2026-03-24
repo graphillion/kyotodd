@@ -1389,6 +1389,46 @@ PYBIND11_MODULE(_core, m) {
              "Raises:\n"
              "    IndexError: If order is out of range.\n")
 
+        // get_k_sets
+        .def("get_k_sets", [](const ZDD& z, int64_t k) -> ZDD {
+            return z.get_k_sets(k);
+        }, py::arg("k"),
+             "Return the first k sets in structure order.\n\n"
+             "Structure order: empty set (if present) at index 0, then\n"
+             "hi-edge sets before lo-edge sets at each node.\n\n"
+             "Args:\n"
+             "    k: Number of sets to extract (must be >= 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the first k sets.\n\n"
+             "Raises:\n"
+             "    ValueError: If k is negative.\n")
+        .def("exact_get_k_sets", [](const ZDD& z, py::int_ k) -> ZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.get_k_sets(bi);
+        }, py::arg("k"),
+             "Return the first k sets (arbitrary precision k).\n\n"
+             "Args:\n"
+             "    k: Number of sets to extract (int, arbitrary precision, >= 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the first k sets.\n\n"
+             "Raises:\n"
+             "    ValueError: If k is negative.\n")
+        .def("exact_get_k_sets_with_memo", [](const ZDD& z, py::int_ k,
+                                              ZddCountMemo& memo) -> ZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.get_k_sets(bi, memo);
+        }, py::arg("k"), py::arg("memo"),
+             "Return the first k sets using a memo for caching counts.\n\n"
+             "Args:\n"
+             "    k: Number of sets to extract (int, arbitrary precision, >= 0).\n"
+             "    memo: A ZddCountMemo object for caching.\n\n"
+             "Returns:\n"
+             "    A ZDD containing the first k sets.\n\n"
+             "Raises:\n"
+             "    ValueError: If k is negative or memo root mismatch.\n")
+
         // Weight sum
         .def("get_sum", [](const ZDD& z, const std::vector<int>& weights) -> py::int_ {
             bigint::BigInt bi = z.get_sum(weights);
