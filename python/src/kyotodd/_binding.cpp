@@ -1346,6 +1346,22 @@ PYBIND11_MODULE(_core, m) {
              "Raises:\n"
              "    ValueError: If the family is empty or weights is too small.\n")
 
+        // Weight iteration
+        .def("iter_min_weight", [](const ZDD& z, const std::vector<int>& weights) {
+            return ZddMinWeightRange(z, weights);
+        }, py::arg("weights"), py::keep_alive<0, 1>(),
+           "Iterate over sets in ascending weight order.\n\n"
+           "Args:\n"
+           "    weights: A list of integer weights indexed by variable number.\n"
+           "             Size must be > var_used().\n\n"
+           "Returns:\n"
+           "    An iterator yielding (weight, set) pairs.\n\n"
+           "Example:\n"
+           "    for weight, s in zdd.iter_min_weight(weights):\n"
+           "        print(weight, s)\n"
+           "        if weight > threshold:\n"
+           "            break\n")
+
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {
             ensure_init();
@@ -2564,5 +2580,25 @@ PYBIND11_MODULE(_core, m) {
            "Equivalent to str(self).\n\n"
            "Returns:\n"
            "    A string representation of all sequences.\n")
+    ;
+
+    // ZddMinWeightRange Python iterator
+    py::class_<ZddMinWeightRange>(m, "_ZddMinWeightRange")
+        .def("__iter__", [](ZddMinWeightRange& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<ZddMinWeightIterator>(m, "_ZddMinWeightIterator")
+        .def("__iter__", [](ZddMinWeightIterator& it) -> ZddMinWeightIterator& {
+            return it;
+        })
+        .def("__next__", [](ZddMinWeightIterator& it) {
+            ZddMinWeightIterator end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
     ;
 }
