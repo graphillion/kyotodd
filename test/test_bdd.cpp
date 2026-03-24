@@ -11569,3 +11569,19 @@ TEST_F(BDDTest, MinMaxWeight_WeightsTooSmallThrows) {
     EXPECT_THROW(f.max_weight(w), std::invalid_argument);
 }
 
+TEST_F(BDDTest, MinMaxWeight_UnrelatedNewVarDoesNotBreak) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    std::vector<int> w = {0, 5};
+    EXPECT_EQ(f.min_weight(w), 5);
+
+    // Creating more variables should not break existing ZDD's weight ops.
+    bddnewvar();
+    bddnewvar();
+    EXPECT_EQ(f.min_weight(w), 5);
+    EXPECT_EQ(f.max_weight(w), 5);
+    std::vector<bddvar> expected = {v1};
+    EXPECT_EQ(f.min_weight_set(w), expected);
+    EXPECT_EQ(f.max_weight_set(w), expected);
+}
+

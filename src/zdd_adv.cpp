@@ -895,9 +895,10 @@ static void bddweight_validate(bddp f, const std::vector<int>& weights,
         throw std::invalid_argument(
             std::string(name) + ": empty family has no sets");
     }
-    if (weights.size() <= static_cast<size_t>(bdd_varcount)) {
+    bddvar top = bddtop(f);
+    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
         throw std::invalid_argument(
-            std::string(name) + ": weights.size() must be > var_used()");
+            std::string(name) + ": weights.size() must be > top variable");
     }
 }
 

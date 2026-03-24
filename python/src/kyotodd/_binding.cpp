@@ -1313,38 +1313,38 @@ PYBIND11_MODULE(_core, m) {
              "Find the minimum weight sum among all sets in the family.\n\n"
              "Args:\n"
              "    weights: A list of integer weights indexed by variable number.\n"
-             "             Size must be > var_used().\n\n"
+             "             Size must be > the top variable number of the ZDD.\n\n"
              "Returns:\n"
              "    The minimum weight sum (int).\n\n"
              "Raises:\n"
-             "    ValueError: If the family is empty or weights is too small.\n")
+             "    ValueError: If the ZDD is null, the family is empty, or weights is too small.\n")
         .def("max_weight", &ZDD::max_weight, py::arg("weights"),
              "Find the maximum weight sum among all sets in the family.\n\n"
              "Args:\n"
              "    weights: A list of integer weights indexed by variable number.\n"
-             "             Size must be > var_used().\n\n"
+             "             Size must be > the top variable number of the ZDD.\n\n"
              "Returns:\n"
              "    The maximum weight sum (int).\n\n"
              "Raises:\n"
-             "    ValueError: If the family is empty or weights is too small.\n")
+             "    ValueError: If the ZDD is null, the family is empty, or weights is too small.\n")
         .def("min_weight_set", &ZDD::min_weight_set, py::arg("weights"),
              "Find a set with the minimum weight sum.\n\n"
              "Args:\n"
              "    weights: A list of integer weights indexed by variable number.\n"
-             "             Size must be > var_used().\n\n"
+             "             Size must be > the top variable number of the ZDD.\n\n"
              "Returns:\n"
              "    A list of variable numbers forming a set with minimum weight sum.\n\n"
              "Raises:\n"
-             "    ValueError: If the family is empty or weights is too small.\n")
+             "    ValueError: If the ZDD is null, the family is empty, or weights is too small.\n")
         .def("max_weight_set", &ZDD::max_weight_set, py::arg("weights"),
              "Find a set with the maximum weight sum.\n\n"
              "Args:\n"
              "    weights: A list of integer weights indexed by variable number.\n"
-             "             Size must be > var_used().\n\n"
+             "             Size must be > the top variable number of the ZDD.\n\n"
              "Returns:\n"
              "    A list of variable numbers forming a set with maximum weight sum.\n\n"
              "Raises:\n"
-             "    ValueError: If the family is empty or weights is too small.\n")
+             "    ValueError: If the ZDD is null, the family is empty, or weights is too small.\n")
 
         // Weight iteration
         .def("iter_min_weight", [](const ZDD& z, const std::vector<int>& weights) {
@@ -1353,7 +1353,7 @@ PYBIND11_MODULE(_core, m) {
            "Iterate over sets in ascending weight order.\n\n"
            "Args:\n"
            "    weights: A list of integer weights indexed by variable number.\n"
-           "             Size must be > var_used().\n\n"
+           "             Size must be > the top variable number of the ZDD.\n\n"
            "Returns:\n"
            "    An iterator yielding (weight, set) pairs.\n\n"
            "Example:\n"

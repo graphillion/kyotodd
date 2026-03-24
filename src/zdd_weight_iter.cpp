@@ -128,10 +128,11 @@ ZddMinWeightIterator::ZddMinWeightIterator(
         return;
     }
 
-    // Validate weights size.
-    if (weights.size() <= static_cast<size_t>(bdd_varcount)) {
+    // Validate weights size against the ZDD's top variable.
+    bddvar top = bddtop(root);
+    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
         throw std::invalid_argument(
-            "ZddMinWeightIterator: weights.size() must be > var_used()");
+            "ZddMinWeightIterator: weights.size() must be > top variable");
     }
 
     // Check if any path to 1-terminal exists.

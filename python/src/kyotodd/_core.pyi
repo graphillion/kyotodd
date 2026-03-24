@@ -1426,13 +1426,13 @@ class ZDD:
 
         Args:
             weights: A list of integer weights indexed by variable number.
-                     Size must be > var_used().
+                     Size must be > the top variable number of the ZDD.
 
         Returns:
             The minimum weight sum.
 
         Raises:
-            ValueError: If the family is empty or weights is too small.
+            ValueError: If the ZDD is null, the family is empty, or weights is too small.
         """
         ...
 
@@ -1441,13 +1441,13 @@ class ZDD:
 
         Args:
             weights: A list of integer weights indexed by variable number.
-                     Size must be > var_used().
+                     Size must be > the top variable number of the ZDD.
 
         Returns:
             The maximum weight sum.
 
         Raises:
-            ValueError: If the family is empty or weights is too small.
+            ValueError: If the ZDD is null, the family is empty, or weights is too small.
         """
         ...
 
@@ -1456,13 +1456,13 @@ class ZDD:
 
         Args:
             weights: A list of integer weights indexed by variable number.
-                     Size must be > var_used().
+                     Size must be > the top variable number of the ZDD.
 
         Returns:
             A list of variable numbers forming a set with minimum weight sum.
 
         Raises:
-            ValueError: If the family is empty or weights is too small.
+            ValueError: If the ZDD is null, the family is empty, or weights is too small.
         """
         ...
 
@@ -1471,13 +1471,13 @@ class ZDD:
 
         Args:
             weights: A list of integer weights indexed by variable number.
-                     Size must be > var_used().
+                     Size must be > the top variable number of the ZDD.
 
         Returns:
             A list of variable numbers forming a set with maximum weight sum.
 
         Raises:
-            ValueError: If the family is empty or weights is too small.
+            ValueError: If the ZDD is null, the family is empty, or weights is too small.
         """
         ...
 
@@ -1486,7 +1486,7 @@ class ZDD:
 
         Args:
             weights: A list of integer weights indexed by variable number.
-                     Size must be > var_used().
+                     Size must be > the top variable number of the ZDD.
 
         Returns:
             An iterator yielding (weight, set) pairs.
