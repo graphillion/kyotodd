@@ -1321,6 +1321,74 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    True if the family contains the empty set.\n")
 
+        // Rank / Unrank
+        .def("rank", &ZDD::rank, py::arg("s"),
+             "Rank a set in the family.\n\n"
+             "Returns the 0-based index of set s in the ZDD's structure-based\n"
+             "ordering (empty set first, then hi-edge before lo-edge).\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers representing the set.\n\n"
+             "Returns:\n"
+             "    The rank (int), or -1 if the set is not in the family.\n\n"
+             "Raises:\n"
+             "    OverflowError: If the rank exceeds int64 range.\n")
+        .def("exact_rank", [](const ZDD& z, const std::vector<bddvar>& s) -> py::int_ {
+            bigint::BigInt bi = z.exact_rank(s);
+            std::string str = bi.to_string();
+            return py::int_(py::str(str));
+        }, py::arg("s"),
+             "Rank a set in the family (arbitrary precision).\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers representing the set.\n\n"
+             "Returns:\n"
+             "    The rank (int), or -1 if the set is not in the family.\n")
+        .def("exact_rank_with_memo", [](const ZDD& z, const std::vector<bddvar>& s,
+                                        ZddCountMemo& memo) -> py::int_ {
+            bigint::BigInt bi = z.exact_rank(s, memo);
+            std::string str = bi.to_string();
+            return py::int_(py::str(str));
+        }, py::arg("s"), py::arg("memo"),
+             "Rank a set using a memo for caching.\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers representing the set.\n"
+             "    memo: A ZddCountMemo object for caching.\n\n"
+             "Returns:\n"
+             "    The rank (int), or -1 if the set is not in the family.\n")
+        .def("unrank", &ZDD::unrank, py::arg("order"),
+             "Retrieve the set at a given index in the family.\n\n"
+             "Args:\n"
+             "    order: The 0-based index.\n\n"
+             "Returns:\n"
+             "    A sorted list of variable numbers.\n\n"
+             "Raises:\n"
+             "    IndexError: If order is out of range.\n")
+        .def("exact_unrank", [](const ZDD& z, py::int_ order) -> std::vector<bddvar> {
+            std::string s = py::str(order).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.exact_unrank(bi);
+        }, py::arg("order"),
+             "Retrieve the set at a given index (arbitrary precision).\n\n"
+             "Args:\n"
+             "    order: The 0-based index (int, arbitrary precision).\n\n"
+             "Returns:\n"
+             "    A sorted list of variable numbers.\n\n"
+             "Raises:\n"
+             "    IndexError: If order is out of range.\n")
+        .def("exact_unrank_with_memo", [](const ZDD& z, py::int_ order,
+                                          ZddCountMemo& memo) -> std::vector<bddvar> {
+            std::string s = py::str(order).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.exact_unrank(bi, memo);
+        }, py::arg("order"), py::arg("memo"),
+             "Retrieve the set at a given index using a memo.\n\n"
+             "Args:\n"
+             "    order: The 0-based index (int, arbitrary precision).\n"
+             "    memo: A ZddCountMemo object for caching.\n\n"
+             "Returns:\n"
+             "    A sorted list of variable numbers.\n\n"
+             "Raises:\n"
+             "    IndexError: If order is out of range.\n")
+
         // Weight sum
         .def("get_sum", [](const ZDD& z, const std::vector<int>& weights) -> py::int_ {
             bigint::BigInt bi = z.get_sum(weights);

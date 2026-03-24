@@ -852,6 +852,77 @@ bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
 bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
                       CostBoundMemo& memo);
 
+// ZDD ranking / unranking
+
+/**
+ * @brief Rank a set in the ZDD family (int64_t version).
+ *
+ * Returns the 0-based index of set @p s in the ZDD family's
+ * structure-based ordering (∅ first, then hi-edge sets before lo-edge sets
+ * at each node).
+ *
+ * @param f A ZDD node ID.
+ * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+ * @return The rank of the set, or -1 if @p s is not in the family.
+ * @throws std::overflow_error if the rank exceeds int64_t range.
+ */
+int64_t bddrank(bddp f, const std::vector<bddvar>& s);
+
+/**
+ * @brief Rank a set in the ZDD family (arbitrary precision).
+ *
+ * @param f A ZDD node ID.
+ * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+ * @return The rank of the set as a BigInt, or BigInt(-1) if not in the family.
+ */
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
+
+/**
+ * @brief Rank a set in the ZDD family (arbitrary precision, with memo).
+ *
+ * @param f A ZDD node ID.
+ * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+ * @param memo The count memo table to use and populate.
+ * @return The rank of the set as a BigInt, or BigInt(-1) if not in the family.
+ */
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
+                            CountMemoMap& memo);
+
+/**
+ * @brief Unrank: retrieve the set at a given index in the ZDD family (int64_t).
+ *
+ * Returns the set at position @p order in the ZDD family's structure-based
+ * ordering.
+ *
+ * @param f A ZDD node ID.
+ * @param order The 0-based index.
+ * @return The set as a sorted vector of variable numbers.
+ * @throws std::out_of_range if @p order is negative or >= family size.
+ */
+std::vector<bddvar> bddunrank(bddp f, int64_t order);
+
+/**
+ * @brief Unrank: retrieve the set at a given index (arbitrary precision).
+ *
+ * @param f A ZDD node ID.
+ * @param order The 0-based index as a BigInt.
+ * @return The set as a sorted vector of variable numbers.
+ * @throws std::out_of_range if @p order is out of range.
+ */
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
+
+/**
+ * @brief Unrank: retrieve the set at a given index (arbitrary precision, with memo).
+ *
+ * @param f A ZDD node ID.
+ * @param order The 0-based index as a BigInt.
+ * @param memo The count memo table to use and populate.
+ * @return The set as a sorted vector of variable numbers.
+ * @throws std::out_of_range if @p order is out of range.
+ */
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
+                                   CountMemoMap& memo);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

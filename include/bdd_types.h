@@ -1199,6 +1199,40 @@ public:
     /** @brief Convenience overload without memo (creates a temporary one). */
     ZDD cost_bound_eq(const std::vector<int>& weights, long long b) const;
 
+    /**
+     * @brief Rank a set in the family (int64_t version).
+     *
+     * Returns the 0-based index of @p s in the ZDD's structure-based ordering.
+     * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+     * @return The rank, or -1 if @p s is not in the family.
+     * @throws std::overflow_error if the rank exceeds int64_t range.
+     */
+    int64_t rank(const std::vector<bddvar>& s) const;
+
+    /** @brief Rank a set in the family (arbitrary precision). */
+    bigint::BigInt exact_rank(const std::vector<bddvar>& s) const;
+
+    /** @brief Rank a set in the family (arbitrary precision, with memo). */
+    bigint::BigInt exact_rank(const std::vector<bddvar>& s,
+                              ZddCountMemo& memo) const;
+
+    /**
+     * @brief Retrieve the set at a given index in the family (int64_t version).
+     *
+     * Returns the set at position @p order in the ZDD's structure-based ordering.
+     * @param order The 0-based index.
+     * @return The set as a sorted vector of variable numbers.
+     * @throws std::out_of_range if @p order is out of range.
+     */
+    std::vector<bddvar> unrank(int64_t order) const;
+
+    /** @brief Retrieve the set at a given index (arbitrary precision). */
+    std::vector<bddvar> exact_unrank(const bigint::BigInt& order) const;
+
+    /** @brief Retrieve the set at a given index (arbitrary precision, with memo). */
+    std::vector<bddvar> exact_unrank(const bigint::BigInt& order,
+                                     ZddCountMemo& memo) const;
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

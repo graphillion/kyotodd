@@ -182,6 +182,8 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F.
 - Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family.
 - Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
+- Ranking: `rank(s)` (int64_t), `exact_rank(s)` (BigInt), `exact_rank(s, ZddCountMemo&)` — 0-based index of set `s` in ZDD structure order. Returns -1 if not in family. Free functions: `bddrank()`, `bddexactrank()`.
+- Unranking: `unrank(order)` (int64_t), `exact_unrank(order)` (BigInt), `exact_unrank(order, ZddCountMemo&)` — retrieve set at given index. Throws `std::out_of_range`. Free functions: `bddunrank()`, `bddexactunrank()`.
 - Construction: `ZDD::singleton(v)`, `ZDD::single_set(vars)`, `ZDD::from_sets(sets)`, `ZDD::power_set(n)`, `ZDD::power_set(vars)`, `ZDD::combination(n, k)`, `ZDD::random_family(n, rng)`.
 - Display: `print_sets(os)`, `print_sets(os, delim1, delim2)`, `print_sets(os, delim1, delim2, var_name_map)`, `to_str()`.
 - Conversion: `to_qdd()` — convert ZDD to quasi-reduced QDD.

@@ -567,3 +567,39 @@ ZDD ZDD::cost_bound_eq(const std::vector<int>& weights, long long b) const {
     CostBoundMemo memo;
     return cost_bound_eq(weights, b, memo);
 }
+
+// --- ZDD::rank / unrank ---
+
+int64_t ZDD::rank(const std::vector<bddvar>& s) const {
+    return bddrank(root, s);
+}
+
+bigint::BigInt ZDD::exact_rank(const std::vector<bddvar>& s) const {
+    return bddexactrank(root, s);
+}
+
+bigint::BigInt ZDD::exact_rank(const std::vector<bddvar>& s,
+                               ZddCountMemo& memo) const {
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "exact_rank: memo was created for a different ZDD");
+    }
+    return bddexactrank(root, s, memo.map());
+}
+
+std::vector<bddvar> ZDD::unrank(int64_t order) const {
+    return bddunrank(root, order);
+}
+
+std::vector<bddvar> ZDD::exact_unrank(const bigint::BigInt& order) const {
+    return bddexactunrank(root, order);
+}
+
+std::vector<bddvar> ZDD::exact_unrank(const bigint::BigInt& order,
+                                      ZddCountMemo& memo) const {
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "exact_unrank: memo was created for a different ZDD");
+    }
+    return bddexactunrank(root, order, memo.map());
+}

@@ -12141,3 +12141,311 @@ TEST_F(BDDTest, WeightSum_WeightsTooSmallThrows) {
     EXPECT_THROW(f.get_sum(w), std::invalid_argument);
 }
 
+// ---------------------------------------------------------------
+// ZDD Rank tests
+// ---------------------------------------------------------------
+
+TEST_F(BDDTest, ZDD_Rank_EmptyFamily) {
+    // rank in empty family always returns -1
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.rank({}), -1);
+    bddvar v1 = bddnewvar();
+    EXPECT_EQ(f.rank({v1}), -1);
+}
+
+TEST_F(BDDTest, ZDD_Rank_SingleFamily) {
+    // {∅} — only the empty set
+    ZDD f = ZDD::Single;
+    EXPECT_EQ(f.rank({}), 0);
+    bddvar v1 = bddnewvar();
+    EXPECT_EQ(f.rank({v1}), -1);
+}
+
+TEST_F(BDDTest, ZDD_Rank_SingleVariable) {
+    // {{1}} — only {1}
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.rank({v1}), 0);
+    EXPECT_EQ(f.rank({}), -1);
+}
+
+TEST_F(BDDTest, ZDD_Rank_EmptySetFirst) {
+    // {{1}, ∅} — ∅ gets index 0, {1} gets index 1
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::Single;
+    EXPECT_EQ(f.rank({}), 0);
+    EXPECT_EQ(f.rank({v1}), 1);
+}
+
+TEST_F(BDDTest, ZDD_Rank_NotInFamily) {
+    // {{1}} — {2} is not a member
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.rank({v2}), -1);
+    EXPECT_EQ(f.rank({v1, v2}), -1);
+}
+
+TEST_F(BDDTest, ZDD_Rank_DuplicateInput) {
+    // Duplicate and unsorted input should be normalized
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2});
+    int64_t r = f.rank({v2, v1, v2, v1});  // duplicates and unsorted
+    EXPECT_EQ(r, f.rank({v1, v2}));
+}
+
+TEST_F(BDDTest, ZDD_Rank_PowerSet3_RoundtripWithEnumerate) {
+    // power_set(3) has 8 sets. Verify rank matches enumerate order.
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+
+    auto sets = f.enumerate();
+    // For each set from enumerate, rank should give consecutive indices
+    // that match the ZDD structure-based ordering.
+    std::vector<int64_t> ranks;
+    for (const auto& s : sets) {
+        int64_t r = f.rank(s);
+        EXPECT_GE(r, 0);
+        ranks.push_back(r);
+    }
+    // ranks should be a permutation of 0..7
+    std::sort(ranks.begin(), ranks.end());
+    for (int64_t i = 0; i < 8; ++i) {
+        EXPECT_EQ(ranks[i], i);
+    }
+}
+
+TEST_F(BDDTest, ZDD_ExactRank_Basic) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::Single;
+    EXPECT_EQ(f.exact_rank({}), bigint::BigInt(0));
+    EXPECT_EQ(f.exact_rank({v1}), bigint::BigInt(1));
+    EXPECT_EQ(f.exact_rank({999}), bigint::BigInt(-1));
+}
+
+TEST_F(BDDTest, ZDD_ExactRank_WithMemo) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    ZddCountMemo memo(f);
+    bigint::BigInt r1 = f.exact_rank({v1}, memo);
+    bigint::BigInt r2 = f.exact_rank({v2}, memo);
+    // Different sets should have different ranks
+    EXPECT_NE(r1, r2);
+    EXPECT_GE(r1, bigint::BigInt(0));
+    EXPECT_GE(r2, bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, ZDD_Rank_NullThrows) {
+    ZDD f = ZDD::Null;
+    EXPECT_THROW(f.rank({}), std::invalid_argument);
+    EXPECT_THROW(f.exact_rank({}), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------
+// ZDD Unrank tests
+// ---------------------------------------------------------------
+
+TEST_F(BDDTest, ZDD_Unrank_EmptyFamily) {
+    ZDD f = ZDD::Empty;
+    EXPECT_THROW(f.unrank(0), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_SingleFamily) {
+    ZDD f = ZDD::Single;
+    auto s = f.unrank(0);
+    EXPECT_TRUE(s.empty());  // ∅
+    EXPECT_THROW(f.unrank(1), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    auto s = f.unrank(0);
+    EXPECT_EQ(s, std::vector<bddvar>({v1}));
+    EXPECT_THROW(f.unrank(1), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_EmptySetFirst) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::Single;
+    auto s0 = f.unrank(0);
+    auto s1 = f.unrank(1);
+    EXPECT_TRUE(s0.empty());  // ∅ at index 0
+    EXPECT_EQ(s1, std::vector<bddvar>({v1}));
+}
+
+TEST_F(BDDTest, ZDD_Unrank_NegativeThrows) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.unrank(-1), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_OutOfRangeThrows) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.unrank(1), std::out_of_range);
+    EXPECT_THROW(f.unrank(100), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_OutputSorted) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2, v3});
+    auto s = f.unrank(0);
+    EXPECT_TRUE(std::is_sorted(s.begin(), s.end()));
+}
+
+TEST_F(BDDTest, ZDD_ExactUnrank_Basic) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::Single;
+    auto s0 = f.exact_unrank(bigint::BigInt(0));
+    auto s1 = f.exact_unrank(bigint::BigInt(1));
+    EXPECT_TRUE(s0.empty());
+    EXPECT_EQ(s1, std::vector<bddvar>({v1}));
+}
+
+TEST_F(BDDTest, ZDD_ExactUnrank_WithMemo) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    ZddCountMemo memo(f);
+    auto s0 = f.exact_unrank(bigint::BigInt(0), memo);
+    auto s1 = f.exact_unrank(bigint::BigInt(1), memo);
+    // Should produce different sets
+    EXPECT_NE(s0, s1);
+}
+
+TEST_F(BDDTest, ZDD_ExactUnrank_OutOfRange) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.exact_unrank(bigint::BigInt(-1)), std::out_of_range);
+    EXPECT_THROW(f.exact_unrank(bigint::BigInt(1)), std::out_of_range);
+}
+
+TEST_F(BDDTest, ZDD_Unrank_NullThrows) {
+    ZDD f = ZDD::Null;
+    EXPECT_THROW(f.unrank(0), std::invalid_argument);
+    EXPECT_THROW(f.exact_unrank(bigint::BigInt(0)), std::invalid_argument);
+}
+
+// ---------------------------------------------------------------
+// ZDD Rank/Unrank roundtrip tests
+// ---------------------------------------------------------------
+
+TEST_F(BDDTest, ZDD_RankUnrank_Roundtrip) {
+    // rank(unrank(i)) == i and unrank(rank(s)) == s
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    uint64_t count = bddcard(f.get_id());
+
+    for (uint64_t i = 0; i < count; ++i) {
+        auto s = f.unrank(static_cast<int64_t>(i));
+        int64_t r = f.rank(s);
+        EXPECT_EQ(r, static_cast<int64_t>(i))
+            << "rank(unrank(" << i << ")) != " << i;
+    }
+}
+
+TEST_F(BDDTest, ZDD_RankUnrank_RoundtripEnumerate) {
+    // unrank should produce the same sets as enumerate (in rank order)
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    auto enumerated = f.enumerate();
+    uint64_t count = bddcard(f.get_id());
+
+    // Collect all sets via unrank
+    std::vector<std::vector<bddvar>> unranked;
+    for (uint64_t i = 0; i < count; ++i) {
+        unranked.push_back(f.unrank(static_cast<int64_t>(i)));
+    }
+
+    // enumerated and unranked should contain the same sets (possibly different order)
+    auto sorted_enum = enumerated;
+    auto sorted_unrank = unranked;
+    std::sort(sorted_enum.begin(), sorted_enum.end());
+    std::sort(sorted_unrank.begin(), sorted_unrank.end());
+    EXPECT_EQ(sorted_enum, sorted_unrank);
+}
+
+TEST_F(BDDTest, ZDD_RankUnrank_ExactRoundtrip) {
+    // BigInt version roundtrip
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    ZddCountMemo memo(f);
+    bigint::BigInt count = f.exact_count(memo);
+
+    for (int i = 0; i < 4; ++i) {
+        bigint::BigInt bi(i);
+        auto s = f.exact_unrank(bi, memo);
+        bigint::BigInt r = f.exact_rank(s, memo);
+        EXPECT_EQ(r, bi);
+    }
+}
+
+TEST_F(BDDTest, ZDD_RankUnrank_ComplementEdge) {
+    // Build a family that uses complement edges
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // ~singleton = all sets except {v1} → complement has complement edge
+    ZDD f = ~ZDD::singleton(v1);
+    uint64_t count = bddcard(f.get_id());
+    EXPECT_GT(count, 0u);
+
+    for (uint64_t i = 0; i < count; ++i) {
+        auto s = f.unrank(static_cast<int64_t>(i));
+        int64_t r = f.rank(s);
+        EXPECT_EQ(r, static_cast<int64_t>(i));
+    }
+}
+
+TEST_F(BDDTest, ZDD_RankUnrank_Combination) {
+    // C(4,2) = 6 sets
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+    ZDD f = ZDD::combination(4, 2);
+    uint64_t count = bddcard(f.get_id());
+    EXPECT_EQ(count, 6u);
+
+    for (uint64_t i = 0; i < count; ++i) {
+        auto s = f.unrank(static_cast<int64_t>(i));
+        EXPECT_EQ(s.size(), 2u);  // all sets have exactly 2 elements
+        int64_t r = f.rank(s);
+        EXPECT_EQ(r, static_cast<int64_t>(i));
+    }
+}
+
+TEST_F(BDDTest, ZDD_Rank_FreeFunctions) {
+    // Test C-level free functions
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    bddp fp = f.get_id();
+
+    // bddrank
+    EXPECT_GE(bddrank(fp, {v1}), 0);
+    EXPECT_EQ(bddrank(fp, {999}), -1);
+
+    // bddexactrank
+    EXPECT_GE(bddexactrank(fp, {v1}), bigint::BigInt(0));
+
+    // bddunrank
+    auto s = bddunrank(fp, 0);
+    EXPECT_EQ(bddrank(fp, s), 0);
+
+    // bddexactunrank
+    auto s2 = bddexactunrank(fp, bigint::BigInt(0));
+    EXPECT_EQ(bddexactrank(fp, s2), bigint::BigInt(0));
+}
+
