@@ -109,17 +109,22 @@ ZddMinWeightIterator::path_to_value(
 ZddMinWeightIterator::ZddMinWeightIterator(
     const ZDD& zdd,
     const std::vector<int>& weights)
-    : state_(std::make_shared<State>())
+    : state_(std::make_shared<State>()), exhausted_(false)
 {
     state_->zdd = zdd;
     state_->weights = weights;
-    state_->exhausted = false;
 
     bddp root = zdd.get_id();
 
-    // Empty family or null: produce an empty iterator.
-    if (root == bddnull || root == bddempty) {
-        state_->exhausted = true;
+    // Null ZDD is an error (consistent with min_weight/max_weight).
+    if (root == bddnull) {
+        throw std::invalid_argument(
+            "ZddMinWeightIterator: null ZDD");
+    }
+
+    // Empty family: produce an end iterator.
+    if (root == bddempty) {
+        exhausted_ = true;
         return;
     }
 
@@ -133,7 +138,7 @@ ZddMinWeightIterator::ZddMinWeightIterator(
     long long dist = compute_min_dist(root);
     if (dist == LLONG_MAX) {
         // This shouldn't happen for a non-empty ZDD, but be safe.
-        state_->exhausted = true;
+        exhausted_ = true;
         return;
     }
 
@@ -142,11 +147,11 @@ ZddMinWeightIterator::ZddMinWeightIterator(
     Path first = trace_shortest_path(root);
 
     state_->found_paths.push_back(first);
-    state_->current = path_to_value(first, state_->weights);
+    current_ = path_to_value(first, state_->weights);
 }
 
 ZddMinWeightIterator::ZddMinWeightIterator()
-    : state_()
+    : state_(), exhausted_(true)
 {
 }
 
@@ -279,23 +284,23 @@ void ZddMinWeightIterator::advance() {
         if (dup) continue;
 
         state_->found_paths.push_back(best.path);
-        state_->current = path_to_value(best.path, state_->weights);
+        current_ = path_to_value(best.path, state_->weights);
         return;
     }
 
-    state_->exhausted = true;
+    exhausted_ = true;
 }
 
 // ---- iterator operators ----
 
 ZddMinWeightIterator::reference
 ZddMinWeightIterator::operator*() const {
-    return state_->current;
+    return current_;
 }
 
 ZddMinWeightIterator::pointer
 ZddMinWeightIterator::operator->() const {
-    return &state_->current;
+    return &current_;
 }
 
 ZddMinWeightIterator&
@@ -314,8 +319,8 @@ ZddMinWeightIterator::operator++(int) {
 bool ZddMinWeightIterator::operator==(
     const ZddMinWeightIterator& other) const
 {
-    bool this_end = !state_ || state_->exhausted;
-    bool other_end = !other.state_ || other.state_->exhausted;
+    bool this_end = exhausted_;
+    bool other_end = other.exhausted_;
     return this_end == other_end;
 }
 

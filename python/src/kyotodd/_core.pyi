@@ -1,4 +1,4 @@
-from typing import IO, List, Union, overload
+from typing import IO, Iterator, List, Tuple, Union, overload
 
 
 class BddCountMemo:
@@ -1418,6 +1418,78 @@ class ZDD:
 
         Returns:
             True if the family contains the empty set.
+        """
+        ...
+
+    def min_weight(self, weights: List[int]) -> int:
+        """Find the minimum weight sum among all sets in the family.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > var_used().
+
+        Returns:
+            The minimum weight sum.
+
+        Raises:
+            ValueError: If the family is empty or weights is too small.
+        """
+        ...
+
+    def max_weight(self, weights: List[int]) -> int:
+        """Find the maximum weight sum among all sets in the family.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > var_used().
+
+        Returns:
+            The maximum weight sum.
+
+        Raises:
+            ValueError: If the family is empty or weights is too small.
+        """
+        ...
+
+    def min_weight_set(self, weights: List[int]) -> List[int]:
+        """Find a set with the minimum weight sum.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > var_used().
+
+        Returns:
+            A list of variable numbers forming a set with minimum weight sum.
+
+        Raises:
+            ValueError: If the family is empty or weights is too small.
+        """
+        ...
+
+    def max_weight_set(self, weights: List[int]) -> List[int]:
+        """Find a set with the maximum weight sum.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > var_used().
+
+        Returns:
+            A list of variable numbers forming a set with maximum weight sum.
+
+        Raises:
+            ValueError: If the family is empty or weights is too small.
+        """
+        ...
+
+    def iter_min_weight(self, weights: List[int]) -> Iterator[Tuple[int, List[int]]]:
+        """Iterate over sets in ascending weight order.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > var_used().
+
+        Returns:
+            An iterator yielding (weight, set) pairs.
         """
         ...
 

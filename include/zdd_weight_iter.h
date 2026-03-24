@@ -84,13 +84,13 @@ private:
                             std::vector<WeightedPath>,
                             std::greater<WeightedPath> > candidates;
         std::vector<Path> found_paths;
-        value_type current;
-        bool exhausted;
 
-        State() : zdd(0), exhausted(true) {}
+        State() : zdd(0) {}
     };
 
     std::shared_ptr<State> state_;
+    value_type current_;
+    bool exhausted_;
 
     long long compute_min_dist(bddp f);
     Path trace_shortest_path(bddp f);

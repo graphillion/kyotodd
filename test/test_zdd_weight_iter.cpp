@@ -26,8 +26,7 @@ TEST_F(ZddMinWeightIterTest, EmptyFamily) {
 TEST_F(ZddMinWeightIterTest, NullZdd) {
     ZDD f(-1); // bddnull
     std::vector<int> weights(1, 0);
-    ZddMinWeightRange range(f, weights);
-    EXPECT_EQ(range.begin(), range.end());
+    EXPECT_THROW(ZddMinWeightIterator(f, weights), std::invalid_argument);
 }
 
 TEST_F(ZddMinWeightIterTest, SingleEmptySet) {
@@ -310,6 +309,25 @@ TEST_F(ZddMinWeightIterTest, FiveVarsCompleteEnumeration) {
     // Cross-validate with enumerate.
     std::vector<std::vector<bddvar> > all_sets = f.enumerate();
     EXPECT_EQ(actual.size(), all_sets.size());
+}
+
+TEST_F(ZddMinWeightIterTest, PostfixIncrementReturnsOldValue) {
+    BDD::new_var(2);
+    // {{1}, {2}}
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<int> weights(3, 0);
+    weights[1] = 10;
+    weights[2] = 3;
+
+    ZddMinWeightIterator it(f, weights);
+    // First element: {2} with weight 3
+    ASSERT_NE(it, ZddMinWeightIterator());
+    EXPECT_EQ(it->first, 3);
+
+    // Postfix increment should return the old value.
+    ZddMinWeightIterator old = it++;
+    EXPECT_EQ(old->first, 3);    // old points to {2}
+    EXPECT_EQ(it->first, 10);    // it now points to {1}
 }
 
 TEST_F(ZddMinWeightIterTest, FromSetsNonTrivial) {
