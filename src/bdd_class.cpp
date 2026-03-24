@@ -475,3 +475,46 @@ std::vector<bddvar> ZDD::min_weight_set(const std::vector<int>& weights) const {
 std::vector<bddvar> ZDD::max_weight_set(const std::vector<int>& weights) const {
     return bddmaxweightset(root, weights);
 }
+
+// --- CostBoundMemo ---
+
+CostBoundMemo::CostBoundMemo() : map_() {}
+
+bool CostBoundMemo::lookup(bddp f, long long b,
+                            bddp& h, long long& aw, long long& rb) const {
+    auto it = map_.find(f);
+    if (it == map_.end()) return false;
+    const auto& intervals = it->second;
+    // Find the last entry with aw <= b
+    auto ub = intervals.upper_bound(b);
+    if (ub == intervals.begin()) return false;
+    --ub;
+    // ub->first = aw, ub->second = (rb, h)
+    if (b < ub->second.first) {
+        aw = ub->first;
+        rb = ub->second.first;
+        h = ub->second.second;
+        return true;
+    }
+    return false;
+}
+
+void CostBoundMemo::insert(bddp f, long long aw, long long rb, bddp h) {
+    map_[f][aw] = {rb, h};
+}
+
+void CostBoundMemo::clear() {
+    map_.clear();
+}
+
+// --- ZDD::cost_bound ---
+
+ZDD ZDD::cost_bound(const std::vector<int>& weights, long long b,
+                     CostBoundMemo& memo) const {
+    return ZDD_ID(bddcostbound(root, weights, b, memo));
+}
+
+ZDD ZDD::cost_bound(const std::vector<int>& weights, long long b) const {
+    CostBoundMemo memo;
+    return ZDD_ID(bddcostbound(root, weights, b, memo));
+}

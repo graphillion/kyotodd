@@ -5,6 +5,7 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -1040,6 +1041,90 @@ std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights) {
     bddmaxweightset_trace(f, weights, memo, result);
     std::sort(result.begin(), result.end());
     return result;
+}
+
+// --- BkTrk-IntervalMemo (cost-bound) ---
+
+struct CostBoundResult {
+    bddp h;
+    long long aw;
+    long long rb;
+};
+
+static long long costbound_safe_add(long long a, long long b) {
+    if (a == LLONG_MIN || b == LLONG_MIN) return LLONG_MIN;
+    if (a == LLONG_MAX || b == LLONG_MAX) return LLONG_MAX;
+    if (b > 0 && a > LLONG_MAX - b) return LLONG_MAX;
+    if (b < 0 && a < LLONG_MIN - b) return LLONG_MIN;
+    return a + b;
+}
+
+static CostBoundResult bddcostbound_rec(
+    bddp f, const std::vector<int>& weights, long long b,
+    CostBoundMemo& memo)
+{
+    BDD_RecurGuard guard;
+
+    // Terminal cases
+    if (f == bddempty) {
+        return {bddempty, LLONG_MIN, LLONG_MAX};
+    }
+    if (f == bddsingle) {
+        if (b >= 0) return {bddsingle, 0, LLONG_MAX};
+        else        return {bddempty, LLONG_MIN, 0};
+    }
+
+    // Interval-memo lookup
+    bddp cached_h;
+    long long cached_aw, cached_rb;
+    if (memo.lookup(f, b, cached_h, cached_aw, cached_rb)) {
+        return {cached_h, cached_aw, cached_rb};
+    }
+
+    // Decompose f = <x, f0, f1> with ZDD complement edge handling
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+    if (comp) lo = bddnot(lo);  // ZDD: only lo is toggled
+
+    // Recurse on children
+    long long cx = static_cast<long long>(weights[var]);
+    CostBoundResult r0 = bddcostbound_rec(lo, weights, b, memo);
+    CostBoundResult r1 = bddcostbound_rec(hi, weights, b - cx, memo);
+
+    // Construct result node
+    bddp h = ZDD::getnode_raw(var, r0.h, r1.h);
+
+    // Compute interval bounds
+    long long aw = std::max(r0.aw, costbound_safe_add(r1.aw, cx));
+    long long rb = std::min(r0.rb, costbound_safe_add(r1.rb, cx));
+
+    // Store in interval-memo
+    memo.insert(f, aw, rb, h);
+    return {h, aw, rb};
+}
+
+bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
+                   CostBoundMemo& memo) {
+    bddp_validate(f, "bddcostbound");
+    if (f == bddnull) {
+        throw std::invalid_argument("bddcostbound: null ZDD");
+    }
+    bddvar top = bddtop(f);
+    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
+        throw std::invalid_argument(
+            "bddcostbound: weights.size() must be > top variable");
+    }
+
+    // Terminal fast-paths
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return b >= 0 ? bddsingle : bddempty;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bddcostbound_rec(f, weights, b, memo).h;
+    });
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {

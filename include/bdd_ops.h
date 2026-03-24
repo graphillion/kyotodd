@@ -812,6 +812,23 @@ std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights);
  */
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
 
+/**
+ * @brief Extract cost-bounded solutions from a ZDD using BkTrk-IntervalMemo.
+ *
+ * Constructs a ZDD h = {X ∈ S_f | Cost(X) ≤ b} where Cost(X) = Σ weights[v]
+ * for v ∈ X. Uses interval-memoizing technique for efficient caching.
+ *
+ * @param f A ZDD node ID.
+ * @param weights Cost vector indexed by variable number (1-based).
+ *                Size must be > bdd_varcount.
+ * @param b Cost bound. Solutions with cost ≤ b are included.
+ * @param memo Interval-memoization table.
+ * @return A ZDD node ID representing all cost-bounded solutions.
+ * @throws std::invalid_argument if f is null or weights is too small.
+ */
+bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
+                   CostBoundMemo& memo);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

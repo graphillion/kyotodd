@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <functional>
 #include <iosfwd>
+#include <map>
 #include <unordered_map>
 #include <vector>
 #include "bdd_node.h"
@@ -204,6 +205,41 @@ private:
     bddvar n_;
     bool stored_;
     CountMemoMap map_;
+};
+
+/**
+ * @brief Interval-memoization table for BkTrk-IntervalMemo cost-bound algorithm.
+ *
+ * Stores (ZDD node, interval [aw, rb)) → result ZDD mappings. When the same
+ * ZDD node is queried with a different cost bound that falls within a cached
+ * interval, the cached result is reused without recomputation.
+ *
+ * Can be reused across multiple cost_bound() calls with different bounds on
+ * the same ZDD to benefit from accumulated memoization.
+ */
+class CostBoundMemo {
+public:
+    CostBoundMemo();
+
+    /**
+     * @brief Look up a cached result for (f, b).
+     * @return true if a cached interval [aw, rb) containing b was found.
+     */
+    bool lookup(bddp f, long long b,
+                bddp& h, long long& aw, long long& rb) const;
+
+    /**
+     * @brief Insert a result for node f with interval [aw, rb).
+     */
+    void insert(bddp f, long long aw, long long rb, bddp h);
+
+    /** @brief Clear all cached entries. */
+    void clear();
+
+private:
+    // map_[f][aw] = (rb, h)
+    std::unordered_map<bddp,
+        std::map<long long, std::pair<long long, bddp>>> map_;
 };
 
 /**
@@ -1091,6 +1127,25 @@ public:
     std::vector<bddvar> min_weight_set(const std::vector<int>& weights) const;
     /** @brief Find a set with the maximum weight sum. */
     std::vector<bddvar> max_weight_set(const std::vector<int>& weights) const;
+
+    /**
+     * @brief Extract all cost-bounded solutions using BkTrk-IntervalMemo.
+     *
+     * Returns a ZDD representing {X ∈ S_f | Cost(X) ≤ b} where S_f is the
+     * family represented by this ZDD and Cost(X) = Σ weights[v] for v ∈ X.
+     *
+     * @param weights Cost vector indexed by variable number (1-based).
+     *                Size must be > var_used().
+     * @param b Cost bound. Solutions with cost ≤ b are included.
+     * @param memo Interval-memoization table. Can be reused across multiple
+     *             calls with different bounds for efficiency.
+     * @return ZDD representing all cost-bounded solutions.
+     */
+    ZDD cost_bound(const std::vector<int>& weights, long long b,
+                   CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo (creates a temporary one). */
+    ZDD cost_bound(const std::vector<int>& weights, long long b) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

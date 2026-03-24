@@ -11585,3 +11585,190 @@ TEST_F(BDDTest, MinMaxWeight_UnrelatedNewVarDoesNotBreak) {
     EXPECT_EQ(f.max_weight_set(w), expected);
 }
 
+// --- CostBound (BkTrk-IntervalMemo) tests ---
+
+TEST_F(BDDTest, CostBound_EmptyFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.cost_bound(w, 100), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound(w, -1), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBound_UnitFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Single;  // {∅}
+    // Empty set has cost 0
+    EXPECT_EQ(f.cost_bound(w, 0), ZDD::Single);
+    EXPECT_EQ(f.cost_bound(w, 100), ZDD::Single);
+    EXPECT_EQ(f.cost_bound(w, -1), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBound_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    // cost({v1}) = 5
+    EXPECT_EQ(f.cost_bound(w, 5), f);       // 5 <= 5: accepted
+    EXPECT_EQ(f.cost_bound(w, 6), f);       // 5 <= 6: accepted
+    EXPECT_EQ(f.cost_bound(w, 4), ZDD::Empty);  // 5 > 4: rejected
+}
+
+TEST_F(BDDTest, CostBound_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 8};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1}, {v2}}
+    // cost({v1}) = 3, cost({v2}) = 8
+
+    ZDD h5 = f.cost_bound(w, 5);
+    EXPECT_EQ(h5, ZDD::singleton(v1));  // only {v1} accepted
+
+    ZDD h10 = f.cost_bound(w, 10);
+    EXPECT_EQ(h10, f);  // both accepted
+
+    ZDD h2 = f.cost_bound(w, 2);
+    EXPECT_EQ(h2, ZDD::Empty);  // both rejected
+}
+
+TEST_F(BDDTest, CostBound_FamilyWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 4};
+    // {{}, {v1}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1);
+    // cost({}) = 0, cost({v1}) = 4
+
+    ZDD h3 = f.cost_bound(w, 3);
+    EXPECT_EQ(h3, ZDD::Single);  // only {} accepted
+
+    ZDD h4 = f.cost_bound(w, 4);
+    EXPECT_EQ(h4, f);  // both accepted
+
+    ZDD hm1 = f.cost_bound(w, -1);
+    EXPECT_EQ(hm1, ZDD::Empty);  // both rejected (0 > -1)
+}
+
+TEST_F(BDDTest, CostBound_NegativeWeights) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, -3, 5};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1}, {v2}}
+    // cost({v1}) = -3, cost({v2}) = 5
+
+    ZDD h0 = f.cost_bound(w, 0);
+    EXPECT_EQ(h0, ZDD::singleton(v1));  // -3 <= 0, 5 > 0
+
+    ZDD hm4 = f.cost_bound(w, -4);
+    EXPECT_EQ(hm4, ZDD::Empty);  // -3 > -4, 5 > -4
+}
+
+TEST_F(BDDTest, CostBound_CrossValidateWithEnumerate) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 3, -2, 7};
+    ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
+
+    for (long long b = -5; b <= 12; ++b) {
+        ZDD h = f.cost_bound(w, b);
+        // Cross-validate: enumerate and filter manually
+        auto all_sets = f.enumerate();
+        auto bounded_sets = h.enumerate();
+
+        // Collect expected sets
+        std::vector<std::vector<bddvar>> expected;
+        for (const auto& s : all_sets) {
+            long long cost = 0;
+            for (bddvar v : s) cost += w[v];
+            if (cost <= b) expected.push_back(s);
+        }
+        EXPECT_EQ(bounded_sets.size(), expected.size())
+            << "Mismatch at bound=" << b;
+        // Sort for comparison
+        auto sort_sets = [](std::vector<std::vector<bddvar>>& sets) {
+            for (auto& s : sets) std::sort(s.begin(), s.end());
+            std::sort(sets.begin(), sets.end());
+        };
+        sort_sets(bounded_sets);
+        sort_sets(expected);
+        EXPECT_EQ(bounded_sets, expected)
+            << "Sets mismatch at bound=" << b;
+    }
+}
+
+TEST_F(BDDTest, CostBound_MemoReuse) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 10, 20, 30};
+    ZDD f = ZDD::power_set(3);
+
+    CostBoundMemo memo;
+    // Call with different bounds, reusing the memo
+    ZDD h5 = f.cost_bound(w, 5, memo);
+    ZDD h15 = f.cost_bound(w, 15, memo);
+    ZDD h25 = f.cost_bound(w, 25, memo);
+    ZDD h35 = f.cost_bound(w, 35, memo);
+    ZDD h100 = f.cost_bound(w, 100, memo);
+
+    // Verify correctness of each
+    EXPECT_EQ(h5.enumerate().size(), 1u);    // only {}
+    EXPECT_EQ(h15.enumerate().size(), 2u);   // {}, {v1}
+    EXPECT_EQ(h25.enumerate().size(), 3u);   // {}, {v1}, {v2}
+    EXPECT_EQ(h35.enumerate().size(), 5u);   // {}, {v1}, {v2}, {v3}, {v1,v2}
+    EXPECT_EQ(h100.enumerate().size(), 8u);  // all subsets
+}
+
+TEST_F(BDDTest, CostBound_SameIntervalHit) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 10};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}, cost=10
+
+    CostBoundMemo memo;
+    ZDD h10 = f.cost_bound(w, 10, memo);
+    ZDD h15 = f.cost_bound(w, 15, memo);  // same interval, should hit memo
+    ZDD h100 = f.cost_bound(w, 100, memo);
+    EXPECT_EQ(h10, f);
+    EXPECT_EQ(h15, f);
+    EXPECT_EQ(h100, f);
+}
+
+TEST_F(BDDTest, CostBound_ValidationErrors) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w_small = {0};  // too small
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.cost_bound(w_small, 5), std::invalid_argument);
+}
+
+TEST_F(BDDTest, CostBound_ComplementEdge) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 3, 7};
+    // all subsets of {v1,v2} except {{v1}}
+    // = {{}, {v2}, {v1,v2}}
+    ZDD f = ZDD::power_set(2) - ZDD::singleton(v1);
+    // cost: {} = 0, {v2} = 7, {v1,v2} = 10
+
+    ZDD h5 = f.cost_bound(w, 5);
+    EXPECT_EQ(h5, ZDD::Single);  // only {}
+
+    ZDD h7 = f.cost_bound(w, 7);
+    auto sets7 = h7.enumerate();
+    EXPECT_EQ(sets7.size(), 2u);  // {}, {v2}
+
+    ZDD h10 = f.cost_bound(w, 10);
+    EXPECT_EQ(h10, f);  // all accepted
+}
+
+TEST_F(BDDTest, CostBound_SimpleOverload) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 8};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+
+    // Simple overload (no memo parameter) should work
+    ZDD h = f.cost_bound(w, 5);
+    EXPECT_EQ(h, ZDD::singleton(v1));
+}
+
