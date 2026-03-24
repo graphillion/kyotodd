@@ -224,14 +224,14 @@ PYBIND11_MODULE(_core, m) {
     py::class_<CostBoundMemo>(m, "CostBoundMemo",
         "Interval-memoization table for cost-bounded enumeration.\n\n"
         "Caches intermediate results using the interval-memoizing technique\n"
-        "(BkTrk-IntervalMemo) so that repeated cost_bound_le/cost_bound_ge calls with\n"
-        "different bounds on the same ZDD and weights are efficient.\n\n"
+        "(BkTrk-IntervalMemo) so that repeated cost_bound_le/cost_bound_ge/cost_bound_eq\n"
+        "calls with different bounds on the same ZDD and weights are efficient.\n\n"
         "A single CostBoundMemo must only be used with one weights vector.\n"
         "Passing a different weights vector raises ValueError.\n")
         .def(py::init<>(),
            "Create an empty cost-bound memo.\n")
         .def("clear", &CostBoundMemo::clear,
-             "Clear all cached entries.\n");
+             "Clear all cached entries. The weights binding is preserved.\n");
 
     // BDD class
     py::class_<BDD>(m, "BDD",

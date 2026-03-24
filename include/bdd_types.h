@@ -214,8 +214,12 @@ private:
  * ZDD node is queried with a different cost bound that falls within a cached
  * interval, the cached result is reused without recomputation.
  *
- * Can be reused across multiple cost_bound_le() / cost_bound_ge() calls with different bounds on
- * the same ZDD to benefit from accumulated memoization.
+ * Can be reused across multiple cost_bound_le() / cost_bound_ge() / cost_bound_eq()
+ * calls with different bounds on the same ZDD to benefit from accumulated memoization.
+ *
+ * A single CostBoundMemo must only be used with one weights vector. On first
+ * use, the weights are bound via bind_weights(); subsequent calls with a
+ * different weights vector throw std::invalid_argument.
  */
 class CostBoundMemo {
 public:
@@ -233,7 +237,7 @@ public:
      */
     void insert(bddp f, long long aw, long long rb, bddp h);
 
-    /** @brief Clear all cached entries. */
+    /** @brief Clear all cached entries. The weights binding is preserved. */
     void clear();
 
     /**

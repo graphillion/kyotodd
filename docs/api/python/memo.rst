@@ -37,7 +37,8 @@ Memo Classes
    Interval-memoization table for cost-bounded enumeration.
 
    Caches intermediate results using the interval-memoizing technique
-   (BkTrk-IntervalMemo) so that repeated :py:meth:`ZDD.cost_bound_le_with_memo` / :py:meth:`ZDD.cost_bound_ge_with_memo`
+   (BkTrk-IntervalMemo) so that repeated :py:meth:`ZDD.cost_bound_le_with_memo` /
+   :py:meth:`ZDD.cost_bound_ge_with_memo` / :py:meth:`ZDD.cost_bound_eq_with_memo`
    calls with different bounds on the same ZDD and weights are efficient.
 
    A single ``CostBoundMemo`` must only be used with one weights vector.
@@ -45,4 +46,4 @@ Memo Classes
 
    .. py:method:: clear()
 
-      Clear all cached entries.
+      Clear all cached entries. The weights binding is preserved.
