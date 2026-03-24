@@ -30,6 +30,7 @@ set(KYOTODD_LIB_SOURCES
   src/mlzbddv.cpp
   src/zdd_weight_iter.cpp
   src/zdd_rank_iter.cpp
+  src/zdd_random_iter.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -171,4 +172,11 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(zdd_rank_iter_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(zdd_rank_iter_test)
+
+  add_executable(zdd_random_iter_test test/test_zdd_random_iter.cpp)
+  target_link_libraries(zdd_random_iter_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(zdd_random_iter_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(zdd_random_iter_test)
 endif()

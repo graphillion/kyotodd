@@ -1031,5 +1031,6 @@ inline UnreducedDD UnreducedDD::import_binary(std::istream& strm) {
 
 #include "zdd_weight_iter.h"
 #include "zdd_rank_iter.h"
+#include "zdd_random_iter.h"
 
 #endif
