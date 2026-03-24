@@ -1029,4 +1029,6 @@ inline UnreducedDD UnreducedDD::import_binary(std::istream& strm) {
     return u;
 }
 
+#include "zdd_weight_iter.h"
+
 #endif
