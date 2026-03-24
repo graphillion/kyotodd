@@ -1083,6 +1083,15 @@ public:
     // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
+    /** @brief Find the minimum weight sum among all sets in the family. */
+    long long min_weight(const std::vector<int>& weights) const;
+    /** @brief Find the maximum weight sum among all sets in the family. */
+    long long max_weight(const std::vector<int>& weights) const;
+    /** @brief Find a set with the minimum weight sum. */
+    std::vector<bddvar> min_weight_set(const std::vector<int>& weights) const;
+    /** @brief Find a set with the maximum weight sum. */
+    std::vector<bddvar> max_weight_set(const std::vector<int>& weights) const;
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

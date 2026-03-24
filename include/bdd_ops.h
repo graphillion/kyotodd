@@ -765,6 +765,53 @@ bddp bddcoimplyset(bddp f, bddvar v);
  */
 bddp bdddivisor(bddp f);
 
+/**
+ * @brief Find the minimum weight sum among all sets in a ZDD family.
+ *
+ * Each variable v has weight weights[v]. Returns the minimum of
+ * sum(weights[v] for v in S) over all sets S in the family.
+ *
+ * @param f A ZDD node ID (must not be bddempty or bddnull).
+ * @param weights Weight vector indexed by variable number.
+ *                Size must be > bdd_varcount.
+ * @return The minimum weight sum.
+ * @throws std::invalid_argument if f is empty/null or weights is too small.
+ */
+long long bddminweight(bddp f, const std::vector<int>& weights);
+
+/**
+ * @brief Find the maximum weight sum among all sets in a ZDD family.
+ *
+ * @param f A ZDD node ID (must not be bddempty or bddnull).
+ * @param weights Weight vector indexed by variable number.
+ *                Size must be > bdd_varcount.
+ * @return The maximum weight sum.
+ * @throws std::invalid_argument if f is empty/null or weights is too small.
+ */
+long long bddmaxweight(bddp f, const std::vector<int>& weights);
+
+/**
+ * @brief Find a set with the minimum weight sum in a ZDD family.
+ *
+ * @param f A ZDD node ID (must not be bddempty or bddnull).
+ * @param weights Weight vector indexed by variable number.
+ *                Size must be > bdd_varcount.
+ * @return A vector of variable numbers forming a set with minimum weight sum.
+ * @throws std::invalid_argument if f is empty/null or weights is too small.
+ */
+std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights);
+
+/**
+ * @brief Find a set with the maximum weight sum in a ZDD family.
+ *
+ * @param f A ZDD node ID (must not be bddempty or bddnull).
+ * @param weights Weight vector indexed by variable number.
+ *                Size must be > bdd_varcount.
+ * @return A vector of variable numbers forming a set with maximum weight sum.
+ * @throws std::invalid_argument if f is empty/null or weights is too small.
+ */
+std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

@@ -459,3 +459,19 @@ ZDD ZDD::ZLev(int /*lev*/, int /*last*/) const {
 void ZDD::SetZSkip() const {
     throw std::logic_error("ZDD::SetZSkip: not implemented");
 }
+
+long long ZDD::min_weight(const std::vector<int>& weights) const {
+    return bddminweight(root, weights);
+}
+
+long long ZDD::max_weight(const std::vector<int>& weights) const {
+    return bddmaxweight(root, weights);
+}
+
+std::vector<bddvar> ZDD::min_weight_set(const std::vector<int>& weights) const {
+    return bddminweightset(root, weights);
+}
+
+std::vector<bddvar> ZDD::max_weight_set(const std::vector<int>& weights) const {
+    return bddmaxweightset(root, weights);
+}

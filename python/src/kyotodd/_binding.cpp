@@ -1308,6 +1308,44 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    True if the family contains the empty set.\n")
 
+        // Weight optimization
+        .def("min_weight", &ZDD::min_weight, py::arg("weights"),
+             "Find the minimum weight sum among all sets in the family.\n\n"
+             "Args:\n"
+             "    weights: A list of integer weights indexed by variable number.\n"
+             "             Size must be > var_used().\n\n"
+             "Returns:\n"
+             "    The minimum weight sum (int).\n\n"
+             "Raises:\n"
+             "    ValueError: If the family is empty or weights is too small.\n")
+        .def("max_weight", &ZDD::max_weight, py::arg("weights"),
+             "Find the maximum weight sum among all sets in the family.\n\n"
+             "Args:\n"
+             "    weights: A list of integer weights indexed by variable number.\n"
+             "             Size must be > var_used().\n\n"
+             "Returns:\n"
+             "    The maximum weight sum (int).\n\n"
+             "Raises:\n"
+             "    ValueError: If the family is empty or weights is too small.\n")
+        .def("min_weight_set", &ZDD::min_weight_set, py::arg("weights"),
+             "Find a set with the minimum weight sum.\n\n"
+             "Args:\n"
+             "    weights: A list of integer weights indexed by variable number.\n"
+             "             Size must be > var_used().\n\n"
+             "Returns:\n"
+             "    A list of variable numbers forming a set with minimum weight sum.\n\n"
+             "Raises:\n"
+             "    ValueError: If the family is empty or weights is too small.\n")
+        .def("max_weight_set", &ZDD::max_weight_set, py::arg("weights"),
+             "Find a set with the maximum weight sum.\n\n"
+             "Args:\n"
+             "    weights: A list of integer weights indexed by variable number.\n"
+             "             Size must be > var_used().\n\n"
+             "Returns:\n"
+             "    A list of variable numbers forming a set with maximum weight sum.\n\n"
+             "Raises:\n"
+             "    ValueError: If the family is empty or weights is too small.\n")
+
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {
             ensure_init();

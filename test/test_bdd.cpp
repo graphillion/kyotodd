@@ -11385,3 +11385,158 @@ TEST_F(BDDTest, CoImplySetTerminalSafety) {
     EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
 }
 
+// ---- min_weight / max_weight tests ----
+
+TEST_F(BDDTest, MinMaxWeight_EmptyFamilyThrows) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD empty(0);  // bddempty
+    EXPECT_THROW(empty.min_weight(w), std::invalid_argument);
+    EXPECT_THROW(empty.max_weight(w), std::invalid_argument);
+    EXPECT_THROW(empty.min_weight_set(w), std::invalid_argument);
+    EXPECT_THROW(empty.max_weight_set(w), std::invalid_argument);
+}
+
+TEST_F(BDDTest, MinMaxWeight_OnlyEmptySet) {
+    bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD single(1);  // {∅}
+    EXPECT_EQ(single.min_weight(w), 0);
+    EXPECT_EQ(single.max_weight(w), 0);
+    EXPECT_TRUE(single.min_weight_set(w).empty());
+    EXPECT_TRUE(single.max_weight_set(w).empty());
+}
+
+TEST_F(BDDTest, MinMaxWeight_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 7};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    EXPECT_EQ(f.min_weight(w), 7);
+    EXPECT_EQ(f.max_weight(w), 7);
+    std::vector<bddvar> expected = {v1};
+    EXPECT_EQ(f.min_weight_set(w), expected);
+    EXPECT_EQ(f.max_weight_set(w), expected);
+}
+
+TEST_F(BDDTest, MinMaxWeight_TwoSingletons) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 8};
+    // {{v1}, {v2}}
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+    EXPECT_EQ(f.min_weight(w), 3);
+    EXPECT_EQ(f.max_weight(w), 8);
+    std::vector<bddvar> min_set = {v1};
+    std::vector<bddvar> max_set = {v2};
+    EXPECT_EQ(f.min_weight_set(w), min_set);
+    EXPECT_EQ(f.max_weight_set(w), max_set);
+}
+
+TEST_F(BDDTest, MinMaxWeight_NegativeWeights) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, -5, 3};
+    // {{v1}, {v2}, {v1, v2}}
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2)
+          + ZDD::single_set({v1, v2});
+    // weights: {v1}=-5, {v2}=3, {v1,v2}=-5+3=-2
+    EXPECT_EQ(f.min_weight(w), -5);
+    EXPECT_EQ(f.max_weight(w), 3);
+    std::vector<bddvar> min_set = {v1};
+    std::vector<bddvar> max_set = {v2};
+    EXPECT_EQ(f.min_weight_set(w), min_set);
+    EXPECT_EQ(f.max_weight_set(w), max_set);
+}
+
+TEST_F(BDDTest, MinMaxWeight_FamilyWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 4};
+    // {{}, {v1}}
+    ZDD f = ZDD(1) + ZDD::singleton(v1);
+    // weights: {}=0, {v1}=4
+    EXPECT_EQ(f.min_weight(w), 0);
+    EXPECT_EQ(f.max_weight(w), 4);
+    EXPECT_TRUE(f.min_weight_set(w).empty());
+    std::vector<bddvar> max_set = {v1};
+    EXPECT_EQ(f.max_weight_set(w), max_set);
+}
+
+TEST_F(BDDTest, MinMaxWeight_FamilyWithEmptySetNegativeWeight) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, -3};
+    // {{}, {v1}}
+    ZDD f = ZDD(1) + ZDD::singleton(v1);
+    // weights: {}=0, {v1}=-3
+    EXPECT_EQ(f.min_weight(w), -3);
+    EXPECT_EQ(f.max_weight(w), 0);
+    std::vector<bddvar> min_set = {v1};
+    EXPECT_EQ(f.min_weight_set(w), min_set);
+    EXPECT_TRUE(f.max_weight_set(w).empty());
+}
+
+TEST_F(BDDTest, MinMaxWeight_CompoundFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 2, 5, 1};
+    // {{v1}, {v2}, {v3}, {v1,v2}, {v1,v3}, {v2,v3}, {v1,v2,v3}}
+    ZDD f = ZDD::power_set(3) - ZDD(1);  // power set minus empty set
+    // weights: {v1}=2, {v2}=5, {v3}=1,
+    //          {v1,v2}=7, {v1,v3}=3, {v2,v3}=6, {v1,v2,v3}=8
+    EXPECT_EQ(f.min_weight(w), 1);
+    EXPECT_EQ(f.max_weight(w), 8);
+    std::vector<bddvar> min_set = {v3};
+    std::vector<bddvar> max_set = {v1, v2, v3};
+    EXPECT_EQ(f.min_weight_set(w), min_set);
+    EXPECT_EQ(f.max_weight_set(w), max_set);
+}
+
+TEST_F(BDDTest, MinMaxWeight_SetWeightMatchesValue) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, -1, 4, 2};
+    ZDD f = ZDD::power_set(3);
+    // Verify: the weight of min_weight_set equals min_weight
+    long long min_val = f.min_weight(w);
+    std::vector<bddvar> min_set = f.min_weight_set(w);
+    long long computed = 0;
+    for (bddvar v : min_set) computed += w[v];
+    EXPECT_EQ(computed, min_val);
+    // Same for max
+    long long max_val = f.max_weight(w);
+    std::vector<bddvar> max_set = f.max_weight_set(w);
+    computed = 0;
+    for (bddvar v : max_set) computed += w[v];
+    EXPECT_EQ(computed, max_val);
+}
+
+TEST_F(BDDTest, MinMaxWeight_CrossValidateWithEnumerate) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 3, -2, 7};
+    ZDD f = ZDD::power_set(3);
+    // Enumerate all sets and compute min/max manually
+    auto sets = f.enumerate();
+    long long expected_min = LLONG_MAX;
+    long long expected_max = LLONG_MIN;
+    for (const auto& s : sets) {
+        long long sum = 0;
+        for (bddvar v : s) sum += w[v];
+        if (sum < expected_min) expected_min = sum;
+        if (sum > expected_max) expected_max = sum;
+    }
+    EXPECT_EQ(f.min_weight(w), expected_min);
+    EXPECT_EQ(f.max_weight(w), expected_max);
+}
+
+TEST_F(BDDTest, MinMaxWeight_WeightsTooSmallThrows) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0};  // too small (size=1, need > 2)
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.min_weight(w), std::invalid_argument);
+    EXPECT_THROW(f.max_weight(w), std::invalid_argument);
+}
+

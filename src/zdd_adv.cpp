@@ -1,6 +1,8 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include <algorithm>
+#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -878,6 +880,165 @@ char *bddcardmp16(bddp f, char *s) {
     }
     std::memcpy(s, hex.c_str(), hex.size() + 1);
     return s;
+}
+
+// ---- min/max weight ----
+
+static void bddweight_validate(bddp f, const std::vector<int>& weights,
+                                const char* name) {
+    bddp_validate(f, name);
+    if (f == bddnull) {
+        throw std::invalid_argument(
+            std::string(name) + ": null ZDD");
+    }
+    if (f == bddempty) {
+        throw std::invalid_argument(
+            std::string(name) + ": empty family has no sets");
+    }
+    if (weights.size() <= static_cast<size_t>(bdd_varcount)) {
+        throw std::invalid_argument(
+            std::string(name) + ": weights.size() must be > var_used()");
+    }
+}
+
+static long long bddminweight_rec(bddp f, const std::vector<int>& weights,
+                                   std::unordered_map<bddp, long long>& memo) {
+    if (f == bddempty) return LLONG_MAX;
+    if (f == bddsingle) return 0;
+
+    BDD_RecurGuard guard;
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+    if (comp) lo = bddnot(lo);
+
+    long long lo_val = bddminweight_rec(lo, weights, memo);
+    long long hi_val = bddminweight_rec(hi, weights, memo);
+    long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+
+    long long result = std::min(lo_val, hi_total);
+    memo[f] = result;
+    return result;
+}
+
+long long bddminweight(bddp f, const std::vector<int>& weights) {
+    bddweight_validate(f, weights, "bddminweight");
+    std::unordered_map<bddp, long long> memo;
+    return bddminweight_rec(f, weights, memo);
+}
+
+static long long bddmaxweight_rec(bddp f, const std::vector<int>& weights,
+                                   std::unordered_map<bddp, long long>& memo) {
+    if (f == bddempty) return LLONG_MIN;
+    if (f == bddsingle) return 0;
+
+    BDD_RecurGuard guard;
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+    if (comp) lo = bddnot(lo);
+
+    long long lo_val = bddmaxweight_rec(lo, weights, memo);
+    long long hi_val = bddmaxweight_rec(hi, weights, memo);
+    long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+
+    long long result = std::max(lo_val, hi_total);
+    memo[f] = result;
+    return result;
+}
+
+long long bddmaxweight(bddp f, const std::vector<int>& weights) {
+    bddweight_validate(f, weights, "bddmaxweight");
+    std::unordered_map<bddp, long long> memo;
+    return bddmaxweight_rec(f, weights, memo);
+}
+
+static void bddminweightset_trace(bddp f, const std::vector<int>& weights,
+                                   std::unordered_map<bddp, long long>& memo,
+                                   std::vector<bddvar>& result) {
+    while (f != bddempty && f != bddsingle) {
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+        if (comp) lo = bddnot(lo);
+
+        long long lo_val = memo[lo];
+        long long hi_val = memo[hi];
+        long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+
+        if (lo_val <= hi_total) {
+            f = lo;
+        } else {
+            result.push_back(var);
+            f = hi;
+        }
+    }
+}
+
+std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights) {
+    bddweight_validate(f, weights, "bddminweightset");
+    std::unordered_map<bddp, long long> memo;
+    bddminweight_rec(f, weights, memo);
+    memo[bddempty] = LLONG_MAX;
+    memo[bddsingle] = 0;
+    std::vector<bddvar> result;
+    bddminweightset_trace(f, weights, memo, result);
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+static void bddmaxweightset_trace(bddp f, const std::vector<int>& weights,
+                                   std::unordered_map<bddp, long long>& memo,
+                                   std::vector<bddvar>& result) {
+    while (f != bddempty && f != bddsingle) {
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+        if (comp) lo = bddnot(lo);
+
+        long long lo_val = memo[lo];
+        long long hi_val = memo[hi];
+        long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+
+        if (lo_val >= hi_total) {
+            f = lo;
+        } else {
+            result.push_back(var);
+            f = hi;
+        }
+    }
+}
+
+std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights) {
+    bddweight_validate(f, weights, "bddmaxweightset");
+    std::unordered_map<bddp, long long> memo;
+    bddmaxweight_rec(f, weights, memo);
+    memo[bddempty] = LLONG_MIN;
+    memo[bddsingle] = 0;
+    std::vector<bddvar> result;
+    bddmaxweightset_trace(f, weights, memo, result);
+    std::sort(result.begin(), result.end());
+    return result;
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {
