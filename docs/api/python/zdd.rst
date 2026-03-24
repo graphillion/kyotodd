@@ -945,6 +945,17 @@ ZDD Class
       :return: An iterator yielding sorted lists of variable numbers.
       :rtype: Iterator[List[int]]
 
+   .. py:method:: iter_random(seed=0)
+
+      Iterate over sets in uniformly random order without replacement.
+
+      Uses a hybrid strategy: rejection sampling when few sets have been
+      sampled, direct sampling from the remaining family otherwise.
+
+      :param int seed: Random seed (default: 0).
+      :return: An iterator yielding sorted lists of variable numbers.
+      :rtype: Iterator[List[int]]
+
    .. py:method:: cost_bound_le(weights, b)
 
       Extract all sets whose total cost is at most *b*.

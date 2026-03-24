@@ -1536,6 +1536,20 @@ class ZDD:
         """
         ...
 
+    def iter_random(self, seed: int = 0) -> Iterator[List[int]]:
+        """Iterate over sets in uniformly random order without replacement.
+
+        Uses a hybrid strategy: rejection sampling when few sets have been
+        sampled, direct sampling from the remaining family otherwise.
+
+        Args:
+            seed: Random seed (default: 0).
+
+        Returns:
+            An iterator yielding sorted lists of variable numbers.
+        """
+        ...
+
     def cost_bound_le(self, weights: List[int], b: int) -> ZDD:
         """Extract all sets whose total cost is at most b.
 

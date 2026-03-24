@@ -1585,6 +1585,22 @@ PYBIND11_MODULE(_core, m) {
            "    for s in zdd.iter_rank():\n"
            "        print(s)\n")
 
+        // Random iteration (without replacement)
+        .def("iter_random", [](const ZDD& z, uint64_t seed) {
+            std::mt19937_64 rng(seed);
+            return ZddRandomRange<std::mt19937_64>(z, rng);
+        }, py::arg("seed") = 0, py::keep_alive<0, 1>(),
+           "Iterate over sets in uniformly random order without replacement.\n\n"
+           "Uses a hybrid strategy: rejection sampling when few sets have been\n"
+           "sampled, direct sampling from the remaining family otherwise.\n\n"
+           "Args:\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    An iterator yielding sorted lists of variable numbers.\n\n"
+           "Example:\n"
+           "    for s in zdd.iter_random(seed=42):\n"
+           "        print(s)\n")
+
         // Cost-bounded enumeration (<=)
         .def("cost_bound_le", [](const ZDD& z, const std::vector<int>& weights, long long b) -> ZDD {
             return z.cost_bound_le(weights, b);
@@ -2956,6 +2972,29 @@ PYBIND11_MODULE(_core, m) {
         })
         .def("__next__", [](ZddRankIterator& it) {
             ZddRankIterator end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
+    ;
+
+    // ZddRandomRange Python iterator
+    typedef ZddRandomRange<std::mt19937_64> ZddRandomRange64;
+    typedef ZddRandomIterator<std::mt19937_64> ZddRandomIterator64;
+
+    py::class_<ZddRandomRange64>(m, "_ZddRandomRange")
+        .def("__iter__", [](ZddRandomRange64& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<ZddRandomIterator64>(m, "_ZddRandomIterator")
+        .def("__iter__", [](ZddRandomIterator64& it) -> ZddRandomIterator64& {
+            return it;
+        })
+        .def("__next__", [](ZddRandomIterator64& it) {
+            ZddRandomIterator64 end;
             if (it == end) throw py::stop_iteration();
             auto val = *it;
             ++it;
