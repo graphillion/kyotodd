@@ -12035,3 +12035,109 @@ TEST_F(BDDTest, CostBoundEq_SimpleOverload) {
     EXPECT_EQ(f.cost_bound_eq(w, 5), f);
 }
 
+// ---- get_sum / bddweightsum tests ----
+
+TEST_F(BDDTest, WeightSum_EmptyFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD empty(0);  // bddempty
+    EXPECT_EQ(empty.get_sum(w), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, WeightSum_OnlyEmptySet) {
+    bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD single(1);  // {∅}
+    EXPECT_EQ(single.get_sum(w), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, WeightSum_Singleton) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 10};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    // sum = 10
+    EXPECT_EQ(f.get_sum(w), bigint::BigInt(10));
+}
+
+TEST_F(BDDTest, WeightSum_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 10, 20, 30};
+    // {{v1, v2}, {v2, v3}}
+    ZDD f = ZDD::single_set({v1, v2}) + ZDD::single_set({v2, v3});
+    // {v1,v2}: 10+20=30, {v2,v3}: 20+30=50, total=80
+    EXPECT_EQ(f.get_sum(w), bigint::BigInt(80));
+}
+
+TEST_F(BDDTest, WeightSum_FamilyWithEmptySet) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 7};
+    // {{}, {v1}}
+    ZDD f = ZDD(1) + ZDD::singleton(v1);
+    // {}: 0, {v1}: 7, total=7
+    EXPECT_EQ(f.get_sum(w), bigint::BigInt(7));
+}
+
+TEST_F(BDDTest, WeightSum_NegativeWeights) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, -5, 3};
+    // {{v1}, {v2}, {v1, v2}}
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2)
+          + ZDD::single_set({v1, v2});
+    // {v1}: -5, {v2}: 3, {v1,v2}: -5+3=-2, total=-4
+    EXPECT_EQ(f.get_sum(w), bigint::BigInt(-4));
+}
+
+TEST_F(BDDTest, WeightSum_ComplementInvariance) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 5};
+    // {{v1}, {v2}}
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+    // complement adds/removes ∅ which has weight 0
+    ZDD fc = ~f;  // {{}, {v1, v2}}
+    // {}: 0, {v1,v2}: 3+5=8, total=8
+    // Original: {v1}: 3, {v2}: 5, total=8
+    EXPECT_EQ(f.get_sum(w), bigint::BigInt(8));
+    EXPECT_EQ(fc.get_sum(w), bigint::BigInt(8));
+}
+
+TEST_F(BDDTest, WeightSum_PowerSet) {
+    const int N = 10;
+    for (int i = 0; i < N; ++i) bddnewvar();
+    std::vector<int> w(N + 1, 0);
+    for (int i = 1; i <= N; ++i) w[i] = 1;
+
+    ZDD ps = ZDD::power_set(N);
+    // Each variable appears in 2^(N-1) sets
+    // Total = N * 1 * 2^(N-1) = 10 * 512 = 5120
+    bigint::BigInt expected = bigint::BigInt(N) * (bigint::BigInt(1) << (N - 1));
+    EXPECT_EQ(ps.get_sum(w), expected);
+}
+
+TEST_F(BDDTest, WeightSum_PowerSetLarge) {
+    const int N = 65;
+    for (int i = 0; i < N; ++i) bddnewvar();
+    std::vector<int> w(N + 1, 0);
+    for (int i = 1; i <= N; ++i) w[i] = 1;
+
+    ZDD ps = ZDD::power_set(N);
+    // Total = N * 2^(N-1) = 65 * 2^64
+    bigint::BigInt expected = bigint::BigInt(N) * (bigint::BigInt(1) << (N - 1));
+    EXPECT_EQ(ps.get_sum(w), expected);
+}
+
+TEST_F(BDDTest, WeightSum_FreeFunctionNull) {
+    std::vector<int> w = {0};
+    EXPECT_EQ(bddweightsum(bddnull, w), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, WeightSum_WeightsTooSmallThrows) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0};  // too small: need > v1
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.get_sum(w), std::invalid_argument);
+}
+

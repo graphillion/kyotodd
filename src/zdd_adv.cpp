@@ -883,6 +883,52 @@ char *bddcardmp16(bddp f, char *s) {
     return s;
 }
 
+// ---- weight sum ----
+
+static bigint::BigInt bddweightsum_rec(
+    bddp f,
+    const std::vector<int>& weights,
+    CountMemoMap& sum_memo,
+    CountMemoMap& count_memo)
+{
+    if (f == bddempty || f == bddsingle) return bigint::BigInt(0);
+
+    BDD_RecurGuard guard;
+
+    // get_sum is complement-invariant (∅ has weight 0), so strip complement
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = sum_memo.find(f_raw);
+    if (it != sum_memo.end()) return it->second;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    bigint::BigInt sum_lo = bddweightsum_rec(lo, weights, sum_memo, count_memo);
+    bigint::BigInt sum_hi = bddweightsum_rec(hi, weights, sum_memo, count_memo);
+    bigint::BigInt count_hi = bddexactcount_rec(hi, count_memo);
+
+    bigint::BigInt result = sum_lo + sum_hi
+                          + bigint::BigInt(weights[var]) * count_hi;
+    sum_memo[f_raw] = result;
+    return result;
+}
+
+bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights) {
+    bddp_validate(f, "bddweightsum");
+    if (f == bddnull || f == bddempty || f == bddsingle)
+        return bigint::BigInt(0);
+    bddvar top = bddtop(f);
+    if (weights.size() <= static_cast<size_t>(top)) {
+        throw std::invalid_argument(
+            "bddweightsum: weights.size() must be > top variable");
+    }
+    CountMemoMap sum_memo;
+    CountMemoMap count_memo;
+    return bddweightsum_rec(f, weights, sum_memo, count_memo);
+}
+
 // ---- min/max weight ----
 
 static void bddweight_validate(bddp f, const std::vector<int>& weights,

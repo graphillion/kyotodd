@@ -766,6 +766,20 @@ bddp bddcoimplyset(bddp f, bddvar v);
 bddp bdddivisor(bddp f);
 
 /**
+ * @brief Compute the total weight sum over all sets in a ZDD family.
+ *
+ * For each set S in the family, computes sum(weights[v] for v in S),
+ * then returns the total of all such sums as a BigInt.
+ *
+ * @param f A ZDD node ID.
+ * @param weights Weight vector indexed by variable number.
+ *                Size must be > top variable of f.
+ * @return The total weight sum.
+ * @throws std::invalid_argument if weights is too small.
+ */
+bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights);
+
+/**
  * @brief Find the minimum weight sum among all sets in a ZDD family.
  *
  * Each variable v has weight weights[v]. Returns the minimum of

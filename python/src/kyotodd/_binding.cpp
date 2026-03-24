@@ -1321,6 +1321,23 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    True if the family contains the empty set.\n")
 
+        // Weight sum
+        .def("get_sum", [](const ZDD& z, const std::vector<int>& weights) -> py::int_ {
+            bigint::BigInt bi = z.get_sum(weights);
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, py::arg("weights"),
+             "Compute the total weight sum over all sets in the family.\n\n"
+             "For each set S in the family, computes sum of weights[v] for v in S,\n"
+             "then returns the total of all such sums (arbitrary precision).\n\n"
+             "Args:\n"
+             "    weights: A list of integer weights indexed by variable number.\n"
+             "             Size must be > the top variable number of the ZDD.\n\n"
+             "Returns:\n"
+             "    The total weight sum (int, arbitrary precision).\n\n"
+             "Raises:\n"
+             "    ValueError: If the ZDD is null or weights is too small.\n")
+
         // Weight optimization
         .def("min_weight", &ZDD::min_weight, py::arg("weights"),
              "Find the minimum weight sum among all sets in the family.\n\n"

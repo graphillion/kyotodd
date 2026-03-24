@@ -460,6 +460,10 @@ void ZDD::SetZSkip() const {
     throw std::logic_error("ZDD::SetZSkip: not implemented");
 }
 
+bigint::BigInt ZDD::get_sum(const std::vector<int>& weights) const {
+    return bddweightsum(root, weights);
+}
+
 long long ZDD::min_weight(const std::vector<int>& weights) const {
     return bddminweight(root, weights);
 }

@@ -1139,6 +1139,8 @@ public:
     // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
+    /** @brief Compute the total weight sum over all sets in the family. */
+    bigint::BigInt get_sum(const std::vector<int>& weights) const;
     /** @brief Find the minimum weight sum among all sets in the family. */
     long long min_weight(const std::vector<int>& weights) const;
     /** @brief Find the maximum weight sum among all sets in the family. */

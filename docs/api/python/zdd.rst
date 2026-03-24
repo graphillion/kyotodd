@@ -915,6 +915,17 @@ ZDD Class
 
       True if this is the 0-terminal (empty family).
 
+   .. py:method:: get_sum(weights)
+
+      Compute the total weight sum over all sets in the family.
+
+      For each set *S* in the family, computes Σ weights[v] for v ∈ S,
+      then returns the total of all such sums.
+
+      :param list[int] weights: List of integer weights indexed by variable number.
+                                 Size must be > top variable number of the ZDD.
+      :rtype: int
+
    .. py:method:: iter_max_weight(weights)
 
       Iterate over sets in descending weight order.
