@@ -1219,14 +1219,28 @@ public:
      * Returns the 0-based index of @p s in the ZDD's structure-based ordering.
      * @param s The set to rank (variable numbers). Duplicates and order are ignored.
      * @return The rank, or -1 if @p s is not in the family.
+     * @throws std::invalid_argument if this ZDD is null.
      * @throws std::overflow_error if the rank exceeds int64_t range.
      */
     int64_t rank(const std::vector<bddvar>& s) const;
 
-    /** @brief Rank a set in the family (arbitrary precision). */
+    /**
+     * @brief Rank a set in the family (arbitrary precision).
+     *
+     * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+     * @return The rank as a BigInt, or BigInt(-1) if @p s is not in the family.
+     * @throws std::invalid_argument if this ZDD is null.
+     */
     bigint::BigInt exact_rank(const std::vector<bddvar>& s) const;
 
-    /** @brief Rank a set in the family (arbitrary precision, with memo). */
+    /**
+     * @brief Rank a set in the family (arbitrary precision, with memo).
+     *
+     * @param s The set to rank (variable numbers). Duplicates and order are ignored.
+     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->get_id().
+     * @return The rank as a BigInt, or BigInt(-1) if @p s is not in the family.
+     * @throws std::invalid_argument if this ZDD is null or memo was created for a different ZDD.
+     */
     bigint::BigInt exact_rank(const std::vector<bddvar>& s,
                               ZddCountMemo& memo) const;
 
@@ -1236,14 +1250,30 @@ public:
      * Returns the set at position @p order in the ZDD's structure-based ordering.
      * @param order The 0-based index.
      * @return The set as a sorted vector of variable numbers.
+     * @throws std::invalid_argument if this ZDD is null.
      * @throws std::out_of_range if @p order is out of range.
      */
     std::vector<bddvar> unrank(int64_t order) const;
 
-    /** @brief Retrieve the set at a given index (arbitrary precision). */
+    /**
+     * @brief Retrieve the set at a given index (arbitrary precision).
+     *
+     * @param order The 0-based index as a BigInt.
+     * @return The set as a sorted vector of variable numbers.
+     * @throws std::invalid_argument if this ZDD is null.
+     * @throws std::out_of_range if @p order is out of range.
+     */
     std::vector<bddvar> exact_unrank(const bigint::BigInt& order) const;
 
-    /** @brief Retrieve the set at a given index (arbitrary precision, with memo). */
+    /**
+     * @brief Retrieve the set at a given index (arbitrary precision, with memo).
+     *
+     * @param order The 0-based index as a BigInt.
+     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->get_id().
+     * @return The set as a sorted vector of variable numbers.
+     * @throws std::invalid_argument if this ZDD is null or memo was created for a different ZDD.
+     * @throws std::out_of_range if @p order is out of range.
+     */
     std::vector<bddvar> exact_unrank(const bigint::BigInt& order,
                                      ZddCountMemo& memo) const;
 

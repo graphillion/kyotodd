@@ -1349,11 +1349,14 @@ PYBIND11_MODULE(_core, m) {
             return py::int_(py::str(str));
         }, py::arg("s"), py::arg("memo"),
              "Rank a set using a memo for caching.\n\n"
+             "The memo must have been created for this ZDD.\n\n"
              "Args:\n"
              "    s: A list of variable numbers representing the set.\n"
-             "    memo: A ZddCountMemo object for caching.\n\n"
+             "    memo: A ZddCountMemo object created for this ZDD.\n\n"
              "Returns:\n"
-             "    The rank (int), or -1 if the set is not in the family.\n")
+             "    The rank (int), or -1 if the set is not in the family.\n\n"
+             "Raises:\n"
+             "    ValueError: If the memo was created for a different ZDD.\n")
         .def("unrank", &ZDD::unrank, py::arg("order"),
              "Retrieve the set at a given index in the family.\n\n"
              "Args:\n"
@@ -1381,12 +1384,14 @@ PYBIND11_MODULE(_core, m) {
             return z.exact_unrank(bi, memo);
         }, py::arg("order"), py::arg("memo"),
              "Retrieve the set at a given index using a memo.\n\n"
+             "The memo must have been created for this ZDD.\n\n"
              "Args:\n"
              "    order: The 0-based index (int, arbitrary precision).\n"
-             "    memo: A ZddCountMemo object for caching.\n\n"
+             "    memo: A ZddCountMemo object created for this ZDD.\n\n"
              "Returns:\n"
              "    A sorted list of variable numbers.\n\n"
              "Raises:\n"
+             "    ValueError: If the memo was created for a different ZDD.\n"
              "    IndexError: If order is out of range.\n")
 
         // get_k_sets

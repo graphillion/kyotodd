@@ -873,6 +873,7 @@ bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
  * @param f A ZDD node ID.
  * @param s The set to rank (variable numbers). Duplicates and order are ignored.
  * @return The rank of the set, or -1 if @p s is not in the family.
+ * @throws std::invalid_argument if f is bddnull.
  * @throws std::overflow_error if the rank exceeds int64_t range.
  */
 int64_t bddrank(bddp f, const std::vector<bddvar>& s);
@@ -883,6 +884,7 @@ int64_t bddrank(bddp f, const std::vector<bddvar>& s);
  * @param f A ZDD node ID.
  * @param s The set to rank (variable numbers). Duplicates and order are ignored.
  * @return The rank of the set as a BigInt, or BigInt(-1) if not in the family.
+ * @throws std::invalid_argument if f is bddnull.
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
 
@@ -893,6 +895,7 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
  * @param s The set to rank (variable numbers). Duplicates and order are ignored.
  * @param memo The count memo table to use and populate.
  * @return The rank of the set as a BigInt, or BigInt(-1) if not in the family.
+ * @throws std::invalid_argument if f is bddnull.
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
                             CountMemoMap& memo);
@@ -906,6 +909,7 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
  * @param f A ZDD node ID.
  * @param order The 0-based index.
  * @return The set as a sorted vector of variable numbers.
+ * @throws std::invalid_argument if f is bddnull.
  * @throws std::out_of_range if @p order is negative or >= family size.
  */
 std::vector<bddvar> bddunrank(bddp f, int64_t order);
@@ -916,6 +920,7 @@ std::vector<bddvar> bddunrank(bddp f, int64_t order);
  * @param f A ZDD node ID.
  * @param order The 0-based index as a BigInt.
  * @return The set as a sorted vector of variable numbers.
+ * @throws std::invalid_argument if f is bddnull.
  * @throws std::out_of_range if @p order is out of range.
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
@@ -927,6 +932,7 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
  * @param order The 0-based index as a BigInt.
  * @param memo The count memo table to use and populate.
  * @return The set as a sorted vector of variable numbers.
+ * @throws std::invalid_argument if f is bddnull.
  * @throws std::out_of_range if @p order is out of range.
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
