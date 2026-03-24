@@ -183,6 +183,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family.
 - Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
 - Rank-order iteration: `ZddRankIterator(zdd)` — STL input iterator enumerating sets in structure order (hi-first DFS). Value type: `vector<bddvar>`. `ZddRankRange(zdd)` — range wrapper for range-based for loops. Python: `iter_rank()`.
+- Random iteration: `ZddRandomIterator<RNG>(zdd, rng)` — STL input iterator enumerating sets in uniformly random order without replacement. Hybrid strategy: rejection sampling when `sampled < |F|/2`, direct sampling from `f - sampled` otherwise. Value type: `vector<bddvar>`. `ZddRandomRange<RNG>(zdd, rng)` — range wrapper. Python: `iter_random(seed=0)`.
 - Ranking: `rank(s)` (int64_t), `exact_rank(s)` (BigInt), `exact_rank(s, ZddCountMemo&)` — 0-based index of set `s` in ZDD structure order. Returns -1 if not in family. Free functions: `bddrank()`, `bddexactrank()`.
 - Unranking: `unrank(order)` (int64_t), `exact_unrank(order)` (BigInt), `exact_unrank(order, ZddCountMemo&)` — retrieve set at given index. Throws `std::out_of_range`. Free functions: `bddunrank()`, `bddexactunrank()`.
 - First-k extraction: `get_k_sets(k)` (int64_t), `get_k_sets(k)` (BigInt), `get_k_sets(k, ZddCountMemo&)` — return a ZDD containing the first k sets in structure order. Free functions: `bddgetksets()`.
