@@ -347,3 +347,86 @@ ZddMinWeightIterator ZddMinWeightRange::begin() const {
 ZddMinWeightIterator ZddMinWeightRange::end() const {
     return ZddMinWeightIterator();
 }
+
+// --- ZddMaxWeightIterator ---
+
+static std::vector<int> negate_weights(const std::vector<int>& weights) {
+    std::vector<int> neg(weights.size());
+    for (size_t i = 0; i < weights.size(); ++i) {
+        neg[i] = -weights[i];
+    }
+    return neg;
+}
+
+ZddMaxWeightIterator::ZddMaxWeightIterator(
+    const ZDD& zdd, const std::vector<int>& weights)
+    : inner_(zdd, negate_weights(weights)), current_(), exhausted_(false)
+{
+    ZddMinWeightIterator end;
+    if (inner_ == end) {
+        exhausted_ = true;
+    } else {
+        sync_current();
+    }
+}
+
+ZddMaxWeightIterator::ZddMaxWeightIterator()
+    : inner_(), current_(), exhausted_(true)
+{
+}
+
+void ZddMaxWeightIterator::sync_current() {
+    const auto& val = *inner_;
+    current_ = {-val.first, val.second};
+}
+
+ZddMaxWeightIterator::reference ZddMaxWeightIterator::operator*() const {
+    return current_;
+}
+
+ZddMaxWeightIterator::pointer ZddMaxWeightIterator::operator->() const {
+    return &current_;
+}
+
+ZddMaxWeightIterator& ZddMaxWeightIterator::operator++() {
+    ++inner_;
+    ZddMinWeightIterator end;
+    if (inner_ == end) {
+        exhausted_ = true;
+    } else {
+        sync_current();
+    }
+    return *this;
+}
+
+ZddMaxWeightIterator ZddMaxWeightIterator::operator++(int) {
+    ZddMaxWeightIterator old = *this;
+    ++(*this);
+    return old;
+}
+
+bool ZddMaxWeightIterator::operator==(const ZddMaxWeightIterator& other) const {
+    if (exhausted_ && other.exhausted_) return true;
+    if (exhausted_ != other.exhausted_) return false;
+    return inner_ == other.inner_;
+}
+
+bool ZddMaxWeightIterator::operator!=(const ZddMaxWeightIterator& other) const {
+    return !(*this == other);
+}
+
+// --- ZddMaxWeightRange ---
+
+ZddMaxWeightRange::ZddMaxWeightRange(
+    const ZDD& zdd, const std::vector<int>& weights)
+    : zdd_(zdd), weights_(weights)
+{
+}
+
+ZddMaxWeightIterator ZddMaxWeightRange::begin() const {
+    return ZddMaxWeightIterator(zdd_, weights_);
+}
+
+ZddMaxWeightIterator ZddMaxWeightRange::end() const {
+    return ZddMaxWeightIterator();
+}

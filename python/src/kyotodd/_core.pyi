@@ -1513,6 +1513,18 @@ class ZDD:
         """
         ...
 
+    def iter_max_weight(self, weights: List[int]) -> Iterator[Tuple[int, List[int]]]:
+        """Iterate over sets in descending weight order.
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > the top variable number of the ZDD.
+
+        Returns:
+            An iterator yielding (weight, set) pairs.
+        """
+        ...
+
     def cost_bound(self, weights: List[int], b: int) -> ZDD:
         """Extract all sets whose total cost is at most b.
 

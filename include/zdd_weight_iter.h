@@ -118,4 +118,54 @@ private:
     std::vector<int> weights_;
 };
 
+/**
+ * @brief STL input iterator that enumerates sets from a ZDD family
+ *        in descending order of weighted sum.
+ *
+ * Implemented as a thin wrapper around ZddMinWeightIterator with
+ * negated weights. Each dereference yields a pair (weight, set)
+ * where weight is the sum of weights of elements in the set.
+ */
+class ZddMaxWeightIterator {
+public:
+    typedef std::input_iterator_tag iterator_category;
+    typedef std::pair<long long, std::vector<bddvar> > value_type;
+    typedef std::ptrdiff_t difference_type;
+    typedef const value_type* pointer;
+    typedef const value_type& reference;
+
+    /// Construct a begin iterator for the given ZDD and weights.
+    ZddMaxWeightIterator(const ZDD& zdd, const std::vector<int>& weights);
+
+    /// Construct an end (sentinel) iterator.
+    ZddMaxWeightIterator();
+
+    reference operator*() const;
+    pointer operator->() const;
+    ZddMaxWeightIterator& operator++();
+    ZddMaxWeightIterator operator++(int);
+    bool operator==(const ZddMaxWeightIterator& other) const;
+    bool operator!=(const ZddMaxWeightIterator& other) const;
+
+private:
+    ZddMinWeightIterator inner_;
+    value_type current_;
+    bool exhausted_;
+
+    void sync_current();
+};
+
+/**
+ * @brief Range wrapper for ZddMaxWeightIterator, enabling range-based for.
+ */
+class ZddMaxWeightRange {
+public:
+    ZddMaxWeightRange(const ZDD& zdd, const std::vector<int>& weights);
+    ZddMaxWeightIterator begin() const;
+    ZddMaxWeightIterator end() const;
+private:
+    ZDD zdd_;
+    std::vector<int> weights_;
+};
+
 #endif

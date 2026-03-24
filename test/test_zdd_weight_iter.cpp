@@ -362,3 +362,149 @@ TEST_F(ZddMinWeightIterTest, FromSetsNonTrivial) {
     EXPECT_EQ(actual[2].first, 15);
     EXPECT_EQ(actual[3].first, 16);
 }
+
+// ---- ZddMaxWeightIterator tests ----
+
+class ZddMaxWeightIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD::init(100, 1 << 20);
+    }
+    void TearDown() override {
+        bddfinal();
+    }
+};
+
+TEST_F(ZddMaxWeightIterTest, EmptyFamily) {
+    ZDD f(0);
+    std::vector<int> weights = {0, 1};
+    bddnewvar();
+    ZddMaxWeightIterator it(f, weights);
+    ZddMaxWeightIterator end;
+    EXPECT_EQ(it, end);
+}
+
+TEST_F(ZddMaxWeightIterTest, SingleEmptySet) {
+    bddnewvar();
+    ZDD f(1); // {∅}
+    std::vector<int> weights = {0, 5};
+    ZddMaxWeightIterator it(f, weights);
+    ZddMaxWeightIterator end;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(it->first, 0);
+    EXPECT_TRUE(it->second.empty());
+    ++it;
+    EXPECT_EQ(it, end);
+}
+
+TEST_F(ZddMaxWeightIterTest, DescendingOrder) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 3, 5, 10};
+    ZDD f = ZDD::power_set(3);
+
+    std::vector<std::pair<long long, std::vector<bddvar>>> results;
+    for (ZddMaxWeightIterator it(f, weights); it != ZddMaxWeightIterator(); ++it) {
+        results.push_back(*it);
+    }
+
+    ASSERT_EQ(results.size(), 8u);
+    // Verify descending order
+    for (size_t i = 1; i < results.size(); ++i) {
+        EXPECT_GE(results[i - 1].first, results[i].first);
+    }
+    // First should be max weight, last should be min weight
+    EXPECT_EQ(results.front().first, 18); // 3+5+10
+    EXPECT_EQ(results.back().first, 0);   // empty set
+}
+
+TEST_F(ZddMaxWeightIterTest, CrossValidateWithMinIterator) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 3, 5, 10};
+    ZDD f = ZDD::power_set(3);
+
+    // Collect both orderings
+    std::vector<long long> min_order, max_order;
+    for (auto& p : ZddMinWeightRange(f, weights))
+        min_order.push_back(p.first);
+    for (auto& p : ZddMaxWeightRange(f, weights))
+        max_order.push_back(p.first);
+
+    // max_order reversed should equal min_order
+    std::vector<long long> max_reversed(max_order.rbegin(), max_order.rend());
+    EXPECT_EQ(min_order, max_reversed);
+}
+
+TEST_F(ZddMaxWeightIterTest, NegativeWeights) {
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, -3, 5};
+    ZDD f = ZDD::power_set(2);
+
+    std::vector<std::pair<long long, std::vector<bddvar>>> results;
+    for (auto& p : ZddMaxWeightRange(f, weights))
+        results.push_back(p);
+
+    ASSERT_EQ(results.size(), 4u);
+    EXPECT_GE(results[0].first, results[1].first);
+    EXPECT_GE(results[1].first, results[2].first);
+    EXPECT_GE(results[2].first, results[3].first);
+    EXPECT_EQ(results.front().first, 5);   // {v2}
+    EXPECT_EQ(results.back().first, -3);   // {v1}
+}
+
+TEST_F(ZddMaxWeightIterTest, FirstMatchesMaxWeight) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 7, -2, 4};
+    ZDD f = ZDD::power_set(3);
+
+    ZddMaxWeightIterator it(f, weights);
+    ASSERT_NE(it, ZddMaxWeightIterator());
+    EXPECT_EQ(it->first, f.max_weight(weights));
+}
+
+TEST_F(ZddMaxWeightIterTest, EarlyBreak) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 1, 2, 4};
+    ZDD f = ZDD::power_set(3);
+
+    int count = 0;
+    for (auto& p : ZddMaxWeightRange(f, weights)) {
+        (void)p;
+        if (++count >= 3) break;
+    }
+    EXPECT_EQ(count, 3);
+}
+
+TEST_F(ZddMaxWeightIterTest, PostfixIncrement) {
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 3, 5};
+    ZDD f = ZDD::power_set(2);
+
+    ZddMaxWeightIterator it(f, weights);
+    auto old = it++;
+    EXPECT_EQ(old->first, 8);  // {v1,v2} = 3+5
+    EXPECT_EQ(it->first, 5);   // {v2}
+}
+
+TEST_F(ZddMaxWeightIterTest, RangeBasedFor) {
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> weights = {0, 10, 20};
+    ZDD f = ZDD::power_set(2);
+
+    std::vector<long long> ws;
+    for (const auto& p : ZddMaxWeightRange(f, weights)) {
+        ws.push_back(p.first);
+    }
+    std::vector<long long> expected = {30, 20, 10, 0};
+    EXPECT_EQ(ws, expected);
+}

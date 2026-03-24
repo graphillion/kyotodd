@@ -1374,6 +1374,20 @@ PYBIND11_MODULE(_core, m) {
            "        print(weight, s)\n"
            "        if weight > threshold:\n"
            "            break\n")
+        .def("iter_max_weight", [](const ZDD& z, const std::vector<int>& weights) {
+            return ZddMaxWeightRange(z, weights);
+        }, py::arg("weights"), py::keep_alive<0, 1>(),
+           "Iterate over sets in descending weight order.\n\n"
+           "Args:\n"
+           "    weights: A list of integer weights indexed by variable number.\n"
+           "             Size must be > the top variable number of the ZDD.\n\n"
+           "Returns:\n"
+           "    An iterator yielding (weight, set) pairs.\n\n"
+           "Example:\n"
+           "    for weight, s in zdd.iter_max_weight(weights):\n"
+           "        print(weight, s)\n"
+           "        if weight < threshold:\n"
+           "            break\n")
 
         // Cost-bounded enumeration
         .def("cost_bound", [](const ZDD& z, const std::vector<int>& weights, long long b) -> ZDD {
@@ -2644,6 +2658,25 @@ PYBIND11_MODULE(_core, m) {
         })
         .def("__next__", [](ZddMinWeightIterator& it) {
             ZddMinWeightIterator end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
+    ;
+
+    py::class_<ZddMaxWeightRange>(m, "_ZddMaxWeightRange")
+        .def("__iter__", [](ZddMaxWeightRange& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<ZddMaxWeightIterator>(m, "_ZddMaxWeightIterator")
+        .def("__iter__", [](ZddMaxWeightIterator& it) -> ZddMaxWeightIterator& {
+            return it;
+        })
+        .def("__next__", [](ZddMaxWeightIterator& it) {
+            ZddMaxWeightIterator end;
             if (it == end) throw py::stop_iteration();
             auto val = *it;
             ++it;

@@ -915,6 +915,15 @@ ZDD Class
 
       True if this is the 0-terminal (empty family).
 
+   .. py:method:: iter_max_weight(weights)
+
+      Iterate over sets in descending weight order.
+
+      :param list[int] weights: List of integer weights indexed by variable number.
+                                 Size must be > top variable number of the ZDD.
+      :return: An iterator yielding (weight, set) pairs.
+      :rtype: Iterator[Tuple[int, List[int]]]
+
    .. py:method:: cost_bound(weights, b)
 
       Extract all sets whose total cost is at most *b*.
