@@ -1053,3 +1053,57 @@ ZDD Class
       :return: A ZDD containing the first *k* sets.
       :rtype: ZDD
       :raises ValueError: If *k* is negative or memo root mismatch.
+
+   .. py:method:: get_k_lightest(k, weights, strict=0)
+
+      Return the *k* sets with the smallest total weight.
+
+      Uses binary search on cost bounds combined with
+      :py:meth:`cost_bound_le`. Tie-breaking at the boundary cost
+      tier is controlled by *strict*:
+
+      - ``0``: exactly *k* sets (pick from tier by structure order).
+      - ``<0``: fewer than *k* (all strictly lighter than boundary).
+      - ``>0``: more than *k* (includes full boundary tier).
+
+      :param int k: Number of sets to extract (must be >= 0).
+      :param list[int] weights: Weight vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int strict: Tie-breaking mode (default 0).
+      :return: A ZDD containing the selected sets.
+      :rtype: ZDD
+      :raises ValueError: If *k* is negative or weights too small.
+
+   .. py:method:: exact_get_k_lightest(k, weights, strict=0)
+
+      Return the *k* lightest sets (arbitrary precision *k*).
+
+      :param int k: Number of sets (arbitrary precision, >= 0).
+      :param list[int] weights: Weight vector indexed by variable number.
+      :param int strict: Tie-breaking mode (default 0).
+      :return: A ZDD containing the selected sets.
+      :rtype: ZDD
+
+   .. py:method:: get_k_heaviest(k, weights, strict=0)
+
+      Return the *k* sets with the largest total weight.
+
+      Implemented as ``f - f.get_k_lightest(|F| - k, weights, -strict)``.
+
+      :param int k: Number of sets to extract (must be >= 0).
+      :param list[int] weights: Weight vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int strict: Tie-breaking mode (default 0).
+      :return: A ZDD containing the selected sets.
+      :rtype: ZDD
+      :raises ValueError: If *k* is negative or weights too small.
+
+   .. py:method:: exact_get_k_heaviest(k, weights, strict=0)
+
+      Return the *k* heaviest sets (arbitrary precision *k*).
+
+      :param int k: Number of sets (arbitrary precision, >= 0).
+      :param list[int] weights: Weight vector indexed by variable number.
+      :param int strict: Tie-breaking mode (default 0).
+      :return: A ZDD containing the selected sets.
+      :rtype: ZDD
