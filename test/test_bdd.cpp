@@ -11772,3 +11772,57 @@ TEST_F(BDDTest, CostBound_SimpleOverload) {
     EXPECT_EQ(h, ZDD::singleton(v1));
 }
 
+TEST_F(BDDTest, CostBound_MemoSurvivesGC) {
+    // Verify that memo invalidation works correctly after GC.
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 1, 2, 4, 8};
+    ZDD f = ZDD::power_set(4);
+
+    CostBoundMemo memo;
+    ZDD h1 = f.cost_bound(w, 5, memo);
+    auto sets1 = h1.enumerate();
+    size_t count1 = sets1.size();
+
+    // Force GC — memo entries become stale
+    DDBase::gc();
+
+    // Second call should produce the same correct result
+    // (memo is invalidated and recomputed)
+    ZDD h2 = f.cost_bound(w, 5, memo);
+    auto sets2 = h2.enumerate();
+    EXPECT_EQ(sets2.size(), count1);
+    EXPECT_EQ(h2, h1);
+}
+
+TEST_F(BDDTest, CostBound_MemoRejectsDifferentWeights) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w1 = {0, 1};
+    std::vector<int> w2 = {0, 100};
+    ZDD f = ZDD::singleton(v1);
+
+    CostBoundMemo memo;
+    f.cost_bound(w1, 50, memo);
+    // Using the same memo with different weights must throw
+    EXPECT_THROW(f.cost_bound(w2, 50, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, CostBound_ReorderedVariables) {
+    // Create variables with non-default level ordering
+    bddvar v1 = bddnewvar();               // var 1, level 1
+    bddnewvar();                            // var 2, level 2
+    bddvar v3 = DDBase::new_var(true);      // var 3, level 1 (pushes others up)
+    // Now: level 3 = var 2, level 2 = var 1, level 1 = var 3
+
+    std::vector<int> w = {0, 5, 10, 20};
+    ZDD f = ZDD::single_set({v1, v3});      // {{1, 3}}, cost = 5 + 20 = 25
+
+    ZDD h30 = f.cost_bound(w, 30);
+    EXPECT_EQ(h30, f);                      // 25 <= 30: accepted
+
+    ZDD h20 = f.cost_bound(w, 20);
+    EXPECT_EQ(h20, ZDD::Empty);             // 25 > 20: rejected
+}
+

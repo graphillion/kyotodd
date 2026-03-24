@@ -1112,17 +1112,21 @@ bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
     if (f == bddnull) {
         throw std::invalid_argument("bddcostbound: null ZDD");
     }
-    bddvar top = bddtop(f);
-    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            "bddcostbound: weights.size() must be > top variable");
+            "bddcostbound: weights.size() must be > bddvarused()");
     }
+
+    // Validate memo is used with consistent weights
+    memo.bind_weights(weights);
 
     // Terminal fast-paths
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return b >= 0 ? bddsingle : bddempty;
 
     return bdd_gc_guard([&]() -> bddp {
+        // Invalidate memo if GC ran (e.g. at bdd_gc_guard entry)
+        memo.invalidate_if_stale();
         return bddcostbound_rec(f, weights, b, memo).h;
     });
 }

@@ -45,6 +45,7 @@ static std::unordered_set<bddp*>& gc_roots() {
 }
 int BDD_RecurCount = 0;
 int bdd_gc_depth = 0;
+uint64_t bdd_gc_generation = 0;
 static bddp bdd_free_list = 0;
 static uint64_t bdd_free_count = 0;
 static const double BDD_GC_THRESHOLD_DEFAULT = 0.9;
@@ -212,6 +213,7 @@ void bddfinal() {
 
     BDD_RecurCount = 0;
     bdd_gc_depth = 0;
+    bdd_gc_generation = 0;
     bdd_free_list = 0;
     bdd_free_count = 0;
     bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
@@ -510,7 +512,10 @@ int bddgc() {
     // 5. Clear operation cache
     bdd_cache_clear();
 
-    // 6. Free mark array
+    // 6. Increment GC generation counter
+    ++bdd_gc_generation;
+
+    // 7. Free mark array
     std::free(marks);
 
     return (bdd_free_count == 0) ? 1 : 0;

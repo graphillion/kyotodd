@@ -236,10 +236,30 @@ public:
     /** @brief Clear all cached entries. */
     void clear();
 
+    /**
+     * @brief Invalidate memo if GC has run since last use.
+     *
+     * Called at the start of bddcostbound (inside bdd_gc_guard,
+     * after potential GC at entry) to ensure stale bddp values
+     * are not returned.
+     */
+    void invalidate_if_stale();
+
+    /**
+     * @brief Bind this memo to a specific weights vector.
+     *
+     * On first call, stores the weights. On subsequent calls,
+     * throws std::invalid_argument if a different weights vector is passed.
+     */
+    void bind_weights(const std::vector<int>& weights);
+
 private:
     // map_[f][aw] = (rb, h)
     std::unordered_map<bddp,
         std::map<long long, std::pair<long long, bddp>>> map_;
+    uint64_t gc_generation_;
+    std::vector<int> weights_;
+    bool weights_bound_;
 };
 
 /**

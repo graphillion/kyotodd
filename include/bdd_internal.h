@@ -36,6 +36,8 @@ struct BDD_RecurGuard {
 
 /** @brief Current GC nesting depth. GC is suppressed when > 0. */
 extern int bdd_gc_depth;
+/** @brief GC generation counter. Incremented each time GC actually runs. */
+extern uint64_t bdd_gc_generation;
 /** @brief Run garbage collection. No-op if bdd_gc_depth > 0. */
 int bddgc();
 /**

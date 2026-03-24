@@ -478,7 +478,8 @@ std::vector<bddvar> ZDD::max_weight_set(const std::vector<int>& weights) const {
 
 // --- CostBoundMemo ---
 
-CostBoundMemo::CostBoundMemo() : map_() {}
+CostBoundMemo::CostBoundMemo()
+    : map_(), gc_generation_(0), weights_(), weights_bound_(false) {}
 
 bool CostBoundMemo::lookup(bddp f, long long b,
                             bddp& h, long long& aw, long long& rb) const {
@@ -505,6 +506,24 @@ void CostBoundMemo::insert(bddp f, long long aw, long long rb, bddp h) {
 
 void CostBoundMemo::clear() {
     map_.clear();
+}
+
+void CostBoundMemo::invalidate_if_stale() {
+    extern uint64_t bdd_gc_generation;
+    if (gc_generation_ != bdd_gc_generation) {
+        map_.clear();
+        gc_generation_ = bdd_gc_generation;
+    }
+}
+
+void CostBoundMemo::bind_weights(const std::vector<int>& weights) {
+    if (!weights_bound_) {
+        weights_ = weights;
+        weights_bound_ = true;
+    } else if (weights_ != weights) {
+        throw std::invalid_argument(
+            "CostBoundMemo: called with different weights vector");
+    }
 }
 
 // --- ZDD::cost_bound ---
