@@ -101,8 +101,9 @@ bddp bddpermitsym(bddp f, int n) {
     bddp_validate(f, "bddpermitsym");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
+    if (n < 0) return bddempty;
     if (f == bddsingle) return bddsingle;
-    if (n < 1) return bddintersec(f, bddsingle);
+    if (n == 0) return bddintersec(f, bddsingle);
     if (f & BDD_CONST_FLAG) return f;
 
     return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
@@ -112,8 +113,9 @@ static bddp bddpermitsym_rec(bddp f, int n) {
     BDD_RecurGuard guard;
 
     if (f == bddempty) return bddempty;
+    if (n < 0) return bddempty;
     if (f == bddsingle) return bddsingle;
-    if (n < 1) return bddintersec(f, bddsingle);
+    if (n == 0) return bddintersec(f, bddsingle);
     if (f & BDD_CONST_FLAG) return f;
 
     bddp cached = bddrcache(BDD_OP_PERMITSYM, f, static_cast<bddp>(n));
@@ -518,6 +520,11 @@ bddp bdddivisor(bddp f) {
                 cur = f1;
             }
         }
+
+        // Verify the candidate actually divides f
+        bddp q = bdddiv(f, cur);
+        if (bddjoin(q, cur) != f) return bddsingle;
+
         return cur;
     });
 }

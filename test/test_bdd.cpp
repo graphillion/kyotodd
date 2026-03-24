@@ -8664,6 +8664,35 @@ TEST(ZDD_DivisorTest, DivisorDivides) {
     EXPECT_EQ(q * d, f);
 }
 
+TEST(ZDD_DivisorTest, CounterexampleThreeSets) {
+    // Counterexample from review: f = {{v1}, {v2}, {v1,v2}}
+    // Divisor should either return d where q*d == f, or bddsingle
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD s2 = ZDD::Single.Change(2);
+    ZDD s12 = ZDD::Single.Change(1).Change(2);
+    ZDD f = s1 + s2 + s12;
+
+    ZDD d = f.Divisor();
+    ZDD q = f / d;
+    EXPECT_EQ(q * d, f);
+}
+
+TEST(ZDD_PermitSymTest, NegativeN) {
+    // n < 0: no set has negative cardinality, should return empty
+    BDD_Init(256, 256);
+    for (int i = 0; i < 5; i++) BDD_NewVar();
+
+    EXPECT_EQ(ZDD::Single.PermitSym(-1), ZDD::Empty);
+
+    ZDD s1 = ZDD::Single.Change(1);
+    ZDD f = ZDD::Single + s1;  // {∅, {v1}}
+    EXPECT_EQ(f.PermitSym(-1), ZDD::Empty);
+    EXPECT_EQ(f.PermitSym(-100), ZDD::Empty);
+}
+
 // --- ZDD::Meet ---
 
 TEST_F(BDDTest, ZDD_Meet_MatchesFreeFunction) {
