@@ -24,6 +24,9 @@ Memo Classes
 .. doxygenclass:: BddCountMemo
    :members:
 
+.. doxygenclass:: CostBoundMemo
+   :members:
+
 DDBase Class
 ------------
 

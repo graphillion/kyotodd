@@ -77,6 +77,27 @@ Counting
 .. doxygenfunction:: bddcardmp16
 .. doxygenfunction:: bddhasempty
 
+Weight Functions
+----------------
+
+.. doxygenfunction:: bddweightsum
+
+Cost-Bound Filtering
+--------------------
+
+.. doxygenfunction:: bddcostbound_le
+.. doxygenfunction:: bddcostbound_ge
+
+Ranking / Unranking
+-------------------
+
+.. doxygenfunction:: bddrank
+.. doxygenfunction:: bddexactrank(bddp f, const std::vector<bddvar>& s)
+.. doxygenfunction:: bddexactrank(bddp f, const std::vector<bddvar>& s, CountMemoMap& memo)
+.. doxygenfunction:: bddunrank
+.. doxygenfunction:: bddexactunrank(bddp f, const bigint::BigInt& order)
+.. doxygenfunction:: bddexactunrank(bddp f, const bigint::BigInt& order, CountMemoMap& memo)
+
 Random Generation
 -----------------
 
