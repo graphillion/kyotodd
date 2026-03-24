@@ -1572,6 +1572,19 @@ PYBIND11_MODULE(_core, m) {
            "        if weight < threshold:\n"
            "            break\n")
 
+        // Rank-order iteration
+        .def("iter_rank", [](const ZDD& z) {
+            return ZddRankRange(z);
+        }, py::keep_alive<0, 1>(),
+           "Iterate over sets in structure order (same as rank/unrank).\n\n"
+           "Structure order: empty set first (if present), then at each node\n"
+           "hi-edge sets before lo-edge sets.\n\n"
+           "Returns:\n"
+           "    An iterator yielding sorted lists of variable numbers.\n\n"
+           "Example:\n"
+           "    for s in zdd.iter_rank():\n"
+           "        print(s)\n")
+
         // Cost-bounded enumeration (<=)
         .def("cost_bound_le", [](const ZDD& z, const std::vector<int>& weights, long long b) -> ZDD {
             return z.cost_bound_le(weights, b);
@@ -2923,6 +2936,26 @@ PYBIND11_MODULE(_core, m) {
         })
         .def("__next__", [](ZddMaxWeightIterator& it) {
             ZddMaxWeightIterator end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
+    ;
+
+    // ZddRankRange Python iterator
+    py::class_<ZddRankRange>(m, "_ZddRankRange")
+        .def("__iter__", [](ZddRankRange& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<ZddRankIterator>(m, "_ZddRankIterator")
+        .def("__iter__", [](ZddRankIterator& it) -> ZddRankIterator& {
+            return it;
+        })
+        .def("__next__", [](ZddRankIterator& it) {
+            ZddRankIterator end;
             if (it == end) throw py::stop_iteration();
             auto val = *it;
             ++it;

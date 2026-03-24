@@ -935,6 +935,16 @@ ZDD Class
       :return: An iterator yielding (weight, set) pairs.
       :rtype: Iterator[Tuple[int, List[int]]]
 
+   .. py:method:: iter_rank()
+
+      Iterate over sets in structure order (same as rank/unrank).
+
+      Structure order: empty set first (if present), then at each node
+      hi-edge sets before lo-edge sets.
+
+      :return: An iterator yielding sorted lists of variable numbers.
+      :rtype: Iterator[List[int]]
+
    .. py:method:: cost_bound_le(weights, b)
 
       Extract all sets whose total cost is at most *b*.

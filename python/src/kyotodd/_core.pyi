@@ -1525,6 +1525,17 @@ class ZDD:
         """
         ...
 
+    def iter_rank(self) -> Iterator[List[int]]:
+        """Iterate over sets in structure order (same as rank/unrank).
+
+        Structure order: empty set first (if present), then at each node
+        hi-edge sets before lo-edge sets.
+
+        Returns:
+            An iterator yielding sorted lists of variable numbers.
+        """
+        ...
+
     def cost_bound_le(self, weights: List[int], b: int) -> ZDD:
         """Extract all sets whose total cost is at most b.
 
