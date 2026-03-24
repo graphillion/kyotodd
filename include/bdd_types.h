@@ -1185,6 +1185,18 @@ public:
     /** @brief Convenience overload without memo (creates a temporary one). */
     ZDD cost_bound_ge(const std::vector<int>& weights, long long b) const;
 
+    /**
+     * @brief Extract all solutions with cost exactly equal to b.
+     *
+     * Returns a ZDD representing {X ∈ S_f | Cost(X) = b}.
+     * Computed as cost_bound_le(b) - cost_bound_le(b - 1).
+     */
+    ZDD cost_bound_eq(const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo (creates a temporary one). */
+    ZDD cost_bound_eq(const std::vector<int>& weights, long long b) const;
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

@@ -11947,3 +11947,91 @@ TEST_F(BDDTest, CostBoundGe_SimpleOverload) {
     EXPECT_EQ(h, f);
 }
 
+// ==================== CostBoundEq ====================
+
+TEST_F(BDDTest, CostBoundEq_EmptyFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.cost_bound_eq(w, 0), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_eq(w, 1), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundEq_UnitFamily) {
+    bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::Single;  // {∅}, cost(∅) = 0
+    EXPECT_EQ(f.cost_bound_eq(w, 0), ZDD::Single);  // 0 == 0: accepted
+    EXPECT_EQ(f.cost_bound_eq(w, 1), ZDD::Empty);   // 0 != 1: rejected
+}
+
+TEST_F(BDDTest, CostBoundEq_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD f = ZDD::singleton(v1);  // {{v1}}, cost = 5
+    EXPECT_EQ(f.cost_bound_eq(w, 5), f);             // exact match
+    EXPECT_EQ(f.cost_bound_eq(w, 4), ZDD::Empty);    // too low
+    EXPECT_EQ(f.cost_bound_eq(w, 6), ZDD::Empty);    // too high
+}
+
+TEST_F(BDDTest, CostBoundEq_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 8};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // costs 3, 8
+
+    EXPECT_EQ(f.cost_bound_eq(w, 3), ZDD::singleton(v1));
+    EXPECT_EQ(f.cost_bound_eq(w, 8), ZDD::singleton(v2));
+    EXPECT_EQ(f.cost_bound_eq(w, 5), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundEq_CrossValidateWithEnumerate) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 2, 5, 10};
+    ZDD f = ZDD::power_set(3);
+
+    auto all_sets = f.enumerate();
+
+    for (long long b = -1; b <= 18; ++b) {
+        ZDD h = f.cost_bound_eq(w, b);
+        auto result_sets = h.enumerate();
+
+        std::vector<std::vector<bddvar>> expected;
+        for (const auto& s : all_sets) {
+            long long cost = 0;
+            for (bddvar v : s) cost += w[v];
+            if (cost == b) expected.push_back(s);
+        }
+
+        std::sort(result_sets.begin(), result_sets.end());
+        std::sort(expected.begin(), expected.end());
+        EXPECT_EQ(result_sets, expected) << "Mismatch at b=" << b;
+    }
+}
+
+TEST_F(BDDTest, CostBoundEq_MemoReuse) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    std::vector<int> w = {0, 5, 10, 20};
+    ZDD f = ZDD::power_set(3);
+
+    CostBoundMemo memo;
+    ZDD h5 = f.cost_bound_eq(w, 5, memo);
+    ZDD h10 = f.cost_bound_eq(w, 10, memo);
+    ZDD h15 = f.cost_bound_eq(w, 15, memo);
+
+    EXPECT_EQ(h5, f.cost_bound_eq(w, 5));
+    EXPECT_EQ(h10, f.cost_bound_eq(w, 10));
+    EXPECT_EQ(h15, f.cost_bound_eq(w, 15));
+}
+
+TEST_F(BDDTest, CostBoundEq_SimpleOverload) {
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 5};
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.cost_bound_eq(w, 5), f);
+}
+
