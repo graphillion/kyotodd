@@ -923,6 +923,42 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
                                    CountMemoMap& memo);
 
+// ZDD get_k_sets
+
+/**
+ * @brief Return the first k sets from a ZDD family in structure order (int64_t).
+ *
+ * Structure order: empty set (if present), then hi-edge sets before lo-edge
+ * sets at each node. This is the same ordering used by rank/unrank.
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @return A ZDD node ID representing the first k sets.
+ * @throws std::invalid_argument if f is null or k is negative.
+ */
+bddp bddgetksets(bddp f, int64_t k);
+
+/**
+ * @brief Return the first k sets from a ZDD family in structure order (BigInt).
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @return A ZDD node ID representing the first k sets.
+ * @throws std::invalid_argument if f is null or k is negative.
+ */
+bddp bddgetksets(bddp f, const bigint::BigInt& k);
+
+/**
+ * @brief Return the first k sets, reusing a count memo.
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @param memo Count memo table to use and populate.
+ * @return A ZDD node ID representing the first k sets.
+ * @throws std::invalid_argument if f is null or k is negative.
+ */
+bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

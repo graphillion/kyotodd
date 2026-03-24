@@ -603,3 +603,21 @@ std::vector<bddvar> ZDD::exact_unrank(const bigint::BigInt& order,
     }
     return bddexactunrank(root, order, memo.map());
 }
+
+// --- ZDD::get_k_sets ---
+
+ZDD ZDD::get_k_sets(int64_t k) const {
+    return ZDD_ID(bddgetksets(root, k));
+}
+
+ZDD ZDD::get_k_sets(const bigint::BigInt& k) const {
+    return ZDD_ID(bddgetksets(root, k));
+}
+
+ZDD ZDD::get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const {
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "get_k_sets: memo was created for a different ZDD");
+    }
+    return ZDD_ID(bddgetksets(root, k, memo.map()));
+}

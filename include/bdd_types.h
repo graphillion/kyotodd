@@ -1233,6 +1233,34 @@ public:
     std::vector<bddvar> exact_unrank(const bigint::BigInt& order,
                                      ZddCountMemo& memo) const;
 
+    /**
+     * @brief Return the first k sets in structure order (int64_t).
+     *
+     * @param k Number of sets to extract (must be >= 0).
+     * @return A ZDD containing the first k sets.
+     * @throws std::invalid_argument if k is negative.
+     */
+    ZDD get_k_sets(int64_t k) const;
+
+    /**
+     * @brief Return the first k sets in structure order (BigInt).
+     *
+     * @param k Number of sets to extract (must be >= 0).
+     * @return A ZDD containing the first k sets.
+     * @throws std::invalid_argument if k is negative.
+     */
+    ZDD get_k_sets(const bigint::BigInt& k) const;
+
+    /**
+     * @brief Return the first k sets, reusing a count memo.
+     *
+     * @param k Number of sets to extract (must be >= 0).
+     * @param memo A ZddCountMemo object for caching counts.
+     * @return A ZDD containing the first k sets.
+     * @throws std::invalid_argument if k is negative or memo root mismatch.
+     */
+    ZDD get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const;
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

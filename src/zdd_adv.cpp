@@ -1338,6 +1338,92 @@ std::vector<bddvar> bddunrank(bddp f, int64_t order) {
     return bddexactunrank(f, bigint::BigInt(order), memo);
 }
 
+// ---------------------------------------------------------------
+// get_k_sets
+// ---------------------------------------------------------------
+
+static bddp bddgetksets_rec(bddp f, bigint::BigInt k, CountMemoMap& memo) {
+    BDD_RecurGuard guard;
+
+    // Base cases
+    if (k.is_zero() || f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    // k >= count(f) → return f unchanged
+    bigint::BigInt total = bddexactcount_rec(f, memo);
+    if (k >= total) return f;
+
+    // Decompose with ZDD complement edge handling
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp f_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    if (comp) f_lo = bddnot(f_lo);  // ZDD complement: lo only
+
+    // Count hi-branch sets
+    bigint::BigInt card_hi = bddexactcount_rec(f_hi, memo);
+
+    // If complement edge set, empty set is present → account for it
+    if (comp) {
+        if (k == bigint::BigInt(1)) return bddsingle;  // just the empty set
+        card_hi += bigint::BigInt(1);  // +1 for empty set
+    }
+
+    if (k > card_hi) {
+        // Take all hi-branch sets + (k - card_hi) sets from lo
+        bddp g_lo = bddgetksets_rec(f_lo, k - card_hi, memo);
+        if (comp) {
+            // Restore complement on g_lo (empty set came from complement)
+            g_lo = bddnot(g_lo);
+        }
+        return ZDD::getnode_raw(var, g_lo, f_hi);
+    } else {
+        // Take only from hi branch (+ possibly empty set)
+        bddp g_hi;
+        bddp lo_child;
+        if (comp) {
+            g_hi = bddgetksets_rec(f_hi, k - bigint::BigInt(1), memo);
+            lo_child = bddsingle;  // include empty set
+        } else {
+            g_hi = bddgetksets_rec(f_hi, k, memo);
+            lo_child = bddempty;
+        }
+        return ZDD::getnode_raw(var, lo_child, g_hi);
+    }
+}
+
+bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo) {
+    bddp_validate(f, "bddgetksets");
+    if (f == bddnull) {
+        throw std::invalid_argument("bddgetksets: null ZDD");
+    }
+    if (k < bigint::BigInt(0)) {
+        throw std::invalid_argument("bddgetksets: k must be >= 0");
+    }
+
+    // Terminal fast-paths
+    if (k.is_zero() || f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    return bdd_gc_guard([&]() -> bddp {
+        return bddgetksets_rec(f, k, memo);
+    });
+}
+
+bddp bddgetksets(bddp f, const bigint::BigInt& k) {
+    CountMemoMap memo;
+    return bddgetksets(f, k, memo);
+}
+
+bddp bddgetksets(bddp f, int64_t k) {
+    if (k < 0) {
+        throw std::invalid_argument("bddgetksets: k must be >= 0");
+    }
+    return bddgetksets(f, bigint::BigInt(k));
+}
+
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {
     throw std::logic_error("ZDD_LCM_A: not implemented");
 }
