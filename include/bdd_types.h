@@ -1261,6 +1261,34 @@ public:
      */
     ZDD get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const;
 
+    /**
+     * @brief Return the k lightest sets (int64_t).
+     *
+     * @param k Number of sets to extract (must be >= 0).
+     * @param weights Cost vector indexed by variable number. Size must be > var_used().
+     * @param strict Tie-breaking: 0 = exactly k, <0 = fewer, >0 = more.
+     */
+    ZDD get_k_lightest(int64_t k, const std::vector<int>& weights,
+                       int strict = 0) const;
+
+    /** @brief Return the k lightest sets (BigInt). */
+    ZDD get_k_lightest(const bigint::BigInt& k, const std::vector<int>& weights,
+                       int strict = 0) const;
+
+    /**
+     * @brief Return the k heaviest sets (int64_t).
+     *
+     * @param k Number of sets to extract (must be >= 0).
+     * @param weights Cost vector indexed by variable number. Size must be > var_used().
+     * @param strict Tie-breaking: 0 = exactly k, <0 = fewer, >0 = more.
+     */
+    ZDD get_k_heaviest(int64_t k, const std::vector<int>& weights,
+                       int strict = 0) const;
+
+    /** @brief Return the k heaviest sets (BigInt). */
+    ZDD get_k_heaviest(const bigint::BigInt& k, const std::vector<int>& weights,
+                       int strict = 0) const;
+
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */

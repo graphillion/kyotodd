@@ -959,6 +959,66 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k);
  */
 bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo);
 
+// ZDD get_k_lightest / get_k_heaviest
+
+/**
+ * @brief Return the k lightest sets from a ZDD family (int64_t).
+ *
+ * Uses binary search on cost bounds to find the k sets with smallest
+ * total weight. Tie-breaking at the boundary cost tier is controlled
+ * by the @p strict parameter.
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @param weights Cost vector indexed by variable number. Size must be > bddvarused().
+ * @param strict Tie-breaking: 0 = exactly k (structure order), <0 = fewer (all lighter), >0 = more (includes full tier).
+ * @return A ZDD node ID representing the selected sets.
+ * @throws std::invalid_argument if f is null, k is negative, or weights is too small.
+ */
+bddp bddgetklightest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict);
+
+/**
+ * @brief Return the k lightest sets from a ZDD family (BigInt).
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @param weights Cost vector indexed by variable number. Size must be > bddvarused().
+ * @param strict Tie-breaking: 0 = exactly k, <0 = fewer, >0 = more.
+ * @return A ZDD node ID representing the selected sets.
+ * @throws std::invalid_argument if f is null, k is negative, or weights is too small.
+ */
+bddp bddgetklightest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict);
+
+/**
+ * @brief Return the k heaviest sets from a ZDD family (int64_t).
+ *
+ * Implemented as f - get_k_lightest(f, |F|-k, weights, -strict).
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @param weights Cost vector indexed by variable number. Size must be > bddvarused().
+ * @param strict Tie-breaking: 0 = exactly k, <0 = fewer (all heavier), >0 = more (includes full tier).
+ * @return A ZDD node ID representing the selected sets.
+ * @throws std::invalid_argument if f is null, k is negative, or weights is too small.
+ */
+bddp bddgetkheaviest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict);
+
+/**
+ * @brief Return the k heaviest sets from a ZDD family (BigInt).
+ *
+ * @param f A ZDD node ID.
+ * @param k Number of sets to extract (must be >= 0).
+ * @param weights Cost vector indexed by variable number. Size must be > bddvarused().
+ * @param strict Tie-breaking: 0 = exactly k, <0 = fewer, >0 = more.
+ * @return A ZDD node ID representing the selected sets.
+ * @throws std::invalid_argument if f is null, k is negative, or weights is too small.
+ */
+bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict);
+
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
 /** @brief LCM algorithm (closed frequent itemsets). */

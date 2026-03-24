@@ -1419,6 +1419,127 @@ bddp bddgetksets(bddp f, int64_t k) {
     return bddgetksets(f, bigint::BigInt(k));
 }
 
+// ---------------------------------------------------------------
+// get_k_lightest / get_k_heaviest
+// ---------------------------------------------------------------
+
+bddp bddgetklightest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict) {
+    bddp_validate(f, "bddgetklightest");
+    if (f == bddnull) {
+        throw std::invalid_argument("bddgetklightest: null ZDD");
+    }
+    if (k < bigint::BigInt(0)) {
+        throw std::invalid_argument("bddgetklightest: k must be >= 0");
+    }
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
+        throw std::invalid_argument(
+            "bddgetklightest: weights.size() must be > bddvarused()");
+    }
+
+    // Terminal fast-paths
+    if (k.is_zero() || f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    CountMemoMap count_memo;
+    bigint::BigInt total = bddexactcount(f, count_memo);
+    if (k >= total) return f;
+
+    return bdd_gc_guard([&]() -> bddp {
+        CostBoundMemo cost_memo;
+        // Re-populate count_memo if GC caused a retry
+        count_memo.clear();
+        bigint::BigInt total_inner = bddexactcount(f, count_memo);
+
+        long long lo_bound = bddminweight(f, weights);
+        // Guard against LLONG_MIN underflow
+        if (lo_bound > LLONG_MIN) {
+            lo_bound -= 1;
+        }
+        long long hi_bound = bddmaxweight(f, weights);
+
+        bddp left_zbdd = bddempty;
+        bigint::BigInt left_card(0);
+        bddp right_zbdd = f;
+
+        // Binary search on cost bound
+        while (hi_bound - lo_bound > 1) {
+            long long mid = lo_bound + (hi_bound - lo_bound) / 2;
+            bddp mid_zbdd = bddcostbound_le(f, weights, mid, cost_memo);
+            bigint::BigInt mid_card = bddexactcount(mid_zbdd, count_memo);
+
+            if (mid_card == k) {
+                return mid_zbdd;  // exact match
+            } else if (mid_card < k) {
+                lo_bound = mid;
+                left_zbdd = mid_zbdd;
+                left_card = mid_card;
+            } else {
+                hi_bound = mid;
+                right_zbdd = mid_zbdd;
+            }
+        }
+
+        // hi_bound - lo_bound == 1
+        if (strict < 0) {
+            return left_zbdd;
+        } else if (strict > 0) {
+            return right_zbdd;
+        } else {
+            // strict == 0: exactly k sets
+            bddp delta = bddsubtract(right_zbdd, left_zbdd);
+            bigint::BigInt need = k - left_card;
+            bddp delta_first = bddgetksets(delta, need, count_memo);
+            return bddunion(left_zbdd, delta_first);
+        }
+    });
+}
+
+bddp bddgetklightest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict) {
+    if (k < 0) {
+        throw std::invalid_argument("bddgetklightest: k must be >= 0");
+    }
+    return bddgetklightest(f, bigint::BigInt(k), weights, strict);
+}
+
+bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict) {
+    bddp_validate(f, "bddgetkheaviest");
+    if (f == bddnull) {
+        throw std::invalid_argument("bddgetkheaviest: null ZDD");
+    }
+    if (k < bigint::BigInt(0)) {
+        throw std::invalid_argument("bddgetkheaviest: k must be >= 0");
+    }
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
+        throw std::invalid_argument(
+            "bddgetkheaviest: weights.size() must be > bddvarused()");
+    }
+
+    // Terminal fast-paths
+    if (k.is_zero() || f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    CountMemoMap count_memo;
+    bigint::BigInt total = bddexactcount(f, count_memo);
+    if (k >= total) return f;
+
+    bigint::BigInt complement_k = total - k;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp lightest = bddgetklightest(f, complement_k, weights, -strict);
+        return bddsubtract(f, lightest);
+    });
+}
+
+bddp bddgetkheaviest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict) {
+    if (k < 0) {
+        throw std::invalid_argument("bddgetkheaviest: k must be >= 0");
+    }
+    return bddgetkheaviest(f, bigint::BigInt(k), weights, strict);
+}
+
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {
     throw std::logic_error("ZDD_LCM_A: not implemented");
 }

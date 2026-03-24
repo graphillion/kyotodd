@@ -621,3 +621,27 @@ ZDD ZDD::get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const {
     }
     return ZDD_ID(bddgetksets(root, k, memo.map()));
 }
+
+// --- ZDD::get_k_lightest / get_k_heaviest ---
+
+ZDD ZDD::get_k_lightest(int64_t k, const std::vector<int>& weights,
+                         int strict) const {
+    return ZDD_ID(bddgetklightest(root, k, weights, strict));
+}
+
+ZDD ZDD::get_k_lightest(const bigint::BigInt& k,
+                         const std::vector<int>& weights,
+                         int strict) const {
+    return ZDD_ID(bddgetklightest(root, k, weights, strict));
+}
+
+ZDD ZDD::get_k_heaviest(int64_t k, const std::vector<int>& weights,
+                         int strict) const {
+    return ZDD_ID(bddgetkheaviest(root, k, weights, strict));
+}
+
+ZDD ZDD::get_k_heaviest(const bigint::BigInt& k,
+                         const std::vector<int>& weights,
+                         int strict) const {
+    return ZDD_ID(bddgetkheaviest(root, k, weights, strict));
+}
