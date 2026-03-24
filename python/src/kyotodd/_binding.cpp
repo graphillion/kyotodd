@@ -1429,6 +1429,64 @@ PYBIND11_MODULE(_core, m) {
              "Raises:\n"
              "    ValueError: If k is negative or memo root mismatch.\n")
 
+        // get_k_lightest / get_k_heaviest
+        .def("get_k_lightest", [](const ZDD& z, int64_t k,
+                                  const std::vector<int>& weights, int strict) -> ZDD {
+            return z.get_k_lightest(k, weights, strict);
+        }, py::arg("k"), py::arg("weights"), py::arg("strict") = 0,
+             "Return the k lightest sets from the family.\n\n"
+             "Uses binary search on cost bounds. Tie-breaking at the\n"
+             "boundary cost tier is controlled by strict:\n"
+             "  0: exactly k sets (pick from tier by structure order)\n"
+             "  <0: fewer than k (all strictly lighter than boundary)\n"
+             "  >0: more than k (includes full boundary tier)\n\n"
+             "Args:\n"
+             "    k: Number of sets to extract (must be >= 0).\n"
+             "    weights: Weight vector indexed by variable number.\n"
+             "    strict: Tie-breaking mode (default 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the selected sets.\n")
+        .def("exact_get_k_lightest", [](const ZDD& z, py::int_ k,
+                                        const std::vector<int>& weights,
+                                        int strict) -> ZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.get_k_lightest(bi, weights, strict);
+        }, py::arg("k"), py::arg("weights"), py::arg("strict") = 0,
+             "Return the k lightest sets (arbitrary precision k).\n\n"
+             "Args:\n"
+             "    k: Number of sets (int, arbitrary precision, >= 0).\n"
+             "    weights: Weight vector indexed by variable number.\n"
+             "    strict: Tie-breaking mode (default 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the selected sets.\n")
+        .def("get_k_heaviest", [](const ZDD& z, int64_t k,
+                                  const std::vector<int>& weights, int strict) -> ZDD {
+            return z.get_k_heaviest(k, weights, strict);
+        }, py::arg("k"), py::arg("weights"), py::arg("strict") = 0,
+             "Return the k heaviest sets from the family.\n\n"
+             "Implemented as f - f.get_k_lightest(|F|-k, weights, -strict).\n\n"
+             "Args:\n"
+             "    k: Number of sets to extract (must be >= 0).\n"
+             "    weights: Weight vector indexed by variable number.\n"
+             "    strict: Tie-breaking mode (default 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the selected sets.\n")
+        .def("exact_get_k_heaviest", [](const ZDD& z, py::int_ k,
+                                        const std::vector<int>& weights,
+                                        int strict) -> ZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return z.get_k_heaviest(bi, weights, strict);
+        }, py::arg("k"), py::arg("weights"), py::arg("strict") = 0,
+             "Return the k heaviest sets (arbitrary precision k).\n\n"
+             "Args:\n"
+             "    k: Number of sets (int, arbitrary precision, >= 0).\n"
+             "    weights: Weight vector indexed by variable number.\n"
+             "    strict: Tie-breaking mode (default 0).\n\n"
+             "Returns:\n"
+             "    A ZDD containing the selected sets.\n")
+
         // Weight sum
         .def("get_sum", [](const ZDD& z, const std::vector<int>& weights) -> py::int_ {
             bigint::BigInt bi = z.get_sum(weights);
