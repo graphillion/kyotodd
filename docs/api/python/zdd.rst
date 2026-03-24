@@ -1021,3 +1021,35 @@ ZDD Class
       :rtype: ZDD
       :raises ValueError: If the ZDD is null, weights is too small,
                           or a different weights vector was used with this memo.
+
+   .. py:method:: get_k_sets(k)
+
+      Return the first *k* sets in ZDD structure order.
+
+      Structure order: empty set (if present) at index 0, then
+      hi-edge sets before lo-edge sets at each node. This is the
+      same ordering used by :py:meth:`rank` and :py:meth:`unrank`.
+
+      :param int k: Number of sets to extract (must be >= 0).
+      :return: A ZDD containing the first *k* sets.
+      :rtype: ZDD
+      :raises ValueError: If *k* is negative.
+
+   .. py:method:: exact_get_k_sets(k)
+
+      Return the first *k* sets (arbitrary precision *k*).
+
+      :param int k: Number of sets to extract (arbitrary precision, >= 0).
+      :return: A ZDD containing the first *k* sets.
+      :rtype: ZDD
+      :raises ValueError: If *k* is negative.
+
+   .. py:method:: exact_get_k_sets_with_memo(k, memo)
+
+      Return the first *k* sets, reusing a memo for caching counts.
+
+      :param int k: Number of sets to extract (arbitrary precision, >= 0).
+      :param ZddCountMemo memo: Memo object for caching counts.
+      :return: A ZDD containing the first *k* sets.
+      :rtype: ZDD
+      :raises ValueError: If *k* is negative or memo root mismatch.
