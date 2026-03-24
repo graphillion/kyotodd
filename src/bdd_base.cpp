@@ -737,8 +737,7 @@ bddp BDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 }
 
 bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
-    // Apply reduction rule first (no node creation if lo == hi)
-    if (lo == hi) return lo;
+    // Validate inputs before applying reduction rule
     if (lo == bddnull || hi == bddnull)
         throw std::invalid_argument("BDD::getnode: bddnull child");
     if (var < 1 || var > bdd_varcount)
@@ -758,6 +757,8 @@ bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
         if (var2level[node_var(hi_phys)] >= var_level)
             throw std::invalid_argument("BDD::getnode: hi child level >= var level");
     }
+    // Apply reduction rule after validation (no node creation if lo == hi)
+    if (lo == hi) return lo;
     return BDD::getnode_raw(var, lo, hi);
 }
 
@@ -806,8 +807,7 @@ bddp ZDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
 }
 
 bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
-    // Apply zero-suppression rule first (no node creation if hi == bddempty)
-    if (hi == bddempty) return lo;
+    // Validate inputs before applying zero-suppression rule
     if (lo == bddnull || hi == bddnull)
         throw std::invalid_argument("ZDD::getnode: bddnull child");
     if (var < 1 || var > bdd_varcount)
@@ -827,6 +827,8 @@ bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
         if (var2level[node_var(hi_phys)] >= var_level)
             throw std::invalid_argument("ZDD::getnode: hi child level >= var level");
     }
+    // Apply zero-suppression rule after validation (no node creation if hi == bddempty)
+    if (hi == bddempty) return lo;
     return ZDD::getnode_raw(var, lo, hi);
 }
 

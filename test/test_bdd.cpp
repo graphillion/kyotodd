@@ -2079,7 +2079,11 @@ TEST_F(BDDTest, GetznodeZeroSuppression) {
 
     bddvar v2 = bddnewvar();
     bddp node = ZDD::getnode(v2, bddempty, bddsingle);
-    EXPECT_EQ(ZDD::getnode(v1, node, bddempty), node);
+    // Validation runs before zero-suppression rule:
+    // node is at level 2 > v1's level 1, so this is invalid
+    EXPECT_THROW(ZDD::getnode(v1, node, bddempty), std::invalid_argument);
+    // Valid case: lo child at lower level
+    EXPECT_EQ(ZDD::getnode(v2, bddempty, bddempty), bddempty);
 }
 
 TEST_F(BDDTest, GetznodeNoReductionWhenLoEqualsHi) {
@@ -10868,9 +10872,14 @@ TEST_F(BDDTest, BddGetnodeLevelValidation) {
     EXPECT_THROW(BDD::getnode(0, bddfalse, bddtrue), std::invalid_argument);
     EXPECT_THROW(BDD::getnode(bddvarused() + 1, bddfalse, bddtrue), std::invalid_argument);
 
-    // Reduction rule still applies: lo == hi returns lo without validation
+    // Validation runs before reduction rule:
+    // node_v3 at level 3 > v1's level 1, so this throws
     bddp node_v3 = BDD::getnode_raw(v3, bddfalse, bddtrue);
-    EXPECT_EQ(BDD::getnode(v1, node_v3, node_v3), node_v3);
+    EXPECT_THROW(BDD::getnode(v1, node_v3, node_v3), std::invalid_argument);
+
+    // Reduction rule with valid inputs: lo == hi returns lo
+    EXPECT_EQ(BDD::getnode(v1, bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(BDD::getnode(v1, bddtrue, bddtrue), bddtrue);
 }
 
 TEST_F(BDDTest, ZddGetnodeLevelValidation) {
@@ -10898,9 +10907,14 @@ TEST_F(BDDTest, ZddGetnodeLevelValidation) {
     EXPECT_THROW(ZDD::getnode(0, bddempty, bddsingle), std::invalid_argument);
     EXPECT_THROW(ZDD::getnode(bddvarused() + 1, bddempty, bddsingle), std::invalid_argument);
 
-    // Zero-suppression rule: hi == bddempty returns lo without validation
+    // Validation runs before zero-suppression rule:
+    // node_v3 at level 3 > v1's level 1, so this throws
     bddp node_v3 = ZDD::getnode_raw(v3, bddempty, bddsingle);
-    EXPECT_EQ(ZDD::getnode(v1, node_v3, bddempty), node_v3);
+    EXPECT_THROW(ZDD::getnode(v1, node_v3, bddempty), std::invalid_argument);
+
+    // Zero-suppression with valid inputs: hi == bddempty returns lo
+    EXPECT_EQ(ZDD::getnode(v1, bddempty, bddempty), bddempty);
+    EXPECT_EQ(ZDD::getnode(v1, bddsingle, bddempty), bddsingle);
 }
 
 TEST_F(BDDTest, BddGetnodeClassTypeVersion) {
@@ -11268,8 +11282,8 @@ TEST_F(BDDTest, BddGetnodeRejectsBddnullChild) {
     bddvar v1 = bddnewvar();
     EXPECT_THROW(BDD::getnode(v1, bddnull, bddtrue), std::invalid_argument);
     EXPECT_THROW(BDD::getnode(v1, bddfalse, bddnull), std::invalid_argument);
-    // lo == hi == bddnull hits reduction rule (returns lo) before null check
-    EXPECT_EQ(BDD::getnode(v1, bddnull, bddnull), bddnull);
+    // Validation runs before reduction rule: bddnull is always rejected
+    EXPECT_THROW(BDD::getnode(v1, bddnull, bddnull), std::invalid_argument);
 }
 
 TEST_F(BDDTest, ZddGetnodeRejectsBddnullChild) {
