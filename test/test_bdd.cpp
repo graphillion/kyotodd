@@ -12628,6 +12628,7 @@ TEST_F(BDDTest, ZDD_GetKSets_Combination) {
     bddvar v3 = bddnewvar();
     bddvar v4 = bddnewvar();
     bddvar v5 = bddnewvar();
+    (void)v1; (void)v2; (void)v3; (void)v4; (void)v5;
     ZDD f = ZDD::combination(5, 2);  // C(5,2) = 10 sets
     ASSERT_EQ(f.Card(), 10u);
 
@@ -12650,5 +12651,200 @@ TEST_F(BDDTest, ZDD_GetKSets_Combination) {
         std::sort(expected.begin(), expected.end());
         EXPECT_EQ(g_sets, expected) << "k=" << k;
     }
+}
+
+// ---------------------------------------------------------------
+// get_k_lightest / get_k_heaviest tests
+// ---------------------------------------------------------------
+
+TEST_F(BDDTest, ZDD_GetKLightest_EmptyFamily) {
+    std::vector<int> w = {0};
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.get_k_lightest(0, w), ZDD::Empty);
+    EXPECT_EQ(f.get_k_lightest(1, w), ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_SingleFamily) {
+    std::vector<int> w = {0};
+    ZDD f = ZDD::Single;
+    EXPECT_EQ(f.get_k_lightest(0, w), ZDD::Empty);
+    EXPECT_EQ(f.get_k_lightest(1, w), ZDD::Single);
+    EXPECT_EQ(f.get_k_lightest(2, w), ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_KGreaterThanCard) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    (void)v1; (void)v2;
+    std::vector<int> w = {0, 3, 5};
+    ZDD f = ZDD::power_set(2);
+    EXPECT_EQ(f.get_k_lightest(10, w), f);
+    EXPECT_EQ(f.get_k_lightest(4, w), f);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_KnownFamily) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 5};
+
+    ZDD s1 = ZDD::singleton(v1);     // cost 3
+    ZDD s2 = ZDD::singleton(v2);     // cost 5
+    ZDD s12 = s1 * s2;               // cost 8
+    ZDD f = s1 + s2 + s12;
+
+    // lightest 1: {{v1}} (cost 3)
+    ZDD g1 = f.get_k_lightest(1, w);
+    auto g1_sets = g1.enumerate();
+    ASSERT_EQ(g1_sets.size(), 1u);
+    EXPECT_EQ(g1_sets[0], std::vector<bddvar>({v1}));
+
+    // lightest 2: {{v1}, {v2}} (costs 3, 5)
+    ZDD g2 = f.get_k_lightest(2, w);
+    auto g2_sets = g2.enumerate();
+    ASSERT_EQ(g2_sets.size(), 2u);
+    std::sort(g2_sets.begin(), g2_sets.end());
+    std::vector<std::vector<bddvar>> expected2 = {{v1}, {v2}};
+    std::sort(expected2.begin(), expected2.end());
+    EXPECT_EQ(g2_sets, expected2);
+
+    // lightest 3: entire family
+    EXPECT_EQ(f.get_k_lightest(3, w), f);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_StrictBoundary) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    (void)v1; (void)v2; (void)v3;
+    std::vector<int> w = {0, 5, 5, 10};
+
+    // family: {{v1}, {v2}, {v3}}  costs: 5, 5, 10
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2) + ZDD::singleton(v3);
+
+    // k=1: boundary tier = cost 5, which has 2 sets
+    EXPECT_EQ(f.get_k_lightest(1, w, 0).Card(), 1u);
+    EXPECT_EQ(f.get_k_lightest(1, w, -1).Card(), 0u);
+    EXPECT_EQ(f.get_k_lightest(1, w, 1).Card(), 2u);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_WithEmptySet) {
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    std::vector<int> w = {0, 10};
+
+    ZDD f = ZDD::Single + ZDD::singleton(v1);
+    ASSERT_EQ(f.Card(), 2u);
+
+    ZDD g = f.get_k_lightest(1, w);
+    EXPECT_TRUE(g.has_empty());
+    EXPECT_EQ(g.Card(), 1u);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_NegativeWeights) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, -5, 3};
+
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+
+    ZDD g = f.get_k_lightest(1, w);
+    auto g_sets = g.enumerate();
+    ASSERT_EQ(g_sets.size(), 1u);
+    EXPECT_EQ(g_sets[0], std::vector<bddvar>({v1}));
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_AllSameWeight) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    (void)v1; (void)v2;
+    std::vector<int> w = {0, 5, 5};
+
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+
+    EXPECT_EQ(f.get_k_lightest(1, w, 0).Card(), 1u);
+    EXPECT_EQ(f.get_k_lightest(1, w, -1).Card(), 0u);
+    EXPECT_EQ(f.get_k_lightest(1, w, 1).Card(), 2u);
+}
+
+TEST_F(BDDTest, ZDD_GetKHeaviest_Basic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 5};
+
+    ZDD s1 = ZDD::singleton(v1);
+    ZDD s2 = ZDD::singleton(v2);
+    ZDD s12 = s1 * s2;
+    ZDD f = s1 + s2 + s12;
+
+    // heaviest 1: {{v1,v2}} (cost 8)
+    ZDD g1 = f.get_k_heaviest(1, w);
+    auto g1_sets = g1.enumerate();
+    ASSERT_EQ(g1_sets.size(), 1u);
+    std::vector<bddvar> expected_set = {v1, v2};
+    std::sort(expected_set.begin(), expected_set.end());
+    std::sort(g1_sets[0].begin(), g1_sets[0].end());
+    EXPECT_EQ(g1_sets[0], expected_set);
+
+    // heaviest 2: {{v2}, {v1,v2}} (costs 5, 8)
+    ZDD g2 = f.get_k_heaviest(2, w);
+    EXPECT_EQ(g2.Card(), 2u);
+}
+
+TEST_F(BDDTest, ZDD_GetKHeaviest_CrossValidate) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    (void)v1; (void)v2; (void)v3;
+    std::vector<int> w = {0, 2, 3, 7};
+
+    ZDD f = ZDD::power_set(3);
+    uint64_t total = f.Card();
+
+    for (uint64_t k = 0; k <= total; ++k) {
+        ZDD heaviest = f.get_k_heaviest(static_cast<int64_t>(k), w, 0);
+        ZDD lightest_comp = f.get_k_lightest(
+            static_cast<int64_t>(total - k), w, 0);
+        ZDD expected = f - lightest_comp;
+        EXPECT_EQ(heaviest, expected) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_BigInt) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    (void)v1; (void)v2;
+    std::vector<int> w = {0, 3, 5};
+
+    ZDD f = ZDD::power_set(2);
+
+    for (int k = 0; k <= 4; ++k) {
+        ZDD g1 = f.get_k_lightest(static_cast<int64_t>(k), w);
+        ZDD g2 = f.get_k_lightest(bigint::BigInt(k), w);
+        EXPECT_EQ(g1, g2) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_NegativeKThrows) {
+    bddvar v1 = bddnewvar();
+    (void)v1;
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.get_k_lightest(-1, w), std::invalid_argument);
+    EXPECT_THROW(f.get_k_heaviest(-1, w), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_GetKLightest_FreeFunctions) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 3, 5};
+
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+    bddp fp = f.get_id();
+
+    bddp g = bddgetklightest(fp, static_cast<int64_t>(1), w, 0);
+    EXPECT_EQ(bddcard(g), 1u);
+
+    bddp h = bddgetkheaviest(fp, bigint::BigInt(1), w, 0);
+    EXPECT_EQ(bddcard(h), 1u);
 }
 
