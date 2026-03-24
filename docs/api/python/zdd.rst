@@ -956,6 +956,69 @@ ZDD Class
       :return: An iterator yielding sorted lists of variable numbers.
       :rtype: Iterator[List[int]]
 
+   .. py:method:: rank(s)
+
+      Rank a set in the family.
+
+      Returns the 0-based index of set *s* in the ZDD's structure-based
+      ordering (empty set first, then hi-edge before lo-edge).
+
+      :param list[int] s: A list of variable numbers representing the set.
+      :return: The rank (int), or -1 if the set is not in the family.
+      :rtype: int
+      :raises OverflowError: If the rank exceeds int64 range.
+
+   .. py:method:: exact_rank(s)
+
+      Rank a set in the family (arbitrary precision).
+
+      :param list[int] s: A list of variable numbers representing the set.
+      :return: The rank (int), or -1 if the set is not in the family.
+      :rtype: int
+
+   .. py:method:: exact_rank_with_memo(s, memo)
+
+      Rank a set using a memo for caching.
+
+      The memo must have been created for this ZDD.
+
+      :param list[int] s: A list of variable numbers representing the set.
+      :param ZddCountMemo memo: A memo object created for this ZDD.
+      :return: The rank (int), or -1 if the set is not in the family.
+      :rtype: int
+      :raises ValueError: If the memo was created for a different ZDD.
+
+   .. py:method:: unrank(order)
+
+      Retrieve the set at a given index in the family.
+
+      :param int order: The 0-based index.
+      :return: A sorted list of variable numbers.
+      :rtype: list[int]
+      :raises IndexError: If order is out of range.
+
+   .. py:method:: exact_unrank(order)
+
+      Retrieve the set at a given index (arbitrary precision).
+
+      :param int order: The 0-based index (arbitrary precision).
+      :return: A sorted list of variable numbers.
+      :rtype: list[int]
+      :raises IndexError: If order is out of range.
+
+   .. py:method:: exact_unrank_with_memo(order, memo)
+
+      Retrieve the set at a given index using a memo.
+
+      The memo must have been created for this ZDD.
+
+      :param int order: The 0-based index (arbitrary precision).
+      :param ZddCountMemo memo: A memo object created for this ZDD.
+      :return: A sorted list of variable numbers.
+      :rtype: list[int]
+      :raises ValueError: If the memo was created for a different ZDD.
+      :raises IndexError: If order is out of range.
+
    .. py:method:: cost_bound_le(weights, b)
 
       Extract all sets whose total cost is at most *b*.
