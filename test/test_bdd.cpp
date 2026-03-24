@@ -11591,8 +11591,8 @@ TEST_F(BDDTest, CostBound_EmptyFamily) {
     bddnewvar();
     std::vector<int> w = {0, 1};
     ZDD f = ZDD::Empty;
-    EXPECT_EQ(f.cost_bound(w, 100), ZDD::Empty);
-    EXPECT_EQ(f.cost_bound(w, -1), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_le(w, 100), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_le(w, -1), ZDD::Empty);
 }
 
 TEST_F(BDDTest, CostBound_UnitFamily) {
@@ -11600,9 +11600,9 @@ TEST_F(BDDTest, CostBound_UnitFamily) {
     std::vector<int> w = {0, 1};
     ZDD f = ZDD::Single;  // {∅}
     // Empty set has cost 0
-    EXPECT_EQ(f.cost_bound(w, 0), ZDD::Single);
-    EXPECT_EQ(f.cost_bound(w, 100), ZDD::Single);
-    EXPECT_EQ(f.cost_bound(w, -1), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_le(w, 0), ZDD::Single);
+    EXPECT_EQ(f.cost_bound_le(w, 100), ZDD::Single);
+    EXPECT_EQ(f.cost_bound_le(w, -1), ZDD::Empty);
 }
 
 TEST_F(BDDTest, CostBound_SingleVariable) {
@@ -11610,9 +11610,9 @@ TEST_F(BDDTest, CostBound_SingleVariable) {
     std::vector<int> w = {0, 5};
     ZDD f = ZDD::singleton(v1);  // {{v1}}
     // cost({v1}) = 5
-    EXPECT_EQ(f.cost_bound(w, 5), f);       // 5 <= 5: accepted
-    EXPECT_EQ(f.cost_bound(w, 6), f);       // 5 <= 6: accepted
-    EXPECT_EQ(f.cost_bound(w, 4), ZDD::Empty);  // 5 > 4: rejected
+    EXPECT_EQ(f.cost_bound_le(w, 5), f);       // 5 <= 5: accepted
+    EXPECT_EQ(f.cost_bound_le(w, 6), f);       // 5 <= 6: accepted
+    EXPECT_EQ(f.cost_bound_le(w, 4), ZDD::Empty);  // 5 > 4: rejected
 }
 
 TEST_F(BDDTest, CostBound_MultipleSets) {
@@ -11622,13 +11622,13 @@ TEST_F(BDDTest, CostBound_MultipleSets) {
     ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1}, {v2}}
     // cost({v1}) = 3, cost({v2}) = 8
 
-    ZDD h5 = f.cost_bound(w, 5);
+    ZDD h5 = f.cost_bound_le(w, 5);
     EXPECT_EQ(h5, ZDD::singleton(v1));  // only {v1} accepted
 
-    ZDD h10 = f.cost_bound(w, 10);
+    ZDD h10 = f.cost_bound_le(w, 10);
     EXPECT_EQ(h10, f);  // both accepted
 
-    ZDD h2 = f.cost_bound(w, 2);
+    ZDD h2 = f.cost_bound_le(w, 2);
     EXPECT_EQ(h2, ZDD::Empty);  // both rejected
 }
 
@@ -11639,13 +11639,13 @@ TEST_F(BDDTest, CostBound_FamilyWithEmptySet) {
     ZDD f = ZDD::Single + ZDD::singleton(v1);
     // cost({}) = 0, cost({v1}) = 4
 
-    ZDD h3 = f.cost_bound(w, 3);
+    ZDD h3 = f.cost_bound_le(w, 3);
     EXPECT_EQ(h3, ZDD::Single);  // only {} accepted
 
-    ZDD h4 = f.cost_bound(w, 4);
+    ZDD h4 = f.cost_bound_le(w, 4);
     EXPECT_EQ(h4, f);  // both accepted
 
-    ZDD hm1 = f.cost_bound(w, -1);
+    ZDD hm1 = f.cost_bound_le(w, -1);
     EXPECT_EQ(hm1, ZDD::Empty);  // both rejected (0 > -1)
 }
 
@@ -11656,10 +11656,10 @@ TEST_F(BDDTest, CostBound_NegativeWeights) {
     ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1}, {v2}}
     // cost({v1}) = -3, cost({v2}) = 5
 
-    ZDD h0 = f.cost_bound(w, 0);
+    ZDD h0 = f.cost_bound_le(w, 0);
     EXPECT_EQ(h0, ZDD::singleton(v1));  // -3 <= 0, 5 > 0
 
-    ZDD hm4 = f.cost_bound(w, -4);
+    ZDD hm4 = f.cost_bound_le(w, -4);
     EXPECT_EQ(hm4, ZDD::Empty);  // -3 > -4, 5 > -4
 }
 
@@ -11671,7 +11671,7 @@ TEST_F(BDDTest, CostBound_CrossValidateWithEnumerate) {
     ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
 
     for (long long b = -5; b <= 12; ++b) {
-        ZDD h = f.cost_bound(w, b);
+        ZDD h = f.cost_bound_le(w, b);
         // Cross-validate: enumerate and filter manually
         auto all_sets = f.enumerate();
         auto bounded_sets = h.enumerate();
@@ -11706,11 +11706,11 @@ TEST_F(BDDTest, CostBound_MemoReuse) {
 
     CostBoundMemo memo;
     // Call with different bounds, reusing the memo
-    ZDD h5 = f.cost_bound(w, 5, memo);
-    ZDD h15 = f.cost_bound(w, 15, memo);
-    ZDD h25 = f.cost_bound(w, 25, memo);
-    ZDD h35 = f.cost_bound(w, 35, memo);
-    ZDD h100 = f.cost_bound(w, 100, memo);
+    ZDD h5 = f.cost_bound_le(w, 5, memo);
+    ZDD h15 = f.cost_bound_le(w, 15, memo);
+    ZDD h25 = f.cost_bound_le(w, 25, memo);
+    ZDD h35 = f.cost_bound_le(w, 35, memo);
+    ZDD h100 = f.cost_bound_le(w, 100, memo);
 
     // Verify correctness of each
     EXPECT_EQ(h5.enumerate().size(), 1u);    // only {}
@@ -11726,9 +11726,9 @@ TEST_F(BDDTest, CostBound_SameIntervalHit) {
     ZDD f = ZDD::singleton(v1);  // {{v1}}, cost=10
 
     CostBoundMemo memo;
-    ZDD h10 = f.cost_bound(w, 10, memo);
-    ZDD h15 = f.cost_bound(w, 15, memo);  // same interval, should hit memo
-    ZDD h100 = f.cost_bound(w, 100, memo);
+    ZDD h10 = f.cost_bound_le(w, 10, memo);
+    ZDD h15 = f.cost_bound_le(w, 15, memo);  // same interval, should hit memo
+    ZDD h100 = f.cost_bound_le(w, 100, memo);
     EXPECT_EQ(h10, f);
     EXPECT_EQ(h15, f);
     EXPECT_EQ(h100, f);
@@ -11738,7 +11738,7 @@ TEST_F(BDDTest, CostBound_ValidationErrors) {
     bddvar v1 = bddnewvar();
     std::vector<int> w_small = {0};  // too small
     ZDD f = ZDD::singleton(v1);
-    EXPECT_THROW(f.cost_bound(w_small, 5), std::invalid_argument);
+    EXPECT_THROW(f.cost_bound_le(w_small, 5), std::invalid_argument);
 }
 
 TEST_F(BDDTest, CostBound_ComplementEdge) {
@@ -11750,14 +11750,14 @@ TEST_F(BDDTest, CostBound_ComplementEdge) {
     ZDD f = ZDD::power_set(2) - ZDD::singleton(v1);
     // cost: {} = 0, {v2} = 7, {v1,v2} = 10
 
-    ZDD h5 = f.cost_bound(w, 5);
+    ZDD h5 = f.cost_bound_le(w, 5);
     EXPECT_EQ(h5, ZDD::Single);  // only {}
 
-    ZDD h7 = f.cost_bound(w, 7);
+    ZDD h7 = f.cost_bound_le(w, 7);
     auto sets7 = h7.enumerate();
     EXPECT_EQ(sets7.size(), 2u);  // {}, {v2}
 
-    ZDD h10 = f.cost_bound(w, 10);
+    ZDD h10 = f.cost_bound_le(w, 10);
     EXPECT_EQ(h10, f);  // all accepted
 }
 
@@ -11768,7 +11768,7 @@ TEST_F(BDDTest, CostBound_SimpleOverload) {
     ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
 
     // Simple overload (no memo parameter) should work
-    ZDD h = f.cost_bound(w, 5);
+    ZDD h = f.cost_bound_le(w, 5);
     EXPECT_EQ(h, ZDD::singleton(v1));
 }
 
@@ -11782,7 +11782,7 @@ TEST_F(BDDTest, CostBound_MemoSurvivesGC) {
     ZDD f = ZDD::power_set(4);
 
     CostBoundMemo memo;
-    ZDD h1 = f.cost_bound(w, 5, memo);
+    ZDD h1 = f.cost_bound_le(w, 5, memo);
     auto sets1 = h1.enumerate();
     size_t count1 = sets1.size();
 
@@ -11791,7 +11791,7 @@ TEST_F(BDDTest, CostBound_MemoSurvivesGC) {
 
     // Second call should produce the same correct result
     // (memo is invalidated and recomputed)
-    ZDD h2 = f.cost_bound(w, 5, memo);
+    ZDD h2 = f.cost_bound_le(w, 5, memo);
     auto sets2 = h2.enumerate();
     EXPECT_EQ(sets2.size(), count1);
     EXPECT_EQ(h2, h1);
@@ -11804,9 +11804,9 @@ TEST_F(BDDTest, CostBound_MemoRejectsDifferentWeights) {
     ZDD f = ZDD::singleton(v1);
 
     CostBoundMemo memo;
-    f.cost_bound(w1, 50, memo);
+    f.cost_bound_le(w1, 50, memo);
     // Using the same memo with different weights must throw
-    EXPECT_THROW(f.cost_bound(w2, 50, memo), std::invalid_argument);
+    EXPECT_THROW(f.cost_bound_le(w2, 50, memo), std::invalid_argument);
 }
 
 TEST_F(BDDTest, CostBound_ReorderedVariables) {
@@ -11819,10 +11819,10 @@ TEST_F(BDDTest, CostBound_ReorderedVariables) {
     std::vector<int> w = {0, 5, 10, 20};
     ZDD f = ZDD::single_set({v1, v3});      // {{1, 3}}, cost = 5 + 20 = 25
 
-    ZDD h30 = f.cost_bound(w, 30);
+    ZDD h30 = f.cost_bound_le(w, 30);
     EXPECT_EQ(h30, f);                      // 25 <= 30: accepted
 
-    ZDD h20 = f.cost_bound(w, 20);
+    ZDD h20 = f.cost_bound_le(w, 20);
     EXPECT_EQ(h20, ZDD::Empty);             // 25 > 20: rejected
 }
 

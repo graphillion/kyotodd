@@ -1106,15 +1106,15 @@ static CostBoundResult bddcostbound_rec(
     return {h, aw, rb};
 }
 
-bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
-                   CostBoundMemo& memo) {
-    bddp_validate(f, "bddcostbound");
+bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) {
+    bddp_validate(f, "bddcostbound_le");
     if (f == bddnull) {
-        throw std::invalid_argument("bddcostbound: null ZDD");
+        throw std::invalid_argument("bddcostbound_le: null ZDD");
     }
     if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            "bddcostbound: weights.size() must be > bddvarused()");
+            "bddcostbound_le: weights.size() must be > bddvarused()");
     }
 
     // Validate memo is used with consistent weights
@@ -1129,6 +1129,20 @@ bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
         memo.invalidate_if_stale();
         return bddcostbound_rec(f, weights, b, memo).h;
     });
+}
+
+static std::vector<int> costbound_negate_weights(const std::vector<int>& weights) {
+    std::vector<int> neg(weights.size());
+    for (size_t i = 0; i < weights.size(); ++i) {
+        neg[i] = -weights[i];
+    }
+    return neg;
+}
+
+bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) {
+    std::vector<int> neg = costbound_negate_weights(weights);
+    return bddcostbound_le(f, neg, -b, memo);
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {

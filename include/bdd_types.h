@@ -214,7 +214,7 @@ private:
  * ZDD node is queried with a different cost bound that falls within a cached
  * interval, the cached result is reused without recomputation.
  *
- * Can be reused across multiple cost_bound() calls with different bounds on
+ * Can be reused across multiple cost_bound_le() / cost_bound_ge() calls with different bounds on
  * the same ZDD to benefit from accumulated memoization.
  */
 class CostBoundMemo {
@@ -239,7 +239,7 @@ public:
     /**
      * @brief Invalidate memo if GC has run since last use.
      *
-     * Called at the start of bddcostbound (inside bdd_gc_guard,
+     * Called at the start of bddcostbound_le (inside bdd_gc_guard,
      * after potential GC at entry) to ensure stale bddp values
      * are not returned.
      */
@@ -1161,11 +1161,29 @@ public:
      *             calls with different bounds for efficiency.
      * @return ZDD representing all cost-bounded solutions.
      */
-    ZDD cost_bound(const std::vector<int>& weights, long long b,
-                   CostBoundMemo& memo) const;
+    ZDD cost_bound_le(const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) const;
 
     /** @brief Convenience overload without memo (creates a temporary one). */
-    ZDD cost_bound(const std::vector<int>& weights, long long b) const;
+    ZDD cost_bound_le(const std::vector<int>& weights, long long b) const;
+
+    /**
+     * @brief Extract all solutions with cost >= b.
+     *
+     * Returns a ZDD representing {X ∈ S_f | Cost(X) ≥ b}.
+     * Implemented by negating weights and calling cost_bound_le.
+     *
+     * @param weights Cost vector indexed by variable number (1-based).
+     *                Size must be > var_used().
+     * @param b Cost bound. Solutions with cost ≥ b are included.
+     * @param memo Interval-memoization table.
+     * @return ZDD representing all solutions with cost >= b.
+     */
+    ZDD cost_bound_ge(const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo (creates a temporary one). */
+    ZDD cost_bound_ge(const std::vector<int>& weights, long long b) const;
 
     static const ZDD Empty;   /**< @brief Empty family (no sets). */
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */

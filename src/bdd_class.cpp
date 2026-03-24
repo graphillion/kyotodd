@@ -526,14 +526,26 @@ void CostBoundMemo::bind_weights(const std::vector<int>& weights) {
     }
 }
 
-// --- ZDD::cost_bound ---
+// --- ZDD::cost_bound_le ---
 
-ZDD ZDD::cost_bound(const std::vector<int>& weights, long long b,
-                     CostBoundMemo& memo) const {
-    return ZDD_ID(bddcostbound(root, weights, b, memo));
+ZDD ZDD::cost_bound_le(const std::vector<int>& weights, long long b,
+                        CostBoundMemo& memo) const {
+    return ZDD_ID(bddcostbound_le(root, weights, b, memo));
 }
 
-ZDD ZDD::cost_bound(const std::vector<int>& weights, long long b) const {
+ZDD ZDD::cost_bound_le(const std::vector<int>& weights, long long b) const {
     CostBoundMemo memo;
-    return ZDD_ID(bddcostbound(root, weights, b, memo));
+    return ZDD_ID(bddcostbound_le(root, weights, b, memo));
+}
+
+// --- ZDD::cost_bound_ge ---
+
+ZDD ZDD::cost_bound_ge(const std::vector<int>& weights, long long b,
+                        CostBoundMemo& memo) const {
+    return ZDD_ID(bddcostbound_ge(root, weights, b, memo));
+}
+
+ZDD ZDD::cost_bound_ge(const std::vector<int>& weights, long long b) const {
+    CostBoundMemo memo;
+    return ZDD_ID(bddcostbound_ge(root, weights, b, memo));
 }

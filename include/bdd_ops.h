@@ -826,8 +826,17 @@ std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
  * @return A ZDD node ID representing all cost-bounded solutions.
  * @throws std::invalid_argument if f is null or weights is too small.
  */
-bddp bddcostbound(bddp f, const std::vector<int>& weights, long long b,
-                   CostBoundMemo& memo);
+bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo);
+
+/**
+ * @brief Cost-bound filtering (>=) via BkTrk-IntervalMemo.
+ *
+ * Constructs a ZDD h = {X ∈ S_f | Cost(X) ≥ b}.
+ * Implemented by negating weights and calling bddcostbound_le.
+ */
+bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo);
 
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);
