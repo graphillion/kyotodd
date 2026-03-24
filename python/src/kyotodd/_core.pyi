@@ -1550,6 +1550,115 @@ class ZDD:
         """
         ...
 
+    def rank(self, s: List[int]) -> int:
+        """Rank a set in the family.
+
+        Returns the 0-based index of set s in the ZDD's structure-based
+        ordering (empty set first, then hi-edge before lo-edge).
+
+        Args:
+            s: A list of variable numbers representing the set.
+
+        Returns:
+            The rank (int), or -1 if the set is not in the family.
+
+        Raises:
+            OverflowError: If the rank exceeds int64 range.
+        """
+        ...
+
+    def exact_rank(self, s: List[int]) -> int:
+        """Rank a set in the family (arbitrary precision).
+
+        Args:
+            s: A list of variable numbers representing the set.
+
+        Returns:
+            The rank (int), or -1 if the set is not in the family.
+        """
+        ...
+
+    def exact_rank_with_memo(self, s: List[int], memo: ZddCountMemo) -> int:
+        """Rank a set using a memo for caching.
+
+        The memo must have been created for this ZDD.
+
+        Args:
+            s: A list of variable numbers representing the set.
+            memo: A ZddCountMemo object created for this ZDD.
+
+        Returns:
+            The rank (int), or -1 if the set is not in the family.
+
+        Raises:
+            ValueError: If the memo was created for a different ZDD.
+        """
+        ...
+
+    def unrank(self, order: int) -> List[int]:
+        """Retrieve the set at a given index in the family.
+
+        Args:
+            order: The 0-based index.
+
+        Returns:
+            A sorted list of variable numbers.
+
+        Raises:
+            IndexError: If order is out of range.
+        """
+        ...
+
+    def exact_unrank(self, order: int) -> List[int]:
+        """Retrieve the set at a given index (arbitrary precision).
+
+        Args:
+            order: The 0-based index (arbitrary precision).
+
+        Returns:
+            A sorted list of variable numbers.
+
+        Raises:
+            IndexError: If order is out of range.
+        """
+        ...
+
+    def exact_unrank_with_memo(self, order: int, memo: ZddCountMemo) -> List[int]:
+        """Retrieve the set at a given index using a memo.
+
+        The memo must have been created for this ZDD.
+
+        Args:
+            order: The 0-based index (arbitrary precision).
+            memo: A ZddCountMemo object created for this ZDD.
+
+        Returns:
+            A sorted list of variable numbers.
+
+        Raises:
+            ValueError: If the memo was created for a different ZDD.
+            IndexError: If order is out of range.
+        """
+        ...
+
+    def get_sum(self, weights: List[int]) -> int:
+        """Compute the total weight sum over all sets in the family.
+
+        For each set S in the family, computes sum of weights[v] for v in S,
+        then returns the total of all such sums (arbitrary precision).
+
+        Args:
+            weights: A list of integer weights indexed by variable number.
+                     Size must be > the top variable number of the ZDD.
+
+        Returns:
+            The total weight sum (int, arbitrary precision).
+
+        Raises:
+            ValueError: If the ZDD is null or weights is too small.
+        """
+        ...
+
     def cost_bound_le(self, weights: List[int], b: int) -> ZDD:
         """Extract all sets whose total cost is at most b.
 
