@@ -1143,7 +1143,17 @@ public:
     // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
 
-    /** @brief Compute the total weight sum over all sets in the family. */
+    /**
+     * @brief Compute the total weight sum over all sets in the family.
+     *
+     * For each set S in the family, computes sum(weights[v] for v in S),
+     * then returns the total of all such sums.
+     *
+     * @param weights Weight vector indexed by variable number.
+     *                Size must be > top variable of this ZDD.
+     * @return The total weight sum as a BigInt.
+     * @throws std::invalid_argument if this ZDD is null or weights is too small.
+     */
     bigint::BigInt get_sum(const std::vector<int>& weights) const;
     /** @brief Find the minimum weight sum among all sets in the family. */
     long long min_weight(const std::vector<int>& weights) const;

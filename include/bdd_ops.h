@@ -848,6 +848,15 @@ bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
  *
  * Constructs a ZDD h = {X ∈ S_f | Cost(X) ≥ b}.
  * Implemented by negating weights and calling bddcostbound_le.
+ *
+ * @param f A ZDD node ID.
+ * @param weights Cost vector indexed by variable number (1-based).
+ *                Size must be > bdd_varcount.
+ * @param b Cost bound. Solutions with cost ≥ b are included.
+ * @param memo Interval-memoization table. Note: internally binds to
+ *             negated weights, so cannot share a memo with bddcostbound_le.
+ * @return A ZDD node ID representing all solutions with cost >= b.
+ * @throws std::invalid_argument if f is null or weights is too small.
  */
 bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
                       CostBoundMemo& memo);
