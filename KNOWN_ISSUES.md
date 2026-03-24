@@ -39,13 +39,22 @@ the BDD/ZDD class layout and is a significant architectural change.
   The C++ constructors map any non-negative value to true/single. This is
   consistent with C-style boolean semantics.
 
-- **`bddprime` 系 API は 65536 (2^16) 変数までに制限されている** (`src/bdd_base.cpp`, `src/bdd_class.cpp`, `src/bdd_ops.cpp`).
-  ノード ID の 31-bit variable number フィールドはより広い範囲を格納できるが、
-  `bddprime()` の内部 prime テーブルは 2^16 エントリで固定サイズであり、
-  これを超える自動拡張は意図的にサポートしていない。`BDD::prime` /
-  `prime_not` / `cube` / `clause`、単変数版 `Exist` / `Univ`、`bddswap` は
-  すべて `bddprime()` に依存するため、同じ上限が適用される。65536 を超える
-  変数を扱う場合は `BDD::getnode()` で直接ノードを構築すること。
+- **`bddprime` family of APIs is limited to 65536 (2^16) variables**
+  (`src/bdd_base.cpp`, `src/bdd_class.cpp`, `src/bdd_ops.cpp`).
+  Although the 31-bit variable number field in node IDs can represent a
+  much wider range, the internal prime table used by `bddprime()` is
+  fixed at 2^16 entries and intentionally does not auto-expand beyond
+  that. `BDD::prime` / `prime_not` / `cube` / `clause`, single-variable
+  `Exist` / `Univ`, and `bddswap` all depend on `bddprime()`, so the
+  same upper bound applies. To work with more than 65536 variables,
+  construct nodes directly via `BDD::getnode()`.
+
+- **`bddchange` is limited to 65536 (2^16) variables**
+  (`src/zdd_ops.cpp`).
+  `bddchange()` auto-expands variables up to the requested variable
+  number but rejects any variable exceeding 65536. This is the same
+  2^16 ceiling as `bddprime`. To toggle membership of higher-numbered
+  variables, construct nodes directly via `ZDD::getnode()`.
 
 - **`bddnewvaroflev()` invalidates existing DDs and external memo objects**
   (`src/bdd_base.cpp`).
