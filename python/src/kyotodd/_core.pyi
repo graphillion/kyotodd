@@ -44,6 +44,26 @@ class ZddCountMemo:
         ...
 
 
+class CostBoundMemo:
+    """Interval-memoization table for cost-bounded enumeration.
+
+    Caches intermediate results using the interval-memoizing technique
+    (BkTrk-IntervalMemo) so that repeated cost_bound calls with
+    different bounds on the same ZDD and weights are efficient.
+
+    A single CostBoundMemo must only be used with one weights vector.
+    Passing a different weights vector raises ValueError.
+    """
+
+    def __init__(self) -> None:
+        """Create an empty cost-bound memo."""
+        ...
+
+    def clear(self) -> None:
+        """Clear all cached entries."""
+        ...
+
+
 class BDD:
     """A Binary Decision Diagram representing a Boolean function.
 
@@ -1490,6 +1510,50 @@ class ZDD:
 
         Returns:
             An iterator yielding (weight, set) pairs.
+        """
+        ...
+
+    def cost_bound(self, weights: List[int], b: int) -> ZDD:
+        """Extract all sets whose total cost is at most b.
+
+        Returns a ZDD representing {X in F | Cost(X) <= b}, where
+        Cost(X) = sum of weights[v] for v in X.
+
+        Uses the BkTrk-IntervalMemo algorithm internally.
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost <= b are included.
+
+        Returns:
+            A ZDD containing all cost-bounded sets.
+
+        Raises:
+            ValueError: If the ZDD is null or weights is too small.
+        """
+        ...
+
+    def cost_bound_with_memo(self, weights: List[int], b: int, memo: CostBoundMemo) -> ZDD:
+        """Extract cost-bounded sets, reusing a memo for efficiency.
+
+        The memo caches intermediate results using interval-memoizing.
+        When calling cost_bound repeatedly with different bounds on
+        the same ZDD and weights, passing a CostBoundMemo can be
+        significantly faster.
+
+        Args:
+            weights: A list of integer costs indexed by variable number.
+                     Size must be > the number of variables (var_used()).
+            b: Cost bound. Sets with total cost <= b are included.
+            memo: A CostBoundMemo object for caching across calls.
+
+        Returns:
+            A ZDD containing all cost-bounded sets.
+
+        Raises:
+            ValueError: If the ZDD is null, weights is too small,
+                        or a different weights vector was used with this memo.
         """
         ...
 

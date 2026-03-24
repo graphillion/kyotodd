@@ -220,6 +220,19 @@ PYBIND11_MODULE(_core, m) {
         .def_property_readonly("stored", &ZddCountMemo::stored,
              "Whether the memo has been populated.");
 
+    // CostBoundMemo class
+    py::class_<CostBoundMemo>(m, "CostBoundMemo",
+        "Interval-memoization table for cost-bounded enumeration.\n\n"
+        "Caches intermediate results using the interval-memoizing technique\n"
+        "(BkTrk-IntervalMemo) so that repeated cost_bound calls with\n"
+        "different bounds on the same ZDD and weights are efficient.\n\n"
+        "A single CostBoundMemo must only be used with one weights vector.\n"
+        "Passing a different weights vector raises ValueError.\n")
+        .def(py::init<>(),
+           "Create an empty cost-bound memo.\n")
+        .def("clear", &CostBoundMemo::clear,
+             "Clear all cached entries.\n");
+
     // BDD class
     py::class_<BDD>(m, "BDD",
         "A Binary Decision Diagram representing a Boolean function.\n\n"
@@ -1361,6 +1374,42 @@ PYBIND11_MODULE(_core, m) {
            "        print(weight, s)\n"
            "        if weight > threshold:\n"
            "            break\n")
+
+        // Cost-bounded enumeration
+        .def("cost_bound", [](const ZDD& z, const std::vector<int>& weights, long long b) -> ZDD {
+            return z.cost_bound(weights, b);
+        }, py::arg("weights"), py::arg("b"),
+           "Extract all sets whose total cost is at most b.\n\n"
+           "Returns a ZDD representing {X in F | Cost(X) <= b}, where\n"
+           "Cost(X) = sum of weights[v] for v in X.\n\n"
+           "Uses the BkTrk-IntervalMemo algorithm internally.\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    b: Cost bound. Sets with total cost <= b are included.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all cost-bounded sets.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null or weights is too small.\n")
+        .def("cost_bound_with_memo", [](const ZDD& z, const std::vector<int>& weights,
+                                         long long b, CostBoundMemo& memo) -> ZDD {
+            return z.cost_bound(weights, b, memo);
+        }, py::arg("weights"), py::arg("b"), py::arg("memo"),
+           "Extract cost-bounded sets, reusing a memo for efficiency.\n\n"
+           "The memo caches intermediate results using interval-memoizing.\n"
+           "When calling cost_bound repeatedly with different bounds on\n"
+           "the same ZDD and weights, passing a CostBoundMemo can be\n"
+           "significantly faster.\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    b: Cost bound. Sets with total cost <= b are included.\n"
+           "    memo: A CostBoundMemo object for caching across calls.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all cost-bounded sets.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null, weights is too small,\n"
+           "                or a different weights vector was used with this memo.\n")
 
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {

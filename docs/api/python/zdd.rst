@@ -914,3 +914,36 @@ ZDD Class
       :type: bool
 
       True if this is the 0-terminal (empty family).
+
+   .. py:method:: cost_bound(weights, b)
+
+      Extract all sets whose total cost is at most *b*.
+
+      Returns a ZDD representing {X ∈ F | Cost(X) ≤ b}, where
+      Cost(X) = Σ weights[v] for v ∈ X. Uses the BkTrk-IntervalMemo
+      algorithm internally.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int b: Cost bound. Sets with total cost ≤ b are included.
+      :return: A ZDD containing all cost-bounded sets.
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null or weights is too small.
+
+   .. py:method:: cost_bound_with_memo(weights, b, memo)
+
+      Extract cost-bounded sets, reusing a memo for efficiency.
+
+      The memo caches intermediate results using the interval-memoizing
+      technique. When calling ``cost_bound`` repeatedly with different
+      bounds on the same ZDD and weights, passing a
+      :py:class:`CostBoundMemo` can be significantly faster.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int b: Cost bound. Sets with total cost ≤ b are included.
+      :param CostBoundMemo memo: Memo object for caching across calls.
+      :return: A ZDD containing all cost-bounded sets.
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null, weights is too small,
+                          or a different weights vector was used with this memo.
