@@ -185,6 +185,8 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Ranking: `rank(s)` (int64_t), `exact_rank(s)` (BigInt), `exact_rank(s, ZddCountMemo&)` — 0-based index of set `s` in ZDD structure order. Returns -1 if not in family. Free functions: `bddrank()`, `bddexactrank()`.
 - Unranking: `unrank(order)` (int64_t), `exact_unrank(order)` (BigInt), `exact_unrank(order, ZddCountMemo&)` — retrieve set at given index. Throws `std::out_of_range`. Free functions: `bddunrank()`, `bddexactunrank()`.
 - First-k extraction: `get_k_sets(k)` (int64_t), `get_k_sets(k)` (BigInt), `get_k_sets(k, ZddCountMemo&)` — return a ZDD containing the first k sets in structure order. Free functions: `bddgetksets()`.
+- K-lightest extraction: `get_k_lightest(k, weights, strict)` (int64_t/BigInt) — return k sets with smallest total weight. Binary search on cost bounds. `strict`: 0=exactly k, <0=fewer (lighter only), >0=more (includes full tier). Free functions: `bddgetklightest()`.
+- K-heaviest extraction: `get_k_heaviest(k, weights, strict)` (int64_t/BigInt) — return k sets with largest total weight. Computed as `f - get_k_lightest(|F|-k, -strict)`. Free functions: `bddgetkheaviest()`.
 - Construction: `ZDD::singleton(v)`, `ZDD::single_set(vars)`, `ZDD::from_sets(sets)`, `ZDD::power_set(n)`, `ZDD::power_set(vars)`, `ZDD::combination(n, k)`, `ZDD::random_family(n, rng)`.
 - Display: `print_sets(os)`, `print_sets(os, delim1, delim2)`, `print_sets(os, delim1, delim2, var_name_map)`, `to_str()`.
 - Conversion: `to_qdd()` — convert ZDD to quasi-reduced QDD.
