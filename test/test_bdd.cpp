@@ -12449,3 +12449,206 @@ TEST_F(BDDTest, ZDD_Rank_FreeFunctions) {
     EXPECT_EQ(bddexactrank(fp, s2), bigint::BigInt(0));
 }
 
+// ---------------------------------------------------------------
+// get_k_sets tests
+// ---------------------------------------------------------------
+
+TEST_F(BDDTest, ZDD_GetKSets_EmptyFamily) {
+    ZDD f = ZDD::Empty;
+    EXPECT_EQ(f.get_k_sets(0), ZDD::Empty);
+    EXPECT_EQ(f.get_k_sets(1), ZDD::Empty);
+    EXPECT_EQ(f.get_k_sets(100), ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_SingleFamily) {
+    ZDD f = ZDD::Single;  // {∅}
+    EXPECT_EQ(f.get_k_sets(0), ZDD::Empty);
+    EXPECT_EQ(f.get_k_sets(1), ZDD::Single);
+    EXPECT_EQ(f.get_k_sets(2), ZDD::Single);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_KZero) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    EXPECT_EQ(f.get_k_sets(0), ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_KGreaterThanCard) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    // power_set(2) has 4 sets, k=10 should return entire family
+    EXPECT_EQ(f.get_k_sets(10), f);
+    EXPECT_EQ(f.get_k_sets(4), f);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_PowerSet3_Incremental) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);  // 8 sets
+    auto all_sets = f.enumerate();
+    ASSERT_EQ(all_sets.size(), 8u);
+
+    for (size_t k = 0; k <= 8; ++k) {
+        ZDD g = f.get_k_sets(static_cast<int64_t>(k));
+        auto g_sets = g.enumerate();
+        ASSERT_EQ(g_sets.size(), k) << "k=" << k;
+
+        // Verify these are the first k sets in structure order
+        for (size_t i = 0; i < k; ++i) {
+            auto expected = f.unrank(static_cast<int64_t>(i));
+            // Find this set in g_sets
+            bool found = false;
+            for (const auto& s : g_sets) {
+                if (s == expected) { found = true; break; }
+            }
+            EXPECT_TRUE(found) << "k=" << k << " i=" << i;
+        }
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_MatchesUnrank) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+
+    for (int64_t k = 0; k <= 8; ++k) {
+        ZDD g = f.get_k_sets(k);
+        auto g_sets = g.enumerate();
+        // Build expected set from unrank
+        std::vector<std::vector<bddvar>> expected;
+        for (int64_t i = 0; i < k; ++i) {
+            expected.push_back(f.unrank(i));
+        }
+        // Sort both for comparison
+        std::sort(g_sets.begin(), g_sets.end());
+        std::sort(expected.begin(), expected.end());
+        EXPECT_EQ(g_sets, expected) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_ComplementEdge) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // ~singleton(v1) toggles ∅ membership: {{v1}} → {∅, {v1}}
+    ZDD f = ~ZDD::singleton(v1);
+    uint64_t count = f.Card();
+    ASSERT_EQ(count, 2u);
+
+    for (int64_t k = 0; k <= static_cast<int64_t>(count); ++k) {
+        ZDD g = f.get_k_sets(k);
+        auto g_sets = g.enumerate();
+        ASSERT_EQ(g_sets.size(), static_cast<size_t>(k)) << "k=" << k;
+
+        std::vector<std::vector<bddvar>> expected;
+        for (int64_t i = 0; i < k; ++i) {
+            expected.push_back(f.unrank(i));
+        }
+        std::sort(g_sets.begin(), g_sets.end());
+        std::sort(expected.begin(), expected.end());
+        EXPECT_EQ(g_sets, expected) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_ComplementComplex) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // Build a family with complement edges at multiple levels
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    ZDD c = ZDD::singleton(v3);
+    ZDD f = ~(a * b + c);  // complement of join + union
+    uint64_t count = f.Card();
+    ASSERT_GT(count, 0u);
+
+    for (uint64_t k = 0; k <= count; ++k) {
+        ZDD g = f.get_k_sets(static_cast<int64_t>(k));
+        auto g_sets = g.enumerate();
+        ASSERT_EQ(g_sets.size(), k) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_BigInt) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+
+    for (int k = 0; k <= 4; ++k) {
+        ZDD g1 = f.get_k_sets(static_cast<int64_t>(k));
+        ZDD g2 = f.get_k_sets(bigint::BigInt(k));
+        EXPECT_EQ(g1, g2) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_WithMemo) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    ZddCountMemo memo(f);
+
+    for (int k = 0; k <= 8; ++k) {
+        ZDD g = f.get_k_sets(bigint::BigInt(k), memo);
+        auto g_sets = g.enumerate();
+        EXPECT_EQ(g_sets.size(), static_cast<size_t>(k)) << "k=" << k;
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_NegativeThrows) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.get_k_sets(-1), std::invalid_argument);
+    EXPECT_THROW(f.get_k_sets(bigint::BigInt(-1)), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_FreeFunctions) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    bddp fp = f.get_id();
+
+    bddp g = bddgetksets(fp, static_cast<int64_t>(2));
+    EXPECT_EQ(bddcard(g), 2u);
+
+    bddp g2 = bddgetksets(fp, bigint::BigInt(3));
+    EXPECT_EQ(bddcard(g2), 3u);
+
+    CountMemoMap memo;
+    bddp g3 = bddgetksets(fp, bigint::BigInt(1), memo);
+    EXPECT_EQ(bddcard(g3), 1u);
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_Combination) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+    bddvar v5 = bddnewvar();
+    ZDD f = ZDD::combination(5, 2);  // C(5,2) = 10 sets
+    ASSERT_EQ(f.Card(), 10u);
+
+    for (int64_t k = 0; k <= 10; ++k) {
+        ZDD g = f.get_k_sets(k);
+        auto g_sets = g.enumerate();
+        ASSERT_EQ(g_sets.size(), static_cast<size_t>(k)) << "k=" << k;
+
+        // All sets should have exactly 2 elements
+        for (const auto& s : g_sets) {
+            EXPECT_EQ(s.size(), 2u);
+        }
+
+        // Verify matches unrank
+        std::vector<std::vector<bddvar>> expected;
+        for (int64_t i = 0; i < k; ++i) {
+            expected.push_back(f.unrank(i));
+        }
+        std::sort(g_sets.begin(), g_sets.end());
+        std::sort(expected.begin(), expected.end());
+        EXPECT_EQ(g_sets, expected) << "k=" << k;
+    }
+}
+
