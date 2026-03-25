@@ -232,6 +232,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Key operations: `off_set()`, `on_set()`, `on_set0()`, `push()`, `top()`, `size()`, `card()`, `lit()`, `len()`.
 - Operators: `&` (intersection), `+` (union), `-` (difference), `*` (concatenation), `/` (left quotient), `%` (left remainder).
 - Display: `print()`, `print_seq()`, `seq_str()`, `export_to()`.
+- I/O: `save_svg()` — SVG visualization of the internal ZDD.
 
 ## PiDD class
 
@@ -241,6 +242,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Key operations: `Swap(u, v)`, `Cofact(u, v)`, `Odd()`, `Even()`, `SwapBound(n)`.
 - Operators: `&` (intersection), `+` (union), `-` (difference), `*` (composition), `/` (division), `%` (remainder).
 - Display: `Print()`, `Enum()`, `Enum2()`.
+- I/O: `save_svg()` — SVG visualization of the internal ZDD.
 
 ## RotPiDD class
 
@@ -252,6 +254,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Conversion: `VECtoRotPiDD(v)`, `RotPiDDToVectorOfPerms()`, `normalizePerm(v)`.
 - Advanced: `contradictionMaximization()` — weighted contradiction maximization.
 - Display: `Print()`, `Enum()`, `Enum2()`.
+- I/O: `save_svg()` — SVG visualization of the internal ZDD.
 
 ## Size functions
 
