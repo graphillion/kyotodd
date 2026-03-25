@@ -362,6 +362,56 @@ TEST_F(MVDDTest, MVBDDChildTerminalThrows) {
 }
 
 // ============================================================
+//  MVBDD/MVZDD unregistered DD variable validation
+// ============================================================
+
+TEST_F(MVDDTest, MVBDDConstructorRejectsUnregisteredDDVar) {
+    auto table = std::make_shared<MVDDVarTable>(3);
+    bddvar d1 = bddnewvar();
+    bddvar d2 = bddnewvar();
+    table->register_var({d1, d2});
+
+    // BDD using an unregistered DD variable
+    bddvar d3 = bddnewvar();
+    BDD unregistered = BDD::prime(d3);
+    EXPECT_THROW(MVBDD(table, unregistered), std::invalid_argument);
+
+    // BDD using only registered DD variables should work
+    BDD registered = BDD::prime(d1);
+    EXPECT_NO_THROW(MVBDD(table, registered));
+}
+
+TEST_F(MVDDTest, MVBDDFromBddRejectsUnregisteredDDVar) {
+    MVBDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar d_unreg = bddnewvar();
+    BDD unreg_bdd = BDD::prime(d_unreg);
+    EXPECT_THROW(MVBDD::from_bdd(base, unreg_bdd), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDConstructorRejectsUnregisteredDDVar) {
+    auto table = std::make_shared<MVDDVarTable>(3);
+    bddvar d1 = bddnewvar();
+    bddvar d2 = bddnewvar();
+    table->register_var({d1, d2});
+
+    bddvar d3 = bddnewvar();
+    ZDD unregistered = ZDD::singleton(d3);
+    EXPECT_THROW(MVZDD(table, unregistered), std::invalid_argument);
+
+    ZDD registered = ZDD::singleton(d1);
+    EXPECT_NO_THROW(MVZDD(table, registered));
+}
+
+TEST_F(MVDDTest, MVZDDFromZddRejectsUnregisteredDDVar) {
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar d_unreg = bddnewvar();
+    ZDD unreg_zdd = ZDD::singleton(d_unreg);
+    EXPECT_THROW(MVZDD::from_zdd(base, unreg_zdd), std::invalid_argument);
+}
+
+// ============================================================
 //  MVBDD conversion
 // ============================================================
 

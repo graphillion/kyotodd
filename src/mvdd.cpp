@@ -112,6 +112,43 @@ bddvar MVDDVarTable::get_top_dd_var(bddvar mv) const {
 }
 
 // ============================================================
+//  Helper: validate that all DD variables in a BDD/ZDD are registered
+// ============================================================
+
+static void validate_dd_vars_registered(bddp root, const MVDDVarTable* table,
+                                         const char* context) {
+    if ((root & BDD_CONST_FLAG) || root == bddnull) return;
+
+    std::unordered_set<bddp> visited;
+    std::vector<bddp> stack;
+    bddp rn = root & ~BDD_COMP_FLAG;
+    stack.push_back(rn);
+    visited.insert(rn);
+
+    while (!stack.empty()) {
+        bddp fn = stack.back();
+        stack.pop_back();
+
+        bddvar dv = node_var(fn);
+        if (table->mvdd_var_of(dv) == 0) {
+            throw std::invalid_argument(
+                std::string(context) + ": DD variable " +
+                std::to_string(dv) + " is not registered in the var table");
+        }
+
+        bddp children[] = { node_lo(fn), node_hi(fn) };
+        for (bddp c : children) {
+            if (c & BDD_CONST_FLAG) continue;
+            bddp cn = c & ~BDD_COMP_FLAG;
+            if (visited.find(cn) == visited.end()) {
+                visited.insert(cn);
+                stack.push_back(cn);
+            }
+        }
+    }
+}
+
+// ============================================================
 //  MVBDD helper: count MVDD-level entry nodes in a BDD/ZDD graph
 // ============================================================
 
@@ -180,6 +217,9 @@ MVBDD::MVBDD(std::shared_ptr<MVDDVarTable> table, const BDD& bdd)
     : DDBase(), var_table_(table)
 {
     root = bdd.get_id();
+    if (table) {
+        validate_dd_vars_registered(root, table.get(), "MVBDD(table, BDD)");
+    }
 }
 
 MVBDD::MVBDD(const MVBDD& other)
@@ -361,7 +401,13 @@ bddvar MVBDD::top_var() const {
     if (root == bddnull || (root & BDD_CONST_FLAG)) return 0;
     if (!var_table_) return 0;
     bddvar dv = node_var(root);
-    return var_table_->mvdd_var_of(dv);
+    bddvar mv = var_table_->mvdd_var_of(dv);
+    if (mv == 0) {
+        throw std::logic_error(
+            "MVBDD::top_var: root DD variable " + std::to_string(dv) +
+            " is not registered in the var table");
+    }
+    return mv;
 }
 
 // --- Boolean operations ---
@@ -442,6 +488,8 @@ MVBDD MVBDD::from_bdd(const MVBDD& base, const BDD& bdd) {
     if (!base.var_table_) {
         throw std::invalid_argument("MVBDD::from_bdd: base has no var table");
     }
+    validate_dd_vars_registered(bdd.get_id(), base.var_table_.get(),
+                                "MVBDD::from_bdd");
     return MVBDD(base.var_table_, bdd.get_id());
 }
 
@@ -511,6 +559,9 @@ MVZDD::MVZDD(std::shared_ptr<MVDDVarTable> table, const ZDD& zdd)
     : DDBase(), var_table_(table)
 {
     root = zdd.get_id();
+    if (table) {
+        validate_dd_vars_registered(root, table.get(), "MVZDD(table, ZDD)");
+    }
 }
 
 MVZDD::MVZDD(const MVZDD& other)
@@ -687,7 +738,13 @@ bddvar MVZDD::top_var() const {
     if (root == bddnull || (root & BDD_CONST_FLAG)) return 0;
     if (!var_table_) return 0;
     bddvar dv = node_var(root);
-    return var_table_->mvdd_var_of(dv);
+    bddvar mv = var_table_->mvdd_var_of(dv);
+    if (mv == 0) {
+        throw std::logic_error(
+            "MVZDD::top_var: root DD variable " + std::to_string(dv) +
+            " is not registered in the var table");
+    }
+    return mv;
 }
 
 // --- Set family operations ---
@@ -865,6 +922,8 @@ MVZDD MVZDD::from_zdd(const MVZDD& base, const ZDD& zdd) {
     if (!base.var_table_) {
         throw std::invalid_argument("MVZDD::from_zdd: base has no var table");
     }
+    validate_dd_vars_registered(zdd.get_id(), base.var_table_.get(),
+                                "MVZDD::from_zdd");
     return MVZDD(base.var_table_, zdd.get_id());
 }
 
