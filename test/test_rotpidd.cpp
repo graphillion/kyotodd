@@ -536,3 +536,30 @@ TEST_F(RotPiDDTest, SaveSvgTerminal) {
     EXPECT_TRUE(svg.find("<svg") != std::string::npos);
     EXPECT_EQ(svg, empty.GetZDD().save_svg());
 }
+
+TEST_F(RotPiDDTest, SvgVarNameMap) {
+    RotPiDD_NewVar();  // element 1
+    RotPiDD_NewVar();  // element 2
+    RotPiDD_NewVar();  // element 3
+
+    std::map<bddvar, std::string> m = RotPiDD::svg_var_name_map();
+    // Check that the map contains rotation labels
+    bool found_21 = false, found_31 = false, found_32 = false;
+    for (const auto& kv : m) {
+        if (kv.second == "(2,1)") found_21 = true;
+        if (kv.second == "(3,1)") found_31 = true;
+        if (kv.second == "(3,2)") found_32 = true;
+    }
+    EXPECT_TRUE(found_21);
+    EXPECT_TRUE(found_31);
+    EXPECT_TRUE(found_32);
+
+    // Use in SVG rendering
+    RotPiDD id(1);
+    RotPiDD r = id.LeftRot(2, 1) + id;
+    SvgParams params;
+    params.var_name_map = m;
+    std::string svg = r.save_svg(params);
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_TRUE(svg.find("(2,1)") != std::string::npos);
+}

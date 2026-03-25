@@ -184,6 +184,17 @@ public:
     ZDD GetZDD() const { return zdd_; }
 
     /**
+     * @brief Build a variable name map labeling each RotPiDD variable
+     *        with its rotation "LeftRot(x,y)".
+     *
+     * Useful for passing to SvgParams::var_name_map so that SVG node
+     * labels show rotation names instead of raw variable numbers.
+     *
+     * @return A map from BDD variable number to rotation label string.
+     */
+    static std::map<bddvar, std::string> svg_var_name_map();
+
+    /**
      * @brief Apply left rotation LeftRot(u, v) to all permutations.
      *
      * Left-rotates positions v, v+1, ..., u cyclically:

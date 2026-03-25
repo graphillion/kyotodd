@@ -2274,6 +2274,11 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n")
+
+        .def_static("svg_var_name_map", &PiDD::svg_var_name_map,
+           "Build a variable name map labeling each PiDD variable with its transposition.\n\n"
+           "Returns:\n"
+           "    A dict mapping BDD variable numbers to transposition label strings like '(x,y)'.\n")
     ;
 
     // ================================================================
@@ -2537,6 +2542,11 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n")
+
+        .def_static("svg_var_name_map", &RotPiDD::svg_var_name_map,
+           "Build a variable name map labeling each RotPiDD variable with its rotation.\n\n"
+           "Returns:\n"
+           "    A dict mapping BDD variable numbers to rotation label strings like '(x,y)'.\n")
     ;
 
     // ================================================================

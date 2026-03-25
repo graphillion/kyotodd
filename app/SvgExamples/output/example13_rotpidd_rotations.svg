@@ -1,15 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="108" height="963" viewBox="-5.5 -21.5 108 963">
+<svg xmlns="http://www.w3.org/2000/svg" width="122" height="963" viewBox="-20 -21.5 122.5 963">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
     <circle cx="36" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">9</text>
+    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">(2,1)</text>
     <path d="M 26,197 L 26,204.5 Q 26,207 26.6685,236.993 L 40.3315,850.007 L 41,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 46,197 L 46,204.5 Q 46,207 45.7771,236.999 L 41.2229,850.001 L 41,880" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">11</text>
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
     <path d="M 26,37 L 26,44.5 Q 26,47 28.5,75.25 L 33.5,131.75 L 36,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 46,37 L 46,44.5 Q 46,47 54.75,50.25 L 72.25,56.75 Q 81,60 81,90 L 81,830 Q 81,860 71,865 L 51,875 L 41,880" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <rect x="26" y="880" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />

@@ -1,19 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="103" height="723" viewBox="-5.5 -21.5 103 723">
+<svg xmlns="http://www.w3.org/2000/svg" width="117" height="723" viewBox="-20 -21.5 117.5 723">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
     <circle cx="36" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">6</text>
+    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">(2,1)</text>
     <path d="M 26,197 L 26,204.5 Q 26,207 27.0386,236.982 L 39.9614,610.018 L 41,640" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 46,197 L 46,204.5 Q 46,207 45.6536,236.998 L 41.3464,610.002 L 41,640" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="36" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="36" y="107" font-size="24" text-anchor="middle" fill="black">7</text>
+    <text x="36" y="107" font-size="24" text-anchor="middle" fill="black">(3,2)</text>
     <path d="M 26,117 L 26,124.5 Q 26,127 28.5,135.25 L 33.5,151.75 L 36,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 46,117 L 46,124.5 Q 46,127 45.75,136 L 45.25,154 L 45,163" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">8</text>
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
     <path d="M 26,37 L 26,44.5 Q 26,47 28.5,55.25 L 33.5,71.75 L 36,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 46,37 L 46,44.5 Q 46,47 53.5,50.25 L 68.5,56.75 Q 76,60 76,80 L 76,120 Q 76,140 63.75,145.75 L 39.25,157.25 L 27,163" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <rect x="26" y="640" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />

@@ -470,3 +470,32 @@ TEST_F(PiDDTest, SaveSvgTerminal) {
     EXPECT_TRUE(svg.find("<svg") != std::string::npos);
     EXPECT_EQ(svg, empty.GetZDD().save_svg());
 }
+
+TEST_F(PiDDTest, SvgVarNameMap) {
+    PiDD_NewVar();  // element 1
+    PiDD_NewVar();  // element 2
+    PiDD_NewVar();  // element 3
+
+    std::map<bddvar, std::string> m = PiDD::svg_var_name_map();
+    // S3 has transpositions: (2,1), (3,1), (3,2)
+    // Check that the map contains transposition labels
+    bool found_21 = false, found_31 = false, found_32 = false;
+    for (const auto& kv : m) {
+        if (kv.second == "(2,1)") found_21 = true;
+        if (kv.second == "(3,1)") found_31 = true;
+        if (kv.second == "(3,2)") found_32 = true;
+    }
+    EXPECT_TRUE(found_21);
+    EXPECT_TRUE(found_31);
+    EXPECT_TRUE(found_32);
+
+    // Use in SVG rendering — labels should appear in output
+    PiDD id(1);
+    PiDD s = id.Swap(1, 2) + id;
+    SvgParams params;
+    params.var_name_map = m;
+    std::string svg = s.save_svg(params);
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    // The transposition label should appear as node text
+    EXPECT_TRUE(svg.find("(2,1)") != std::string::npos);
+}

@@ -431,3 +431,20 @@ void PiDD::Enum2() const
 
     PiDD_Enum2_VarMap = nullptr;
 }
+
+std::map<bddvar, std::string> PiDD::svg_var_name_map() {
+    std::map<bddvar, std::string> m;
+    if (PiDD_TopVar < 2 || !PiDD_XOfLev) return m;
+    // Iterate over each PiDD element x (2..PiDD_TopVar).
+    // Element x uses levels PiDD_LevOfX[x] down to PiDD_LevOfX[x]-(x-2).
+    // Each level corresponds to transposition (x, y) where y = PiDD_LevOfX[x] - lev + 1.
+    for (int x = 2; x <= PiDD_TopVar; ++x) {
+        int base_lev = PiDD_LevOfX[x];
+        for (int y = 1; y < x; ++y) {
+            int lev = base_lev - y + 1;
+            bddvar v = bddvaroflev(static_cast<bddvar>(lev));
+            m[v] = "(" + std::to_string(x) + "," + std::to_string(y) + ")";
+        }
+    }
+    return m;
+}

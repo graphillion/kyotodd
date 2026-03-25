@@ -162,7 +162,9 @@ int main() {
         PiDD s23 = id.Swap(2, 3);
         PiDD s3 = id + s12 + s13 + s23
                      + s12.Swap(1, 3) + s13.Swap(1, 2);
-        save("example11_pidd_s3.svg", s3.save_svg());
+        SvgParams params;
+        params.var_name_map = PiDD::svg_var_name_map();
+        save("example11_pidd_s3.svg", s3.save_svg(params));
     }
 
     // ========================================================
@@ -199,7 +201,9 @@ int main() {
         RotPiDD r21 = id.LeftRot(2, 1);   // cyclic shift (1,2)
         RotPiDD r31 = id.LeftRot(3, 1);   // cyclic shift (1,2,3)
         RotPiDD perms = id + r21 + r31;
-        save("example13_rotpidd_rotations.svg", perms.save_svg());
+        SvgParams params;
+        params.var_name_map = RotPiDD::svg_var_name_map();
+        save("example13_rotpidd_rotations.svg", perms.save_svg(params));
     }
 
     std::cout << "Done. 13 SVG files generated." << std::endl;

@@ -842,3 +842,20 @@ long long int RotPiDD::contradictionMaximization(
     hash[std::make_pair(zdd_.GetID(), saved_used)] = result;
     return result;
 }
+
+std::map<bddvar, std::string> RotPiDD::svg_var_name_map() {
+    std::map<bddvar, std::string> m;
+    if (RotPiDD_TopVar < 2 || !RotPiDD_XOfLev) return m;
+    // Iterate over each RotPiDD element x (2..RotPiDD_TopVar).
+    // Element x uses levels RotPiDD_LevOfX[x] down to RotPiDD_LevOfX[x]-(x-2).
+    // Each level corresponds to rotation (x, y) where y = RotPiDD_LevOfX[x] - lev + 1.
+    for (int x = 2; x <= RotPiDD_TopVar; ++x) {
+        int base_lev = RotPiDD_LevOfX[x];
+        for (int y = 1; y < x; ++y) {
+            int lev = base_lev - y + 1;
+            bddvar v = bddvaroflev(static_cast<bddvar>(lev));
+            m[v] = "(" + std::to_string(x) + "," + std::to_string(y) + ")";
+        }
+    }
+    return m;
+}
