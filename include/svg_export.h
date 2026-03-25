@@ -26,6 +26,7 @@ struct SvgParams {
     int arc_interval = 4;       ///< Horizontal offset between parallel edges on same lane.
     int arc_terminal = 20;      ///< Extra distance for terminal lane margins.
     bool draw_zero = true;      ///< Whether to draw the 0-terminal node.
+    bool skip_unused_levels = false; ///< Skip levels that have no nodes (compact layout).
     const char* node_fill = "#deebf7";   ///< Node background fill color.
     const char* node_stroke = "#1b3966"; ///< Node border stroke color.
     int font_size = 24;         ///< Font size for node labels.

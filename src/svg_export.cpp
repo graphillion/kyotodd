@@ -688,9 +688,13 @@ private:
 
         // Iterate levels from root_level down to 1
         for (int level = root_level; level >= 1; --level) {
+            auto it = all_nodes.find(level);
+            if (params.skip_unused_levels && it == all_nodes.end()) {
+                continue;  // skip levels with no nodes
+            }
+
             level_y_map[level] = y;
 
-            auto it = all_nodes.find(level);
             if (it != all_nodes.end()) {
                 const std::vector<size_t>& level_nodes = it->second;
                 int num_nodes = static_cast<int>(level_nodes.size());

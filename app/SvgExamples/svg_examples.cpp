@@ -305,7 +305,9 @@ int main() {
             }
             result = result + perm;
         }
-        save("example19_pidd_random100.svg", result.save_svg(pidd_params));
+        SvgParams params = pidd_params;
+        params.skip_unused_levels = true;
+        save("example19_pidd_random100.svg", result.save_svg(params));
     }
 
     std::cout << "Done. 19 SVG files generated." << std::endl;

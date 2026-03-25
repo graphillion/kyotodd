@@ -257,3 +257,46 @@ TEST_F(SvgExportTest, FreeFn_zdd_save_svg) {
     std::string svg = zdd_save_svg(z.get_id());
     EXPECT_TRUE(contains(svg, "<svg xmlns="));
 }
+
+TEST_F(SvgExportTest, SkipUnusedLevels) {
+    // Create vars 1-5, then build a BDD that uses only vars 1 and 5.
+    // Levels 2,3,4 are unused. With skip_unused_levels=true,
+    // the SVG should be shorter (fewer vertical levels).
+    bddvar v1 = bddnewvar();
+    bddnewvar();  // v2 (unused)
+    bddnewvar();  // v3 (unused)
+    bddnewvar();  // v4 (unused)
+    bddvar v5 = bddnewvar();
+    BDD f = BDD::prime(v1) & BDD::prime(v5);
+
+    // Default: all levels allocated
+    SvgParams params_default;
+    std::string svg_default = f.save_svg(params_default);
+
+    // With skip: unused levels omitted
+    SvgParams params_skip;
+    params_skip.skip_unused_levels = true;
+    std::string svg_skip = f.save_svg(params_skip);
+
+    EXPECT_TRUE(contains(svg_default, "<svg"));
+    EXPECT_TRUE(contains(svg_skip, "<svg"));
+
+    // Extract height from viewBox: viewBox="x y w h"
+    // The skipped version should have a smaller height
+    auto extract_height = [](const std::string& svg) -> int {
+        size_t pos = svg.find("viewBox=\"");
+        if (pos == std::string::npos) return -1;
+        pos += 9;
+        // skip x, y, w
+        int count = 0;
+        while (count < 3 && pos < svg.size()) {
+            if (svg[pos] == ' ') count++;
+            pos++;
+        }
+        return std::atoi(svg.c_str() + pos);
+    };
+
+    int h_default = extract_height(svg_default);
+    int h_skip = extract_height(svg_skip);
+    EXPECT_GT(h_default, h_skip);
+}
