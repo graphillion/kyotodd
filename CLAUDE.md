@@ -269,6 +269,7 @@ The library supports multiple import/export formats:
 - **Binary format**: Compact binary format. Single-root: `bdd_export_binary` / `bdd_import_binary`, `zdd_export_binary` / `zdd_import_binary`, `qdd_export_binary` / `qdd_import_binary`, `unreduced_export_binary` / `unreduced_import_binary`. Multi-root: `bdd_export_binary_multi` / `bdd_import_binary_multi`, etc.
 - **Graphillion format**: ZDD text format for Graphillion interop. `zdd_export_graphillion` / `zdd_import_graphillion`.
 - **Graphviz DOT**: Visualization. `bdd_save_graphviz` / `zdd_save_graphviz`. `DrawMode::Expanded` (complement expanded) or `DrawMode::Raw` (complement edge markers).
+- **SVG**: Self-contained SVG visualization. `bdd_save_svg` / `zdd_save_svg` / `qdd_save_svg` / `unreduced_save_svg`. Supports `DrawMode::Expanded` and `DrawMode::Raw` (Knuth-style dot/odot markers). Configurable via `SvgParams` struct. Output: file, ostream, or string.
 - **Knuth format** (deprecated): `bdd_export_knuth` / `bdd_import_knuth`, `zdd_export_knuth` / `zdd_import_knuth`.
 - **Legacy Sapporo format**: `bddexport` / `bddimport` / `bddimportz`.
 
@@ -303,6 +304,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `include/bdd_base.h` — Infrastructure function declarations (initialization, variable management, node creation, etc.)
 - `include/bdd_ops.h` — BDD operation function declarations
 - `include/bdd_io.h` — I/O function declarations (export/import)
+- `include/svg_export.h` — SVG export API (SvgParams struct, bdd_save_svg/zdd_save_svg/qdd_save_svg/unreduced_save_svg)
 - `include/bdd_internal.h` — Internal header (node accessor inline functions, GC guard, shift templates)
 - `include/bdd_node.h` — BddNode struct definition
 - `include/bigint.hpp` — Arbitrary-precision integer (BigInt) header-only library
@@ -312,6 +314,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `src/zdd_adv.cpp` — ZDD advanced operations (disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card, etc.)
 - `src/zdd_adv2.cpp` — ZDD additional operations (permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset, etc.)
 - `src/bdd_io.cpp` — export/import implementation
+- `src/svg_export.cpp` — SVG export implementation (SvgWriter, SvgPositionManager, SvgLaneManager)
 - `src/bdd_class.cpp` — BDD/ZDD/QDD static const definitions, bddhasempty, ZDD::Print
 - `src/qdd.cpp` — QDD implementation (getnode, BDD/ZDD conversion, etc.)
 - `src/unreduced_dd.cpp` — UnreducedDD implementation
@@ -331,6 +334,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `test/test_rotpidd.cpp` — RotPiDD tests
 - `test/test_seqbdd.cpp` — SeqBDD tests
 - `test/test_ddbase.cpp` — DDBase tests
+- `test/test_svg_export.cpp` — SVG export tests
 - `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11, core classes only)
   - Bound classes: BDD, ZDD, QDD, UnreducedDD, PiDD, RotPiDD, SeqBDD
   - **Not bound** (C++ only): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP, SOPV
