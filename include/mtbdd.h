@@ -575,6 +575,14 @@ public:
         return MTBDDTerminalTable<T>::make_terminal(0);
     }
 
+    // --- SVG export ---
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
 private:
     explicit MTBDD(bddp p) : DDBase() {
         root = p;
@@ -780,6 +788,14 @@ public:
         return MTBDDTerminalTable<T>::make_terminal(0);
     }
 
+    // --- SVG export ---
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
 private:
     explicit MTZDD(bddp p) : DDBase() {
         root = p;
@@ -787,5 +803,90 @@ private:
 
     template<typename T2, typename B> friend bddp mtzdd_apply_rec(bddp, bddp, B&, uint8_t);
 };
+
+// ========================================================================
+//  MTBDD/MTZDD save_svg inline implementations
+// ========================================================================
+
+#include "svg_export.h"
+#include <sstream>
+#include <unordered_set>
+
+// Helper: build terminal_name_map by DFS from root.
+template<typename T>
+static SvgParams mtbdd_build_svg_params(bddp root, const SvgParams& params) {
+    SvgParams p = params;
+    std::vector<bddp> stack;
+    std::unordered_set<bddp> visited;
+    stack.push_back(root);
+    while (!stack.empty()) {
+        bddp f = stack.back();
+        stack.pop_back();
+        if (f & BDD_CONST_FLAG) {
+            if (p.terminal_name_map.count(f) == 0) {
+                uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+                T val = MTBDDTerminalTable<T>::instance().get_value(idx);
+                std::ostringstream oss;
+                oss << val;
+                p.terminal_name_map[f] = oss.str();
+            }
+            continue;
+        }
+        if (!visited.insert(f).second) continue;
+        stack.push_back(node_lo(f));
+        stack.push_back(node_hi(f));
+    }
+    return p;
+}
+
+template<typename T>
+inline void MTBDD<T>::save_svg(const char* filename, const SvgParams& params) const {
+    mtbdd_save_svg(filename, root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline void MTBDD<T>::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+template<typename T>
+inline void MTBDD<T>::save_svg(std::ostream& strm, const SvgParams& params) const {
+    mtbdd_save_svg(strm, root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline void MTBDD<T>::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+template<typename T>
+inline std::string MTBDD<T>::save_svg(const SvgParams& params) const {
+    return mtbdd_save_svg(root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline std::string MTBDD<T>::save_svg() const {
+    return save_svg(SvgParams());
+}
+
+template<typename T>
+inline void MTZDD<T>::save_svg(const char* filename, const SvgParams& params) const {
+    mtzdd_save_svg(filename, root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline void MTZDD<T>::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+template<typename T>
+inline void MTZDD<T>::save_svg(std::ostream& strm, const SvgParams& params) const {
+    mtzdd_save_svg(strm, root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline void MTZDD<T>::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+template<typename T>
+inline std::string MTZDD<T>::save_svg(const SvgParams& params) const {
+    return mtzdd_save_svg(root, mtbdd_build_svg_params<T>(root, params));
+}
+template<typename T>
+inline std::string MTZDD<T>::save_svg() const {
+    return save_svg(SvgParams());
+}
 
 #endif
