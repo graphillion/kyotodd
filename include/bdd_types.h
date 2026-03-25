@@ -424,6 +424,7 @@ public:
     /** @brief Export this BDD in BDD binary format to an output stream. */
     void export_binary(std::ostream& strm) const;
     /** @brief Import a BDD from BDD binary format from a FILE stream.
+     *  @param strm Input FILE stream.
      *  @param ignore_type If true, skip dd_type validation (default: false). */
     static BDD import_binary(FILE* strm, bool ignore_type = false);
     /** @brief Import a BDD from BDD binary format from an input stream. */
@@ -912,6 +913,7 @@ public:
     /** @brief Export this ZDD in BDD binary format to an output stream. */
     void export_binary(std::ostream& strm) const;
     /** @brief Import a ZDD from BDD binary format from a FILE stream.
+     *  @param strm Input FILE stream.
      *  @param ignore_type If true, skip dd_type validation (default: false). */
     static ZDD import_binary(FILE* strm, bool ignore_type = false);
     /** @brief Import a ZDD from BDD binary format from an input stream. */

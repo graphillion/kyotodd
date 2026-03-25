@@ -6,6 +6,7 @@
 
 #include <stdexcept>
 
+/// @cond INTERNAL
 // Forward declarations (defined in bdd_base.h)
 int bddinit(uint64_t node_count, uint64_t node_max);
 bddvar bddnewvar();
@@ -15,6 +16,7 @@ bddvar bddvaroflev(bddvar lev);
 bddvar bddvarused();
 uint64_t bddused();
 int bddgc();
+/// @endcond
 
 /**
  * @brief Base class for decision diagram types (BDD, ZDD).
@@ -85,6 +87,7 @@ public:
     }
 
     /** @brief Create n new variables and return their variable numbers.
+     *  @param n Number of variables to create.
      *  @param reverse If true, insert each at level 1 (reverses var/lev ordering).
      */
     static std::vector<bddvar> new_var(int n, bool reverse = false) {

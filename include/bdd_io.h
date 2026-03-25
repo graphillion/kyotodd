@@ -30,7 +30,11 @@ void bddexport(FILE* strm, const std::vector<bddp>& v);
 /**
  * @brief Export BDD/ZDD nodes to an output stream (array version).
  *
- * @copydetails bddexport(FILE*, const bddp*, int)
+ * Writes the DAG structure of nodes in @p p to the stream in a text format
+ * that can be read back by bddimport. A @c bddnull entry acts as a
+ * sentinel: export stops at the first @c bddnull, so only elements before
+ * it are written.
+ *
  * @param strm Output stream.
  * @param p Array of node IDs to export. @c bddnull terminates the array.
  * @param lim Maximum number of elements to scan in @p p.
@@ -265,6 +269,7 @@ void qdd_export_binary(FILE* strm, bddp f);
 /** @brief Export a single QDD in BDD binary format to an output stream. */
 void qdd_export_binary(std::ostream& strm, bddp f);
 /** @brief Import a single QDD from BDD binary format from a FILE stream.
+ *  @param strm Input FILE stream.
  *  @param ignore_type If true, skip dd_type validation (default: false). */
 bddp qdd_import_binary(FILE* strm, bool ignore_type = false);
 /** @brief Import a single QDD from BDD binary format from an input stream. */

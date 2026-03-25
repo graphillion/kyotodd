@@ -68,11 +68,9 @@ ZDD Class
 QDD Class
 ---------
 
-.. doxygenclass:: QDD
-   :members:
+See :doc:`ops_qdd` for the full QDD class reference.
 
 UnreducedDD Class
 -----------------
 
-.. doxygenclass:: UnreducedDD
-   :members:
+See :doc:`ops_unreduced_dd` for the full UnreducedDD class reference.

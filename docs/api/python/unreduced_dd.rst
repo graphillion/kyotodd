@@ -19,6 +19,7 @@ UnreducedDD Class
    **Complement expansion constructors:**
 
    .. py:method:: __init__(bdd)
+      :no-index:
 
       Convert a BDD to an UnreducedDD with complement expansion.
       Recursively expands all complement edges using BDD semantics.
@@ -26,6 +27,7 @@ UnreducedDD Class
       :param BDD bdd: Source BDD.
 
    .. py:method:: __init__(zdd)
+      :no-index:
 
       Convert a ZDD to an UnreducedDD with complement expansion.
       Recursively expands all complement edges using ZDD semantics.
@@ -33,6 +35,7 @@ UnreducedDD Class
       :param ZDD zdd: Source ZDD.
 
    .. py:method:: __init__(qdd)
+      :no-index:
 
       Convert a QDD to an UnreducedDD with complement expansion.
       Uses BDD complement semantics.

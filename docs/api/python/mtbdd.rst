@@ -53,6 +53,7 @@ MTBDDFloat Class
 
       Return the zero-terminal MTBDD.
 
+      :returns: Zero-terminal MTBDD.
       :rtype: MTBDDFloat
 
    .. py:staticmethod:: min(a, b)
@@ -61,6 +62,7 @@ MTBDDFloat Class
 
       :param MTBDDFloat a: First operand.
       :param MTBDDFloat b: Second operand.
+      :returns: Element-wise minimum.
       :rtype: MTBDDFloat
 
    .. py:staticmethod:: max(a, b)
@@ -69,6 +71,7 @@ MTBDDFloat Class
 
       :param MTBDDFloat a: First operand.
       :param MTBDDFloat b: Second operand.
+      :returns: Element-wise maximum.
       :rtype: MTBDDFloat
 
    Query
@@ -78,6 +81,7 @@ MTBDDFloat Class
 
       Return the terminal value.
 
+      :returns: The terminal value.
       :rtype: float
       :raises RuntimeError: If not a terminal node.
 
@@ -86,6 +90,7 @@ MTBDDFloat Class
       Evaluate the MTBDD for the given assignment.
 
       :param list[int] assignment: Values (0/1), indexed by variable number.
+      :returns: The evaluated terminal value.
       :rtype: float
 
    .. py:method:: ite_cond(then_case, else_case)
@@ -96,6 +101,7 @@ MTBDDFloat Class
 
       :param MTBDDFloat then_case: Result when condition is non-zero.
       :param MTBDDFloat else_case: Result when condition is zero.
+      :returns: The resulting MTBDD.
       :rtype: MTBDDFloat
 
    Operators
@@ -199,24 +205,48 @@ MTBDDInt Class
       :rtype: MTBDDInt
 
    .. py:staticmethod:: zero_terminal()
+
+      Return the zero-terminal MTBDD.
+
+      :returns: Zero-terminal MTBDD.
       :rtype: MTBDDInt
 
    .. py:staticmethod:: min(a, b)
+
+      Element-wise minimum.
+
+      :returns: Element-wise minimum.
       :rtype: MTBDDInt
 
    .. py:staticmethod:: max(a, b)
+
+      Element-wise maximum.
+
+      :returns: Element-wise maximum.
       :rtype: MTBDDInt
 
    Query
    ~~~~~
 
    .. py:method:: terminal_value()
+
+      Return the terminal value.
+
+      :returns: The terminal value.
       :rtype: int
 
    .. py:method:: evaluate(assignment)
+
+      Evaluate the MTBDD for the given assignment.
+
+      :returns: The evaluated terminal value.
       :rtype: int
 
    .. py:method:: ite_cond(then_case, else_case)
+
+      ITE: if this (condition) then *then_case* else *else_case*.
+
+      :returns: The resulting MTBDD.
       :rtype: MTBDDInt
 
    Operators
@@ -270,24 +300,48 @@ MTZDDFloat Class
       :rtype: MTZDDFloat
 
    .. py:staticmethod:: zero_terminal()
+
+      Return the zero-terminal MTZDD.
+
+      :returns: Zero-terminal MTZDD.
       :rtype: MTZDDFloat
 
    .. py:staticmethod:: min(a, b)
+
+      Element-wise minimum.
+
+      :returns: Element-wise minimum.
       :rtype: MTZDDFloat
 
    .. py:staticmethod:: max(a, b)
+
+      Element-wise maximum.
+
+      :returns: Element-wise maximum.
       :rtype: MTZDDFloat
 
    Query
    ~~~~~
 
    .. py:method:: terminal_value()
+
+      Return the terminal value.
+
+      :returns: The terminal value.
       :rtype: float
 
    .. py:method:: evaluate(assignment)
+
+      Evaluate the MTZDD for the given assignment.
+
+      :returns: The evaluated terminal value.
       :rtype: float
 
    .. py:method:: ite_cond(then_case, else_case)
+
+      ITE: if this (condition) then *then_case* else *else_case*.
+
+      :returns: The resulting MTZDD.
       :rtype: MTZDDFloat
 
    Operators
@@ -335,24 +389,48 @@ MTZDDInt Class
       :rtype: MTZDDInt
 
    .. py:staticmethod:: zero_terminal()
+
+      Return the zero-terminal MTZDD.
+
+      :returns: Zero-terminal MTZDD.
       :rtype: MTZDDInt
 
    .. py:staticmethod:: min(a, b)
+
+      Element-wise minimum.
+
+      :returns: Element-wise minimum.
       :rtype: MTZDDInt
 
    .. py:staticmethod:: max(a, b)
+
+      Element-wise maximum.
+
+      :returns: Element-wise maximum.
       :rtype: MTZDDInt
 
    Query
    ~~~~~
 
    .. py:method:: terminal_value()
+
+      Return the terminal value.
+
+      :returns: The terminal value.
       :rtype: int
 
    .. py:method:: evaluate(assignment)
+
+      Evaluate the MTZDD for the given assignment.
+
+      :returns: The evaluated terminal value.
       :rtype: int
 
    .. py:method:: ite_cond(then_case, else_case)
+
+      ITE: if this (condition) then *then_case* else *else_case*.
+
+      :returns: The resulting MTZDD.
       :rtype: MTZDDInt
 
    Operators
