@@ -317,6 +317,115 @@ TEST_F(MTBDDClassTest, MTBDDNoReductionWhenHiIsZero) {
     EXPECT_EQ(f.top(), 1u);
 }
 
+// ==========================================================================
+// MTBDD evaluate tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, EvaluateTerminal) {
+    auto f = MTBDD<int>::terminal(42);
+    std::vector<int> a = {0, 0, 0, 0};  // index 0 unused
+    EXPECT_EQ(f.evaluate(a), 42);
+}
+
+TEST_F(MTBDDClassTest, EvaluateSingleVariable) {
+    auto t0 = MTBDD<int>::terminal(10);
+    auto t1 = MTBDD<int>::terminal(20);
+    auto f = MTBDD<int>::ite(1, t1, t0);  // v1 ? 20 : 10
+
+    std::vector<int> a0 = {0, 0, 0, 0};
+    std::vector<int> a1 = {0, 1, 0, 0};
+    EXPECT_EQ(f.evaluate(a0), 10);
+    EXPECT_EQ(f.evaluate(a1), 20);
+}
+
+TEST_F(MTBDDClassTest, EvaluateTwoVariables) {
+    auto t0 = MTBDD<int>::terminal(0);
+    auto t1 = MTBDD<int>::terminal(1);
+    auto t2 = MTBDD<int>::terminal(2);
+    auto t3 = MTBDD<int>::terminal(3);
+
+    // f(v1, v2) = v2 ? (v1 ? 3 : 2) : (v1 ? 1 : 0)
+    auto low  = MTBDD<int>::ite(1, t1, t0);
+    auto high = MTBDD<int>::ite(1, t3, t2);
+    auto f = MTBDD<int>::ite(2, high, low);
+
+    // Exhaustive evaluation
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 0);  // v1=0, v2=0
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 1);  // v1=1, v2=0
+    EXPECT_EQ(f.evaluate({0, 0, 1, 0}), 2);  // v1=0, v2=1
+    EXPECT_EQ(f.evaluate({0, 1, 1, 0}), 3);  // v1=1, v2=1
+}
+
+// ==========================================================================
+// MTZDD evaluate tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateTerminal) {
+    auto f = MTZDD<int>::terminal(42);
+    std::vector<int> a = {0, 0, 0, 0};
+    EXPECT_EQ(f.evaluate(a), 42);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateSingleVariable) {
+    auto t0 = MTZDD<int>::terminal(0);
+    auto t1 = MTZDD<int>::terminal(5);
+    // v1=1 → 5, v1=0 → 0 (but hi=0 would be zero-suppressed)
+    // So use a non-zero lo
+    auto lo = MTZDD<int>::terminal(10);
+    auto hi = MTZDD<int>::terminal(20);
+    auto f = MTZDD<int>::ite(1, hi, lo);
+
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 10);
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 20);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateZeroSuppressedVariable) {
+    // Create MTZDD where variable 2 is zero-suppressed
+    // Structure: node at v3 (lo→terminal(7), hi→terminal(5))
+    // Variable 2 is not in the MTZDD (zero-suppressed)
+    // Variable 1 is not in the MTZDD (zero-suppressed)
+    auto lo = MTZDD<int>::terminal(7);
+    auto hi = MTZDD<int>::terminal(5);
+    auto f = MTZDD<int>::ite(3, hi, lo);
+
+    // v3=0 → 7 (follow lo)
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 7);
+    // v3=1 → 5 (follow hi)
+    EXPECT_EQ(f.evaluate({0, 0, 0, 1}), 5);
+    // v3=0, v2=1 → 0 (v2 is zero-suppressed, assignment=1 → zero)
+    EXPECT_EQ(f.evaluate({0, 0, 1, 0}), 0);
+    // v3=0, v1=1 → 0 (v1 is zero-suppressed, assignment=1 → zero)
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 0);
+    // v3=1, v2=1 → 0 (v2 is zero-suppressed)
+    EXPECT_EQ(f.evaluate({0, 0, 1, 1}), 0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateMultiLevel) {
+    // Create: v3 → (lo: v1 → (lo:10, hi:20), hi: 30)
+    auto t10 = MTZDD<int>::terminal(10);
+    auto t20 = MTZDD<int>::terminal(20);
+    auto t30 = MTZDD<int>::terminal(30);
+
+    auto v1_node = MTZDD<int>::ite(1, t20, t10);  // v1 ? 20 : 10
+    auto f = MTZDD<int>::ite(3, t30, v1_node);     // v3 ? 30 : (v1 ? 20 : 10)
+
+    // Variable 2 is zero-suppressed between v3 and v1
+    // v3=0, v2=0, v1=0 → 10
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 10);
+    // v3=0, v2=0, v1=1 → 20
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 20);
+    // v3=1, v2=0, v1=0 → 30
+    EXPECT_EQ(f.evaluate({0, 0, 0, 1}), 30);
+    // v3=0, v2=1, v1=0 → 0 (v2 zero-suppressed with assignment=1)
+    EXPECT_EQ(f.evaluate({0, 0, 1, 0}), 0);
+    // v3=0, v2=1, v1=1 → 0 (v2 zero-suppressed with assignment=1)
+    EXPECT_EQ(f.evaluate({0, 1, 1, 0}), 0);
+}
+
+// ==========================================================================
+// GC tests
+// ==========================================================================
+
 TEST_F(MTBDDClassTest, GCProtection) {
     // MTBDD nodes should survive GC
     auto lo = MTBDD<int>::terminal(10);

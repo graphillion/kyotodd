@@ -2,6 +2,9 @@
 #define KYOTODD_MTBDD_H
 
 #include "bdd_types.h"
+#include "bdd_base.h"
+#include "bdd_ops.h"
+#include "bdd_internal.h"
 #include <vector>
 #include <unordered_map>
 #include <stdexcept>
@@ -153,6 +156,22 @@ public:
     bool operator==(const MTBDD& other) const { return root == other.root; }
     bool operator!=(const MTBDD& other) const { return root != other.root; }
 
+    // --- Evaluation ---
+
+    T evaluate(const std::vector<int>& assignment) const {
+        bddp f = root;
+        while (!(f & BDD_CONST_FLAG)) {
+            bddvar v = node_var(f);
+            if (v >= assignment.size()) {
+                throw std::invalid_argument(
+                    "MTBDD::evaluate: assignment too short");
+            }
+            f = assignment[v] ? node_hi(f) : node_lo(f);
+        }
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+        return MTBDDTerminalTable<T>::instance().get_value(idx);
+    }
+
     // --- Terminal table access ---
 
     static MTBDDTerminalTable<T>& terminals() {
@@ -221,6 +240,60 @@ public:
 
     bool operator==(const MTZDD& other) const { return root == other.root; }
     bool operator!=(const MTZDD& other) const { return root != other.root; }
+
+    // --- Evaluation ---
+
+    T evaluate(const std::vector<int>& assignment) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        bddp f = root;
+        bddvar num_vars = bddvarused();
+
+        // Determine the top level of the MTZDD
+        bddvar top_level = 0;
+        if (!(f & BDD_CONST_FLAG)) {
+            top_level = var2level[node_var(f)];
+        }
+
+        // Traverse from top level down to level 1.
+        // Even after reaching a terminal, continue checking remaining
+        // levels for zero-suppressed variables set to 1.
+        for (bddvar lev = top_level; lev >= 1; --lev) {
+            bddvar v = level2var[lev];
+
+            if (f & BDD_CONST_FLAG) {
+                // Already at a terminal, but check zero-suppressed vars
+                if (v < assignment.size() && assignment[v]) {
+                    return table.get_value(0);  // T{} (zero value)
+                }
+                continue;
+            }
+
+            bddvar f_var = node_var(f);
+
+            if (f_var == v) {
+                // Variable is present in the MTZDD
+                if (v >= assignment.size()) {
+                    throw std::invalid_argument(
+                        "MTZDD::evaluate: assignment too short");
+                }
+                f = assignment[v] ? node_hi(f) : node_lo(f);
+            } else {
+                // Variable v is zero-suppressed (not in MTZDD)
+                // Implicit hi = zero_terminal
+                if (v < assignment.size() && assignment[v]) {
+                    return table.get_value(0);  // T{} (zero value)
+                }
+                // assignment[v] == 0: follow implicit lo (= f unchanged)
+            }
+        }
+
+        if (!(f & BDD_CONST_FLAG)) {
+            throw std::logic_error(
+                "MTZDD::evaluate: non-terminal after full traversal");
+        }
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+        return table.get_value(idx);
+    }
 
     // --- Terminal table access ---
 
