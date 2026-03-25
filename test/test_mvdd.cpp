@@ -67,6 +67,33 @@ TEST_F(MVDDTest, VarTableRegisterWrongSize) {
     EXPECT_THROW(table.register_var({1, 2, 3}), std::invalid_argument);
 }
 
+TEST_F(MVDDTest, VarTableRegisterDuplicateDDVar) {
+    MVDDVarTable table(3);
+    bddvar d1 = bddnewvar();
+    // Same DD var twice in one call
+    EXPECT_THROW(table.register_var({d1, d1}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, VarTableRegisterReusedDDVar) {
+    MVDDVarTable table(3);
+    bddvar d1 = bddnewvar();
+    bddvar d2 = bddnewvar();
+    bddvar d3 = bddnewvar();
+    table.register_var({d1, d2});
+    // d1 is already registered to MV var 1
+    EXPECT_THROW(table.register_var({d1, d3}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, VarTableRegisterWrongLevelOrder) {
+    MVDDVarTable table(3);
+    bddvar d1 = bddnewvar();
+    bddvar d2 = bddnewvar();
+    // d2 has higher level than d1, so {d2, d1} is decreasing order → should throw
+    EXPECT_THROW(table.register_var({d2, d1}), std::invalid_argument);
+    // Correct order should work
+    EXPECT_NO_THROW(table.register_var({d1, d2}));
+}
+
 TEST_F(MVDDTest, VarTableOutOfRange) {
     MVDDVarTable table(2);
     EXPECT_THROW(table.dd_vars_of(0), std::out_of_range);

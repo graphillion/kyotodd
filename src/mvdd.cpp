@@ -35,6 +35,34 @@ bddvar MVDDVarTable::register_var(const std::vector<bddvar>& dd_vars) {
         throw std::invalid_argument(
             "MVDDVarTable::register_var: dd_vars size must be k-1");
     }
+
+    // Check for duplicates within dd_vars and reuse of already-registered DD vars
+    for (int i = 0; i < static_cast<int>(dd_vars.size()); ++i) {
+        bddvar dv = dd_vars[i];
+        // Check duplicate within this call
+        for (int j = 0; j < i; ++j) {
+            if (dd_vars[j] == dv) {
+                throw std::invalid_argument(
+                    "MVDDVarTable::register_var: duplicate DD variable " +
+                    std::to_string(dv));
+            }
+        }
+        // Check already registered to another MV var
+        if (dv < dd_to_mvdd_var_.size() && dd_to_mvdd_var_[dv] != 0) {
+            throw std::invalid_argument(
+                "MVDDVarTable::register_var: DD variable " +
+                std::to_string(dv) + " is already registered");
+        }
+    }
+
+    // Check that dd_vars are in increasing BDD level order
+    for (int i = 1; i < static_cast<int>(dd_vars.size()); ++i) {
+        if (bddlevofvar(dd_vars[i]) <= bddlevofvar(dd_vars[i - 1])) {
+            throw std::invalid_argument(
+                "MVDDVarTable::register_var: dd_vars must be in increasing level order");
+        }
+    }
+
     bddvar mv = static_cast<bddvar>(var_map_.size()) + 1;
     var_map_.push_back(MVDDVarInfo(mv, k_, dd_vars));
 
