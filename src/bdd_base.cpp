@@ -190,6 +190,7 @@ void bddfinal() {
                 "Delete all such objects first.");
         }
     }
+    mtbdd_clear_all_terminal_tables();
     std::free(bdd_nodes);
     bdd_nodes = nullptr;
     std::free(var2level);

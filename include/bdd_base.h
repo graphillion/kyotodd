@@ -384,4 +384,9 @@ int bddiszbdd(bddp f);
  */
 bool bdd_check_reduced(bddp root);
 
+// --- MTBDD/MTZDD support ---
+
+/** @brief Clear all MTBDD terminal tables. Called by bddfinal(). */
+void mtbdd_clear_all_terminal_tables();
+
 #endif
