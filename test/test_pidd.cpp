@@ -415,3 +415,58 @@ TEST_F(PiDDTest, DivisionByZeroThrows) {
     PiDD empty(0);
     EXPECT_THROW(id / empty, std::invalid_argument);
 }
+
+/* ---- save_svg ---- */
+TEST_F(PiDDTest, SaveSvgString) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+    PiDD_NewVar();
+
+    PiDD id(1);
+    PiDD s12 = id.Swap(1, 2);  // transposition (1,2)
+    PiDD perm = s12 + id;      // {identity, (1,2)}
+
+    // String output
+    std::string svg = perm.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_TRUE(svg.find("</svg>") != std::string::npos);
+
+    // Must match internal ZDD's SVG output
+    EXPECT_EQ(svg, perm.GetZDD().save_svg());
+}
+
+TEST_F(PiDDTest, SaveSvgStream) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+
+    PiDD id(1);
+    PiDD s12 = id.Swap(1, 2);
+
+    std::ostringstream oss;
+    s12.save_svg(oss);
+    std::string svg = oss.str();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, s12.save_svg());
+}
+
+TEST_F(PiDDTest, SaveSvgWithParams) {
+    PiDD_NewVar();
+    PiDD_NewVar();
+
+    PiDD id(1);
+    SvgParams params;
+    params.mode = DrawMode::Raw;
+    params.draw_zero = false;
+
+    std::string svg = id.save_svg(params);
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, id.GetZDD().save_svg(params));
+}
+
+TEST_F(PiDDTest, SaveSvgTerminal) {
+    // Terminal PiDD (empty set)
+    PiDD empty(0);
+    std::string svg = empty.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, empty.GetZDD().save_svg());
+}

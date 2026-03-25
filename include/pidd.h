@@ -3,6 +3,8 @@
 
 #include "bdd.h"
 
+struct SvgParams;
+
 /** @brief Maximum number of elements in PiDD permutations. */
 static const int PiDD_MaxVar = 254;
 
@@ -217,6 +219,31 @@ public:
     void Enum() const;
     /** @brief Enumerate all permutations in expanded form. */
     void Enum2() const;
+
+    /**
+     * @brief Export the internal ZDD as SVG to a file.
+     * @param filename Output file path.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(const char* filename) const;
+    /**
+     * @brief Export the internal ZDD as SVG to a stream.
+     * @param strm Output stream.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(std::ostream& strm) const;
+    /**
+     * @brief Export the internal ZDD as an SVG string.
+     * @param params SVG rendering parameters.
+     * @return An SVG format string.
+     */
+    std::string save_svg(const SvgParams& params) const;
+    /** @overload */
+    std::string save_svg() const;
 };
 
 /** @brief Intersection of two permutation sets. */
@@ -234,5 +261,27 @@ inline bool operator!=(const PiDD& p, const PiDD& q) { return !(p == q); }
 inline PiDD operator%(const PiDD& f, const PiDD& p) { return f - (f / p) * p; }
 
 inline PiDD& PiDD::operator%=(const PiDD& f) { *this = *this % f; return *this; }
+
+// --- PiDD save_svg inline implementations ---
+#include "svg_export.h"
+
+inline void PiDD::save_svg(const char* filename, const SvgParams& params) const {
+    zdd_save_svg(filename, zdd_.get_id(), params);
+}
+inline void PiDD::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+inline void PiDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    zdd_save_svg(strm, zdd_.get_id(), params);
+}
+inline void PiDD::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+inline std::string PiDD::save_svg(const SvgParams& params) const {
+    return zdd_save_svg(zdd_.get_id(), params);
+}
+inline std::string PiDD::save_svg() const {
+    return save_svg(SvgParams());
+}
 
 #endif
