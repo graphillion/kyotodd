@@ -10,6 +10,8 @@
 #include "pidd.h"
 #include "rotpidd.h"
 #include "seqbdd.h"
+#include "mvdd.h"
+#include "mtbdd.h"
 
 namespace py = pybind11;
 
@@ -3004,6 +3006,798 @@ PYBIND11_MODULE(_core, m) {
             auto val = *it;
             ++it;
             return val;
+        })
+    ;
+
+    // ================================================================
+    //  MVDDVarInfo
+    // ================================================================
+
+    py::class_<MVDDVarInfo>(m, "MVDDVarInfo",
+        "Information about a single MVDD variable.")
+        .def_property_readonly("mvdd_var", [](const MVDDVarInfo& v) {
+            return v.mvdd_var;
+        }, "MVDD variable number (1-indexed).")
+        .def_property_readonly("k", [](const MVDDVarInfo& v) {
+            return v.k;
+        }, "Value domain size.")
+        .def_property_readonly("dd_vars", [](const MVDDVarInfo& v) {
+            return v.dd_vars;
+        }, "Internal DD variable numbers (size k-1).")
+        .def("__repr__", [](const MVDDVarInfo& v) {
+            std::ostringstream oss;
+            oss << "MVDDVarInfo(mvdd_var=" << v.mvdd_var
+                << ", k=" << v.k << ", dd_vars=[";
+            for (size_t i = 0; i < v.dd_vars.size(); ++i) {
+                if (i > 0) oss << ", ";
+                oss << v.dd_vars[i];
+            }
+            oss << "])";
+            return oss.str();
+        })
+    ;
+
+    // ================================================================
+    //  MVDDVarTable
+    // ================================================================
+
+    py::class_<MVDDVarTable, std::shared_ptr<MVDDVarTable>>(m, "MVDDVarTable",
+        "Manages the mapping between MVDD variables and internal DD variables.\n\n"
+        "All MVDD variables in a table share the same value domain size k.")
+        .def(py::init([](int k) {
+            ensure_init();
+            return std::make_shared<MVDDVarTable>(k);
+        }), py::arg("k"),
+           "Create a variable table with domain size k.\n\n"
+           "Args:\n"
+           "    k: Value domain size (>= 2, <= 65536).\n\n"
+           "Raises:\n"
+           "    ValueError: If k is out of range.")
+        .def_property_readonly("k", &MVDDVarTable::k,
+            "Value domain size.")
+        .def_property_readonly("mvdd_var_count", &MVDDVarTable::mvdd_var_count,
+            "Number of registered MVDD variables.")
+        .def("register_var", &MVDDVarTable::register_var,
+            py::arg("dd_vars"),
+            "Register a new MVDD variable with internal DD variables.\n\n"
+            "Args:\n"
+            "    dd_vars: Internal DD variable numbers (must have size k-1).\n\n"
+            "Returns:\n"
+            "    The new MVDD variable number (1-indexed).\n\n"
+            "Raises:\n"
+            "    ValueError: If dd_vars size != k-1 or invalid.")
+        .def("dd_vars_of", &MVDDVarTable::dd_vars_of,
+            py::arg("mv"),
+            "Return internal DD variable numbers for MVDD variable mv.\n\n"
+            "Args:\n"
+            "    mv: MVDD variable number.\n\n"
+            "Raises:\n"
+            "    IndexError: If mv is out of range.")
+        .def("mvdd_var_of", &MVDDVarTable::mvdd_var_of,
+            py::arg("dv"),
+            "Return the MVDD variable number for internal DD variable dv.\n\n"
+            "Returns 0 if not found.")
+        .def("dd_var_index", &MVDDVarTable::dd_var_index,
+            py::arg("dv"),
+            "Return the index (0 to k-2) of DD variable dv within its MVDD variable.\n\n"
+            "Returns -1 if not found.")
+        .def("var_info", &MVDDVarTable::var_info,
+            py::arg("mv"),
+            "Return info for MVDD variable mv.\n\n"
+            "Raises:\n"
+            "    IndexError: If mv is out of range.")
+        .def("get_top_dd_var", &MVDDVarTable::get_top_dd_var,
+            py::arg("mv"),
+            "Return the first (lowest-level) DD variable for MVDD variable mv.\n\n"
+            "Raises:\n"
+            "    IndexError: If mv is out of range.")
+        .def("__repr__", [](const MVDDVarTable& t) {
+            std::ostringstream oss;
+            oss << "MVDDVarTable(k=" << t.k()
+                << ", mvdd_var_count=" << t.mvdd_var_count() << ")";
+            return oss.str();
+        })
+    ;
+
+    // ================================================================
+    //  MVBDD
+    // ================================================================
+
+    py::class_<MVBDD>(m, "MVBDD",
+        "Multi-Valued BDD.\n\n"
+        "Represents a Boolean function over multi-valued variables\n"
+        "(each taking values 0..k-1).")
+        .def(py::init([](int k, bool value) {
+            ensure_init();
+            return MVBDD(k, value);
+        }), py::arg("k"), py::arg("value") = false,
+           "Create an MVBDD with a new variable table.\n\n"
+           "Args:\n"
+           "    k: Value domain size (>= 2).\n"
+           "    value: Initial Boolean value (default: False).")
+        .def(py::init([](std::shared_ptr<MVDDVarTable> table, const BDD& bdd) {
+            ensure_init();
+            return MVBDD(table, bdd);
+        }), py::arg("table"), py::arg("bdd"),
+           "Create an MVBDD from a variable table and a BDD.\n\n"
+           "Args:\n"
+           "    table: Shared variable table.\n"
+           "    bdd: Internal BDD representation.")
+        // Static factories
+        .def_static("zero", [](std::shared_ptr<MVDDVarTable> table) {
+            return MVBDD::zero(table);
+        }, py::arg("table"),
+           "Constant false, sharing the given table.")
+        .def_static("one", [](std::shared_ptr<MVDDVarTable> table) {
+            return MVBDD::one(table);
+        }, py::arg("table"),
+           "Constant true, sharing the given table.")
+        .def_static("singleton", &MVBDD::singleton,
+            py::arg("base"), py::arg("mv"), py::arg("value"),
+            "Create a literal: MVDD variable mv equals value.\n\n"
+            "Args:\n"
+            "    base: An MVBDD providing the variable table.\n"
+            "    mv: MVDD variable number (1-indexed).\n"
+            "    value: The value (0 to k-1).")
+        .def_static("ite", [](const MVBDD& base, bddvar mv,
+                              const std::vector<MVBDD>& children) {
+            return MVBDD::ite(base, mv, children);
+        }, py::arg("base"), py::arg("mv"), py::arg("children"),
+           "Build an MVBDD by specifying a child for each value of variable mv.\n\n"
+           "Args:\n"
+           "    base: An MVBDD providing the variable table.\n"
+           "    mv: MVDD variable number (1-indexed).\n"
+           "    children: List of MVBDD, one per value (size must be k).")
+        .def_static("from_bdd", &MVBDD::from_bdd,
+            py::arg("base"), py::arg("bdd"),
+            "Wrap a BDD as an MVBDD using base's variable table.\n\n"
+            "Args:\n"
+            "    base: An MVBDD providing the variable table.\n"
+            "    bdd: The BDD to wrap.")
+        // Variable management
+        .def("new_var", &MVBDD::new_var,
+            "Create a new MVDD variable.\n\n"
+            "Creates k-1 internal DD variables and registers them.\n\n"
+            "Returns:\n"
+            "    The new MVDD variable number (1-indexed).")
+        // Child access
+        .def("child", &MVBDD::child,
+            py::arg("value"),
+            "Return the cofactor when the top MVDD variable takes the given value.\n\n"
+            "Args:\n"
+            "    value: The value (0 to k-1).\n\n"
+            "Raises:\n"
+            "    ValueError: On terminal or invalid value.")
+        // Evaluation
+        .def("evaluate", &MVBDD::evaluate,
+            py::arg("assignment"),
+            "Evaluate the Boolean function for the given MVDD assignment.\n\n"
+            "Args:\n"
+            "    assignment: List of ints, 0-indexed (assignment[i] = value of var i+1).\n\n"
+            "Raises:\n"
+            "    ValueError: If assignment size is wrong.")
+        // Conversion
+        .def("to_bdd", &MVBDD::to_bdd,
+            "Return the internal BDD.")
+        // Properties
+        .def_property_readonly("k", &MVBDD::k,
+            "Value domain size.")
+        .def_property_readonly("var_table", &MVBDD::var_table,
+            "Shared variable table.")
+        .def_property_readonly("node_id", &MVBDD::get_id,
+            "Raw node ID.")
+        .def_property_readonly("top_var", &MVBDD::top_var,
+            "Top MVDD variable number (0 for terminals).")
+        .def_property_readonly("is_zero", &MVBDD::is_zero,
+            "True if constant false.")
+        .def_property_readonly("is_one", &MVBDD::is_one,
+            "True if constant true.")
+        .def_property_readonly("is_terminal", &MVBDD::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("mvbdd_node_count", &MVBDD::mvbdd_node_count,
+            "MVDD-level logical node count.")
+        .def_property_readonly("size", &MVBDD::size,
+            "Internal BDD node count.")
+        // Operators
+        .def("__and__", [](const MVBDD& a, const MVBDD& b) { return a & b; },
+            "Boolean AND.")
+        .def("__or__", [](const MVBDD& a, const MVBDD& b) { return a | b; },
+            "Boolean OR.")
+        .def("__xor__", [](const MVBDD& a, const MVBDD& b) { return a ^ b; },
+            "Boolean XOR.")
+        .def("__invert__", [](const MVBDD& a) { return ~a; },
+            "Boolean NOT.")
+        .def("__iand__", [](MVBDD& a, const MVBDD& b) -> MVBDD& { a &= b; return a; },
+            py::return_value_policy::reference_internal, "In-place AND.")
+        .def("__ior__", [](MVBDD& a, const MVBDD& b) -> MVBDD& { a |= b; return a; },
+            py::return_value_policy::reference_internal, "In-place OR.")
+        .def("__ixor__", [](MVBDD& a, const MVBDD& b) -> MVBDD& { a ^= b; return a; },
+            py::return_value_policy::reference_internal, "In-place XOR.")
+        // Comparison
+        .def("__eq__", [](const MVBDD& a, const MVBDD& b) { return a == b; })
+        .def("__ne__", [](const MVBDD& a, const MVBDD& b) { return a != b; })
+        .def("__hash__", [](const MVBDD& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        .def("__repr__", [](const MVBDD& a) {
+            std::ostringstream oss;
+            oss << "MVBDD(node_id=" << a.get_id() << ", k=" << a.k() << ")";
+            return oss.str();
+        })
+        .def("__bool__", [](const MVBDD&) -> bool {
+            throw py::type_error(
+                "Cannot convert MVBDD to bool. Use is_zero or is_one.");
+        })
+    ;
+
+    // ================================================================
+    //  MVZDD
+    // ================================================================
+
+    py::class_<MVZDD>(m, "MVZDD",
+        "Multi-Valued ZDD.\n\n"
+        "Represents a family of multi-valued assignments\n"
+        "(each variable takes values 0..k-1).")
+        .def(py::init([](int k, bool value) {
+            ensure_init();
+            return MVZDD(k, value);
+        }), py::arg("k"), py::arg("value") = false,
+           "Create an MVZDD with a new variable table.\n\n"
+           "Args:\n"
+           "    k: Value domain size (>= 2).\n"
+           "    value: False = empty family, True = family with all-zero assignment.")
+        .def(py::init([](std::shared_ptr<MVDDVarTable> table, const ZDD& zdd) {
+            ensure_init();
+            return MVZDD(table, zdd);
+        }), py::arg("table"), py::arg("zdd"),
+           "Create an MVZDD from a variable table and a ZDD.\n\n"
+           "Args:\n"
+           "    table: Shared variable table.\n"
+           "    zdd: Internal ZDD representation.")
+        // Static factories
+        .def_static("zero", [](std::shared_ptr<MVDDVarTable> table) {
+            return MVZDD::zero(table);
+        }, py::arg("table"),
+           "Empty family, sharing the given table.")
+        .def_static("one", [](std::shared_ptr<MVDDVarTable> table) {
+            return MVZDD::one(table);
+        }, py::arg("table"),
+           "Family containing only the all-zero assignment.")
+        .def_static("singleton", &MVZDD::singleton,
+            py::arg("base"), py::arg("mv"), py::arg("value"),
+            "Create a singleton family: one assignment where mv=value, all others=0.\n\n"
+            "Args:\n"
+            "    base: An MVZDD providing the variable table.\n"
+            "    mv: MVDD variable number (1-indexed).\n"
+            "    value: The value (0 to k-1).")
+        .def_static("ite", [](const MVZDD& base, bddvar mv,
+                              const std::vector<MVZDD>& children) {
+            return MVZDD::ite(base, mv, children);
+        }, py::arg("base"), py::arg("mv"), py::arg("children"),
+           "Build an MVZDD by specifying a child for each value of variable mv.\n\n"
+           "Args:\n"
+           "    base: An MVZDD providing the variable table.\n"
+           "    mv: MVDD variable number (1-indexed).\n"
+           "    children: List of MVZDD, one per value (size must be k).")
+        .def_static("from_zdd", &MVZDD::from_zdd,
+            py::arg("base"), py::arg("zdd"),
+            "Wrap a ZDD as an MVZDD using base's variable table.\n\n"
+            "Args:\n"
+            "    base: An MVZDD providing the variable table.\n"
+            "    zdd: The ZDD to wrap.")
+        // Variable management
+        .def("new_var", &MVZDD::new_var,
+            "Create a new MVDD variable.\n\n"
+            "Creates k-1 internal DD variables and registers them.\n\n"
+            "Returns:\n"
+            "    The new MVDD variable number (1-indexed).")
+        // Child access
+        .def("child", &MVZDD::child,
+            py::arg("value"),
+            "Return the sub-family when the top MVDD variable takes the given value.\n\n"
+            "Args:\n"
+            "    value: The value (0 to k-1).\n\n"
+            "Raises:\n"
+            "    ValueError: On terminal or invalid value.")
+        // Evaluation
+        .def("evaluate", &MVZDD::evaluate,
+            py::arg("assignment"),
+            "Check if the given assignment is in the family.\n\n"
+            "Args:\n"
+            "    assignment: List of ints, 0-indexed (assignment[i] = value of var i+1).\n\n"
+            "Raises:\n"
+            "    ValueError: If assignment size is wrong.")
+        // Enumeration / display
+        .def("enumerate", &MVZDD::enumerate,
+            "Enumerate all MVDD assignments in the family.\n\n"
+            "Returns:\n"
+            "    List of assignments (list of list of int).")
+        .def("to_str", &MVZDD::to_str,
+            "Return a string representation of all assignments.")
+        .def("print_sets", [](const MVZDD& z) -> std::string {
+            std::ostringstream oss;
+            z.print_sets(oss);
+            return oss.str();
+        }, "Return all assignments as a string.")
+        .def("print_sets", [](const MVZDD& z,
+                              const std::vector<std::string>& var_names) -> std::string {
+            std::ostringstream oss;
+            z.print_sets(oss, var_names);
+            return oss.str();
+        }, py::arg("var_names"),
+           "Return all assignments as a string with variable names.")
+        // Conversion
+        .def("to_zdd", &MVZDD::to_zdd,
+            "Return the internal ZDD.")
+        // Counting
+        .def_property_readonly("count", &MVZDD::count,
+            "Number of assignments (double).")
+        .def_property_readonly("exact_count", [](const MVZDD& z) -> py::int_ {
+            bigint::BigInt bi = z.exact_count();
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, "Number of assignments (arbitrary precision).")
+        // Properties
+        .def_property_readonly("k", &MVZDD::k,
+            "Value domain size.")
+        .def_property_readonly("var_table", &MVZDD::var_table,
+            "Shared variable table.")
+        .def_property_readonly("node_id", &MVZDD::get_id,
+            "Raw node ID.")
+        .def_property_readonly("top_var", &MVZDD::top_var,
+            "Top MVDD variable number (0 for terminals).")
+        .def_property_readonly("is_zero", &MVZDD::is_zero,
+            "True if empty family.")
+        .def_property_readonly("is_one", &MVZDD::is_one,
+            "True if family contains only the all-zero assignment.")
+        .def_property_readonly("is_terminal", &MVZDD::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("mvzdd_node_count", &MVZDD::mvzdd_node_count,
+            "MVDD-level logical node count.")
+        .def_property_readonly("size", &MVZDD::size,
+            "Internal ZDD node count.")
+        // Operators
+        .def("__add__", [](const MVZDD& a, const MVZDD& b) { return a + b; },
+            "Union.")
+        .def("__sub__", [](const MVZDD& a, const MVZDD& b) { return a - b; },
+            "Difference.")
+        .def("__and__", [](const MVZDD& a, const MVZDD& b) { return a & b; },
+            "Intersection.")
+        .def("__iadd__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a += b; return a; },
+            py::return_value_policy::reference_internal, "In-place union.")
+        .def("__isub__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a -= b; return a; },
+            py::return_value_policy::reference_internal, "In-place difference.")
+        .def("__iand__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a &= b; return a; },
+            py::return_value_policy::reference_internal, "In-place intersection.")
+        // Comparison
+        .def("__eq__", [](const MVZDD& a, const MVZDD& b) { return a == b; })
+        .def("__ne__", [](const MVZDD& a, const MVZDD& b) { return a != b; })
+        .def("__hash__", [](const MVZDD& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        .def("__repr__", [](const MVZDD& a) {
+            std::ostringstream oss;
+            oss << "MVZDD(node_id=" << a.get_id() << ", k=" << a.k() << ")";
+            return oss.str();
+        })
+        .def("__str__", &MVZDD::to_str)
+        .def("__bool__", [](const MVZDD&) -> bool {
+            throw py::type_error(
+                "Cannot convert MVZDD to bool. Use is_zero or is_one.");
+        })
+    ;
+
+    // ================================================================
+    //  MTBDD / MTZDD template instantiations
+    // ================================================================
+
+    typedef MTBDD<double> MTBDDFloat;
+    typedef MTBDD<int64_t> MTBDDInt;
+    typedef MTZDD<double> MTZDDFloat;
+    typedef MTZDD<int64_t> MTZDDInt;
+
+    // --- MTBDDFloat ---
+
+    py::class_<MTBDDFloat>(m, "MTBDDFloat",
+        "Multi-Terminal BDD with double (float) terminal values.\n\n"
+        "Also known as ADD (Algebraic Decision Diagram).")
+        .def(py::init([](){ ensure_init(); return MTBDDFloat(); }),
+           "Create a zero-terminal MTBDD.")
+        .def_static("terminal", [](double value) {
+            ensure_init();
+            return MTBDDFloat::terminal(value);
+        }, py::arg("value"),
+           "Create a terminal node with the given value.\n\n"
+           "Args:\n"
+           "    value: Terminal value (float).")
+        .def_static("ite", [](bddvar v, const MTBDDFloat& high, const MTBDDFloat& low) {
+            ensure_init();
+            return MTBDDFloat::ite(v, high, low);
+        }, py::arg("var"), py::arg("high"), py::arg("low"),
+           "Create a node: if var then high else low.\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    high: High (1-edge) child.\n"
+           "    low: Low (0-edge) child.")
+        .def_static("from_bdd", [](const BDD& bdd, double zero_val, double one_val) {
+            ensure_init();
+            return MTBDDFloat::from_bdd(bdd, zero_val, one_val);
+        }, py::arg("bdd"), py::arg("zero_val") = 0.0, py::arg("one_val") = 1.0,
+           "Convert a BDD to MTBDD.\n\n"
+           "Args:\n"
+           "    bdd: Source BDD.\n"
+           "    zero_val: Terminal value for BDD false (default: 0.0).\n"
+           "    one_val: Terminal value for BDD true (default: 1.0).")
+        .def_static("zero_terminal", []() {
+            ensure_init();
+            MTBDDFloat z;
+            return z;
+        }, "Return the zero-terminal MTBDD.")
+        .def_static("min", &MTBDDFloat::min,
+            py::arg("a"), py::arg("b"),
+            "Element-wise minimum.")
+        .def_static("max", &MTBDDFloat::max,
+            py::arg("a"), py::arg("b"),
+            "Element-wise maximum.")
+        .def("terminal_value", &MTBDDFloat::terminal_value,
+            "Return the terminal value.\n\n"
+            "Raises:\n"
+            "    RuntimeError: If not a terminal node.")
+        .def("evaluate", &MTBDDFloat::evaluate,
+            py::arg("assignment"),
+            "Evaluate the MTBDD for the given assignment.\n\n"
+            "Args:\n"
+            "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("ite_cond", [](const MTBDDFloat& cond, const MTBDDFloat& then_case,
+                            const MTBDDFloat& else_case) {
+            return cond.ite(then_case, else_case);
+        }, py::arg("then_case"), py::arg("else_case"),
+           "ITE: if this (condition) then then_case else else_case.")
+        // Operators
+        .def("__add__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a + b; },
+            "Element-wise addition.")
+        .def("__sub__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a - b; },
+            "Element-wise subtraction.")
+        .def("__mul__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a * b; },
+            "Element-wise multiplication.")
+        .def("__iadd__", [](MTBDDFloat& a, const MTBDDFloat& b) -> MTBDDFloat& {
+            a += b; return a;
+        }, py::return_value_policy::reference_internal, "In-place addition.")
+        .def("__isub__", [](MTBDDFloat& a, const MTBDDFloat& b) -> MTBDDFloat& {
+            a -= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place subtraction.")
+        .def("__imul__", [](MTBDDFloat& a, const MTBDDFloat& b) -> MTBDDFloat& {
+            a *= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place multiplication.")
+        // Comparison
+        .def("__eq__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a == b; })
+        .def("__ne__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a != b; })
+        .def("__hash__", [](const MTBDDFloat& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        // Properties
+        .def_property_readonly("node_id", &MTBDDFloat::get_id, "Raw node ID.")
+        .def_property_readonly("is_terminal", &MTBDDFloat::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("is_zero", &MTBDDFloat::is_zero,
+            "True if zero terminal.")
+        .def_property_readonly("is_one", &MTBDDFloat::is_one,
+            "True if terminal with value 1.0.")
+        .def_property_readonly("top_var", &MTBDDFloat::top,
+            "Top variable number (0 for terminals).")
+        .def_property_readonly("raw_size", &MTBDDFloat::raw_size,
+            "DAG node count.")
+        .def("__repr__", [](const MTBDDFloat& a) {
+            std::ostringstream oss;
+            oss << "MTBDDFloat(node_id=" << a.get_id() << ")";
+            return oss.str();
+        })
+        .def("__bool__", [](const MTBDDFloat&) -> bool {
+            throw py::type_error(
+                "Cannot convert MTBDDFloat to bool. Use is_zero or is_one.");
+        })
+    ;
+
+    // --- MTBDDInt ---
+
+    py::class_<MTBDDInt>(m, "MTBDDInt",
+        "Multi-Terminal BDD with int64 terminal values.")
+        .def(py::init([](){ ensure_init(); return MTBDDInt(); }),
+           "Create a zero-terminal MTBDD.")
+        .def_static("terminal", [](int64_t value) {
+            ensure_init();
+            return MTBDDInt::terminal(value);
+        }, py::arg("value"),
+           "Create a terminal node with the given value.\n\n"
+           "Args:\n"
+           "    value: Terminal value (int).")
+        .def_static("ite", [](bddvar v, const MTBDDInt& high, const MTBDDInt& low) {
+            ensure_init();
+            return MTBDDInt::ite(v, high, low);
+        }, py::arg("var"), py::arg("high"), py::arg("low"),
+           "Create a node: if var then high else low.\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    high: High (1-edge) child.\n"
+           "    low: Low (0-edge) child.")
+        .def_static("from_bdd", [](const BDD& bdd, int64_t zero_val, int64_t one_val) {
+            ensure_init();
+            return MTBDDInt::from_bdd(bdd, zero_val, one_val);
+        }, py::arg("bdd"), py::arg("zero_val") = (int64_t)0, py::arg("one_val") = (int64_t)1,
+           "Convert a BDD to MTBDD.\n\n"
+           "Args:\n"
+           "    bdd: Source BDD.\n"
+           "    zero_val: Terminal value for BDD false (default: 0).\n"
+           "    one_val: Terminal value for BDD true (default: 1).")
+        .def_static("zero_terminal", []() {
+            ensure_init();
+            MTBDDInt z;
+            return z;
+        }, "Return the zero-terminal MTBDD.")
+        .def_static("min", &MTBDDInt::min,
+            py::arg("a"), py::arg("b"),
+            "Element-wise minimum.")
+        .def_static("max", &MTBDDInt::max,
+            py::arg("a"), py::arg("b"),
+            "Element-wise maximum.")
+        .def("terminal_value", &MTBDDInt::terminal_value,
+            "Return the terminal value.\n\n"
+            "Raises:\n"
+            "    RuntimeError: If not a terminal node.")
+        .def("evaluate", &MTBDDInt::evaluate,
+            py::arg("assignment"),
+            "Evaluate the MTBDD for the given assignment.\n\n"
+            "Args:\n"
+            "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("ite_cond", [](const MTBDDInt& cond, const MTBDDInt& then_case,
+                            const MTBDDInt& else_case) {
+            return cond.ite(then_case, else_case);
+        }, py::arg("then_case"), py::arg("else_case"),
+           "ITE: if this (condition) then then_case else else_case.")
+        // Operators
+        .def("__add__", [](const MTBDDInt& a, const MTBDDInt& b) { return a + b; },
+            "Element-wise addition.")
+        .def("__sub__", [](const MTBDDInt& a, const MTBDDInt& b) { return a - b; },
+            "Element-wise subtraction.")
+        .def("__mul__", [](const MTBDDInt& a, const MTBDDInt& b) { return a * b; },
+            "Element-wise multiplication.")
+        .def("__iadd__", [](MTBDDInt& a, const MTBDDInt& b) -> MTBDDInt& {
+            a += b; return a;
+        }, py::return_value_policy::reference_internal, "In-place addition.")
+        .def("__isub__", [](MTBDDInt& a, const MTBDDInt& b) -> MTBDDInt& {
+            a -= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place subtraction.")
+        .def("__imul__", [](MTBDDInt& a, const MTBDDInt& b) -> MTBDDInt& {
+            a *= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place multiplication.")
+        // Comparison
+        .def("__eq__", [](const MTBDDInt& a, const MTBDDInt& b) { return a == b; })
+        .def("__ne__", [](const MTBDDInt& a, const MTBDDInt& b) { return a != b; })
+        .def("__hash__", [](const MTBDDInt& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        // Properties
+        .def_property_readonly("node_id", &MTBDDInt::get_id, "Raw node ID.")
+        .def_property_readonly("is_terminal", &MTBDDInt::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("is_zero", &MTBDDInt::is_zero,
+            "True if zero terminal.")
+        .def_property_readonly("is_one", &MTBDDInt::is_one,
+            "True if terminal with value 1.")
+        .def_property_readonly("top_var", &MTBDDInt::top,
+            "Top variable number (0 for terminals).")
+        .def_property_readonly("raw_size", &MTBDDInt::raw_size,
+            "DAG node count.")
+        .def("__repr__", [](const MTBDDInt& a) {
+            std::ostringstream oss;
+            oss << "MTBDDInt(node_id=" << a.get_id() << ")";
+            return oss.str();
+        })
+        .def("__bool__", [](const MTBDDInt&) -> bool {
+            throw py::type_error(
+                "Cannot convert MTBDDInt to bool. Use is_zero or is_one.");
+        })
+    ;
+
+    // --- MTZDDFloat ---
+
+    py::class_<MTZDDFloat>(m, "MTZDDFloat",
+        "Multi-Terminal ZDD with double (float) terminal values.")
+        .def(py::init([](){ ensure_init(); return MTZDDFloat(); }),
+           "Create a zero-terminal MTZDD.")
+        .def_static("terminal", [](double value) {
+            ensure_init();
+            return MTZDDFloat::terminal(value);
+        }, py::arg("value"),
+           "Create a terminal node with the given value.\n\n"
+           "Args:\n"
+           "    value: Terminal value (float).")
+        .def_static("ite", [](bddvar v, const MTZDDFloat& high, const MTZDDFloat& low) {
+            ensure_init();
+            return MTZDDFloat::ite(v, high, low);
+        }, py::arg("var"), py::arg("high"), py::arg("low"),
+           "Create a node: if var then high else low.\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    high: High (1-edge) child.\n"
+           "    low: Low (0-edge) child.")
+        .def_static("from_zdd", [](const ZDD& zdd, double zero_val, double one_val) {
+            ensure_init();
+            return MTZDDFloat::from_zdd(zdd, zero_val, one_val);
+        }, py::arg("zdd"), py::arg("zero_val") = 0.0, py::arg("one_val") = 1.0,
+           "Convert a ZDD to MTZDD.\n\n"
+           "Args:\n"
+           "    zdd: Source ZDD.\n"
+           "    zero_val: Terminal value for ZDD empty (default: 0.0).\n"
+           "    one_val: Terminal value for ZDD single (default: 1.0).")
+        .def_static("zero_terminal", []() {
+            ensure_init();
+            MTZDDFloat z;
+            return z;
+        }, "Return the zero-terminal MTZDD.")
+        .def_static("min", &MTZDDFloat::min,
+            py::arg("a"), py::arg("b"),
+            "Element-wise minimum.")
+        .def_static("max", &MTZDDFloat::max,
+            py::arg("a"), py::arg("b"),
+            "Element-wise maximum.")
+        .def("terminal_value", &MTZDDFloat::terminal_value,
+            "Return the terminal value.\n\n"
+            "Raises:\n"
+            "    RuntimeError: If not a terminal node.")
+        .def("evaluate", &MTZDDFloat::evaluate,
+            py::arg("assignment"),
+            "Evaluate the MTZDD for the given assignment.\n\n"
+            "Args:\n"
+            "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("ite_cond", [](const MTZDDFloat& cond, const MTZDDFloat& then_case,
+                            const MTZDDFloat& else_case) {
+            return cond.ite(then_case, else_case);
+        }, py::arg("then_case"), py::arg("else_case"),
+           "ITE: if this (condition) then then_case else else_case.")
+        // Operators
+        .def("__add__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a + b; },
+            "Element-wise addition.")
+        .def("__sub__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a - b; },
+            "Element-wise subtraction.")
+        .def("__mul__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a * b; },
+            "Element-wise multiplication.")
+        .def("__iadd__", [](MTZDDFloat& a, const MTZDDFloat& b) -> MTZDDFloat& {
+            a += b; return a;
+        }, py::return_value_policy::reference_internal, "In-place addition.")
+        .def("__isub__", [](MTZDDFloat& a, const MTZDDFloat& b) -> MTZDDFloat& {
+            a -= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place subtraction.")
+        .def("__imul__", [](MTZDDFloat& a, const MTZDDFloat& b) -> MTZDDFloat& {
+            a *= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place multiplication.")
+        // Comparison
+        .def("__eq__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a == b; })
+        .def("__ne__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a != b; })
+        .def("__hash__", [](const MTZDDFloat& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        // Properties
+        .def_property_readonly("node_id", &MTZDDFloat::get_id, "Raw node ID.")
+        .def_property_readonly("is_terminal", &MTZDDFloat::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("is_zero", &MTZDDFloat::is_zero,
+            "True if zero terminal.")
+        .def_property_readonly("is_one", &MTZDDFloat::is_one,
+            "True if terminal with value 1.0.")
+        .def_property_readonly("top_var", &MTZDDFloat::top,
+            "Top variable number (0 for terminals).")
+        .def_property_readonly("raw_size", &MTZDDFloat::raw_size,
+            "DAG node count.")
+        .def("__repr__", [](const MTZDDFloat& a) {
+            std::ostringstream oss;
+            oss << "MTZDDFloat(node_id=" << a.get_id() << ")";
+            return oss.str();
+        })
+        .def("__bool__", [](const MTZDDFloat&) -> bool {
+            throw py::type_error(
+                "Cannot convert MTZDDFloat to bool. Use is_zero or is_one.");
+        })
+    ;
+
+    // --- MTZDDInt ---
+
+    py::class_<MTZDDInt>(m, "MTZDDInt",
+        "Multi-Terminal ZDD with int64 terminal values.")
+        .def(py::init([](){ ensure_init(); return MTZDDInt(); }),
+           "Create a zero-terminal MTZDD.")
+        .def_static("terminal", [](int64_t value) {
+            ensure_init();
+            return MTZDDInt::terminal(value);
+        }, py::arg("value"),
+           "Create a terminal node with the given value.\n\n"
+           "Args:\n"
+           "    value: Terminal value (int).")
+        .def_static("ite", [](bddvar v, const MTZDDInt& high, const MTZDDInt& low) {
+            ensure_init();
+            return MTZDDInt::ite(v, high, low);
+        }, py::arg("var"), py::arg("high"), py::arg("low"),
+           "Create a node: if var then high else low.\n\n"
+           "Args:\n"
+           "    var: Variable number.\n"
+           "    high: High (1-edge) child.\n"
+           "    low: Low (0-edge) child.")
+        .def_static("from_zdd", [](const ZDD& zdd, int64_t zero_val, int64_t one_val) {
+            ensure_init();
+            return MTZDDInt::from_zdd(zdd, zero_val, one_val);
+        }, py::arg("zdd"), py::arg("zero_val") = (int64_t)0, py::arg("one_val") = (int64_t)1,
+           "Convert a ZDD to MTZDD.\n\n"
+           "Args:\n"
+           "    zdd: Source ZDD.\n"
+           "    zero_val: Terminal value for ZDD empty (default: 0).\n"
+           "    one_val: Terminal value for ZDD single (default: 1).")
+        .def_static("zero_terminal", []() {
+            ensure_init();
+            MTZDDInt z;
+            return z;
+        }, "Return the zero-terminal MTZDD.")
+        .def_static("min", &MTZDDInt::min,
+            py::arg("a"), py::arg("b"),
+            "Element-wise minimum.")
+        .def_static("max", &MTZDDInt::max,
+            py::arg("a"), py::arg("b"),
+            "Element-wise maximum.")
+        .def("terminal_value", &MTZDDInt::terminal_value,
+            "Return the terminal value.\n\n"
+            "Raises:\n"
+            "    RuntimeError: If not a terminal node.")
+        .def("evaluate", &MTZDDInt::evaluate,
+            py::arg("assignment"),
+            "Evaluate the MTZDD for the given assignment.\n\n"
+            "Args:\n"
+            "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("ite_cond", [](const MTZDDInt& cond, const MTZDDInt& then_case,
+                            const MTZDDInt& else_case) {
+            return cond.ite(then_case, else_case);
+        }, py::arg("then_case"), py::arg("else_case"),
+           "ITE: if this (condition) then then_case else else_case.")
+        // Operators
+        .def("__add__", [](const MTZDDInt& a, const MTZDDInt& b) { return a + b; },
+            "Element-wise addition.")
+        .def("__sub__", [](const MTZDDInt& a, const MTZDDInt& b) { return a - b; },
+            "Element-wise subtraction.")
+        .def("__mul__", [](const MTZDDInt& a, const MTZDDInt& b) { return a * b; },
+            "Element-wise multiplication.")
+        .def("__iadd__", [](MTZDDInt& a, const MTZDDInt& b) -> MTZDDInt& {
+            a += b; return a;
+        }, py::return_value_policy::reference_internal, "In-place addition.")
+        .def("__isub__", [](MTZDDInt& a, const MTZDDInt& b) -> MTZDDInt& {
+            a -= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place subtraction.")
+        .def("__imul__", [](MTZDDInt& a, const MTZDDInt& b) -> MTZDDInt& {
+            a *= b; return a;
+        }, py::return_value_policy::reference_internal, "In-place multiplication.")
+        // Comparison
+        .def("__eq__", [](const MTZDDInt& a, const MTZDDInt& b) { return a == b; })
+        .def("__ne__", [](const MTZDDInt& a, const MTZDDInt& b) { return a != b; })
+        .def("__hash__", [](const MTZDDInt& a) {
+            return std::hash<uint64_t>()(a.get_id());
+        })
+        // Properties
+        .def_property_readonly("node_id", &MTZDDInt::get_id, "Raw node ID.")
+        .def_property_readonly("is_terminal", &MTZDDInt::is_terminal,
+            "True if terminal node.")
+        .def_property_readonly("is_zero", &MTZDDInt::is_zero,
+            "True if zero terminal.")
+        .def_property_readonly("is_one", &MTZDDInt::is_one,
+            "True if terminal with value 1.")
+        .def_property_readonly("top_var", &MTZDDInt::top,
+            "Top variable number (0 for terminals).")
+        .def_property_readonly("raw_size", &MTZDDInt::raw_size,
+            "DAG node count.")
+        .def("__repr__", [](const MTZDDInt& a) {
+            std::ostringstream oss;
+            oss << "MTZDDInt(node_id=" << a.get_id() << ")";
+            return oss.str();
+        })
+        .def("__bool__", [](const MTZDDInt&) -> bool {
+            throw py::type_error(
+                "Cannot convert MTZDDInt to bool. Use is_zero or is_one.");
         })
     ;
 }

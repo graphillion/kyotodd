@@ -3307,3 +3307,618 @@ class SeqBDD:
             A string representation of all sequences.
         """
         ...
+
+
+class MVDDVarInfo:
+    """Information about a single MVDD variable."""
+
+    @property
+    def mvdd_var(self) -> int:
+        """MVDD variable number (1-indexed)."""
+        ...
+
+    @property
+    def k(self) -> int:
+        """Value domain size."""
+        ...
+
+    @property
+    def dd_vars(self) -> List[int]:
+        """Internal DD variable numbers (size k-1)."""
+        ...
+
+
+class MVDDVarTable:
+    """Manages the mapping between MVDD variables and internal DD variables."""
+
+    def __init__(self, k: int) -> None:
+        """Create a variable table with domain size k.
+
+        Args:
+            k: Value domain size (>= 2, <= 65536).
+        """
+        ...
+
+    @property
+    def k(self) -> int:
+        """Value domain size."""
+        ...
+
+    @property
+    def mvdd_var_count(self) -> int:
+        """Number of registered MVDD variables."""
+        ...
+
+    def register_var(self, dd_vars: List[int]) -> int:
+        """Register a new MVDD variable with internal DD variables.
+
+        Args:
+            dd_vars: Internal DD variable numbers (must have size k-1).
+
+        Returns:
+            The new MVDD variable number (1-indexed).
+        """
+        ...
+
+    def dd_vars_of(self, mv: int) -> List[int]:
+        """Return internal DD variable numbers for MVDD variable mv."""
+        ...
+
+    def mvdd_var_of(self, dv: int) -> int:
+        """Return the MVDD variable number for internal DD variable dv.
+
+        Returns 0 if not found.
+        """
+        ...
+
+    def dd_var_index(self, dv: int) -> int:
+        """Return the index (0 to k-2) of DD variable dv within its MVDD variable.
+
+        Returns -1 if not found.
+        """
+        ...
+
+    def var_info(self, mv: int) -> MVDDVarInfo:
+        """Return info for MVDD variable mv."""
+        ...
+
+    def get_top_dd_var(self, mv: int) -> int:
+        """Return the first (lowest-level) DD variable for MVDD variable mv."""
+        ...
+
+
+class MVBDD:
+    """Multi-Valued BDD.
+
+    Represents a Boolean function over multi-valued variables
+    (each taking values 0..k-1).
+    """
+
+    @overload
+    def __init__(self, k: int, value: bool = False) -> None: ...
+    @overload
+    def __init__(self, table: MVDDVarTable, bdd: "BDD") -> None: ...
+
+    @staticmethod
+    def zero(table: MVDDVarTable) -> "MVBDD":
+        """Constant false, sharing the given table."""
+        ...
+
+    @staticmethod
+    def one(table: MVDDVarTable) -> "MVBDD":
+        """Constant true, sharing the given table."""
+        ...
+
+    @staticmethod
+    def singleton(base: "MVBDD", mv: int, value: int) -> "MVBDD":
+        """Create a literal: MVDD variable mv equals value."""
+        ...
+
+    @staticmethod
+    def ite(base: "MVBDD", mv: int, children: List["MVBDD"]) -> "MVBDD":
+        """Build an MVBDD by specifying a child for each value of variable mv."""
+        ...
+
+    @staticmethod
+    def from_bdd(base: "MVBDD", bdd: "BDD") -> "MVBDD":
+        """Wrap a BDD as an MVBDD using base's variable table."""
+        ...
+
+    def new_var(self) -> int:
+        """Create a new MVDD variable."""
+        ...
+
+    def child(self, value: int) -> "MVBDD":
+        """Return the cofactor when the top MVDD variable takes the given value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> bool:
+        """Evaluate the Boolean function for the given MVDD assignment."""
+        ...
+
+    def to_bdd(self) -> "BDD":
+        """Return the internal BDD."""
+        ...
+
+    @property
+    def k(self) -> int:
+        """Value domain size."""
+        ...
+
+    @property
+    def var_table(self) -> MVDDVarTable:
+        """Shared variable table."""
+        ...
+
+    @property
+    def node_id(self) -> int:
+        """Raw node ID."""
+        ...
+
+    @property
+    def top_var(self) -> int:
+        """Top MVDD variable number (0 for terminals)."""
+        ...
+
+    @property
+    def is_zero(self) -> bool:
+        """True if constant false."""
+        ...
+
+    @property
+    def is_one(self) -> bool:
+        """True if constant true."""
+        ...
+
+    @property
+    def is_terminal(self) -> bool:
+        """True if terminal node."""
+        ...
+
+    @property
+    def mvbdd_node_count(self) -> int:
+        """MVDD-level logical node count."""
+        ...
+
+    @property
+    def size(self) -> int:
+        """Internal BDD node count."""
+        ...
+
+    def __and__(self, other: "MVBDD") -> "MVBDD": ...
+    def __or__(self, other: "MVBDD") -> "MVBDD": ...
+    def __xor__(self, other: "MVBDD") -> "MVBDD": ...
+    def __invert__(self) -> "MVBDD": ...
+    def __iand__(self, other: "MVBDD") -> "MVBDD": ...
+    def __ior__(self, other: "MVBDD") -> "MVBDD": ...
+    def __ixor__(self, other: "MVBDD") -> "MVBDD": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+
+class MVZDD:
+    """Multi-Valued ZDD.
+
+    Represents a family of multi-valued assignments
+    (each variable takes values 0..k-1).
+    """
+
+    @overload
+    def __init__(self, k: int, value: bool = False) -> None: ...
+    @overload
+    def __init__(self, table: MVDDVarTable, zdd: "ZDD") -> None: ...
+
+    @staticmethod
+    def zero(table: MVDDVarTable) -> "MVZDD":
+        """Empty family, sharing the given table."""
+        ...
+
+    @staticmethod
+    def one(table: MVDDVarTable) -> "MVZDD":
+        """Family containing only the all-zero assignment."""
+        ...
+
+    @staticmethod
+    def singleton(base: "MVZDD", mv: int, value: int) -> "MVZDD":
+        """Create a singleton family: one assignment where mv=value, all others=0."""
+        ...
+
+    @staticmethod
+    def ite(base: "MVZDD", mv: int, children: List["MVZDD"]) -> "MVZDD":
+        """Build an MVZDD by specifying a child for each value of variable mv."""
+        ...
+
+    @staticmethod
+    def from_zdd(base: "MVZDD", zdd: "ZDD") -> "MVZDD":
+        """Wrap a ZDD as an MVZDD using base's variable table."""
+        ...
+
+    def new_var(self) -> int:
+        """Create a new MVDD variable."""
+        ...
+
+    def child(self, value: int) -> "MVZDD":
+        """Return the sub-family when the top MVDD variable takes the given value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> bool:
+        """Check if the given assignment is in the family."""
+        ...
+
+    def enumerate(self) -> List[List[int]]:
+        """Enumerate all MVDD assignments in the family."""
+        ...
+
+    def to_str(self) -> str:
+        """Return a string representation of all assignments."""
+        ...
+
+    @overload
+    def print_sets(self) -> str: ...
+    @overload
+    def print_sets(self, var_names: List[str]) -> str: ...
+
+    def to_zdd(self) -> "ZDD":
+        """Return the internal ZDD."""
+        ...
+
+    @property
+    def count(self) -> float:
+        """Number of assignments (double)."""
+        ...
+
+    @property
+    def exact_count(self) -> int:
+        """Number of assignments (arbitrary precision)."""
+        ...
+
+    @property
+    def k(self) -> int:
+        """Value domain size."""
+        ...
+
+    @property
+    def var_table(self) -> MVDDVarTable:
+        """Shared variable table."""
+        ...
+
+    @property
+    def node_id(self) -> int:
+        """Raw node ID."""
+        ...
+
+    @property
+    def top_var(self) -> int:
+        """Top MVDD variable number (0 for terminals)."""
+        ...
+
+    @property
+    def is_zero(self) -> bool:
+        """True if empty family."""
+        ...
+
+    @property
+    def is_one(self) -> bool:
+        """True if family contains only the all-zero assignment."""
+        ...
+
+    @property
+    def is_terminal(self) -> bool:
+        """True if terminal node."""
+        ...
+
+    @property
+    def mvzdd_node_count(self) -> int:
+        """MVDD-level logical node count."""
+        ...
+
+    @property
+    def size(self) -> int:
+        """Internal ZDD node count."""
+        ...
+
+    def __add__(self, other: "MVZDD") -> "MVZDD": ...
+    def __sub__(self, other: "MVZDD") -> "MVZDD": ...
+    def __and__(self, other: "MVZDD") -> "MVZDD": ...
+    def __iadd__(self, other: "MVZDD") -> "MVZDD": ...
+    def __isub__(self, other: "MVZDD") -> "MVZDD": ...
+    def __iand__(self, other: "MVZDD") -> "MVZDD": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+
+class MTBDDFloat:
+    """Multi-Terminal BDD with double (float) terminal values.
+
+    Also known as ADD (Algebraic Decision Diagram).
+    """
+
+    def __init__(self) -> None:
+        """Create a zero-terminal MTBDD."""
+        ...
+
+    @staticmethod
+    def terminal(value: float) -> "MTBDDFloat":
+        """Create a terminal node with the given value."""
+        ...
+
+    @staticmethod
+    def ite(var: int, high: "MTBDDFloat", low: "MTBDDFloat") -> "MTBDDFloat":
+        """Create a node: if var then high else low."""
+        ...
+
+    @staticmethod
+    def from_bdd(bdd: "BDD", zero_val: float = 0.0, one_val: float = 1.0) -> "MTBDDFloat":
+        """Convert a BDD to MTBDD."""
+        ...
+
+    @staticmethod
+    def zero_terminal() -> "MTBDDFloat":
+        """Return the zero-terminal MTBDD."""
+        ...
+
+    @staticmethod
+    def min(a: "MTBDDFloat", b: "MTBDDFloat") -> "MTBDDFloat":
+        """Element-wise minimum."""
+        ...
+
+    @staticmethod
+    def max(a: "MTBDDFloat", b: "MTBDDFloat") -> "MTBDDFloat":
+        """Element-wise maximum."""
+        ...
+
+    def terminal_value(self) -> float:
+        """Return the terminal value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> float:
+        """Evaluate the MTBDD for the given assignment."""
+        ...
+
+    def ite_cond(self, then_case: "MTBDDFloat", else_case: "MTBDDFloat") -> "MTBDDFloat":
+        """ITE: if this (condition) then then_case else else_case."""
+        ...
+
+    @property
+    def node_id(self) -> int: ...
+    @property
+    def is_terminal(self) -> bool: ...
+    @property
+    def is_zero(self) -> bool: ...
+    @property
+    def is_one(self) -> bool: ...
+    @property
+    def top_var(self) -> int: ...
+    @property
+    def raw_size(self) -> int: ...
+
+    def __add__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __sub__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __mul__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __iadd__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __isub__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __imul__(self, other: "MTBDDFloat") -> "MTBDDFloat": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+
+class MTBDDInt:
+    """Multi-Terminal BDD with int64 terminal values."""
+
+    def __init__(self) -> None:
+        """Create a zero-terminal MTBDD."""
+        ...
+
+    @staticmethod
+    def terminal(value: int) -> "MTBDDInt":
+        """Create a terminal node with the given value."""
+        ...
+
+    @staticmethod
+    def ite(var: int, high: "MTBDDInt", low: "MTBDDInt") -> "MTBDDInt":
+        """Create a node: if var then high else low."""
+        ...
+
+    @staticmethod
+    def from_bdd(bdd: "BDD", zero_val: int = 0, one_val: int = 1) -> "MTBDDInt":
+        """Convert a BDD to MTBDD."""
+        ...
+
+    @staticmethod
+    def zero_terminal() -> "MTBDDInt":
+        """Return the zero-terminal MTBDD."""
+        ...
+
+    @staticmethod
+    def min(a: "MTBDDInt", b: "MTBDDInt") -> "MTBDDInt":
+        """Element-wise minimum."""
+        ...
+
+    @staticmethod
+    def max(a: "MTBDDInt", b: "MTBDDInt") -> "MTBDDInt":
+        """Element-wise maximum."""
+        ...
+
+    def terminal_value(self) -> int:
+        """Return the terminal value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> int:
+        """Evaluate the MTBDD for the given assignment."""
+        ...
+
+    def ite_cond(self, then_case: "MTBDDInt", else_case: "MTBDDInt") -> "MTBDDInt":
+        """ITE: if this (condition) then then_case else else_case."""
+        ...
+
+    @property
+    def node_id(self) -> int: ...
+    @property
+    def is_terminal(self) -> bool: ...
+    @property
+    def is_zero(self) -> bool: ...
+    @property
+    def is_one(self) -> bool: ...
+    @property
+    def top_var(self) -> int: ...
+    @property
+    def raw_size(self) -> int: ...
+
+    def __add__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __sub__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __mul__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __iadd__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __isub__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __imul__(self, other: "MTBDDInt") -> "MTBDDInt": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+
+class MTZDDFloat:
+    """Multi-Terminal ZDD with double (float) terminal values."""
+
+    def __init__(self) -> None:
+        """Create a zero-terminal MTZDD."""
+        ...
+
+    @staticmethod
+    def terminal(value: float) -> "MTZDDFloat":
+        """Create a terminal node with the given value."""
+        ...
+
+    @staticmethod
+    def ite(var: int, high: "MTZDDFloat", low: "MTZDDFloat") -> "MTZDDFloat":
+        """Create a node: if var then high else low."""
+        ...
+
+    @staticmethod
+    def from_zdd(zdd: "ZDD", zero_val: float = 0.0, one_val: float = 1.0) -> "MTZDDFloat":
+        """Convert a ZDD to MTZDD."""
+        ...
+
+    @staticmethod
+    def zero_terminal() -> "MTZDDFloat":
+        """Return the zero-terminal MTZDD."""
+        ...
+
+    @staticmethod
+    def min(a: "MTZDDFloat", b: "MTZDDFloat") -> "MTZDDFloat":
+        """Element-wise minimum."""
+        ...
+
+    @staticmethod
+    def max(a: "MTZDDFloat", b: "MTZDDFloat") -> "MTZDDFloat":
+        """Element-wise maximum."""
+        ...
+
+    def terminal_value(self) -> float:
+        """Return the terminal value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> float:
+        """Evaluate the MTZDD for the given assignment."""
+        ...
+
+    def ite_cond(self, then_case: "MTZDDFloat", else_case: "MTZDDFloat") -> "MTZDDFloat":
+        """ITE: if this (condition) then then_case else else_case."""
+        ...
+
+    @property
+    def node_id(self) -> int: ...
+    @property
+    def is_terminal(self) -> bool: ...
+    @property
+    def is_zero(self) -> bool: ...
+    @property
+    def is_one(self) -> bool: ...
+    @property
+    def top_var(self) -> int: ...
+    @property
+    def raw_size(self) -> int: ...
+
+    def __add__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __sub__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __mul__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __iadd__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __isub__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __imul__(self, other: "MTZDDFloat") -> "MTZDDFloat": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+
+
+class MTZDDInt:
+    """Multi-Terminal ZDD with int64 terminal values."""
+
+    def __init__(self) -> None:
+        """Create a zero-terminal MTZDD."""
+        ...
+
+    @staticmethod
+    def terminal(value: int) -> "MTZDDInt":
+        """Create a terminal node with the given value."""
+        ...
+
+    @staticmethod
+    def ite(var: int, high: "MTZDDInt", low: "MTZDDInt") -> "MTZDDInt":
+        """Create a node: if var then high else low."""
+        ...
+
+    @staticmethod
+    def from_zdd(zdd: "ZDD", zero_val: int = 0, one_val: int = 1) -> "MTZDDInt":
+        """Convert a ZDD to MTZDD."""
+        ...
+
+    @staticmethod
+    def zero_terminal() -> "MTZDDInt":
+        """Return the zero-terminal MTZDD."""
+        ...
+
+    @staticmethod
+    def min(a: "MTZDDInt", b: "MTZDDInt") -> "MTZDDInt":
+        """Element-wise minimum."""
+        ...
+
+    @staticmethod
+    def max(a: "MTZDDInt", b: "MTZDDInt") -> "MTZDDInt":
+        """Element-wise maximum."""
+        ...
+
+    def terminal_value(self) -> int:
+        """Return the terminal value."""
+        ...
+
+    def evaluate(self, assignment: List[int]) -> int:
+        """Evaluate the MTZDD for the given assignment."""
+        ...
+
+    def ite_cond(self, then_case: "MTZDDInt", else_case: "MTZDDInt") -> "MTZDDInt":
+        """ITE: if this (condition) then then_case else else_case."""
+        ...
+
+    @property
+    def node_id(self) -> int: ...
+    @property
+    def is_terminal(self) -> bool: ...
+    @property
+    def is_zero(self) -> bool: ...
+    @property
+    def is_one(self) -> bool: ...
+    @property
+    def top_var(self) -> int: ...
+    @property
+    def raw_size(self) -> int: ...
+
+    def __add__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __sub__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __mul__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __iadd__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __isub__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __imul__(self, other: "MTZDDInt") -> "MTZDDInt": ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...

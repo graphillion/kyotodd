@@ -31,6 +31,14 @@ from kyotodd._core import (
     rotpidd_newvar,
     rotpidd_var_used,
     rotpidd_from_perm,
+    MVDDVarInfo,
+    MVDDVarTable,
+    MVBDD,
+    MVZDD,
+    MTBDDFloat,
+    MTBDDInt,
+    MTZDDFloat,
+    MTZDDInt,
 )
 
 __all__ = [
@@ -64,4 +72,12 @@ __all__ = [
     "rotpidd_newvar",
     "rotpidd_var_used",
     "rotpidd_from_perm",
+    "MVDDVarInfo",
+    "MVDDVarTable",
+    "MVBDD",
+    "MVZDD",
+    "MTBDDFloat",
+    "MTBDDInt",
+    "MTZDDFloat",
+    "MTZDDInt",
 ]
