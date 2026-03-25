@@ -272,7 +272,7 @@ The library supports multiple import/export formats:
 - **Binary format**: Compact binary format. Single-root: `bdd_export_binary` / `bdd_import_binary`, `zdd_export_binary` / `zdd_import_binary`, `qdd_export_binary` / `qdd_import_binary`, `unreduced_export_binary` / `unreduced_import_binary`. Multi-root: `bdd_export_binary_multi` / `bdd_import_binary_multi`, etc.
 - **Graphillion format**: ZDD text format for Graphillion interop. `zdd_export_graphillion` / `zdd_import_graphillion`.
 - **Graphviz DOT**: Visualization. `bdd_save_graphviz` / `zdd_save_graphviz`. `DrawMode::Expanded` (complement expanded) or `DrawMode::Raw` (complement edge markers).
-- **SVG**: Self-contained SVG visualization. `bdd_save_svg` / `zdd_save_svg` / `qdd_save_svg` / `unreduced_save_svg`. Supports `DrawMode::Expanded` and `DrawMode::Raw` (Knuth-style dot/odot markers). Configurable via `SvgParams` struct. Output: file, ostream, or string.
+- **SVG**: Self-contained SVG visualization. `bdd_save_svg` / `zdd_save_svg` / `qdd_save_svg` / `unreduced_save_svg` / `mtbdd_save_svg` / `mtzdd_save_svg` / `mvbdd_save_svg` / `mvzdd_save_svg`. Supports `DrawMode::Expanded` and `DrawMode::Raw` (Knuth-style dot/odot markers). Configurable via `SvgParams` struct. Output: file, ostream, or string. MTBDD/MTZDD: multi-terminal labels via `terminal_name_map`. MVBDD/MVZDD Expanded: k-way branching with colored edges; Raw: internal BDD/ZDD binary tree.
 - **Knuth format** (deprecated): `bdd_export_knuth` / `bdd_import_knuth`, `zdd_export_knuth` / `zdd_import_knuth`.
 - **Legacy Sapporo format**: `bddexport` / `bddimport` / `bddimportz`.
 
@@ -307,7 +307,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `include/bdd_base.h` — Infrastructure function declarations (initialization, variable management, node creation, etc.)
 - `include/bdd_ops.h` — BDD operation function declarations
 - `include/bdd_io.h` — I/O function declarations (export/import)
-- `include/svg_export.h` — SVG export API (SvgParams struct, bdd_save_svg/zdd_save_svg/qdd_save_svg/unreduced_save_svg)
+- `include/svg_export.h` — SVG export API (SvgParams struct, bdd_save_svg/zdd_save_svg/qdd_save_svg/unreduced_save_svg/mtbdd_save_svg/mtzdd_save_svg/mvbdd_save_svg/mvzdd_save_svg)
 - `include/bdd_internal.h` — Internal header (node accessor inline functions, GC guard, shift templates)
 - `include/bdd_node.h` — BddNode struct definition
 - `include/bigint.hpp` — Arbitrary-precision integer (BigInt) header-only library

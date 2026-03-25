@@ -11,6 +11,8 @@
 #include "pidd.h"
 #include "seqbdd.h"
 #include "rotpidd.h"
+#include "mtbdd.h"
+#include "mvdd.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -310,6 +312,83 @@ int main() {
         save("example19_pidd_random100.svg", result.save_svg(params));
     }
 
-    std::cout << "Done. 19 SVG files generated." << std::endl;
+    // ========================================================
+    // Example 20: MTBDD — temperature function
+    //   f(x1,x2) = 40 if x1, else (25 if x2, else 10)
+    // ========================================================
+    {
+        auto cold = MTBDD<double>::terminal(10.0);
+        auto warm = MTBDD<double>::terminal(25.0);
+        auto hot  = MTBDD<double>::terminal(40.0);
+        auto inner = MTBDD<double>::ite(v1, warm, cold);
+        auto mt = MTBDD<double>::ite(v2, hot, inner);
+        SvgParams params;
+        params.var_name_map[v1] = "rain";
+        params.var_name_map[v2] = "sun";
+        save("example20_mtbdd_temperature.svg", mt.save_svg(params));
+    }
+
+    // ========================================================
+    // Example 21: MTZDD — integer weights
+    //   Three terminals: 0, 1, 5
+    // ========================================================
+    {
+        auto t0 = MTZDD<int64_t>::terminal(0);
+        auto t1 = MTZDD<int64_t>::terminal(1);
+        auto t5 = MTZDD<int64_t>::terminal(5);
+        auto inner = MTZDD<int64_t>::ite(v1, t5, t1);
+        auto mt = MTZDD<int64_t>::ite(v2, inner, t0);
+        SvgParams params;
+        params.var_name_map[v1] = "x";
+        params.var_name_map[v2] = "y";
+        save("example21_mtzdd_weights.svg", mt.save_svg(params));
+    }
+
+    // ========================================================
+    // Example 22: MVBDD — k=3, two variables
+    //   (mv1 == 1) OR (mv2 == 2)
+    // ========================================================
+    {
+        MVBDD base(3);
+        bddvar mv1 = base.new_var();
+        bddvar mv2 = base.new_var();
+        auto lit1 = MVBDD::singleton(base, mv1, 1);
+        auto lit2 = MVBDD::singleton(base, mv2, 2);
+        auto f = lit1 | lit2;
+        SvgParams params;
+        params.var_name_map[mv1] = "color";
+        params.var_name_map[mv2] = "shape";
+        params.draw_edge_labels = true;
+        save("example22_mvbdd_k3.svg", f.save_svg(params));
+    }
+
+    // ========================================================
+    // Example 23: MVZDD — k=3, singleton family
+    //   Family containing only {mv1=1}
+    // ========================================================
+    {
+        MVZDD base(3);
+        bddvar mv1 = base.new_var();
+        auto s = MVZDD::singleton(base, mv1, 1);
+        SvgParams params;
+        params.var_name_map[mv1] = "x";
+        params.draw_edge_labels = true;
+        save("example23_mvzdd_k3.svg", s.save_svg(params));
+    }
+
+    // ========================================================
+    // Example 24: MVBDD — k=4, one variable with edge labels
+    // ========================================================
+    {
+        MVBDD base(4);
+        bddvar mv1 = base.new_var();
+        auto lit = MVBDD::singleton(base, mv1, 3);
+        SvgParams params;
+        params.var_name_map[mv1] = "dir";
+        params.draw_edge_labels = true;
+        save("example24_mvbdd_k4.svg", lit.save_svg(params));
+    }
+
+    std::cout << "Done. 24 SVG files generated." << std::endl;
     return 0;
 }
