@@ -206,6 +206,81 @@ int main() {
         save("example13_rotpidd_rotations.svg", perms.save_svg(params));
     }
 
-    std::cout << "Done. 13 SVG files generated." << std::endl;
+    // ========================================================
+    // PiDD examples with 10+ nodes (examples 14-18)
+    // Extend to S5: need elements 4 and 5
+    // ========================================================
+    PiDD_NewVar();  // element 4
+    PiDD_NewVar();  // element 5
+
+    // Helper: generate S_n from identity by repeated transposition closure
+    auto make_sn = [](int n) {
+        PiDD id(1);
+        PiDD all = id;
+        for (int round = 0; round < 10; ++round) {
+            PiDD prev = all;
+            for (int x = 2; x <= n; ++x) {
+                all = all + prev.Swap(1, x);
+            }
+        }
+        return all;
+    };
+
+    SvgParams pidd_params;
+    pidd_params.var_name_map = PiDD::svg_var_name_map();
+
+    // ========================================================
+    // Example 14: PiDD — S5 (all 120 permutations of {1,..,5})
+    // ========================================================
+    {
+        PiDD s5 = make_sn(5);
+
+        save("example14_pidd_s5.svg", s5.save_svg(pidd_params));
+    }
+
+    // ========================================================
+    // Example 15: PiDD — A5 (even permutations of S5, 60 perms)
+    // ========================================================
+    {
+        PiDD s5 = make_sn(5);
+        PiDD a5 = s5.Even();
+
+        save("example15_pidd_a5.svg", a5.save_svg(pidd_params));
+    }
+
+    // ========================================================
+    // Example 16: PiDD — odd permutations of S5 (60 perms)
+    // ========================================================
+    {
+        PiDD s5 = make_sn(5);
+        PiDD odd5 = s5.Odd();
+
+        save("example16_pidd_odd_s5.svg", odd5.save_svg(pidd_params));
+    }
+
+    // ========================================================
+    // Example 17: PiDD — S5 with SwapBound(3)
+    //   Permutations reachable with at most 3 transpositions
+    // ========================================================
+    {
+        PiDD s5 = make_sn(5);
+        PiDD bounded = s5.SwapBound(3);
+
+        save("example17_pidd_swapbound3.svg", bounded.save_svg(pidd_params));
+    }
+
+    // ========================================================
+    // Example 18: PiDD — S5 with SwapBound(2)
+    //   Permutations of {1,..,5} reachable with at most 2
+    //   transpositions (id + single transpositions + double)
+    // ========================================================
+    {
+        PiDD s5 = make_sn(5);
+        PiDD bounded = s5.SwapBound(2);
+
+        save("example18_pidd_s5_swapbound2.svg", bounded.save_svg(pidd_params));
+    }
+
+    std::cout << "Done. 18 SVG files generated." << std::endl;
     return 0;
 }

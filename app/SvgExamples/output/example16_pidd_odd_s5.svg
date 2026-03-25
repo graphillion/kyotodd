@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="179" height="1523" viewBox="-49 -21.5 179.5 1523">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="36" cy="980" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="987" font-size="24" text-anchor="middle" fill="black">(2,1)</text>
+    <path d="M 26,997 L 12,1440" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,997 L 69,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="7" cy="900" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="7" y="907" font-size="24" text-anchor="middle" fill="black">(3,2)</text>
+    <path d="M -3,917 L -3,924.5 Q -3,927 4.5,936 L 19.5,954 L 27,963" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 17,917 L 65,934.25 Q 81,940 81,970 L 81,1390 Q 81,1420 78,1425 L 72,1435 L 69,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="64" cy="900" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="64" y="907" font-size="24" text-anchor="middle" fill="black">(3,2)</text>
+    <path d="M 54,917 L 54,924.5 Q 54,927 61.75,930.25 L 77.25,936.75 Q 85,940 85,970 L 85,1390 Q 85,1420 81,1425 L 73,1435 L 69,1440" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 74,917 L 74,924.5 Q 74,927 66.75,936 L 52.25,954 L 45,963" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="7" cy="820" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="7" y="827" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
+    <path d="M -3,837 L -3,844.5 Q -3,847 -0.5,855.25 L 4.5,871.75 L 7,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 17,837 L 86,854.25 Q 109,860 109,890 L 109,1390 Q 109,1420 99,1425 L 79,1435 L 69,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="64" cy="820" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="64" y="827" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
+    <path d="M 54,837 L 54,844.5 Q 54,847 56.5,855.25 L 61.5,871.75 L 64,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 74,837 L 74,844.5 Q 74,847 64.5,850.25 L 45.5,856.75 Q 36,860 36,880 L 36,920 Q 36,940 36,945 L 36,955 L 36,960" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="7" cy="500" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="7" y="507" font-size="24" text-anchor="middle" fill="black">(4,3)</text>
+    <path d="M -3,517 L -3,524.5 Q -3,527 -2.89131,557 L -2.10869,773 L -2,803" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 17,517 L 67,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="64" cy="500" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="64" y="507" font-size="24" text-anchor="middle" fill="black">(4,3)</text>
+    <path d="M 54,517 L 54,524.5 Q 54,527 56.1682,556.922 L 71.8318,773.078 L 74,803" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 74,517 L 74,524.5 Q 74,527 67.9324,556.38 L 23.0676,773.62 L 17,803" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="7" cy="420" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="7" y="427" font-size="24" text-anchor="middle" fill="black">(4,2)</text>
+    <path d="M -3,437 L -3,444.5 Q -3,447 -0.5,455.25 L 4.5,471.75 L 7,480" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 17,437 L 28.25,454.25 Q 32,460 32,480 L 32,520 Q 32,540 35.3129,569.817 L 57.6871,771.183 L 61,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="64" cy="420" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="64" y="427" font-size="24" text-anchor="middle" fill="black">(4,2)</text>
+    <path d="M 54,437 L 54,444.5 Q 54,447 56.5,455.25 L 61.5,471.75 L 64,480" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 74,437 L 74,444.5 Q 74,447 66.5,450.25 L 51.5,456.75 Q 44,460 44,480 L 44,520 Q 44,540 40.1247,569.749 L 13.8753,771.251 L 10,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="7" cy="340" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="7" y="347" font-size="24" text-anchor="middle" fill="black">(4,1)</text>
+    <path d="M -3,357 L -3,364.5 Q -3,367 -0.5,375.25 L 4.5,391.75 L 7,400" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 17,357 L 31.25,374.25 Q 36,380 36,400 L 36,440 Q 36,460 37,460 L 39,460 Q 40,460 40,480 L 40,520 Q 40,540 41.7083,569.951 L 53.2917,773.049 L 55,803" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="64" cy="340" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="64" y="347" font-size="24" text-anchor="middle" fill="black">(4,1)</text>
+    <path d="M 54,357 L 54,364.5 Q 54,367 56.5,375.25 L 61.5,391.75 L 64,400" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 74,357 L 74,364.5 Q 74,367 65.5,370.25 L 48.5,376.75 Q 40,380 40,400 L 40,440 Q 40,460 39,460 L 37,460 Q 36,460 36,480 L 36,520 Q 36,540 32.3492,569.777 L 7.65082,771.223 L 4,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="260" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="267" font-size="24" text-anchor="middle" fill="black">(5,4)</text>
+    <path d="M 26,277 L 7,320" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,277 L 74,323" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">(5,3)</text>
+    <path d="M 26,197 L 26,204.5 Q 26,207 28.5,215.25 L 33.5,231.75 L 36,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,197 L 67,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="107" font-size="24" text-anchor="middle" fill="black">(5,2)</text>
+    <path d="M 26,117 L 26,124.5 Q 26,127 28.5,135.25 L 33.5,151.75 L 36,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,117 L 68.5,134.25 Q 76,140 76,160 L 76,200 Q 76,220 77,220 L 79,220 Q 80,220 80,240 L 80,280 Q 80,300 75.25,305.25 L 65.75,315.75 L 61,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">(5,1)</text>
+    <path d="M 26,37 L 26,44.5 Q 26,47 28.5,55.25 L 33.5,71.75 L 36,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,37 L 68.5,54.25 Q 76,60 76,80 L 76,120 Q 76,140 77,140 L 79,140 Q 80,140 80,160 L 80,200 Q 80,220 79,220 L 77,220 Q 76,220 76,240 L 76,280 Q 76,300 70.75,305.75 L 60.25,317.25 L 55,323" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="-3" y="1440" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="12" y="1467" font-size="24" text-anchor="middle" fill="black">0</text>
+    <rect x="54" y="1440" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="69" y="1467" font-size="24" text-anchor="middle" fill="black">1</text>
+</svg>
