@@ -105,6 +105,115 @@ bddp mtbdd_getnode_raw(bddvar var, bddp lo, bddp hi);
 bddp mtbdd_getnode(bddvar var, bddp lo, bddp hi);
 bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi);
 bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi);
+uint8_t mtbdd_alloc_op_code();
+
+// --- Apply templates (BDD cofactoring) ---
+
+template<typename T, typename BinOp>
+static bddp mtbdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    bool f_term = (f & BDD_CONST_FLAG) != 0;
+    bool g_term = (g & BDD_CONST_FLAG) != 0;
+
+    if (f_term && g_term) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        T result_val = op(
+            table.get_value(MTBDDTerminalTable<T>::terminal_index(f)),
+            table.get_value(MTBDDTerminalTable<T>::terminal_index(g)));
+        return MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(result_val));
+    }
+
+    // Normalize operand order for commutative cache reuse
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    bddp cached = bddrcache(cache_op, f, g);
+    if (cached != bddnull) return cached;
+
+    bddvar f_var = f_term ? 0 : node_var(f);
+    bddvar g_var = g_term ? 0 : node_var(g);
+    bddvar f_level = f_term ? 0 : var2level[f_var];
+    bddvar g_level = g_term ? 0 : var2level[g_var];
+
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        g_lo = g; g_hi = g;  // BDD: pass through both
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f; f_hi = f;
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    }
+
+    bddp lo = mtbdd_apply_rec<T, BinOp>(f_lo, g_lo, op, cache_op);
+    bddp hi = mtbdd_apply_rec<T, BinOp>(f_hi, g_hi, op, cache_op);
+
+    bddp result = mtbdd_getnode_raw(top_var, lo, hi);
+    bddwcache(cache_op, f, g, result);
+    return result;
+}
+
+// --- Apply templates (ZDD cofactoring) ---
+
+template<typename T, typename BinOp>
+static bddp mtzdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    bool f_term = (f & BDD_CONST_FLAG) != 0;
+    bool g_term = (g & BDD_CONST_FLAG) != 0;
+
+    if (f_term && g_term) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        T result_val = op(
+            table.get_value(MTBDDTerminalTable<T>::terminal_index(f)),
+            table.get_value(MTBDDTerminalTable<T>::terminal_index(g)));
+        return MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(result_val));
+    }
+
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    bddp cached = bddrcache(cache_op, f, g);
+    if (cached != bddnull) return cached;
+
+    bddvar f_var = f_term ? 0 : node_var(f);
+    bddvar g_var = g_term ? 0 : node_var(g);
+    bddvar f_level = f_term ? 0 : var2level[f_var];
+    bddvar g_level = g_term ? 0 : var2level[g_var];
+
+    bddp zero_t = BDD_CONST_FLAG | 0;
+    bddvar top_var;
+    bddp f_lo, f_hi, g_lo, g_hi;
+
+    if (f_level > g_level) {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        g_lo = g; g_hi = zero_t;  // ZDD: hi of missing var is zero
+    } else if (g_level > f_level) {
+        top_var = g_var;
+        f_lo = f; f_hi = zero_t;
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    } else {
+        top_var = f_var;
+        f_lo = node_lo(f); f_hi = node_hi(f);
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    }
+
+    bddp lo = mtzdd_apply_rec<T, BinOp>(f_lo, g_lo, op, cache_op);
+    bddp hi = mtzdd_apply_rec<T, BinOp>(f_hi, g_hi, op, cache_op);
+
+    bddp result = mtzdd_getnode_raw(top_var, lo, hi);
+    bddwcache(cache_op, f, g, result);
+    return result;
+}
 
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
 
@@ -172,6 +281,40 @@ public:
         return MTBDDTerminalTable<T>::instance().get_value(idx);
     }
 
+    // --- Generic apply ---
+
+    template<typename BinOp>
+    MTBDD apply(const MTBDD& other, BinOp op) const {
+        static uint8_t apply_op = mtbdd_alloc_op_code();
+        MTBDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtbdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
+        });
+        return result;
+    }
+
+    // --- Binary operators ---
+
+    MTBDD operator+(const MTBDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a + b; });
+    }
+    MTBDD operator-(const MTBDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a - b; });
+    }
+    MTBDD operator*(const MTBDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a * b; });
+    }
+    MTBDD& operator+=(const MTBDD& other) { *this = *this + other; return *this; }
+    MTBDD& operator-=(const MTBDD& other) { *this = *this - other; return *this; }
+    MTBDD& operator*=(const MTBDD& other) { *this = *this * other; return *this; }
+
+    static MTBDD min(const MTBDD& a, const MTBDD& b) {
+        return a.apply(b, [](const T& x, const T& y) { return x < y ? x : y; });
+    }
+    static MTBDD max(const MTBDD& a, const MTBDD& b) {
+        return a.apply(b, [](const T& x, const T& y) { return x < y ? y : x; });
+    }
+
     // --- Terminal table access ---
 
     static MTBDDTerminalTable<T>& terminals() {
@@ -186,6 +329,8 @@ private:
     explicit MTBDD(bddp p) : DDBase() {
         root = p;
     }
+
+    template<typename T2, typename B> friend bddp mtbdd_apply_rec(bddp, bddp, B&, uint8_t);
 };
 
 template<typename T>
@@ -240,6 +385,40 @@ public:
 
     bool operator==(const MTZDD& other) const { return root == other.root; }
     bool operator!=(const MTZDD& other) const { return root != other.root; }
+
+    // --- Generic apply ---
+
+    template<typename BinOp>
+    MTZDD apply(const MTZDD& other, BinOp op) const {
+        static uint8_t apply_op = mtbdd_alloc_op_code();
+        MTZDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
+        });
+        return result;
+    }
+
+    // --- Binary operators ---
+
+    MTZDD operator+(const MTZDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a + b; });
+    }
+    MTZDD operator-(const MTZDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a - b; });
+    }
+    MTZDD operator*(const MTZDD& other) const {
+        return apply(other, [](const T& a, const T& b) { return a * b; });
+    }
+    MTZDD& operator+=(const MTZDD& other) { *this = *this + other; return *this; }
+    MTZDD& operator-=(const MTZDD& other) { *this = *this - other; return *this; }
+    MTZDD& operator*=(const MTZDD& other) { *this = *this * other; return *this; }
+
+    static MTZDD min(const MTZDD& a, const MTZDD& b) {
+        return a.apply(b, [](const T& x, const T& y) { return x < y ? x : y; });
+    }
+    static MTZDD max(const MTZDD& a, const MTZDD& b) {
+        return a.apply(b, [](const T& x, const T& y) { return x < y ? y : x; });
+    }
 
     // --- Evaluation ---
 
@@ -309,6 +488,8 @@ private:
     explicit MTZDD(bddp p) : DDBase() {
         root = p;
     }
+
+    template<typename T2, typename B> friend bddp mtzdd_apply_rec(bddp, bddp, B&, uint8_t);
 };
 
 #endif

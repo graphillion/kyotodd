@@ -423,6 +423,124 @@ TEST_F(MTBDDClassTest, MTZDDEvaluateMultiLevel) {
 }
 
 // ==========================================================================
+// MTBDD apply / binary operator tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, AddTerminals) {
+    auto a = MTBDD<int>::terminal(3);
+    auto b = MTBDD<int>::terminal(5);
+    auto c = a + b;
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_EQ(c.terminal_value(), 8);
+}
+
+TEST_F(MTBDDClassTest, SubtractTerminals) {
+    auto a = MTBDD<int>::terminal(10);
+    auto b = MTBDD<int>::terminal(3);
+    auto c = a - b;
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_EQ(c.terminal_value(), 7);
+}
+
+TEST_F(MTBDDClassTest, MultiplyTerminals) {
+    auto a = MTBDD<int>::terminal(4);
+    auto b = MTBDD<int>::terminal(7);
+    auto c = a * b;
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_EQ(c.terminal_value(), 28);
+}
+
+TEST_F(MTBDDClassTest, MinMaxTerminals) {
+    auto a = MTBDD<int>::terminal(3);
+    auto b = MTBDD<int>::terminal(7);
+    EXPECT_EQ(MTBDD<int>::min(a, b).terminal_value(), 3);
+    EXPECT_EQ(MTBDD<int>::max(a, b).terminal_value(), 7);
+}
+
+TEST_F(MTBDDClassTest, AddBruteForce) {
+    // f(v1,v2) = v2 ? (v1 ? 3 : 2) : (v1 ? 1 : 0)
+    // g(v1,v2) = v2 ? 10 : 20
+    auto f = MTBDD<int>::ite(2,
+        MTBDD<int>::ite(1, MTBDD<int>::terminal(3), MTBDD<int>::terminal(2)),
+        MTBDD<int>::ite(1, MTBDD<int>::terminal(1), MTBDD<int>::terminal(0)));
+    auto g = MTBDD<int>::ite(2,
+        MTBDD<int>::terminal(10),
+        MTBDD<int>::terminal(20));
+
+    auto h = f + g;
+
+    // Brute force verification
+    for (int v1 = 0; v1 <= 1; v1++) {
+        for (int v2 = 0; v2 <= 1; v2++) {
+            std::vector<int> a = {0, v1, v2, 0};
+            int expected = f.evaluate(a) + g.evaluate(a);
+            EXPECT_EQ(h.evaluate(a), expected)
+                << "v1=" << v1 << " v2=" << v2;
+        }
+    }
+}
+
+TEST_F(MTBDDClassTest, MultiplyBruteForce) {
+    auto f = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(3), MTBDD<int>::terminal(2));
+    auto g = MTBDD<int>::ite(2,
+        MTBDD<int>::terminal(5), MTBDD<int>::terminal(1));
+
+    auto h = f * g;
+
+    for (int v1 = 0; v1 <= 1; v1++) {
+        for (int v2 = 0; v2 <= 1; v2++) {
+            std::vector<int> a = {0, v1, v2, 0};
+            int expected = f.evaluate(a) * g.evaluate(a);
+            EXPECT_EQ(h.evaluate(a), expected)
+                << "v1=" << v1 << " v2=" << v2;
+        }
+    }
+}
+
+TEST_F(MTBDDClassTest, CompoundAssignment) {
+    auto f = MTBDD<int>::terminal(3);
+    auto g = MTBDD<int>::terminal(5);
+    f += g;
+    EXPECT_EQ(f.terminal_value(), 8);
+}
+
+TEST_F(MTBDDClassTest, ApplyDouble) {
+    auto f = ADD<double>::ite(1,
+        ADD<double>::terminal(1.5), ADD<double>::terminal(2.5));
+    auto g = ADD<double>::ite(1,
+        ADD<double>::terminal(3.0), ADD<double>::terminal(0.5));
+
+    auto h = f + g;
+    EXPECT_DOUBLE_EQ(h.evaluate({0, 0, 0}), 3.0);  // 2.5 + 0.5
+    EXPECT_DOUBLE_EQ(h.evaluate({0, 1, 0}), 4.5);  // 1.5 + 3.0
+}
+
+// ==========================================================================
+// MTZDD apply tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDAddTerminals) {
+    auto a = MTZDD<int>::terminal(3);
+    auto b = MTZDD<int>::terminal(5);
+    auto c = a + b;
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_EQ(c.terminal_value(), 8);
+}
+
+TEST_F(MTBDDClassTest, MTZDDAddBruteForce) {
+    auto f = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(3), MTZDD<int>::terminal(2));
+    auto g = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(5), MTZDD<int>::terminal(1));
+
+    auto h = f + g;
+
+    EXPECT_EQ(h.evaluate({0, 0}), 3);  // 2+1
+    EXPECT_EQ(h.evaluate({0, 1}), 8);  // 3+5
+}
+
+// ==========================================================================
 // GC tests
 // ==========================================================================
 
