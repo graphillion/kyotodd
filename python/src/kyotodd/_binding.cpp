@@ -3423,6 +3423,39 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MVBDD to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MVBDD& m, bool raw, bool draw_zero,
+                                 bool draw_edge_labels) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            params.draw_edge_labels = draw_edge_labels;
+            return m.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           py::arg("draw_edge_labels") = false,
+           "Export this MVBDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show internal binary BDD.\n"
+           "    draw_zero: If True, draw the 0-terminal.\n"
+           "    draw_edge_labels: If True, label edges with values.\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const MVBDD& m, py::object stream, bool raw,
+                                  bool draw_zero, bool draw_edge_labels) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            params.draw_edge_labels = draw_edge_labels;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false,
+           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false,
+           "Export this MVBDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A text stream to write SVG to.\n"
+           "    raw: If True, show internal binary BDD.\n"
+           "    draw_zero: If True, draw the 0-terminal.\n"
+           "    draw_edge_labels: If True, label edges with values.\n")
     ;
 
     // ================================================================
@@ -3580,6 +3613,39 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MVZDD to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MVZDD& m, bool raw, bool draw_zero,
+                                 bool draw_edge_labels) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            params.draw_edge_labels = draw_edge_labels;
+            return m.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           py::arg("draw_edge_labels") = false,
+           "Export this MVZDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show internal binary ZDD.\n"
+           "    draw_zero: If True, draw the 0-terminal.\n"
+           "    draw_edge_labels: If True, label edges with values.\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const MVZDD& m, py::object stream, bool raw,
+                                  bool draw_zero, bool draw_edge_labels) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            params.draw_edge_labels = draw_edge_labels;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false,
+           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false,
+           "Export this MVZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A text stream to write SVG to.\n"
+           "    raw: If True, show internal binary ZDD.\n"
+           "    draw_zero: If True, draw the 0-terminal.\n"
+           "    draw_edge_labels: If True, label edges with values.\n")
     ;
 
     // ================================================================
@@ -3691,6 +3757,27 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MTBDDFloat to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MTBDDFloat& m, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            return m.save_svg(params);
+        }, py::arg("draw_zero") = true,
+           "Export this MTBDD as an SVG string.\n\n"
+           "Args:\n"
+           "    draw_zero: If True, draw the zero-value terminal.\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const MTBDDFloat& m, py::object stream, bool draw_zero) {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("draw_zero") = true,
+           "Export this MTBDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A text stream to write SVG to.\n"
+           "    draw_zero: If True, draw the zero-value terminal.\n")
     ;
 
     // --- MTBDDInt ---
@@ -3792,6 +3879,20 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MTBDDInt to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MTBDDInt& m, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            return m.save_svg(params);
+        }, py::arg("draw_zero") = true,
+           "Export this MTBDD as an SVG string.\n")
+        .def("save_svg_file", [](const MTBDDInt& m, py::object stream, bool draw_zero) {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("draw_zero") = true,
+           "Export this MTBDD as SVG to a text stream.\n")
     ;
 
     // --- MTZDDFloat ---
@@ -3893,6 +3994,20 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MTZDDFloat to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MTZDDFloat& m, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            return m.save_svg(params);
+        }, py::arg("draw_zero") = true,
+           "Export this MTZDD as an SVG string.\n")
+        .def("save_svg_file", [](const MTZDDFloat& m, py::object stream, bool draw_zero) {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("draw_zero") = true,
+           "Export this MTZDD as SVG to a text stream.\n")
     ;
 
     // --- MTZDDInt ---
@@ -3994,5 +4109,19 @@ PYBIND11_MODULE(_core, m) {
             throw py::type_error(
                 "Cannot convert MTZDDInt to bool. Use is_zero or is_one.");
         })
+
+        .def("save_svg_str", [](const MTZDDInt& m, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            return m.save_svg(params);
+        }, py::arg("draw_zero") = true,
+           "Export this MTZDD as an SVG string.\n")
+        .def("save_svg_file", [](const MTZDDInt& m, py::object stream, bool draw_zero) {
+            SvgParams params;
+            params.draw_zero = draw_zero;
+            std::string svg = m.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("draw_zero") = true,
+           "Export this MTZDD as SVG to a text stream.\n")
     ;
 }
