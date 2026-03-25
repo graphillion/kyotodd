@@ -54,6 +54,9 @@ target_link_libraries(bddqueen_BDD kyotodd_lib)
 add_executable(bddqueen_ZDD app/BDDQueen/bddqueen_ZDD.cpp)
 target_link_libraries(bddqueen_ZDD kyotodd_lib)
 
+add_executable(svg_examples app/SvgExamples/svg_examples.cpp)
+target_link_libraries(svg_examples kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)

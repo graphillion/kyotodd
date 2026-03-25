@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="83" height="323" viewBox="0 0 83 323">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="36" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
+    <path d="M 26,197 L 26,204.5 Q 26,207 29.75,215.25 L 37.25,231.75 L 41,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,197 L 46,204.5 Q 46,207 44.75,215.25 L 42.25,231.75 L 41,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="107" font-size="24" text-anchor="middle" fill="black">2</text>
+    <path d="M 26,117 L 26,124.5 Q 26,127 26.25,136 L 26.75,154 L 27,163" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,117 L 46,163" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">3</text>
+    <path d="M 26,37 L 26,44.5 Q 26,47 26.25,56 L 26.75,74 L 27,83" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,37 L 46,83" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="26" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="41" y="267" font-size="24" text-anchor="middle" fill="black">1</text>
+</svg>

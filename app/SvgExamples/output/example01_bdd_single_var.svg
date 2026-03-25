@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="130" height="163" viewBox="0 0 130 163">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">1</text>
+    <path d="M 26,37 L 12,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 46,37 L 69,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="-3" y="80" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="12" y="107" font-size="24" text-anchor="middle" fill="black">0</text>
+    <rect x="54" y="80" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="69" y="107" font-size="24" text-anchor="middle" fill="black">1</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="136" height="263" viewBox="0 0 136 263">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+    <marker id="dot" viewBox="-4 -4 8 8" markerWidth="8" markerHeight="8" orient="auto" refX="0" refY="0">
+        <circle cx="0" cy="0" r="3" fill="#1b3966" stroke="none" />
+    </marker>
+    <marker id="odot" viewBox="-4 -4 8 8" markerWidth="8" markerHeight="8" orient="auto" refX="0" refY="0">
+        <circle cx="0" cy="0" r="3" fill="white" stroke="#1b3966" stroke-width="1.5" />
+    </marker>
+</defs>
+    <circle cx="36" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="107" font-size="24" text-anchor="middle" fill="black">1</text>
+    <path d="M 26,117 L 12,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" marker-start="url(#dot)" />
+    <path d="M 46,117 L 69,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" marker-start="url(#dot)" />
+    <circle cx="36" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="36" y="27" font-size="24" text-anchor="middle" fill="black">2</text>
+    <path d="M 26,37 L -0.25,54.25 Q -9,60 -9,80 L -9,120 Q -9,140 -3.75,145 L 6.75,155 L 12,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" marker-start="url(#dot)" />
+    <path d="M 46,37 L 46,44.5 Q 46,47 43.5,55.25 L 38.5,71.75 L 36,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" marker-start="url(#dot)" />
+    <rect x="-3" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="12" y="187" font-size="24" text-anchor="middle" fill="black">0</text>
+    <rect x="54" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="69" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
+    <path d="M 36,-20 L 36,0" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" marker-start="url(#odot)" />
+</svg>
