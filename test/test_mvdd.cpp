@@ -728,6 +728,40 @@ TEST_F(MVDDTest, MVZDDIteTwoVars) {
     EXPECT_FALSE(f.evaluate({2, 0}));
 }
 
+TEST_F(MVDDTest, MVZDDIteChildDependsOnSameVar) {
+    // Regression: ite must strip dd_vars of mv from children.
+    // children[1] = singleton(base, v1, 2) depends on v1 itself.
+    // The result should still be consistent.
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    auto table = base.var_table();
+
+    MVZDD e = MVZDD::zero(table);
+    MVZDD u = MVZDD::one(table);
+    MVZDD s2 = MVZDD::singleton(base, v1, 2);
+
+    // ite(v1, {empty, s2, empty}):
+    // children[1] = s2 = family { (2) } — but s2 encodes v1=2.
+    // After stripping v1's dd_vars from s2, it becomes { (0) } = unit family.
+    // Then value 1 encoding adds dd_vars[0], producing family { (1) }.
+    MVZDD f = MVZDD::ite(base, v1, {e, s2, e});
+
+    EXPECT_FALSE(f.evaluate({0}));
+    EXPECT_TRUE(f.evaluate({1}));
+    EXPECT_FALSE(f.evaluate({2}));
+
+    // Verify count matches evaluate results
+    EXPECT_DOUBLE_EQ(f.count(), 1.0);
+
+    // Verify enumerate is consistent with evaluate
+    auto sets = f.enumerate();
+    EXPECT_EQ(sets.size(), 1u);
+    if (!sets.empty()) {
+        EXPECT_EQ(sets[0].size(), 1u);
+        EXPECT_EQ(sets[0][0], 1);
+    }
+}
+
 // ============================================================
 //  MVZDD child / top_var
 // ============================================================

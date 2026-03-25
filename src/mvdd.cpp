@@ -670,12 +670,26 @@ MVZDD MVZDD::ite(const MVZDD& base, bddvar mv,
     const std::vector<bddvar>& dvars = base.var_table_->dd_vars_of(mv);
 
     // Build using ZDD operations.
-    // For value 0: sets in children[0] remain unchanged (no dd_vars added).
-    // For value i > 0: add dd_vars[i-1] to all sets in children[i] via Change.
-    // Then take the union of all.
-    bddp result = children[0].root;
+    // First strip all dd_vars of mv from each child (project out mv).
+    // Then for value 0: keep sets unchanged (no dd_vars of mv).
+    // For value i > 0: add dd_vars[i-1] to all sets via Change.
+    // Finally take the union of all.
+
+    // Helper: strip all dd_vars of mv from a ZDD by projecting them out.
+    // Offset(f, v) = sets without v; OnSet0(f, v) = sets with v, v removed.
+    // Union of both = all sets with v removed.
+    auto strip_mv_dvars = [&dvars, k](bddp f) -> bddp {
+        for (int j = 0; j < k - 1; ++j) {
+            f = bddunion(bddoffset(f, dvars[j]),
+                         bddonset0(f, dvars[j]));
+        }
+        return f;
+    };
+
+    bddp result = strip_mv_dvars(children[0].root);
     for (int i = 1; i < k; ++i) {
-        bddp modified = bddchange(children[i].root, dvars[i - 1]);
+        bddp stripped = strip_mv_dvars(children[i].root);
+        bddp modified = bddchange(stripped, dvars[i - 1]);
         result = bddunion(result, modified);
     }
 
