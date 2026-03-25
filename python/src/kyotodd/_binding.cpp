@@ -817,6 +817,33 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
+        .def("save_svg_str", [](const BDD& b, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return b.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this BDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const BDD& b, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = b.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this BDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+
         .def("print", [](const BDD& b) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
@@ -2037,6 +2064,33 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
+        .def("save_svg_str", [](const ZDD& z, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return z.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this ZDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const ZDD& z, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = z.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this ZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+
         .def("print", [](const ZDD& z) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
@@ -2600,6 +2654,33 @@ PYBIND11_MODULE(_core, m) {
             return QDD::import_binary_multi(iss, ignore_type);
         }, py::arg("stream"), py::arg("ignore_type") = false,
            "Import multiple QDDs from a binary stream.")
+
+        .def("save_svg_str", [](const QDD& q, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return q.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this QDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const QDD& q, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = q.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export this QDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
     ;
 
     // ================================================================
@@ -2773,6 +2854,29 @@ PYBIND11_MODULE(_core, m) {
             return UnreducedDD::import_binary(iss);
         }, py::arg("stream"),
            "Import an UnreducedDD from a binary stream.")
+
+        .def("save_svg_str", [](const UnreducedDD& u, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = DrawMode::Raw;  // UnreducedDD always uses Raw mode
+            params.draw_zero = draw_zero;
+            return u.save_svg(params);
+        }, py::arg("draw_zero") = true,
+           "Export this UnreducedDD as an SVG string (always Raw mode).\n\n"
+           "Args:\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const UnreducedDD& u, py::object stream, bool draw_zero) {
+            SvgParams params;
+            params.mode = DrawMode::Raw;
+            params.draw_zero = draw_zero;
+            std::string svg = u.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("draw_zero") = true,
+           "Export this UnreducedDD as SVG to a text stream (always Raw mode).\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
     ;
 
     // ================================================================
