@@ -474,6 +474,11 @@ bool MVBDD::evaluate(const std::vector<int>& assignment) const {
     while (!(f & BDD_CONST_FLAG)) {
         bddvar dv = node_var(f);
         bddvar mv = var_table_->mvdd_var_of(dv);
+        if (mv == 0) {
+            throw std::logic_error(
+                "MVBDD::evaluate: DD variable " + std::to_string(dv) +
+                " is not registered in the var table");
+        }
         int idx = var_table_->dd_var_index(dv);
         int val = assignment[mv - 1];
 
@@ -887,10 +892,13 @@ std::vector<std::vector<int>> MVZDD::enumerate() const {
         for (size_t j = 0; j < raw_sets[s].size(); ++j) {
             bddvar dv = raw_sets[s][j];
             bddvar mv = var_table_->mvdd_var_of(dv);
-            int idx = var_table_->dd_var_index(dv);
-            if (mv >= 1 && mv <= n) {
-                assign[mv - 1] = idx + 1;
+            if (mv == 0) {
+                throw std::logic_error(
+                    "MVZDD::enumerate: DD variable " + std::to_string(dv) +
+                    " is not registered in the var table");
             }
+            int idx = var_table_->dd_var_index(dv);
+            assign[mv - 1] = idx + 1;
         }
         result.push_back(assign);
     }
