@@ -2,6 +2,7 @@
 #include "bdd.h"
 #include "mvdd.h"
 #include <sstream>
+#include <string>
 
 class MVDDTest : public ::testing::Test {
 protected:
@@ -1000,4 +1001,146 @@ TEST_F(MVDDTest, MVZDDK4) {
             }
         }
     }
+}
+
+// ============================================================
+//  MVBDD/MVZDD SVG export tests
+// ============================================================
+
+static bool svg_contains(const std::string& svg, const std::string& sub) {
+    return svg.find(sub) != std::string::npos;
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgExpanded) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 1);
+    std::string svg = lit.save_svg();
+    EXPECT_TRUE(svg_contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(svg_contains(svg, "<circle"));
+    EXPECT_TRUE(svg_contains(svg, "</svg>"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgRaw) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 1);
+    SvgParams params;
+    params.mode = DrawMode::Raw;
+    std::string svg = lit.save_svg(params);
+    EXPECT_TRUE(svg_contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(svg_contains(svg, "<circle"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgVarNames) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 1);
+    SvgParams params;
+    params.var_name_map[mv1] = "color";
+    std::string svg = lit.save_svg(params);
+    EXPECT_TRUE(svg_contains(svg, "color"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgEdgeLabels) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 2);
+    SvgParams params;
+    params.draw_edge_labels = true;
+    std::string svg = lit.save_svg(params);
+    // Should contain edge label "2" for value 2
+    EXPECT_TRUE(svg_contains(svg, ">2<"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgStream) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 1);
+    std::ostringstream oss;
+    lit.save_svg(oss);
+    EXPECT_EQ(oss.str(), lit.save_svg());
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgTerminal) {
+    MVBDD t(3, true);
+    std::string svg = t.save_svg();
+    EXPECT_TRUE(svg_contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(svg_contains(svg, "<rect"));
+    EXPECT_TRUE(svg_contains(svg, ">1<"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgTwoVars) {
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    bddvar mv2 = base.new_var();
+    auto lit1 = MVBDD::singleton(base, mv1, 1);
+    auto lit2 = MVBDD::singleton(base, mv2, 2);
+    auto f = lit1 | lit2;
+    std::string svg = f.save_svg();
+    EXPECT_TRUE(svg_contains(svg, "<circle"));
+    // Should have at least 2 circles (2 MV nodes)
+    size_t first = svg.find("<circle");
+    ASSERT_NE(first, std::string::npos);
+    size_t second = svg.find("<circle", first + 1);
+    EXPECT_NE(second, std::string::npos);
+}
+
+TEST_F(MVDDTest, MVZDDSaveSvgExpanded) {
+    MVZDD base(3);
+    bddvar mv1 = base.new_var();
+    auto singleton = MVZDD::singleton(base, mv1, 1);
+    std::string svg = singleton.save_svg();
+    EXPECT_TRUE(svg_contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(svg_contains(svg, "<circle"));
+    EXPECT_TRUE(svg_contains(svg, "</svg>"));
+}
+
+TEST_F(MVDDTest, MVZDDSaveSvgDashedZeroEdge) {
+    MVZDD base(3);
+    bddvar mv1 = base.new_var();
+    auto singleton = MVZDD::singleton(base, mv1, 1);
+    std::string svg = singleton.save_svg();
+    // 0-edge should be dashed
+    EXPECT_TRUE(svg_contains(svg, "stroke-dasharray"));
+}
+
+TEST_F(MVDDTest, MVZDDSaveSvgRaw) {
+    MVZDD base(3);
+    bddvar mv1 = base.new_var();
+    auto singleton = MVZDD::singleton(base, mv1, 1);
+    SvgParams params;
+    params.mode = DrawMode::Raw;
+    std::string svg = singleton.save_svg(params);
+    EXPECT_TRUE(svg_contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(svg_contains(svg, "<circle"));
+}
+
+TEST_F(MVDDTest, MVZDDSaveSvgStream) {
+    MVZDD base(3);
+    bddvar mv1 = base.new_var();
+    auto singleton = MVZDD::singleton(base, mv1, 1);
+    std::ostringstream oss;
+    singleton.save_svg(oss);
+    EXPECT_EQ(oss.str(), singleton.save_svg());
+}
+
+TEST_F(MVDDTest, MVZDDSaveSvgVarNames) {
+    MVZDD base(3);
+    bddvar mv1 = base.new_var();
+    auto singleton = MVZDD::singleton(base, mv1, 1);
+    SvgParams params;
+    params.var_name_map[mv1] = "val";
+    std::string svg = singleton.save_svg(params);
+    EXPECT_TRUE(svg_contains(svg, "val"));
+}
+
+TEST_F(MVDDTest, MVBDDSaveSvgAllSolid) {
+    // MVBDD: all edges should be solid (no dashed for value 0)
+    MVBDD base(3);
+    bddvar mv1 = base.new_var();
+    auto lit = MVBDD::singleton(base, mv1, 0);
+    std::string svg = lit.save_svg();
+    // MVBDD should NOT have dashed edges
+    EXPECT_FALSE(svg_contains(svg, "stroke-dasharray"));
 }
