@@ -609,6 +609,8 @@ MVZDD MVZDD::singleton(const MVZDD& base, bddvar mv, int value) {
     if (value < 0 || value >= k) {
         throw std::invalid_argument("MVZDD::singleton: value out of range");
     }
+    // Validate mv range (dd_vars_of throws std::out_of_range for invalid mv)
+    const std::vector<bddvar>& dvars = base.var_table_->dd_vars_of(mv);
 
     if (value == 0) {
         // All dd_vars are 0 → the set is {} → family {∅} = bddsingle
@@ -616,7 +618,6 @@ MVZDD MVZDD::singleton(const MVZDD& base, bddvar mv, int value) {
     }
 
     // value > 0: the set is {dd_vars[value-1]}
-    const std::vector<bddvar>& dvars = base.var_table_->dd_vars_of(mv);
     bddp result = ZDD::getnode(dvars[value - 1], bddempty, bddsingle);
     return base.make_result(result);
 }

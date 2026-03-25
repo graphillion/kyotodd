@@ -620,6 +620,14 @@ TEST_F(MVDDTest, MVZDDSingletonTwoVars) {
     EXPECT_FALSE(s.evaluate({1, 0}));
 }
 
+TEST_F(MVDDTest, MVZDDSingletonInvalidMvValue0) {
+    // Regression: singleton(base, invalid_mv, 0) must throw, not return bddsingle
+    MVZDD base(3);
+    base.new_var();
+    EXPECT_THROW(MVZDD::singleton(base, 999, 0), std::out_of_range);
+    EXPECT_THROW(MVZDD::singleton(base, 0, 0), std::out_of_range);
+}
+
 // ============================================================
 //  MVZDD set operations
 // ============================================================
