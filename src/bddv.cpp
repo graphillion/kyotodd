@@ -603,6 +603,9 @@ BDDV BDDV_Import(FILE* strm) {
         // Validate level range (1-based user level)
         if (level < 1 || level > n_in) return make_null_bddv();
 
+        // Reject duplicate node IDs
+        if (node_map.count(node_num)) return make_null_bddv();
+
         // Build BDD node: (x & f1) | (~x & f0)
         // level in the import file is a user level (1-based);
         // map to actual variable number by offsetting past system variables

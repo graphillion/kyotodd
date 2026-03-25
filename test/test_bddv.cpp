@@ -921,3 +921,18 @@ TEST_F(BDDVTest, ImportPlaMalformedThrows) {
     EXPECT_THROW(BDDV_ImportPla(f), std::invalid_argument);
     fclose(f);
 }
+
+TEST_F(BDDVTest, ImportDuplicateNodeIdReturnsNull) {
+    // Same node ID (2) defined twice — should be rejected
+    const char* data = "_i 1 _o 1 _n 2\n2 1 F T\n2 1 T F\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}

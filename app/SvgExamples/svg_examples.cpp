@@ -1,9 +1,9 @@
 /**
  * SVG Export Examples for KyotoDD
  *
- * Generates 13 SVG files demonstrating various BDD/ZDD/QDD/UnreducedDD/
- * PiDD/SeqBDD/RotPiDD visualization features including Expanded/Raw modes,
- * custom parameters, and variable name maps.
+ * Generates 24 SVG files demonstrating various BDD/ZDD/QDD/UnreducedDD/
+ * PiDD/SeqBDD/RotPiDD/MTBDD/MTZDD/MVBDD/MVZDD visualization features
+ * including Expanded/Raw modes, custom parameters, and variable name maps.
  */
 #include "bdd.h"
 #include "qdd.h"
@@ -314,7 +314,7 @@ int main() {
 
     // ========================================================
     // Example 20: MTBDD — temperature function
-    //   f(x1,x2) = 40 if x1, else (25 if x2, else 10)
+    //   f(x1,x2) = 40 if x2, else (25 if x1, else 10)
     // ========================================================
     {
         auto cold = MTBDD<double>::terminal(10.0);

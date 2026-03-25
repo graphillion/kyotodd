@@ -507,6 +507,9 @@ ZBDDV ZBDDV_Import(FILE* strm) {
             if (hi_union_single) f1 = f1 + ZDD(1);
         }
 
+        // Reject duplicate node IDs
+        if (node_map.count(node_num)) return ZBDDV(ZDD(-1));
+
         // Validate level range (1-based user level)
         if (level < 1 || level > n_in) return ZBDDV(ZDD(-1));
 

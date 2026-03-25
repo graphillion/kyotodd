@@ -589,3 +589,19 @@ TEST_F(ZBDDVTest, SubtractRemovesElements) {
     EXPECT_EQ(v.GetZBDD(1).GetID(), bddempty);
     EXPECT_EQ(v.GetZBDD(2).GetID(), s.GetID());
 }
+
+TEST_F(ZBDDVTest, ImportDuplicateNodeIdReturnsNull) {
+    // Same node ID (2) defined twice — should be rejected
+    const char* data = "_i 1 _o 1 _n 2\n2 1 F T\n2 1 T F\n2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    ZBDDV result = ZBDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Last(), 0);
+    ZDD meta = result.GetZBDD(0);
+    EXPECT_EQ(meta.GetID(), bddnull);
+}
