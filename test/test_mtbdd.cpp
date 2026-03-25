@@ -600,6 +600,79 @@ TEST_F(MTBDDClassTest, MTZDDAddBruteForce) {
 }
 
 // ==========================================================================
+// from_bdd / from_zdd tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, FromBddFalse) {
+    BDD f(0);
+    auto mt = MTBDD<int>::from_bdd(f);
+    EXPECT_TRUE(mt.is_terminal());
+    EXPECT_EQ(mt.terminal_value(), 0);
+}
+
+TEST_F(MTBDDClassTest, FromBddTrue) {
+    BDD f(1);
+    auto mt = MTBDD<int>::from_bdd(f);
+    EXPECT_TRUE(mt.is_terminal());
+    EXPECT_EQ(mt.terminal_value(), 1);
+}
+
+TEST_F(MTBDDClassTest, FromBddVariable) {
+    // BDD for variable 1: v1 ? true : false
+    BDD f = BDD::prime(1);
+    auto mt = MTBDD<int>::from_bdd(f);
+
+    EXPECT_EQ(mt.evaluate({0, 0, 0}), 0);
+    EXPECT_EQ(mt.evaluate({0, 1, 0}), 1);
+}
+
+TEST_F(MTBDDClassTest, FromBddCustomTerminals) {
+    BDD f = BDD::prime(1);
+    auto mt = MTBDD<double>::from_bdd(f, 0.0, 10.0);
+
+    EXPECT_DOUBLE_EQ(mt.evaluate({0, 0, 0}), 0.0);
+    EXPECT_DOUBLE_EQ(mt.evaluate({0, 1, 0}), 10.0);
+}
+
+TEST_F(MTBDDClassTest, FromBddAnd) {
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    auto mt = MTBDD<int>::from_bdd(f, 0, 100);
+
+    // AND: only (1,1) → 100, rest → 0
+    EXPECT_EQ(mt.evaluate({0, 0, 0, 0}), 0);
+    EXPECT_EQ(mt.evaluate({0, 1, 0, 0}), 0);
+    EXPECT_EQ(mt.evaluate({0, 0, 1, 0}), 0);
+    EXPECT_EQ(mt.evaluate({0, 1, 1, 0}), 100);
+}
+
+TEST_F(MTBDDClassTest, FromBddNot) {
+    BDD f = ~BDD::prime(1);
+    auto mt = MTBDD<int>::from_bdd(f, 0, 1);
+
+    // NOT v1: v1=0 → 1, v1=1 → 0
+    EXPECT_EQ(mt.evaluate({0, 0, 0}), 1);
+    EXPECT_EQ(mt.evaluate({0, 1, 0}), 0);
+}
+
+TEST_F(MTBDDClassTest, FromZddSingleton) {
+    ZDD f = ZDD::singleton(1);  // {{1}}
+    auto mt = MTZDD<int>::from_zdd(f, 0, 1);
+
+    // {1} is in the family → v1=1 gives 1
+    EXPECT_EQ(mt.evaluate({0, 1}), 1);
+    // {} is not in the family → v1=0 gives 0
+    EXPECT_EQ(mt.evaluate({0, 0}), 0);
+}
+
+TEST_F(MTBDDClassTest, FromZddCustomTerminals) {
+    ZDD f = ZDD::singleton(1);
+    auto mt = MTZDD<double>::from_zdd(f, 0.0, 5.0);
+
+    EXPECT_DOUBLE_EQ(mt.evaluate({0, 1}), 5.0);
+    EXPECT_DOUBLE_EQ(mt.evaluate({0, 0}), 0.0);
+}
+
+// ==========================================================================
 // GC tests
 // ==========================================================================
 

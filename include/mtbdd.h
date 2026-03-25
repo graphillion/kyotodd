@@ -347,6 +347,71 @@ static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
     return result;
 }
 
+// --- from_bdd / from_zdd conversion templates ---
+
+template<typename T>
+static bddp mtbdd_from_bdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    // Terminal cases
+    if (f == bddfalse) return zero_t;
+    if (f == bddtrue) return one_t;
+
+    // Resolve complement: strip complement flag, swap terminals
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp zt = comp ? one_t : zero_t;
+    bddp ot = comp ? zero_t : one_t;
+
+    // Cache lookup (key on non-complemented node + terminal assignment)
+    bddp cached = bddrcache3(cache_op, fn, zt, ot);
+    if (cached != bddnull) return cached;
+
+    bddvar v = node_var(fn);
+    bddp raw_lo = node_lo(fn);  // always non-complemented (BDD invariant)
+    bddp raw_hi = node_hi(fn);  // may be complemented
+
+    bddp mt_lo = mtbdd_from_bdd_rec<T>(raw_lo, zt, ot, cache_op);
+    bddp mt_hi = mtbdd_from_bdd_rec<T>(raw_hi, zt, ot, cache_op);
+
+    bddp result = mtbdd_getnode_raw(v, mt_lo, mt_hi);
+    bddwcache3(cache_op, fn, zt, ot, result);
+    return result;
+}
+
+template<typename T>
+static bddp mtzdd_from_zdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    if (f == bddempty) return zero_t;
+    if (f == bddsingle) return one_t;
+
+    // Resolve complement (ZDD: only lo is affected)
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp fn = f & ~BDD_COMP_FLAG;
+
+    bddp zt = comp ? one_t : zero_t;
+    bddp ot = comp ? zero_t : one_t;
+
+    bddp cached = bddrcache3(cache_op, fn, zt, ot);
+    if (cached != bddnull) return cached;
+
+    bddvar v = node_var(fn);
+    bddp raw_lo = node_lo(fn);  // always non-complemented (ZDD invariant)
+    bddp raw_hi = node_hi(fn);  // never complemented in ZDD
+
+    // ZDD complement affects only lo. Since we resolved complement by
+    // swapping zt/ot, the complement on lo in the recursion is handled
+    // by propagating zt/ot correctly.
+    bddp mt_lo = mtzdd_from_zdd_rec<T>(raw_lo, zt, ot, cache_op);
+    bddp mt_hi = mtzdd_from_zdd_rec<T>(raw_hi, zt, ot, cache_op);
+
+    bddp result = mtzdd_getnode_raw(v, mt_lo, mt_hi);
+    bddwcache3(cache_op, fn, zt, ot, result);
+    return result;
+}
+
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
 
 template<typename T>
@@ -381,6 +446,23 @@ public:
     static MTBDD ite(bddvar v, const MTBDD& high, const MTBDD& low) {
         MTBDD result;
         result.root = mtbdd_getnode(v, low.root, high.root);
+        return result;
+    }
+
+    static MTBDD from_bdd(const BDD& bdd,
+                          const T& zero_val = T{},
+                          const T& one_val = T{1}) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        bddp zero_t = MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(zero_val));
+        bddp one_t = MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(one_val));
+
+        static uint8_t conv_op = mtbdd_alloc_op_code();
+        MTBDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtbdd_from_bdd_rec<T>(bdd.get_id(), zero_t, one_t, conv_op);
+        });
         return result;
     }
 
@@ -521,6 +603,23 @@ public:
     static MTZDD ite(bddvar v, const MTZDD& high, const MTZDD& low) {
         MTZDD result;
         result.root = mtzdd_getnode(v, low.root, high.root);
+        return result;
+    }
+
+    static MTZDD from_zdd(const ZDD& zdd,
+                          const T& zero_val = T{},
+                          const T& one_val = T{1}) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        bddp zero_t = MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(zero_val));
+        bddp one_t = MTBDDTerminalTable<T>::make_terminal(
+            table.get_or_insert(one_val));
+
+        static uint8_t conv_op = mtbdd_alloc_op_code();
+        MTZDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_from_zdd_rec<T>(zdd.get_id(), zero_t, one_t, conv_op);
+        });
         return result;
     }
 
