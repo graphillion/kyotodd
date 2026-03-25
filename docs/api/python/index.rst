@@ -12,6 +12,8 @@ Python API
    pidd
    rotpidd
    seqbdd
+   mvdd
+   mtbdd
    memo
 
 C++ only classes
