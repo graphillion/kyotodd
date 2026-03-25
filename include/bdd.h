@@ -14,6 +14,7 @@
 #include "bdd_io.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include "svg_export.h"
 #include <iostream>
 
 // DDBase inline definitions (bddtop/bddsize declared in bdd_base.h)

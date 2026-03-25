@@ -33,6 +33,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_random_iter.cpp
   src/mtbdd.cpp
   src/mvdd.cpp
+  src/svg_export.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
