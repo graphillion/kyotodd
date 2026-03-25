@@ -32,6 +32,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_rank_iter.cpp
   src/zdd_random_iter.cpp
   src/mtbdd.cpp
+  src/mvdd.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
@@ -187,4 +188,11 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(mtbdd_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(mtbdd_test)
+
+  add_executable(mvdd_test test/test_mvdd.cpp)
+  target_link_libraries(mvdd_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(mvdd_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(mvdd_test)
 endif()
