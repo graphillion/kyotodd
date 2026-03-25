@@ -3,6 +3,7 @@
 #include "qdd.h"
 #include "unreduced_dd.h"
 #include "mtbdd.h"
+#include "mvdd.h"
 #include <sstream>
 #include <fstream>
 #include <cstdio>
@@ -392,4 +393,94 @@ TEST_F(SvgExportTest, MTZDD_Terminal) {
     std::string svg = mt.save_svg();
     EXPECT_TRUE(contains(svg, "99"));
     EXPECT_TRUE(contains(svg, "<rect"));
+}
+
+// --- XML escape in text labels ---
+
+TEST_F(SvgExportTest, XmlEscape_VarNameMap) {
+    bddvar v = bddnewvar();
+    BDD x = BDD::prime(v);
+    SvgParams params;
+    params.var_name_map[v] = "A<&B>";
+    std::string svg = x.save_svg(params);
+    // Must not contain raw < > & inside text
+    EXPECT_TRUE(contains(svg, "A&lt;&amp;B&gt;"));
+    EXPECT_FALSE(contains(svg, ">A<&B><"));
+}
+
+TEST_F(SvgExportTest, XmlEscape_TerminalNameMap) {
+    bddvar v = bddnewvar();
+    auto hi = MTBDD<double>::terminal(1.0);
+    auto lo = MTBDD<double>::terminal(0.0);
+    auto mt = MTBDD<double>::ite(v, hi, lo);
+    SvgParams params;
+    params.terminal_name_map[bddtrue] = "T\"1\"";
+    std::string svg = mt.save_svg(params);
+    EXPECT_TRUE(contains(svg, "T&quot;1&quot;"));
+}
+
+// --- Duplicate arrow marker ---
+
+TEST_F(SvgExportTest, MTBDD_NoDuplicateArrowMarker) {
+    bddvar v = bddnewvar();
+    auto hi = MTBDD<double>::terminal(1.0);
+    auto lo = MTBDD<double>::terminal(0.0);
+    auto mt = MTBDD<double>::ite(v, hi, lo);
+    std::string svg = mt.save_svg();
+    // Count occurrences of id="arrow"
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = svg.find("id=\"arrow\"", pos)) != std::string::npos) {
+        ++count;
+        pos += 10;
+    }
+    EXPECT_EQ(count, 1u);
+}
+
+TEST_F(SvgExportTest, MVBDD_NoDuplicateArrowMarker) {
+    MVBDD base(3);
+    bddvar mv_v = base.new_var();
+    auto lit = MVBDD::singleton(base, mv_v, 1);
+    std::string svg = lit.save_svg();
+    size_t count = 0;
+    size_t pos = 0;
+    while ((pos = svg.find("id=\"arrow\"", pos)) != std::string::npos) {
+        ++count;
+        pos += 10;
+    }
+    EXPECT_EQ(count, 1u);
+}
+
+// --- nullptr filename ---
+
+TEST_F(SvgExportTest, NullFilename_BDD) {
+    BDD t(1);
+    EXPECT_THROW(t.save_svg((const char*)nullptr), std::runtime_error);
+}
+
+TEST_F(SvgExportTest, NullFilename_ZDD) {
+    ZDD t(1);
+    EXPECT_THROW(t.save_svg((const char*)nullptr), std::runtime_error);
+}
+
+TEST_F(SvgExportTest, NullFilename_MTBDD) {
+    auto mt = MTBDD<double>::terminal(1.0);
+    EXPECT_THROW(mt.save_svg((const char*)nullptr), std::runtime_error);
+}
+
+// --- nullptr var_table for MVBDD/MVZDD ---
+
+TEST_F(SvgExportTest, MVBDD_NullTable_Throws) {
+    bddvar v = bddnewvar();
+    BDD b = BDD::prime(v);
+    MVBDD mv(std::shared_ptr<MVDDVarTable>(), b);
+    // Expanded mode with null table should throw, not segfault
+    EXPECT_THROW(mv.save_svg(), std::runtime_error);
+}
+
+TEST_F(SvgExportTest, MVZDD_NullTable_Throws) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD::singleton(v);
+    MVZDD mv(std::shared_ptr<MVDDVarTable>(), z);
+    EXPECT_THROW(mv.save_svg(), std::runtime_error);
 }

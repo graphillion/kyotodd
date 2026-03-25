@@ -32,6 +32,24 @@ static std::string fmt_double(double v) {
     return std::string(buf);
 }
 
+// ---- XML escape helper --------------------------------------------------
+// Escape characters that are special in XML/SVG text content.
+static std::string xml_escape(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());
+    for (size_t i = 0; i < s.size(); ++i) {
+        switch (s[i]) {
+        case '&':  out += "&amp;";  break;
+        case '<':  out += "&lt;";   break;
+        case '>':  out += "&gt;";   break;
+        case '"':  out += "&quot;"; break;
+        case '\'': out += "&apos;"; break;
+        default:   out += s[i];     break;
+        }
+    }
+    return out;
+}
+
 // ---- Node structures (same layout as GvNode in bdd_io.cpp) --------------
 
 struct SvgNode {
@@ -1107,13 +1125,21 @@ public:
     void emit_text(double x, double y, const std::string& text,
                    int font_size, const char* text_anchor, const char* fill = "black")
     {
-        char buf[512];
-        std::snprintf(buf, sizeof(buf),
-            "<text x=\"%s\" y=\"%s\" font-size=\"%d\" "
-            "text-anchor=\"%s\" fill=\"%s\">%s</text>",
-            fmt_double(x).c_str(), fmt_double(y).c_str(), font_size,
-            text_anchor, fill, text.c_str());
-        elements.push_back(std::string(buf));
+        std::string elem;
+        elem += "<text x=\"";
+        elem += fmt_double(x);
+        elem += "\" y=\"";
+        elem += fmt_double(y);
+        elem += "\" font-size=\"";
+        elem += std::to_string(font_size);
+        elem += "\" text-anchor=\"";
+        elem += text_anchor;
+        elem += "\" fill=\"";
+        elem += fill;
+        elem += "\">";
+        elem += xml_escape(text);
+        elem += "</text>";
+        elements.push_back(elem);
         double tw_est = text.size() * font_size * 0.6;
         if (std::string(text_anchor) == "middle") {
             update_bounds(x - tw_est / 2, y - font_size);
@@ -1649,7 +1675,6 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
 
     // 3. Draw SVG
     SvgWriter svg(params.margin_x, params.margin_y);
-    svg.add_arrow_marker();
 
     int r = params.node_radius;
 
@@ -1891,6 +1916,8 @@ static std::string mvdd_svg_generate_expanded(
     bddp f, const MVDDVarTable* table, bool is_zdd,
     const SvgParams& params)
 {
+    if (!table)
+        throw std::runtime_error("mvdd_svg_generate_expanded: var_table is null");
     if (f == bddnull) return "";
 
     // Terminal-only case
@@ -1912,13 +1939,25 @@ static std::string mvdd_svg_generate_expanded(
 
     // 2. Assign MV levels.
     // MV variables are ordered by their DD level (higher DD level = higher MV level).
-    // Collect unique MV vars and sort by DD level (descending).
-    std::set<bddvar> mv_vars_set;
+    // Collect all MV vars from the table (or only used ones if skip_unused_levels).
+    std::set<bddvar> used_mv_vars_set;
     for (auto& sn : nodes) {
-        mv_vars_set.insert(sn.mv_var);
+        used_mv_vars_set.insert(sn.mv_var);
     }
+
+    std::vector<bddvar> mv_vars;
+    if (params.skip_unused_levels) {
+        // Only include MV vars that appear in the DD
+        mv_vars.assign(used_mv_vars_set.begin(), used_mv_vars_set.end());
+    } else {
+        // Include all registered MV vars from the table
+        bddvar total = table->mvdd_var_count();
+        for (bddvar v = 1; v <= total; ++v) {
+            mv_vars.push_back(v);
+        }
+    }
+
     // Sort MV vars by DD level of their top DD var (descending = root first)
-    std::vector<bddvar> mv_vars(mv_vars_set.begin(), mv_vars_set.end());
     std::sort(mv_vars.begin(), mv_vars.end(), [&](bddvar a, bddvar b) {
         bddvar dv_a = table->get_top_dd_var(a);
         bddvar dv_b = table->get_top_dd_var(b);
@@ -2024,7 +2063,6 @@ static std::string mvdd_svg_generate_expanded(
 
     // 4. Draw SVG
     SvgWriter svg(params.margin_x, params.margin_y);
-    svg.add_arrow_marker();
 
     int r = params.node_radius;
 
@@ -2149,11 +2187,15 @@ static std::string bdd_svg_generate(bddp f, const SvgParams& params) {
 }
 
 void bdd_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("bdd_save_svg: filename is null");
     std::string svg = bdd_svg_generate(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("bdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("bdd_save_svg: write failed for ") + filename);
 }
 
 void bdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2171,11 +2213,15 @@ static std::string zdd_svg_generate(bddp f, const SvgParams& params) {
 }
 
 void zdd_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("zdd_save_svg: filename is null");
     std::string svg = zdd_svg_generate(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("zdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("zdd_save_svg: write failed for ") + filename);
 }
 
 void zdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2193,11 +2239,15 @@ static std::string qdd_svg_generate(bddp f, const SvgParams& params) {
 }
 
 void qdd_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("qdd_save_svg: filename is null");
     std::string svg = qdd_svg_generate(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("qdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("qdd_save_svg: write failed for ") + filename);
 }
 
 void qdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2218,11 +2268,15 @@ static std::string unreduced_svg_generate(bddp f, const SvgParams& params) {
 }
 
 void unreduced_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("unreduced_save_svg: filename is null");
     std::string svg = unreduced_svg_generate(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("unreduced_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("unreduced_save_svg: write failed for ") + filename);
 }
 
 void unreduced_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2236,11 +2290,15 @@ std::string unreduced_save_svg(bddp f, const SvgParams& params) {
 // --- MTBDD SVG export ---
 
 void mtbdd_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("mtbdd_save_svg: filename is null");
     std::string svg = svg_generate_mt_impl(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("mtbdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("mtbdd_save_svg: write failed for ") + filename);
 }
 
 void mtbdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2254,11 +2312,15 @@ std::string mtbdd_save_svg(bddp f, const SvgParams& params) {
 // --- MTZDD SVG export ---
 
 void mtzdd_save_svg(const char* filename, bddp f, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("mtzdd_save_svg: filename is null");
     std::string svg = svg_generate_mt_impl(f, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("mtzdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("mtzdd_save_svg: write failed for ") + filename);
 }
 
 void mtzdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
@@ -2273,11 +2335,15 @@ std::string mtzdd_save_svg(bddp f, const SvgParams& params) {
 
 void mvbdd_save_svg(const char* filename, bddp f,
                     const MVDDVarTable* table, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("mvbdd_save_svg: filename is null");
     std::string svg = mvbdd_save_svg(f, table, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("mvbdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("mvbdd_save_svg: write failed for ") + filename);
 }
 
 void mvbdd_save_svg(std::ostream& strm, bddp f,
@@ -2294,11 +2360,15 @@ std::string mvbdd_save_svg(bddp f,
 
 void mvzdd_save_svg(const char* filename, bddp f,
                     const MVDDVarTable* table, const SvgParams& params) {
+    if (!filename)
+        throw std::runtime_error("mvzdd_save_svg: filename is null");
     std::string svg = mvzdd_save_svg(f, table, params);
     std::ofstream ofs(filename);
     if (!ofs)
         throw std::runtime_error(std::string("mvzdd_save_svg: cannot open ") + filename);
     ofs << svg;
+    if (!ofs)
+        throw std::runtime_error(std::string("mvzdd_save_svg: write failed for ") + filename);
 }
 
 void mvzdd_save_svg(std::ostream& strm, bddp f,
