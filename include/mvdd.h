@@ -12,6 +12,8 @@
 #include <iosfwd>
 #include <stdexcept>
 
+struct SvgParams;
+
 // ============================================================
 //  MVDDVarInfo
 // ============================================================
@@ -269,6 +271,14 @@ public:
     bool operator==(const MVBDD& other) const;
     bool operator!=(const MVBDD& other) const;
 
+    // --- SVG export ---
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
 private:
     std::shared_ptr<MVDDVarTable> var_table_;
 
@@ -457,6 +467,14 @@ public:
     bool operator==(const MVZDD& other) const;
     bool operator!=(const MVZDD& other) const;
 
+    // --- SVG export ---
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
 private:
     std::shared_ptr<MVDDVarTable> var_table_;
 
@@ -464,5 +482,73 @@ private:
     MVZDD make_result(bddp p) const;
     MVZDD(std::shared_ptr<MVDDVarTable> table, bddp p);
 };
+
+// ========================================================================
+//  MVBDD/MVZDD save_svg inline implementations
+// ========================================================================
+
+#include "svg_export.h"
+
+inline void MVBDD::save_svg(const char* filename, const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        bdd_save_svg(filename, root, params);
+    } else {
+        mvbdd_save_svg(filename, root, var_table_.get(), params);
+    }
+}
+inline void MVBDD::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+inline void MVBDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        bdd_save_svg(strm, root, params);
+    } else {
+        mvbdd_save_svg(strm, root, var_table_.get(), params);
+    }
+}
+inline void MVBDD::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+inline std::string MVBDD::save_svg(const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        return bdd_save_svg(root, params);
+    } else {
+        return mvbdd_save_svg(root, var_table_.get(), params);
+    }
+}
+inline std::string MVBDD::save_svg() const {
+    return save_svg(SvgParams());
+}
+
+inline void MVZDD::save_svg(const char* filename, const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        zdd_save_svg(filename, root, params);
+    } else {
+        mvzdd_save_svg(filename, root, var_table_.get(), params);
+    }
+}
+inline void MVZDD::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+inline void MVZDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        zdd_save_svg(strm, root, params);
+    } else {
+        mvzdd_save_svg(strm, root, var_table_.get(), params);
+    }
+}
+inline void MVZDD::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+inline std::string MVZDD::save_svg(const SvgParams& params) const {
+    if (params.mode == DrawMode::Raw) {
+        return zdd_save_svg(root, params);
+    } else {
+        return mvzdd_save_svg(root, var_table_.get(), params);
+    }
+}
+inline std::string MVZDD::save_svg() const {
+    return save_svg(SvgParams());
+}
 
 #endif

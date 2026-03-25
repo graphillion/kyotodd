@@ -3,6 +3,7 @@
 
 #include "bdd.h"
 #include "bdd_internal.h"
+#include "mvdd.h"
 
 #include <algorithm>
 #include <cassert>
@@ -1863,4 +1864,50 @@ void mtzdd_save_svg(std::ostream& strm, bddp f, const SvgParams& params) {
 
 std::string mtzdd_save_svg(bddp f, const SvgParams& params) {
     return svg_generate_mt_impl(f, params);
+}
+
+// --- MVBDD SVG export (stub — expanded mode implemented in Step 5) ---
+
+void mvbdd_save_svg(const char* filename, bddp f,
+                    const MVDDVarTable* table, const SvgParams& params) {
+    std::string svg = mvbdd_save_svg(f, table, params);
+    std::ofstream ofs(filename);
+    if (!ofs)
+        throw std::runtime_error(std::string("mvbdd_save_svg: cannot open ") + filename);
+    ofs << svg;
+}
+
+void mvbdd_save_svg(std::ostream& strm, bddp f,
+                    const MVDDVarTable* table, const SvgParams& params) {
+    strm << mvbdd_save_svg(f, table, params);
+}
+
+std::string mvbdd_save_svg(bddp f,
+                           const MVDDVarTable* table, const SvgParams& params) {
+    // TODO: Expanded mode rendering in Step 5
+    (void)table;
+    return bdd_save_svg(f, params);
+}
+
+// --- MVZDD SVG export (stub — expanded mode implemented in Step 5) ---
+
+void mvzdd_save_svg(const char* filename, bddp f,
+                    const MVDDVarTable* table, const SvgParams& params) {
+    std::string svg = mvzdd_save_svg(f, table, params);
+    std::ofstream ofs(filename);
+    if (!ofs)
+        throw std::runtime_error(std::string("mvzdd_save_svg: cannot open ") + filename);
+    ofs << svg;
+}
+
+void mvzdd_save_svg(std::ostream& strm, bddp f,
+                    const MVDDVarTable* table, const SvgParams& params) {
+    strm << mvzdd_save_svg(f, table, params);
+}
+
+std::string mvzdd_save_svg(bddp f,
+                           const MVDDVarTable* table, const SvgParams& params) {
+    // TODO: Expanded mode rendering in Step 5
+    (void)table;
+    return zdd_save_svg(f, params);
 }
