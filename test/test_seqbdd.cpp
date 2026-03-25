@@ -522,3 +522,46 @@ TEST_F(SeqBDDTest, MoveAssignment) {
     b = std::move(a);
     EXPECT_EQ(b.card(), expected_card);
 }
+
+/* ---- save_svg ---- */
+TEST_F(SeqBDDTest, SaveSvgString) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+
+    // {v1, v1·v2}
+    SeqBDD s1 = SeqBDD(1).push(static_cast<int>(v1));
+    SeqBDD s2 = SeqBDD(1).push(static_cast<int>(v2)).push(static_cast<int>(v1));
+    SeqBDD seq = s1 + s2;
+
+    std::string svg = seq.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_TRUE(svg.find("</svg>") != std::string::npos);
+    EXPECT_EQ(svg, seq.get_zdd().save_svg());
+}
+
+TEST_F(SeqBDDTest, SaveSvgStream) {
+    bddvar v1 = BDD_NewVar();
+    SeqBDD s = SeqBDD(1).push(static_cast<int>(v1));
+
+    std::ostringstream oss;
+    s.save_svg(oss);
+    EXPECT_EQ(oss.str(), s.save_svg());
+}
+
+TEST_F(SeqBDDTest, SaveSvgWithParams) {
+    SeqBDD eps(1);  // {epsilon}
+    SvgParams params;
+    params.mode = DrawMode::Raw;
+    params.draw_zero = false;
+
+    std::string svg = eps.save_svg(params);
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, eps.get_zdd().save_svg(params));
+}
+
+TEST_F(SeqBDDTest, SaveSvgTerminal) {
+    SeqBDD empty(0);
+    std::string svg = empty.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, empty.get_zdd().save_svg());
+}

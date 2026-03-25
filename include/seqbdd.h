@@ -3,6 +3,8 @@
 
 #include "bdd.h"
 
+struct SvgParams;
+
 /** @brief Cache operation code for SeqBDD concatenation. */
 static const uint8_t BDD_OP_SEQBDD_CONCAT = 66;
 /** @brief Cache operation code for SeqBDD left quotient. */
@@ -145,6 +147,31 @@ public:
      * @return A string representation of all sequences.
      */
     std::string seq_str() const;
+
+    /**
+     * @brief Export the internal ZDD as SVG to a file.
+     * @param filename Output file path.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(const char* filename) const;
+    /**
+     * @brief Export the internal ZDD as SVG to a stream.
+     * @param strm Output stream.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(std::ostream& strm) const;
+    /**
+     * @brief Export the internal ZDD as an SVG string.
+     * @param params SVG rendering parameters.
+     * @return An SVG format string.
+     */
+    std::string save_svg(const SvgParams& params) const;
+    /** @overload */
+    std::string save_svg() const;
 };
 
 /** @brief Intersection of two sequence sets. */
@@ -169,5 +196,27 @@ inline SeqBDD& SeqBDD::operator%=(const SeqBDD& f) { *this = *this % f; return *
  * @return A SeqBDD wrapping the node.
  */
 inline SeqBDD SeqBDD_ID(bddp p) { return SeqBDD(ZDD_ID(p)); }
+
+// --- SeqBDD save_svg inline implementations ---
+#include "svg_export.h"
+
+inline void SeqBDD::save_svg(const char* filename, const SvgParams& params) const {
+    zdd_save_svg(filename, zdd_.get_id(), params);
+}
+inline void SeqBDD::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+inline void SeqBDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    zdd_save_svg(strm, zdd_.get_id(), params);
+}
+inline void SeqBDD::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+inline std::string SeqBDD::save_svg(const SvgParams& params) const {
+    return zdd_save_svg(zdd_.get_id(), params);
+}
+inline std::string SeqBDD::save_svg() const {
+    return save_svg(SvgParams());
+}
 
 #endif
