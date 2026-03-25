@@ -389,4 +389,13 @@ bool bdd_check_reduced(bddp root);
 /** @brief Clear all MTBDD terminal tables. Called by bddfinal(). */
 void mtbdd_clear_all_terminal_tables();
 
+/** @brief Create an MTBDD node (BDD reduction, no complement edges). */
+bddp mtbdd_getnode_raw(bddvar var, bddp lo, bddp hi);
+/** @brief Create an MTBDD node with validation. */
+bddp mtbdd_getnode(bddvar var, bddp lo, bddp hi);
+/** @brief Create an MTZDD node (ZDD zero-suppression, no complement edges). */
+bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi);
+/** @brief Create an MTZDD node with validation. */
+bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi);
+
 #endif

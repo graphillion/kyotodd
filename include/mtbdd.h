@@ -96,4 +96,146 @@ private:
     std::unordered_map<T, uint64_t> value_to_index_;
 };
 
+// --- Forward declarations for getnode (defined in bdd_base.cpp) ---
+
+bddp mtbdd_getnode_raw(bddvar var, bddp lo, bddp hi);
+bddp mtbdd_getnode(bddvar var, bddp lo, bddp hi);
+bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi);
+bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi);
+
+// --- MTBDD<T> class (Multi-Terminal BDD) ---
+
+template<typename T>
+class MTBDD : public DDBase {
+public:
+    MTBDD() : DDBase() {
+        root = MTBDDTerminalTable<T>::make_terminal(
+            MTBDDTerminalTable<T>::instance().zero_index());
+    }
+
+    MTBDD(const MTBDD& other) : DDBase(other) {}
+    MTBDD(MTBDD&& other) : DDBase(std::move(other)) {}
+
+    MTBDD& operator=(const MTBDD& other) {
+        DDBase::operator=(other);
+        return *this;
+    }
+
+    MTBDD& operator=(MTBDD&& other) {
+        DDBase::operator=(std::move(other));
+        return *this;
+    }
+
+    // --- Static factories ---
+
+    static MTBDD terminal(const T& value) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        uint64_t idx = table.get_or_insert(value);
+        return MTBDD(MTBDDTerminalTable<T>::make_terminal(idx));
+    }
+
+    static MTBDD ite(bddvar v, const MTBDD& high, const MTBDD& low) {
+        MTBDD result;
+        result.root = mtbdd_getnode(v, low.root, high.root);
+        return result;
+    }
+
+    // --- Query ---
+
+    T terminal_value() const {
+        if (!(root & BDD_CONST_FLAG)) {
+            throw std::logic_error("MTBDD::terminal_value: not a terminal node");
+        }
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(root);
+        return MTBDDTerminalTable<T>::instance().get_value(idx);
+    }
+
+    bool operator==(const MTBDD& other) const { return root == other.root; }
+    bool operator!=(const MTBDD& other) const { return root != other.root; }
+
+    // --- Terminal table access ---
+
+    static MTBDDTerminalTable<T>& terminals() {
+        return MTBDDTerminalTable<T>::instance();
+    }
+
+    static bddp zero_terminal() {
+        return MTBDDTerminalTable<T>::make_terminal(0);
+    }
+
+private:
+    explicit MTBDD(bddp p) : DDBase() {
+        root = p;
+    }
+};
+
+template<typename T>
+using ADD = MTBDD<T>;
+
+// --- MTZDD<T> class (Multi-Terminal ZDD) ---
+
+template<typename T>
+class MTZDD : public DDBase {
+public:
+    MTZDD() : DDBase() {
+        root = MTBDDTerminalTable<T>::make_terminal(
+            MTBDDTerminalTable<T>::instance().zero_index());
+    }
+
+    MTZDD(const MTZDD& other) : DDBase(other) {}
+    MTZDD(MTZDD&& other) : DDBase(std::move(other)) {}
+
+    MTZDD& operator=(const MTZDD& other) {
+        DDBase::operator=(other);
+        return *this;
+    }
+
+    MTZDD& operator=(MTZDD&& other) {
+        DDBase::operator=(std::move(other));
+        return *this;
+    }
+
+    // --- Static factories ---
+
+    static MTZDD terminal(const T& value) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        uint64_t idx = table.get_or_insert(value);
+        return MTZDD(MTBDDTerminalTable<T>::make_terminal(idx));
+    }
+
+    static MTZDD ite(bddvar v, const MTZDD& high, const MTZDD& low) {
+        MTZDD result;
+        result.root = mtzdd_getnode(v, low.root, high.root);
+        return result;
+    }
+
+    // --- Query ---
+
+    T terminal_value() const {
+        if (!(root & BDD_CONST_FLAG)) {
+            throw std::logic_error("MTZDD::terminal_value: not a terminal node");
+        }
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(root);
+        return MTBDDTerminalTable<T>::instance().get_value(idx);
+    }
+
+    bool operator==(const MTZDD& other) const { return root == other.root; }
+    bool operator!=(const MTZDD& other) const { return root != other.root; }
+
+    // --- Terminal table access ---
+
+    static MTBDDTerminalTable<T>& terminals() {
+        return MTBDDTerminalTable<T>::instance();
+    }
+
+    static bddp zero_terminal() {
+        return MTBDDTerminalTable<T>::make_terminal(0);
+    }
+
+private:
+    explicit MTZDD(bddp p) : DDBase() {
+        root = p;
+    }
+};
+
 #endif

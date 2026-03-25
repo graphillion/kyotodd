@@ -844,6 +844,128 @@ ZDD ZDD::getnode(bddvar var, const ZDD& lo, const ZDD& hi) {
     return z;
 }
 
+// --- MTBDD node creation (no complement edges) ---
+
+bddp mtbdd_getnode_raw(bddvar var, bddp lo, bddp hi) {
+    // BDD reduction rule: lo == hi -> return lo
+    if (lo == hi) return lo;
+
+    // No complement edge normalization.
+    // MTBDD never uses complement edges on non-terminal nodes.
+    // (Terminal bddp values may have bit 0 set as part of the index.)
+    BDD_DEBUG_ASSERT((lo & BDD_CONST_FLAG) || (lo & BDD_COMP_FLAG) == 0);
+    BDD_DEBUG_ASSERT((hi & BDD_CONST_FLAG) || (hi & BDD_COMP_FLAG) == 0);
+
+    bddp found = BDD_UniqueTableLookup(var, lo, hi);
+    if (found != 0) {
+        return found;
+    }
+    bddp node_id = allocate_node();
+    node_write(node_id, var, lo, hi);
+    if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
+        node_set_reduced(node_id);
+    }
+    try {
+        BDD_UniqueTableInsert(var, lo, hi, node_id);
+    } catch (...) {
+        if (node_id / 2 == bdd_node_used) {
+            bdd_node_used--;
+        } else {
+            uint64_t idx = node_id / 2 - 1;
+            bdd_nodes[idx].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
+        throw;
+    }
+    return node_id;
+}
+
+bddp mtbdd_getnode(bddvar var, bddp lo, bddp hi) {
+    if (lo == bddnull || hi == bddnull)
+        throw std::invalid_argument("mtbdd_getnode: bddnull child");
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("mtbdd_getnode: var out of range");
+    bddvar var_level = var2level[var];
+    if (!(lo & BDD_CONST_FLAG)) {
+        if (lo & BDD_COMP_FLAG)
+            throw std::invalid_argument("mtbdd_getnode: lo has complement flag");
+        if (lo < 2 || lo / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("mtbdd_getnode: lo child is not a valid node");
+        if (var2level[node_var(lo)] >= var_level)
+            throw std::invalid_argument("mtbdd_getnode: lo child level >= var level");
+    }
+    if (!(hi & BDD_CONST_FLAG)) {
+        if (hi & BDD_COMP_FLAG)
+            throw std::invalid_argument("mtbdd_getnode: hi has complement flag");
+        if (hi < 2 || hi / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("mtbdd_getnode: hi child is not a valid node");
+        if (var2level[node_var(hi)] >= var_level)
+            throw std::invalid_argument("mtbdd_getnode: hi child level >= var level");
+    }
+    return mtbdd_getnode_raw(var, lo, hi);
+}
+
+// --- MTZDD node creation (no complement edges) ---
+
+bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi) {
+    // ZDD zero-suppression rule: hi == zero_terminal -> return lo
+    if (hi == (BDD_CONST_FLAG | 0)) return lo;
+
+    // No complement edge normalization.
+    BDD_DEBUG_ASSERT((lo & BDD_CONST_FLAG) || (lo & BDD_COMP_FLAG) == 0);
+    BDD_DEBUG_ASSERT((hi & BDD_CONST_FLAG) || (hi & BDD_COMP_FLAG) == 0);
+
+    bddp found = BDD_UniqueTableLookup(var, lo, hi);
+    if (found != 0) {
+        return found;
+    }
+    bddp node_id = allocate_node();
+    node_write(node_id, var, lo, hi);
+    if (bddp_is_reduced(lo) && bddp_is_reduced(hi)) {
+        node_set_reduced(node_id);
+    }
+    try {
+        BDD_UniqueTableInsert(var, lo, hi, node_id);
+    } catch (...) {
+        if (node_id / 2 == bdd_node_used) {
+            bdd_node_used--;
+        } else {
+            uint64_t idx = node_id / 2 - 1;
+            bdd_nodes[idx].data[0] = bdd_free_list;
+            bdd_free_list = node_id;
+            bdd_free_count++;
+        }
+        throw;
+    }
+    return node_id;
+}
+
+bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi) {
+    if (lo == bddnull || hi == bddnull)
+        throw std::invalid_argument("mtzdd_getnode: bddnull child");
+    if (var < 1 || var > bdd_varcount)
+        throw std::invalid_argument("mtzdd_getnode: var out of range");
+    bddvar var_level = var2level[var];
+    if (!(lo & BDD_CONST_FLAG)) {
+        if (lo & BDD_COMP_FLAG)
+            throw std::invalid_argument("mtzdd_getnode: lo has complement flag");
+        if (lo < 2 || lo / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("mtzdd_getnode: lo child is not a valid node");
+        if (var2level[node_var(lo)] >= var_level)
+            throw std::invalid_argument("mtzdd_getnode: lo child level >= var level");
+    }
+    if (!(hi & BDD_CONST_FLAG)) {
+        if (hi & BDD_COMP_FLAG)
+            throw std::invalid_argument("mtzdd_getnode: hi has complement flag");
+        if (hi < 2 || hi / 2 - 1 >= bdd_node_used)
+            throw std::invalid_argument("mtzdd_getnode: hi child is not a valid node");
+        if (var2level[node_var(hi)] >= var_level)
+            throw std::invalid_argument("mtzdd_getnode: hi child level >= var level");
+    }
+    return mtzdd_getnode_raw(var, lo, hi);
+}
+
 // --- QDD node creation ---
 
 bddp QDD::getnode_raw(bddvar var, bddp lo, bddp hi) {
