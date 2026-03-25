@@ -1240,26 +1240,9 @@ public:
         return result;
     }
 
-    // Translate all coordinates so that the top-left becomes (margin, margin).
-    // This mimics the Python align_to_origin + translate approach.
-    void align_to_origin() {
-        if (min_x > 1e17) return;
-        double dx = -(min_x - margin_x);
-        double dy = -(min_y - margin_y);
-        if (dx == 0.0 && dy == 0.0) return;
-
-        // Rebuild min/max
-        min_x += dx;
-        max_x += dx;
-        min_y += dy;
-        max_y += dy;
-
-        // We cannot easily translate the string elements, but since we use
-        // viewBox-based rendering, we don't need to; the viewBox already
-        // accounts for the actual coordinate range. So we just keep
-        // everything as-is and let to_string() compute the viewBox from
-        // the actual min/max bounds.
-    }
+    // No-op: viewBox-based rendering handles coordinate range automatically.
+    // Kept for API compatibility.
+    void align_to_origin() {}
 
 private:
     static double get_dividing_ratio(const Point& p1, const Point& p2) {
