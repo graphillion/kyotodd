@@ -1,13 +1,16 @@
 /**
  * SVG Export Examples for KyotoDD
  *
- * Generates 10 SVG files demonstrating various BDD/ZDD/QDD/UnreducedDD
- * visualization features including Expanded/Raw modes, custom parameters,
- * and variable name maps.
+ * Generates 13 SVG files demonstrating various BDD/ZDD/QDD/UnreducedDD/
+ * PiDD/SeqBDD/RotPiDD visualization features including Expanded/Raw modes,
+ * custom parameters, and variable name maps.
  */
 #include "bdd.h"
 #include "qdd.h"
 #include "unreduced_dd.h"
+#include "pidd.h"
+#include "seqbdd.h"
+#include "rotpidd.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -143,6 +146,62 @@ int main() {
         save("example10_bdd_majority5.svg", maj.save_svg(params));
     }
 
-    std::cout << "Done. 10 SVG files generated." << std::endl;
+    // ========================================================
+    // Example 11: PiDD — permutations of S3
+    //   All 6 permutations of {1, 2, 3}
+    // ========================================================
+    {
+        PiDD_NewVar();  // element 1
+        PiDD_NewVar();  // element 2
+        PiDD_NewVar();  // element 3
+
+        // Build S3: start from identity, apply all transpositions
+        PiDD id(1);
+        PiDD s12 = id.Swap(1, 2);
+        PiDD s13 = id.Swap(1, 3);
+        PiDD s23 = id.Swap(2, 3);
+        PiDD s3 = id + s12 + s13 + s23
+                     + s12.Swap(1, 3) + s13.Swap(1, 2);
+        save("example11_pidd_s3.svg", s3.save_svg());
+    }
+
+    // ========================================================
+    // Example 12: SeqBDD — set of sequences {"ab", "ac", "b"}
+    //   Using variables as symbols: v1=a, v2=b, v3=c
+    // ========================================================
+    {
+        // "ab" = push(v1) then push(v2): sequence [v1, v2]
+        SeqBDD ab = SeqBDD(1).push(static_cast<int>(v2)).push(static_cast<int>(v1));
+        // "ac" = sequence [v1, v3]
+        SeqBDD ac = SeqBDD(1).push(static_cast<int>(v3)).push(static_cast<int>(v1));
+        // "b" = sequence [v2]
+        SeqBDD b = SeqBDD(1).push(static_cast<int>(v2));
+
+        SeqBDD seq = ab + ac + b;
+
+        SvgParams params;
+        params.var_name_map[v1] = "a";
+        params.var_name_map[v2] = "b";
+        params.var_name_map[v3] = "c";
+        save("example12_seqbdd_sequences.svg", seq.save_svg(params));
+    }
+
+    // ========================================================
+    // Example 13: RotPiDD — rotational permutations
+    //   Identity + LeftRot(2,1) + LeftRot(3,1)
+    // ========================================================
+    {
+        RotPiDD_NewVar();  // element 1
+        RotPiDD_NewVar();  // element 2
+        RotPiDD_NewVar();  // element 3
+
+        RotPiDD id(1);
+        RotPiDD r21 = id.LeftRot(2, 1);   // cyclic shift (1,2)
+        RotPiDD r31 = id.LeftRot(3, 1);   // cyclic shift (1,2,3)
+        RotPiDD perms = id + r21 + r31;
+        save("example13_rotpidd_rotations.svg", perms.save_svg());
+    }
+
+    std::cout << "Done. 13 SVG files generated." << std::endl;
     return 0;
 }
