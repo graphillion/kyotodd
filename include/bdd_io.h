@@ -404,16 +404,16 @@ bddp zdd_import_graphillion(std::istream& strm, int offset = 0);
 
 /** @brief Save BDD as Graphviz DOT to a FILE stream. */
 void bdd_save_graphviz(FILE* strm, bddp f,
-                       GraphvizMode mode = GraphvizMode::Expanded);
+                       DrawMode mode = DrawMode::Expanded);
 /** @brief Save BDD as Graphviz DOT to an output stream. */
 void bdd_save_graphviz(std::ostream& strm, bddp f,
-                       GraphvizMode mode = GraphvizMode::Expanded);
+                       DrawMode mode = DrawMode::Expanded);
 /** @brief Save ZDD as Graphviz DOT to a FILE stream. */
 void zdd_save_graphviz(FILE* strm, bddp f,
-                       GraphvizMode mode = GraphvizMode::Expanded);
+                       DrawMode mode = DrawMode::Expanded);
 /** @brief Save ZDD as Graphviz DOT to an output stream. */
 void zdd_save_graphviz(std::ostream& strm, bddp f,
-                       GraphvizMode mode = GraphvizMode::Expanded);
+                       DrawMode mode = DrawMode::Expanded);
 
 /** @brief @deprecated Always throws. Retained for API compatibility. */
 void bddgraph0(bddp f);

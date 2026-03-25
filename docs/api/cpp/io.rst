@@ -80,10 +80,10 @@ Graphillion Format
 Graphviz DOT Format
 -------------------
 
-.. doxygenfunction:: bdd_save_graphviz(FILE *strm, bddp f, GraphvizMode mode)
-.. doxygenfunction:: bdd_save_graphviz(std::ostream &strm, bddp f, GraphvizMode mode)
-.. doxygenfunction:: zdd_save_graphviz(FILE *strm, bddp f, GraphvizMode mode)
-.. doxygenfunction:: zdd_save_graphviz(std::ostream &strm, bddp f, GraphvizMode mode)
+.. doxygenfunction:: bdd_save_graphviz(FILE *strm, bddp f, DrawMode mode)
+.. doxygenfunction:: bdd_save_graphviz(std::ostream &strm, bddp f, DrawMode mode)
+.. doxygenfunction:: zdd_save_graphviz(FILE *strm, bddp f, DrawMode mode)
+.. doxygenfunction:: zdd_save_graphviz(std::ostream &strm, bddp f, DrawMode mode)
 
 Legacy Sapporo Format
 ---------------------

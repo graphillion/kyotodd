@@ -13,7 +13,7 @@ Type Definitions
 Enumerations
 ------------
 
-.. doxygenenum:: GraphvizMode
+.. doxygenenum:: DrawMode
 
 Memo Classes
 ------------

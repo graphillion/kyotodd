@@ -325,11 +325,11 @@ inline BDD BDD::import_sapporo(std::istream& strm) {
     return BDD_ID(bdd_import_sapporo(strm));
 }
 
-inline void BDD::save_graphviz(FILE* strm, GraphvizMode mode) const {
+inline void BDD::save_graphviz(FILE* strm, DrawMode mode) const {
     bdd_save_graphviz(strm, root, mode);
 }
 
-inline void BDD::save_graphviz(std::ostream& strm, GraphvizMode mode) const {
+inline void BDD::save_graphviz(std::ostream& strm, DrawMode mode) const {
     bdd_save_graphviz(strm, root, mode);
 }
 
@@ -757,11 +757,11 @@ inline ZDD ZDD::import_sapporo(std::istream& strm) {
     return ZDD_ID(zdd_import_sapporo(strm));
 }
 
-inline void ZDD::save_graphviz(FILE* strm, GraphvizMode mode) const {
+inline void ZDD::save_graphviz(FILE* strm, DrawMode mode) const {
     zdd_save_graphviz(strm, root, mode);
 }
 
-inline void ZDD::save_graphviz(std::ostream& strm, GraphvizMode mode) const {
+inline void ZDD::save_graphviz(std::ostream& strm, DrawMode mode) const {
     zdd_save_graphviz(strm, root, mode);
 }
 

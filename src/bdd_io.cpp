@@ -2006,20 +2006,20 @@ static void graphviz_core(Stream& strm, bddp f, bool expanded,
 }
 
 // Public API wrappers
-void bdd_save_graphviz(FILE* strm, bddp f, GraphvizMode mode) {
-    graphviz_core(strm, f, mode == GraphvizMode::Expanded, BddChildResolver{});
+void bdd_save_graphviz(FILE* strm, bddp f, DrawMode mode) {
+    graphviz_core(strm, f, mode == DrawMode::Expanded, BddChildResolver{});
 }
 
-void bdd_save_graphviz(std::ostream& strm, bddp f, GraphvizMode mode) {
-    graphviz_core(strm, f, mode == GraphvizMode::Expanded, BddChildResolver{});
+void bdd_save_graphviz(std::ostream& strm, bddp f, DrawMode mode) {
+    graphviz_core(strm, f, mode == DrawMode::Expanded, BddChildResolver{});
 }
 
-void zdd_save_graphviz(FILE* strm, bddp f, GraphvizMode mode) {
-    graphviz_core(strm, f, mode == GraphvizMode::Expanded, ZddChildResolver{});
+void zdd_save_graphviz(FILE* strm, bddp f, DrawMode mode) {
+    graphviz_core(strm, f, mode == DrawMode::Expanded, ZddChildResolver{});
 }
 
-void zdd_save_graphviz(std::ostream& strm, bddp f, GraphvizMode mode) {
-    graphviz_core(strm, f, mode == GraphvizMode::Expanded, ZddChildResolver{});
+void zdd_save_graphviz(std::ostream& strm, bddp f, DrawMode mode) {
+    graphviz_core(strm, f, mode == DrawMode::Expanded, ZddChildResolver{});
 }
 
 // Obsolete graph functions: retained for API compatibility.

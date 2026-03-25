@@ -268,7 +268,7 @@ The library supports multiple import/export formats:
 - **Sapporo format**: Text format. `bdd_export_sapporo` / `bdd_import_sapporo`, `zdd_export_sapporo` / `zdd_import_sapporo`.
 - **Binary format**: Compact binary format. Single-root: `bdd_export_binary` / `bdd_import_binary`, `zdd_export_binary` / `zdd_import_binary`, `qdd_export_binary` / `qdd_import_binary`, `unreduced_export_binary` / `unreduced_import_binary`. Multi-root: `bdd_export_binary_multi` / `bdd_import_binary_multi`, etc.
 - **Graphillion format**: ZDD text format for Graphillion interop. `zdd_export_graphillion` / `zdd_import_graphillion`.
-- **Graphviz DOT**: Visualization. `bdd_save_graphviz` / `zdd_save_graphviz`. `GraphvizMode::Expanded` (complement expanded) or `GraphvizMode::Raw` (complement edge markers).
+- **Graphviz DOT**: Visualization. `bdd_save_graphviz` / `zdd_save_graphviz`. `DrawMode::Expanded` (complement expanded) or `DrawMode::Raw` (complement edge markers).
 - **Knuth format** (deprecated): `bdd_export_knuth` / `bdd_import_knuth`, `zdd_export_knuth` / `zdd_import_knuth`.
 - **Legacy Sapporo format**: `bddexport` / `bddimport` / `bddimportz`.
 

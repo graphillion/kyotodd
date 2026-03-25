@@ -11037,7 +11037,7 @@ TEST_F(BDDTest, SaveGraphviz_BDD_ComplementExpanded) {
     bddvar v1 = bddnewvar();
     BDD x1 = ~BDD::prime(v1);
     std::ostringstream oss;
-    x1.save_graphviz(oss, GraphvizMode::Expanded);
+    x1.save_graphviz(oss, DrawMode::Expanded);
     std::string dot = oss.str();
     // Should NOT have complement markers (arrowtail)
     EXPECT_EQ(dot.find("arrowtail"), std::string::npos);
@@ -11051,7 +11051,7 @@ TEST_F(BDDTest, SaveGraphviz_BDD_ComplementRaw) {
     bddvar v1 = bddnewvar();
     BDD x1 = ~BDD::prime(v1);
     std::ostringstream oss;
-    x1.save_graphviz(oss, GraphvizMode::Raw);
+    x1.save_graphviz(oss, DrawMode::Raw);
     std::string dot = oss.str();
     // Raw mode with complement root should have entry point with arrowtail
     EXPECT_NE(dot.find("entry"), std::string::npos);
@@ -11092,7 +11092,7 @@ TEST_F(BDDTest, SaveGraphviz_BDD_RawNoComplement) {
     bddvar v1 = bddnewvar();
     BDD x1 = BDD::prime(v1);
     std::ostringstream oss;
-    x1.save_graphviz(oss, GraphvizMode::Raw);
+    x1.save_graphviz(oss, DrawMode::Raw);
     std::string dot = oss.str();
     // Non-complemented BDD in raw mode should NOT have entry point or arrowtail
     EXPECT_EQ(dot.find("entry"), std::string::npos);
@@ -11128,9 +11128,9 @@ TEST_F(BDDTest, SaveGraphviz_ZDD_ComplementRaw) {
     // power_set has complement edges internally
     ZDD z = ZDD::power_set(v2);
     std::ostringstream oss_exp;
-    z.save_graphviz(oss_exp, GraphvizMode::Expanded);
+    z.save_graphviz(oss_exp, DrawMode::Expanded);
     std::ostringstream oss_raw;
-    z.save_graphviz(oss_raw, GraphvizMode::Raw);
+    z.save_graphviz(oss_raw, DrawMode::Raw);
     // Both should be valid DOT
     EXPECT_NE(oss_exp.str().find("digraph {"), std::string::npos);
     EXPECT_NE(oss_raw.str().find("digraph {"), std::string::npos);

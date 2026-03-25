@@ -797,7 +797,7 @@ PYBIND11_MODULE(_core, m) {
         // Graphviz
         .def("save_graphviz_str", [](const BDD& b, bool raw) -> std::string {
             std::ostringstream oss;
-            b.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            b.save_graphviz(oss, raw ? DrawMode::Raw : DrawMode::Expanded);
             return oss.str();
         }, py::arg("raw") = false,
            "Export this BDD as a Graphviz DOT string.\n\n"
@@ -808,7 +808,7 @@ PYBIND11_MODULE(_core, m) {
            "    A DOT format string.\n")
         .def("save_graphviz_file", [](const BDD& b, py::object stream, bool raw) {
             std::ostringstream oss;
-            b.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            b.save_graphviz(oss, raw ? DrawMode::Raw : DrawMode::Expanded);
             stream.attr("write")(oss.str());
         }, py::arg("stream"), py::arg("raw") = false,
            "Export this BDD as a Graphviz DOT to a text stream.\n\n"
@@ -2017,7 +2017,7 @@ PYBIND11_MODULE(_core, m) {
         // Graphviz
         .def("save_graphviz_str", [](const ZDD& z, bool raw) -> std::string {
             std::ostringstream oss;
-            z.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            z.save_graphviz(oss, raw ? DrawMode::Raw : DrawMode::Expanded);
             return oss.str();
         }, py::arg("raw") = false,
            "Export this ZDD as a Graphviz DOT string.\n\n"
@@ -2028,7 +2028,7 @@ PYBIND11_MODULE(_core, m) {
            "    A DOT format string.\n")
         .def("save_graphviz_file", [](const ZDD& z, py::object stream, bool raw) {
             std::ostringstream oss;
-            z.save_graphviz(oss, raw ? GraphvizMode::Raw : GraphvizMode::Expanded);
+            z.save_graphviz(oss, raw ? DrawMode::Raw : DrawMode::Expanded);
             stream.attr("write")(oss.str());
         }, py::arg("stream"), py::arg("raw") = false,
            "Export this ZDD as a Graphviz DOT to a text stream.\n\n"
