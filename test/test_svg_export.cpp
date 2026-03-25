@@ -2,6 +2,7 @@
 #include "bdd.h"
 #include "qdd.h"
 #include "unreduced_dd.h"
+#include "mtbdd.h"
 #include <sstream>
 #include <fstream>
 #include <cstdio>
@@ -299,4 +300,96 @@ TEST_F(SvgExportTest, SkipUnusedLevels) {
     int h_default = extract_height(svg_default);
     int h_skip = extract_height(svg_skip);
     EXPECT_GT(h_default, h_skip);
+}
+
+// --- MTBDD SVG ---
+
+TEST_F(SvgExportTest, MTBDD_Terminal) {
+    auto mt = MTBDD<double>::terminal(3.14);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(contains(svg, "3.14"));
+    EXPECT_TRUE(contains(svg, "<rect"));
+}
+
+TEST_F(SvgExportTest, MTBDD_MultiTerminal) {
+    bddvar v1 = bddnewvar();
+    auto hi = MTBDD<double>::terminal(3.14);
+    auto lo = MTBDD<double>::terminal(2.71);
+    auto mt = MTBDD<double>::ite(v1, hi, lo);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(contains(svg, "<circle"));
+    EXPECT_TRUE(contains(svg, "3.14"));
+    EXPECT_TRUE(contains(svg, "2.71"));
+}
+
+TEST_F(SvgExportTest, MTBDD_ThreeTerminals) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    auto t0 = MTBDD<double>::terminal(0.0);
+    auto t1 = MTBDD<double>::terminal(1.5);
+    auto t2 = MTBDD<double>::terminal(9.9);
+    auto inner = MTBDD<double>::ite(v1, t2, t1);
+    auto mt = MTBDD<double>::ite(v2, inner, t0);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "1.5"));
+    EXPECT_TRUE(contains(svg, "9.9"));
+    EXPECT_TRUE(contains(svg, "0"));
+}
+
+TEST_F(SvgExportTest, MTBDD_DrawZeroFalse) {
+    bddvar v1 = bddnewvar();
+    auto hi = MTBDD<double>::terminal(5.0);
+    auto lo = MTBDD<double>::terminal(0.0);
+    auto mt = MTBDD<double>::ite(v1, hi, lo);
+    SvgParams params;
+    params.draw_zero = false;
+    std::string svg = mt.save_svg(params);
+    EXPECT_TRUE(contains(svg, "5"));
+    // Only one terminal rect should be drawn
+    size_t first = svg.find("<rect");
+    ASSERT_NE(first, std::string::npos);
+    size_t second = svg.find("<rect", first + 1);
+    EXPECT_EQ(second, std::string::npos);
+}
+
+TEST_F(SvgExportTest, MTBDD_StreamOutput) {
+    bddvar v1 = bddnewvar();
+    auto hi = MTBDD<double>::terminal(1.0);
+    auto lo = MTBDD<double>::terminal(2.0);
+    auto mt = MTBDD<double>::ite(v1, hi, lo);
+    std::ostringstream oss;
+    mt.save_svg(oss);
+    EXPECT_EQ(oss.str(), mt.save_svg());
+}
+
+TEST_F(SvgExportTest, MTBDD_Int) {
+    bddvar v1 = bddnewvar();
+    auto hi = MTBDD<int64_t>::terminal(42);
+    auto lo = MTBDD<int64_t>::terminal(-7);
+    auto mt = MTBDD<int64_t>::ite(v1, hi, lo);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "42"));
+    EXPECT_TRUE(contains(svg, "-7"));
+}
+
+// --- MTZDD SVG ---
+
+TEST_F(SvgExportTest, MTZDD_Basic) {
+    bddvar v1 = bddnewvar();
+    auto hi = MTZDD<double>::terminal(3.14);
+    auto lo = MTZDD<double>::terminal(1.0);
+    auto mt = MTZDD<double>::ite(v1, hi, lo);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "<svg xmlns="));
+    EXPECT_TRUE(contains(svg, "<circle"));
+    EXPECT_TRUE(contains(svg, "3.14"));
+}
+
+TEST_F(SvgExportTest, MTZDD_Terminal) {
+    auto mt = MTZDD<int64_t>::terminal(99);
+    std::string svg = mt.save_svg();
+    EXPECT_TRUE(contains(svg, "99"));
+    EXPECT_TRUE(contains(svg, "<rect"));
 }
