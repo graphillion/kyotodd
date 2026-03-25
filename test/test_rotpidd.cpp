@@ -487,3 +487,52 @@ TEST_F(RotPiDDTest, CofactThrowsOnOutOfRange) {
     EXPECT_THROW(id.Cofact(0, 1), std::invalid_argument);
     EXPECT_THROW(id.Cofact(3, 1), std::invalid_argument);
 }
+
+/* ---- save_svg ---- */
+TEST_F(RotPiDDTest, SaveSvgString) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+
+    RotPiDD id(1);
+    RotPiDD r = id.LeftRot(2, 1);  // rotation (2,1)
+    RotPiDD perm = r + id;          // {identity, rotation}
+
+    std::string svg = perm.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_TRUE(svg.find("</svg>") != std::string::npos);
+    EXPECT_EQ(svg, perm.GetZDD().save_svg());
+}
+
+TEST_F(RotPiDDTest, SaveSvgStream) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+
+    RotPiDD id(1);
+    RotPiDD r = id.Swap(1, 2);
+
+    std::ostringstream oss;
+    r.save_svg(oss);
+    EXPECT_EQ(oss.str(), r.save_svg());
+}
+
+TEST_F(RotPiDDTest, SaveSvgWithParams) {
+    RotPiDD_NewVar();
+    RotPiDD_NewVar();
+
+    RotPiDD id(1);
+    SvgParams params;
+    params.mode = DrawMode::Raw;
+    params.draw_zero = false;
+
+    std::string svg = id.save_svg(params);
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, id.GetZDD().save_svg(params));
+}
+
+TEST_F(RotPiDDTest, SaveSvgTerminal) {
+    RotPiDD empty(0);
+    std::string svg = empty.save_svg();
+    EXPECT_TRUE(svg.find("<svg") != std::string::npos);
+    EXPECT_EQ(svg, empty.GetZDD().save_svg());
+}

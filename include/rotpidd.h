@@ -5,6 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
+struct SvgParams;
+
 /** @brief Maximum number of elements in RotPiDD permutations. */
 static const int RotPiDD_MaxVar = 254;
 
@@ -315,6 +317,31 @@ public:
     void Enum2() const;
 
     /**
+     * @brief Export the internal ZDD as SVG to a file.
+     * @param filename Output file path.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(const char* filename) const;
+    /**
+     * @brief Export the internal ZDD as SVG to a stream.
+     * @param strm Output stream.
+     * @param params SVG rendering parameters.
+     */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    /** @overload */
+    void save_svg(std::ostream& strm) const;
+    /**
+     * @brief Export the internal ZDD as an SVG string.
+     * @param params SVG rendering parameters.
+     * @return An SVG format string.
+     */
+    std::string save_svg(const SvgParams& params) const;
+    /** @overload */
+    std::string save_svg() const;
+
+    /**
      * @brief Custom hash function for (bddp, bitmask) pairs.
      *
      * Used as the hash function for the memoization table in
@@ -361,5 +388,27 @@ inline RotPiDD operator-(const RotPiDD& p, const RotPiDD& q) { return RotPiDD(p.
 inline bool operator==(const RotPiDD& p, const RotPiDD& q) { return p.zdd_ == q.zdd_; }
 /** @brief Inequality comparison. */
 inline bool operator!=(const RotPiDD& p, const RotPiDD& q) { return !(p == q); }
+
+// --- RotPiDD save_svg inline implementations ---
+#include "svg_export.h"
+
+inline void RotPiDD::save_svg(const char* filename, const SvgParams& params) const {
+    zdd_save_svg(filename, zdd_.get_id(), params);
+}
+inline void RotPiDD::save_svg(const char* filename) const {
+    save_svg(filename, SvgParams());
+}
+inline void RotPiDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    zdd_save_svg(strm, zdd_.get_id(), params);
+}
+inline void RotPiDD::save_svg(std::ostream& strm) const {
+    save_svg(strm, SvgParams());
+}
+inline std::string RotPiDD::save_svg(const SvgParams& params) const {
+    return zdd_save_svg(zdd_.get_id(), params);
+}
+inline std::string RotPiDD::save_svg() const {
+    return save_svg(SvgParams());
+}
 
 #endif
