@@ -356,6 +356,43 @@ TEST_F(MVDDTest, MVBDDChildAndTopVar) {
     EXPECT_TRUE(c2.is_one());
 }
 
+TEST_F(MVDDTest, MVBDDChildValue2ReturnsConstant) {
+    // Regression: child(2) for k=3 singleton must return constant one,
+    // not a function that depends on lower DD variables.
+    MVBDD base(3);
+    bddvar v1 = base.new_var();
+
+    MVBDD s2 = MVBDD::singleton(base, v1, 2);
+    MVBDD c2 = s2.child(2);
+    EXPECT_TRUE(c2.is_one());
+
+    // Also verify child(0) and child(1) return false
+    MVBDD c0 = s2.child(0);
+    MVBDD c1 = s2.child(1);
+    EXPECT_TRUE(c0.is_zero());
+    EXPECT_TRUE(c1.is_zero());
+}
+
+TEST_F(MVDDTest, MVBDDChildK4AllValues) {
+    // Test child() for all values with k=4
+    MVBDD base(4);
+    bddvar v1 = base.new_var();
+
+    for (int val = 0; val < 4; ++val) {
+        MVBDD s = MVBDD::singleton(base, v1, val);
+        for (int test = 0; test < 4; ++test) {
+            MVBDD c = s.child(test);
+            if (test == val) {
+                EXPECT_TRUE(c.is_one())
+                    << "singleton(v1," << val << ").child(" << test << ") should be one";
+            } else {
+                EXPECT_TRUE(c.is_zero())
+                    << "singleton(v1," << val << ").child(" << test << ") should be zero";
+            }
+        }
+    }
+}
+
 TEST_F(MVDDTest, MVBDDChildTerminalThrows) {
     MVBDD base(3, true);
     EXPECT_THROW(base.child(0), std::invalid_argument);

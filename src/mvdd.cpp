@@ -391,7 +391,12 @@ MVBDD MVBDD::child(int value) const {
         if (!(f & BDD_CONST_FLAG) && node_var(f) == dvars[value - 1]) {
             f = BDD::child1(f);
         }
-        // Remaining lower dd_vars are don't care
+        // Take lo at remaining lower dd_vars (must be 0 in the encoding)
+        for (int i = value - 2; i >= 0; --i) {
+            if (f & BDD_CONST_FLAG) break;
+            if (node_var(f) != dvars[i]) continue;
+            f = BDD::child0(f);
+        }
     }
 
     return make_result(f);
