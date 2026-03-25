@@ -517,6 +517,65 @@ TEST_F(MTBDDClassTest, ApplyDouble) {
 }
 
 // ==========================================================================
+// MTBDD ITE (3-operand) tests
+// ==========================================================================
+
+TEST_F(MTBDDClassTest, IteTerminalConditionZero) {
+    auto cond = MTBDD<int>::terminal(0);  // zero → else
+    auto then_val = MTBDD<int>::terminal(10);
+    auto else_val = MTBDD<int>::terminal(20);
+    auto result = cond.ite(then_val, else_val);
+    EXPECT_EQ(result.terminal_value(), 20);
+}
+
+TEST_F(MTBDDClassTest, IteTerminalConditionNonZero) {
+    auto cond = MTBDD<int>::terminal(5);  // non-zero → then
+    auto then_val = MTBDD<int>::terminal(10);
+    auto else_val = MTBDD<int>::terminal(20);
+    auto result = cond.ite(then_val, else_val);
+    EXPECT_EQ(result.terminal_value(), 10);
+}
+
+TEST_F(MTBDDClassTest, IteBruteForce) {
+    // cond = (v1 ? 1 : 0), then = terminal(100), else = terminal(200)
+    auto cond = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(1), MTBDD<int>::terminal(0));
+    auto then_val = MTBDD<int>::terminal(100);
+    auto else_val = MTBDD<int>::terminal(200);
+
+    auto result = cond.ite(then_val, else_val);
+
+    // v1=0 → cond=0 → else=200
+    EXPECT_EQ(result.evaluate({0, 0, 0}), 200);
+    // v1=1 → cond=1 → then=100
+    EXPECT_EQ(result.evaluate({0, 1, 0}), 100);
+}
+
+TEST_F(MTBDDClassTest, IteWithNonTrivialBranches) {
+    // cond = (v2 ? 3 : 0)
+    // then = (v1 ? 10 : 20)
+    // else = (v1 ? 30 : 40)
+    auto cond = MTBDD<int>::ite(2,
+        MTBDD<int>::terminal(3), MTBDD<int>::terminal(0));
+    auto then_br = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(10), MTBDD<int>::terminal(20));
+    auto else_br = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(30), MTBDD<int>::terminal(40));
+
+    auto result = cond.ite(then_br, else_br);
+
+    for (int v1 = 0; v1 <= 1; v1++) {
+        for (int v2 = 0; v2 <= 1; v2++) {
+            std::vector<int> a = {0, v1, v2, 0};
+            int c = cond.evaluate(a);
+            int expected = (c == 0) ? else_br.evaluate(a) : then_br.evaluate(a);
+            EXPECT_EQ(result.evaluate(a), expected)
+                << "v1=" << v1 << " v2=" << v2;
+        }
+    }
+}
+
+// ==========================================================================
 // MTZDD apply tests
 // ==========================================================================
 

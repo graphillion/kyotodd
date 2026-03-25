@@ -215,6 +215,138 @@ static bddp mtzdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
     return result;
 }
 
+// --- ITE templates ---
+
+template<typename T>
+static bddp mtbdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    bool f_term = (f & BDD_CONST_FLAG) != 0;
+
+    // Terminal cases: f is a terminal
+    if (f_term) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        T f_val = table.get_value(MTBDDTerminalTable<T>::terminal_index(f));
+        return (f_val == T{}) ? h : g;
+    }
+
+    if (g == h) return g;
+
+    bddp cached = bddrcache3(cache_op, f, g, h);
+    if (cached != bddnull) return cached;
+
+    // f is non-terminal MTBDD (no complement edges)
+    bool g_term = (g & BDD_CONST_FLAG) != 0;
+    bool h_term = (h & BDD_CONST_FLAG) != 0;
+
+    bddvar f_var = node_var(f);
+    bddvar g_var = g_term ? 0 : node_var(g);
+    bddvar h_var = h_term ? 0 : node_var(h);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = g_term ? 0 : var2level[g_var];
+    bddvar h_level = h_term ? 0 : var2level[h_var];
+
+    bddvar top_level = f_level;
+    if (g_level > top_level) top_level = g_level;
+    if (h_level > top_level) top_level = h_level;
+    bddvar top_var = (f_level == top_level) ? f_var :
+                     (g_level == top_level) ? g_var : h_var;
+
+    // Cofactors (BDD semantics: missing var → pass through)
+    bddp f_lo, f_hi;
+    if (f_level == top_level) {
+        f_lo = node_lo(f); f_hi = node_hi(f);
+    } else {
+        f_lo = f; f_hi = f;
+    }
+
+    bddp g_lo, g_hi;
+    if (g_level == top_level) {
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    } else {
+        g_lo = g; g_hi = g;
+    }
+
+    bddp h_lo, h_hi;
+    if (h_level == top_level) {
+        h_lo = node_lo(h); h_hi = node_hi(h);
+    } else {
+        h_lo = h; h_hi = h;
+    }
+
+    bddp lo = mtbdd_ite_rec<T>(f_lo, g_lo, h_lo, cache_op);
+    bddp hi = mtbdd_ite_rec<T>(f_hi, g_hi, h_hi, cache_op);
+
+    bddp result = mtbdd_getnode_raw(top_var, lo, hi);
+    bddwcache3(cache_op, f, g, h, result);
+    return result;
+}
+
+template<typename T>
+static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
+    BDD_RecurGuard guard;
+
+    bool f_term = (f & BDD_CONST_FLAG) != 0;
+
+    if (f_term) {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        T f_val = table.get_value(MTBDDTerminalTable<T>::terminal_index(f));
+        return (f_val == T{}) ? h : g;
+    }
+
+    if (g == h) return g;
+
+    bddp cached = bddrcache3(cache_op, f, g, h);
+    if (cached != bddnull) return cached;
+
+    bool g_term = (g & BDD_CONST_FLAG) != 0;
+    bool h_term = (h & BDD_CONST_FLAG) != 0;
+
+    bddvar f_var = node_var(f);
+    bddvar g_var = g_term ? 0 : node_var(g);
+    bddvar h_var = h_term ? 0 : node_var(h);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = g_term ? 0 : var2level[g_var];
+    bddvar h_level = h_term ? 0 : var2level[h_var];
+
+    bddvar top_level = f_level;
+    if (g_level > top_level) top_level = g_level;
+    if (h_level > top_level) top_level = h_level;
+    bddvar top_var = (f_level == top_level) ? f_var :
+                     (g_level == top_level) ? g_var : h_var;
+
+    bddp zero_t = BDD_CONST_FLAG | 0;
+
+    // Cofactors: f uses BDD semantics (condition), g/h use ZDD semantics
+    bddp f_lo, f_hi;
+    if (f_level == top_level) {
+        f_lo = node_lo(f); f_hi = node_hi(f);
+    } else {
+        f_lo = f; f_hi = f;
+    }
+
+    bddp g_lo, g_hi;
+    if (g_level == top_level) {
+        g_lo = node_lo(g); g_hi = node_hi(g);
+    } else {
+        g_lo = g; g_hi = zero_t;  // ZDD: missing var → hi=zero
+    }
+
+    bddp h_lo, h_hi;
+    if (h_level == top_level) {
+        h_lo = node_lo(h); h_hi = node_hi(h);
+    } else {
+        h_lo = h; h_hi = zero_t;
+    }
+
+    bddp lo = mtzdd_ite_rec<T>(f_lo, g_lo, h_lo, cache_op);
+    bddp hi = mtzdd_ite_rec<T>(f_hi, g_hi, h_hi, cache_op);
+
+    bddp result = mtzdd_getnode_raw(top_var, lo, hi);
+    bddwcache3(cache_op, f, g, h, result);
+    return result;
+}
+
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
 
 template<typename T>
@@ -313,6 +445,25 @@ public:
     }
     static MTBDD max(const MTBDD& a, const MTBDD& b) {
         return a.apply(b, [](const T& x, const T& y) { return x < y ? y : x; });
+    }
+
+    // --- ITE (3-operand: this is condition) ---
+
+    MTBDD ite(const MTBDD& then_case, const MTBDD& else_case) const {
+        // Terminal fast paths
+        if (root & BDD_CONST_FLAG) {
+            auto& table = MTBDDTerminalTable<T>::instance();
+            T val = table.get_value(MTBDDTerminalTable<T>::terminal_index(root));
+            return (val == T{}) ? else_case : then_case;
+        }
+        if (then_case.root == else_case.root) return then_case;
+
+        static uint8_t ite_op = mtbdd_alloc_op_code();
+        MTBDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtbdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
+        });
+        return result;
     }
 
     // --- Terminal table access ---
@@ -418,6 +569,24 @@ public:
     }
     static MTZDD max(const MTZDD& a, const MTZDD& b) {
         return a.apply(b, [](const T& x, const T& y) { return x < y ? y : x; });
+    }
+
+    // --- ITE (3-operand: this is condition) ---
+
+    MTZDD ite(const MTZDD& then_case, const MTZDD& else_case) const {
+        if (root & BDD_CONST_FLAG) {
+            auto& table = MTBDDTerminalTable<T>::instance();
+            T val = table.get_value(MTBDDTerminalTable<T>::terminal_index(root));
+            return (val == T{}) ? else_case : then_case;
+        }
+        if (then_case.root == else_case.root) return then_case;
+
+        static uint8_t ite_op = mtbdd_alloc_op_code();
+        MTZDD result;
+        result.root = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
+        });
+        return result;
     }
 
     // --- Evaluation ---
