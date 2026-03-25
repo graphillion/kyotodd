@@ -2247,6 +2247,33 @@ PYBIND11_MODULE(_core, m) {
             p.Enum2();
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
+
+        .def("save_svg_str", [](const PiDD& p, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return p.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const PiDD& p, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = p.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
     ;
 
     // ================================================================
@@ -2483,6 +2510,33 @@ PYBIND11_MODULE(_core, m) {
            "    w: Weight matrix (n+1 x n+1, 1-indexed).\n\n"
            "Returns:\n"
            "    The maximum contradiction value.\n")
+
+        .def("save_svg_str", [](const RotPiDD& p, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return p.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const RotPiDD& p, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = p.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
     ;
 
     // ================================================================
@@ -3029,6 +3083,33 @@ PYBIND11_MODULE(_core, m) {
            "Equivalent to str(self).\n\n"
            "Returns:\n"
            "    A string representation of all sequences.\n")
+
+        .def("save_svg_str", [](const SeqBDD& s, bool raw, bool draw_zero) -> std::string {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            return s.save_svg(params);
+        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as an SVG string.\n\n"
+           "Args:\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           "Returns:\n"
+           "    An SVG format string.\n")
+        .def("save_svg_file", [](const SeqBDD& s, py::object stream, bool raw, bool draw_zero) {
+            SvgParams params;
+            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+            params.draw_zero = draw_zero;
+            std::string svg = s.save_svg(params);
+            stream.attr("write")(svg);
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+           "Export the internal ZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           "    stream: A writable text stream.\n"
+           "    raw: If True, show physical DAG with complement markers.\n"
+           "         If False (default), expand complement edges into full nodes.\n"
+           "    draw_zero: If True (default), draw the 0-terminal node.\n")
     ;
 
     // ZddMinWeightRange Python iterator
