@@ -334,6 +334,25 @@ inline void BDD::save_graphviz(std::ostream& strm, DrawMode mode) const {
     bdd_save_graphviz(strm, root, mode);
 }
 
+inline void BDD::save_svg(const char* filename, const SvgParams& params) const {
+    bdd_save_svg(filename, root, params);
+}
+inline void BDD::save_svg(const char* filename) const {
+    bdd_save_svg(filename, root);
+}
+inline void BDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    bdd_save_svg(strm, root, params);
+}
+inline void BDD::save_svg(std::ostream& strm) const {
+    bdd_save_svg(strm, root);
+}
+inline std::string BDD::save_svg(const SvgParams& params) const {
+    return bdd_save_svg(root, params);
+}
+inline std::string BDD::save_svg() const {
+    return bdd_save_svg(root);
+}
+
 inline void BDD::Print() const {
     bddvar v = bddtop(root);
     bddvar lev = bddlevofvar(v);
@@ -764,6 +783,25 @@ inline void ZDD::save_graphviz(FILE* strm, DrawMode mode) const {
 
 inline void ZDD::save_graphviz(std::ostream& strm, DrawMode mode) const {
     zdd_save_graphviz(strm, root, mode);
+}
+
+inline void ZDD::save_svg(const char* filename, const SvgParams& params) const {
+    zdd_save_svg(filename, root, params);
+}
+inline void ZDD::save_svg(const char* filename) const {
+    zdd_save_svg(filename, root);
+}
+inline void ZDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    zdd_save_svg(strm, root, params);
+}
+inline void ZDD::save_svg(std::ostream& strm) const {
+    zdd_save_svg(strm, root);
+}
+inline std::string ZDD::save_svg(const SvgParams& params) const {
+    return zdd_save_svg(root, params);
+}
+inline std::string ZDD::save_svg() const {
+    return zdd_save_svg(root);
 }
 
 inline void ZDD::XPrint() const {

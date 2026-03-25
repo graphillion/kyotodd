@@ -4,6 +4,7 @@
 #include "bdd_types.h"
 #include <functional>
 
+struct SvgParams;
 class QDD;
 
 /**
@@ -192,6 +193,18 @@ public:
     /** @brief Import an UnreducedDD from BDD binary format from an input stream. */
     static UnreducedDD import_binary(std::istream& strm);
 
+    // --- SVG export ---
+
+    /** @brief Save UnreducedDD as SVG to a file (always Raw mode). */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    /** @brief Save UnreducedDD as SVG to an output stream (always Raw mode). */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    /** @brief Export UnreducedDD as SVG string (always Raw mode). */
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
     // --- Query ---
 
     /**
@@ -246,6 +259,28 @@ namespace std {
             return std::hash<uint64_t>()(u.get_id());
         }
     };
+}
+
+// --- UnreducedDD SVG export inline implementations ---
+#include "svg_export.h"
+
+inline void UnreducedDD::save_svg(const char* filename, const SvgParams& params) const {
+    unreduced_save_svg(filename, root, params);
+}
+inline void UnreducedDD::save_svg(const char* filename) const {
+    unreduced_save_svg(filename, root);
+}
+inline void UnreducedDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    unreduced_save_svg(strm, root, params);
+}
+inline void UnreducedDD::save_svg(std::ostream& strm) const {
+    unreduced_save_svg(strm, root);
+}
+inline std::string UnreducedDD::save_svg(const SvgParams& params) const {
+    return unreduced_save_svg(root, params);
+}
+inline std::string UnreducedDD::save_svg() const {
+    return unreduced_save_svg(root);
 }
 
 #endif

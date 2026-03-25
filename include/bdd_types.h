@@ -148,6 +148,7 @@ void bddgc_unprotect(bddp* p);
 class BDD;
 class ZDD;
 class QDD;
+struct SvgParams;
 
 /** @brief Drawing mode for save_graphviz() and save_svg(). */
 enum class DrawMode {
@@ -457,6 +458,15 @@ public:
     void save_graphviz(FILE* strm, DrawMode mode = DrawMode::Expanded) const;
     /** @brief Save Graphviz DOT representation to an output stream. */
     void save_graphviz(std::ostream& strm, DrawMode mode = DrawMode::Expanded) const;
+    /** @brief Save BDD as SVG to a file. */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    /** @brief Save BDD as SVG to an output stream. */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    /** @brief Export BDD as SVG and return the SVG string. */
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
     /** @brief Print BDD summary (ID, Var, Level, Size) to stdout.
      *  @throws std::invalid_argument if this is BDD::Null. */
     void Print() const;
@@ -946,6 +956,15 @@ public:
     void save_graphviz(FILE* strm, DrawMode mode = DrawMode::Expanded) const;
     /** @brief Save Graphviz DOT representation to an output stream. */
     void save_graphviz(std::ostream& strm, DrawMode mode = DrawMode::Expanded) const;
+    /** @brief Save ZDD as SVG to a file. */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    /** @brief Save ZDD as SVG to an output stream. */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    /** @brief Export ZDD as SVG and return the SVG string. */
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
     void Print() const;
 

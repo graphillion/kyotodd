@@ -4,6 +4,7 @@
 #include "bdd_types.h"
 #include <functional>
 
+struct SvgParams;
 class QDD;
 
 /**
@@ -145,6 +146,18 @@ public:
     /** @brief Import multiple QDDs from binary format from an input stream. */
     static std::vector<QDD> import_binary_multi(std::istream& strm, bool ignore_type = false);
 
+    // --- SVG export ---
+
+    /** @brief Save QDD as SVG to a file. */
+    void save_svg(const char* filename, const SvgParams& params) const;
+    void save_svg(const char* filename) const;
+    /** @brief Save QDD as SVG to an output stream. */
+    void save_svg(std::ostream& strm, const SvgParams& params) const;
+    void save_svg(std::ostream& strm) const;
+    /** @brief Export QDD as SVG and return the SVG string. */
+    std::string save_svg(const SvgParams& params) const;
+    std::string save_svg() const;
+
     // --- Conversion ---
 
     /** @brief Convert QDD to canonical BDD by applying jump rule via getnode(). */
@@ -238,6 +251,28 @@ inline QDD QDD::child(int child) const {
     QDD q(0);
     q.root = QDD::child(root, child);
     return q;
+}
+
+// --- QDD SVG export inline implementations ---
+#include "svg_export.h"
+
+inline void QDD::save_svg(const char* filename, const SvgParams& params) const {
+    qdd_save_svg(filename, root, params);
+}
+inline void QDD::save_svg(const char* filename) const {
+    qdd_save_svg(filename, root);
+}
+inline void QDD::save_svg(std::ostream& strm, const SvgParams& params) const {
+    qdd_save_svg(strm, root, params);
+}
+inline void QDD::save_svg(std::ostream& strm) const {
+    qdd_save_svg(strm, root);
+}
+inline std::string QDD::save_svg(const SvgParams& params) const {
+    return qdd_save_svg(root, params);
+}
+inline std::string QDD::save_svg() const {
+    return qdd_save_svg(root);
 }
 
 #endif
