@@ -5,6 +5,9 @@
 #include <iosfwd>
 #include <string>
 #include <map>
+#include <vector>
+
+class MVDDVarTable;
 
 /**
  * @brief Parameters for SVG export of decision diagrams.
@@ -32,6 +35,11 @@ struct SvgParams {
     int font_size = 24;         ///< Font size for node labels.
     /** Optional variable name map. If non-empty, var numbers are replaced by names. */
     std::map<bddvar, std::string> var_name_map;
+    /** Terminal node labels for MTBDD/MTZDD. Maps terminal bddp to display string. */
+    std::map<bddp, std::string> terminal_name_map;
+    bool draw_edge_labels = false; ///< Show value labels on MVBDD/MVZDD edges.
+    /** Color palette for k-way edges (MVBDD/MVZDD). Empty = use defaults. */
+    std::vector<std::string> edge_colors;
 };
 
 // --- BDD SVG export ---
@@ -77,5 +85,57 @@ void unreduced_save_svg(std::ostream& strm, bddp f,
                         const SvgParams& params = SvgParams());
 /** @brief Export UnreducedDD as SVG and return the SVG string. */
 std::string unreduced_save_svg(bddp f, const SvgParams& params = SvgParams());
+
+// --- MTBDD SVG export ---
+
+/** @brief Save MTBDD as SVG to a file. Uses terminal_name_map for labels. */
+void mtbdd_save_svg(const char* filename, bddp f,
+                    const SvgParams& params = SvgParams());
+/** @brief Save MTBDD as SVG to an output stream. */
+void mtbdd_save_svg(std::ostream& strm, bddp f,
+                    const SvgParams& params = SvgParams());
+/** @brief Export MTBDD as SVG and return the SVG string. */
+std::string mtbdd_save_svg(bddp f, const SvgParams& params = SvgParams());
+
+// --- MTZDD SVG export ---
+
+/** @brief Save MTZDD as SVG to a file. Uses terminal_name_map for labels. */
+void mtzdd_save_svg(const char* filename, bddp f,
+                    const SvgParams& params = SvgParams());
+/** @brief Save MTZDD as SVG to an output stream. */
+void mtzdd_save_svg(std::ostream& strm, bddp f,
+                    const SvgParams& params = SvgParams());
+/** @brief Export MTZDD as SVG and return the SVG string. */
+std::string mtzdd_save_svg(bddp f, const SvgParams& params = SvgParams());
+
+// --- MVBDD SVG export (expanded: k-way branching) ---
+
+/** @brief Save MVBDD as SVG to a file. */
+void mvbdd_save_svg(const char* filename, bddp f,
+                    const MVDDVarTable* table,
+                    const SvgParams& params = SvgParams());
+/** @brief Save MVBDD as SVG to an output stream. */
+void mvbdd_save_svg(std::ostream& strm, bddp f,
+                    const MVDDVarTable* table,
+                    const SvgParams& params = SvgParams());
+/** @brief Export MVBDD as SVG and return the SVG string. */
+std::string mvbdd_save_svg(bddp f,
+                           const MVDDVarTable* table,
+                           const SvgParams& params = SvgParams());
+
+// --- MVZDD SVG export (expanded: k-way branching) ---
+
+/** @brief Save MVZDD as SVG to a file. */
+void mvzdd_save_svg(const char* filename, bddp f,
+                    const MVDDVarTable* table,
+                    const SvgParams& params = SvgParams());
+/** @brief Save MVZDD as SVG to an output stream. */
+void mvzdd_save_svg(std::ostream& strm, bddp f,
+                    const MVDDVarTable* table,
+                    const SvgParams& params = SvgParams());
+/** @brief Export MVZDD as SVG and return the SVG string. */
+std::string mvzdd_save_svg(bddp f,
+                           const MVDDVarTable* table,
+                           const SvgParams& params = SvgParams());
 
 #endif // KYOTODD_SVG_EXPORT_H
