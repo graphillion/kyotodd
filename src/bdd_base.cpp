@@ -178,17 +178,28 @@ static void unique_table_resize(BddUniqueTable* t) {
 
 // --- Public API ---
 void bddfinal() {
-    // Check if any GC root points to a non-terminal node.
-    // Static constants (BDD::False, ZDD::Empty, etc.) hold terminal values
-    // (BDD_CONST_FLAG set or bddnull) and are safe across bddfinal.
+    // Check if any GC root points to a non-terminal node or to a
+    // non-standard terminal (MTBDD/MTZDD terminal with index >= 2).
+    // Standard terminals: bddfalse (index 0) and bddtrue (index 1)
+    // are safe because they are static constants. MTBDD/MTZDD terminals
+    // with index >= 2 will be invalidated by mtbdd_clear_all_terminal_tables.
     for (bddp* p : gc_roots()) {
         bddp v = *p;
-        if (v != bddnull && !(v & BDD_CONST_FLAG)) {
-            throw std::runtime_error(
-                "bddfinal(): cannot finalize while BDD/ZDD objects "
-                "referencing non-terminal nodes exist. "
-                "Delete all such objects first.");
+        if (v == bddnull) continue;
+        if (v & BDD_CONST_FLAG) {
+            uint64_t idx = v & ~BDD_CONST_FLAG;
+            if (idx >= 2) {
+                throw std::runtime_error(
+                    "bddfinal(): cannot finalize while MTBDD/MTZDD objects "
+                    "with non-standard terminal values exist. "
+                    "Delete all such objects first.");
+            }
+            continue;  // bddfalse (idx=0) and bddtrue (idx=1) are safe
         }
+        throw std::runtime_error(
+            "bddfinal(): cannot finalize while BDD/ZDD objects "
+            "referencing non-terminal nodes exist. "
+            "Delete all such objects first.");
     }
     mtbdd_clear_all_terminal_tables();
     std::free(bdd_nodes);

@@ -95,3 +95,35 @@ binding.
   `Swap()`, `Cofact()`, and other operations on existing objects to return
   incorrect results. Do not call `bddnewvaroflev()` while PiDD / RotPiDD
   objects are in use.
+
+## MTBDD / MTZDD Limitations
+
+- **`MTBDD::apply` / `MTZDD::apply` cache key does not include functor state**
+  (`include/mtbdd.h`).
+  The operation cache is keyed on `(cache_op, f, g)` where `cache_op` is a
+  `static uint8_t` per `BinOp` type. Stateful functors (e.g. structs with
+  different member values but the same type) share the same op code, so the
+  cache cannot distinguish between different instances. Calling `apply` with
+  `PlusBias{1}` followed by `PlusBias{2}` on the same operands will return
+  the cached result of the first call. Workaround: use distinct types (e.g.
+  template parameters or separate lambdas) for functors with different state.
+
+- **MTZDD terminal condition loses zero-suppressed variable information in ITE**
+  (`include/mtbdd.h`).
+  When an MTZDD condition is reduced to a terminal by zero-suppression (e.g.
+  `MTZDD::ite(v, zero, x)` reduces to `terminal(x)`), the `cond.ite(then,
+  else)` wrapper's terminal fast path cannot recover the lost variable. The
+  condition is treated as unconditionally non-zero for all assignments. This
+  is a fundamental consequence of ZDD zero-suppression: once a variable is
+  eliminated from the structure, the ITE cannot consult it. The recursive
+  `mtzdd_ite_rec` correctly handles zero-suppressed variables when the
+  condition is non-terminal.
+
+- **`bddfinal()` cannot detect MTBDD/MTZDD terminals at index 1**
+  (`src/bdd_base.cpp`).
+  MTBDD terminal index 1 (`BDD_CONST_FLAG | 1`) is the same bddp value as
+  `bddtrue`, which is used by BDD/ZDD static constants. `bddfinal()` rejects
+  non-standard terminals with index >= 2 but cannot distinguish index 1 from
+  `bddtrue`. If the first non-zero value registered in an MTBDD terminal
+  table is the only non-standard terminal alive, `bddfinal()` will not reject
+  it and the terminal will be silently invalidated.

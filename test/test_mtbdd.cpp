@@ -688,3 +688,186 @@ TEST_F(MTBDDClassTest, GCProtection) {
     EXPECT_EQ(f.get_id(), before);
     EXPECT_EQ(f.top(), 1u);
 }
+
+// ==========================================================================
+// Fix verification tests
+// ==========================================================================
+
+// --- Fix 1: Non-commutative apply (subtraction) ---
+
+TEST_F(MTBDDClassTest, SubtractNonCommutative) {
+    // x = (v1 ? 7 : 0), y = (v1 ? 100 : 0)
+    auto x = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(7), MTBDD<int>::terminal(0));
+    auto y = MTBDD<int>::ite(1,
+        MTBDD<int>::terminal(100), MTBDD<int>::terminal(0));
+
+    auto x_minus_y = x - y;
+    auto y_minus_x = y - x;
+
+    // v1=1: x-y = 7-100 = -93, y-x = 100-7 = 93
+    EXPECT_EQ(x_minus_y.evaluate({0, 1, 0}), -93);
+    EXPECT_EQ(y_minus_x.evaluate({0, 1, 0}), 93);
+
+    // v1=0: x-y = 0, y-x = 0
+    EXPECT_EQ(x_minus_y.evaluate({0, 0, 0}), 0);
+    EXPECT_EQ(y_minus_x.evaluate({0, 0, 0}), 0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDSubtractNonCommutative) {
+    auto x = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(7), MTZDD<int>::terminal(3));
+    auto y = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(100), MTZDD<int>::terminal(50));
+
+    auto x_minus_y = x - y;
+    auto y_minus_x = y - x;
+
+    // v1=1: x-y = 7-100 = -93, y-x = 100-7 = 93
+    EXPECT_EQ(x_minus_y.evaluate({0, 1}), -93);
+    EXPECT_EQ(y_minus_x.evaluate({0, 1}), 93);
+
+    // v1=0: x-y = 3-50 = -47, y-x = 50-3 = 47
+    EXPECT_EQ(x_minus_y.evaluate({0, 0}), -47);
+    EXPECT_EQ(y_minus_x.evaluate({0, 0}), 47);
+}
+
+// --- Fix 2: mtzdd_from_zdd_rec complement handling ---
+
+TEST_F(MTBDDClassTest, FromZddComplement) {
+    // ZDD complement toggles ∅ membership: ~F = F ⊕ {∅}
+    // F = {{2}}, ∅ ∉ F, so ~F = {{}, {2}}
+    ZDD f = ~ZDD::singleton(2);
+    auto mt = MTZDD<int>::from_zdd(f, 0, 1);
+
+    for (int v1 = 0; v1 <= 1; v1++) {
+        for (int v2 = 0; v2 <= 1; v2++) {
+            // ~{{2}} = {{}, {2}} (∅ toggled)
+            int expected;
+            if (v1 == 0 && v2 == 0) expected = 1;  // {} ∈ ~F
+            else if (v1 == 0 && v2 == 1) expected = 1;  // {2} ∈ ~F
+            else expected = 0;  // {1}, {1,2} ∉ ~F
+
+            std::vector<int> a = {0, v1, v2, 0};
+            EXPECT_EQ(mt.evaluate(a), expected)
+                << "v1=" << v1 << " v2=" << v2;
+        }
+    }
+}
+
+TEST_F(MTBDDClassTest, FromZddComplementUnion) {
+    // ~(ZDD::singleton(1) + ZDD::singleton(2)) = complement of {{1},{2}}
+    ZDD f = ~(ZDD::singleton(1) + ZDD::singleton(2));
+    auto mt = MTZDD<int>::from_zdd(f, 0, 1);
+
+    // Check all 2-variable assignments
+    // Original: {{1},{2}}. Complement toggles {}: F' = {{},{1},{2}} \ {{1},{2}} ∪ ({} if {} not in F)
+    // Actually ZDD complement toggles ∅ membership: F' = F ⊕ {∅}
+    // F = {{1},{2}} (does not contain ∅), so F' = {{1},{2},{}} = {{},{1},{2}}
+    // Wait, that's F ∪ {∅}. Complement toggles: F' = F △ {∅}.
+    // If ∅ ∉ F: F' = F ∪ {∅}  => {{},{1},{2}}
+    // If ∅ ∈ F: F' = F \ {∅}
+    EXPECT_EQ(mt.evaluate({0, 0, 0, 0}), 1);  // {} in F' → 1
+    EXPECT_EQ(mt.evaluate({0, 1, 0, 0}), 1);  // {1} in F' → 1
+    EXPECT_EQ(mt.evaluate({0, 0, 1, 0}), 1);  // {2} in F' → 1
+    EXPECT_EQ(mt.evaluate({0, 1, 1, 0}), 0);  // {1,2} not in F' → 0
+}
+
+// --- Fix 3: mtzdd_ite_rec condition cofactoring (ZDD semantics) ---
+
+TEST_F(MTBDDClassTest, MTZDDIteConditionZeroSuppressed) {
+    // Condition at v1 only; v2 is zero-suppressed above v1 in cond.
+    // cond = (v1 ? 5 : 3) — non-zero for both v1 branches
+    // then = (v2 ? 100 : 200), else = (v2 ? 300 : 400)
+    auto cond = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(5), MTZDD<int>::terminal(3));
+    auto then_val = MTZDD<int>::ite(2,
+        MTZDD<int>::terminal(100), MTZDD<int>::terminal(200));
+    auto else_val = MTZDD<int>::ite(2,
+        MTZDD<int>::terminal(300), MTZDD<int>::terminal(400));
+
+    auto result = cond.ite(then_val, else_val);
+
+    // With ZDD cofactoring for condition:
+    // At v2 (top): cond missing v2 → cond_hi=0 (ZDD), so hi branch uses else
+    //   lo = ITE(cond, then_lo=200, else_lo=400) → cond non-zero → 200
+    //     (but v1 is then zero-suppressed in result for lo, becoming terminal 200)
+    //   hi = ITE(zero, then_hi=100, else_hi=300) → zero cond → 300
+    // Result: node(v2, 200, 300)
+    // Evaluations consider ALL zero-suppressed variables, including v1:
+    EXPECT_EQ(result.evaluate({0, 0, 0, 0}), 200);  // v1=0,v2=0: lo=200, v1 suppressed OK
+    EXPECT_EQ(result.evaluate({0, 1, 0, 0}), 0);    // v1=1,v2=0: v1 zero-suppressed → 0
+    EXPECT_EQ(result.evaluate({0, 0, 1, 0}), 300);  // v1=0,v2=1: hi=300, v1 suppressed OK
+    EXPECT_EQ(result.evaluate({0, 1, 1, 0}), 0);    // v1=1,v2=1: v1 zero-suppressed → 0
+}
+
+// --- Fix 4: MTZDD evaluate with variables above root ---
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateAboveRoot) {
+    // Root at v1 (level 1), but v2 and v3 exist at higher levels
+    auto f = MTZDD<int>::ite(1,
+        MTZDD<int>::terminal(5), MTZDD<int>::terminal(7));
+
+    // v1=0, v2=0, v3=0 → 7 (lo branch)
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 7);
+    // v1=1, v2=0, v3=0 → 5 (hi branch)
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 5);
+    // v2=1 → 0 (v2 is zero-suppressed above root, assignment=1 → zero)
+    EXPECT_EQ(f.evaluate({0, 0, 1, 0}), 0);
+    // v3=1 → 0 (v3 is zero-suppressed above root, assignment=1 → zero)
+    EXPECT_EQ(f.evaluate({0, 0, 0, 1}), 0);
+    // v2=1, v3=1 → 0
+    EXPECT_EQ(f.evaluate({0, 0, 1, 1}), 0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEvaluateTerminalWithVars) {
+    // Terminal MTZDD with allocated variables
+    auto f = MTZDD<int>::terminal(42);
+
+    // Empty set (all vars 0) → 42
+    EXPECT_EQ(f.evaluate({0, 0, 0, 0}), 42);
+    // Any variable set to 1 → 0 (zero-suppressed)
+    EXPECT_EQ(f.evaluate({0, 1, 0, 0}), 0);
+    EXPECT_EQ(f.evaluate({0, 0, 1, 0}), 0);
+    EXPECT_EQ(f.evaluate({0, 0, 0, 1}), 0);
+}
+
+// --- Fix 5: op code reset / bddfinal ---
+
+TEST_F(MTBDDClassTest, BddFinalRejectsNonStandardTerminal) {
+    // Terminal index 1 collides with bddtrue (BDD::True), so create two
+    // non-zero values to ensure one gets index >= 2.
+    {
+        auto f = MTBDD<int>::terminal(1);   // index 1 (= bddtrue, can't detect)
+        auto g = MTBDD<int>::terminal(42);  // index >= 2 (non-standard)
+        EXPECT_THROW(bddfinal(), std::runtime_error);
+    }  // f, g destroyed → GC roots removed
+    // Clean up: bddfinal should now succeed
+    bddfinal();
+    bddinit(256, UINT64_MAX);
+    for (int i = 0; i < 3; i++) bddnewvar();
+}
+
+// --- Fix 6: is_one ---
+
+TEST_F(MTBDDClassTest, IsOneCorrectForMTBDD) {
+    auto f42 = MTBDD<int>::terminal(42);
+    auto f1  = MTBDD<int>::terminal(1);
+    auto f0  = MTBDD<int>::terminal(0);
+
+    EXPECT_FALSE(f42.is_one());  // 42 is not 1
+    EXPECT_TRUE(f1.is_one());    // value is 1
+    EXPECT_FALSE(f0.is_one());   // 0 is not 1
+    EXPECT_TRUE(f0.is_zero());   // 0 is zero
+}
+
+TEST_F(MTBDDClassTest, IsOneCorrectForMTZDD) {
+    auto f99 = MTZDD<int>::terminal(99);
+    auto f1  = MTZDD<int>::terminal(1);
+    auto f0  = MTZDD<int>::terminal(0);
+
+    EXPECT_FALSE(f99.is_one());
+    EXPECT_TRUE(f1.is_one());
+    EXPECT_FALSE(f0.is_one());
+    EXPECT_TRUE(f0.is_zero());
+}

@@ -29,6 +29,8 @@ void mtbdd_clear_all_terminal_tables() {
     for (auto* t : mtbdd_terminal_registry()) {
         t->clear();
     }
-    // Reset dynamic op code counter
-    mtbdd_next_op_code = 70;
+    // Do NOT reset mtbdd_next_op_code here.
+    // Static op code variables (e.g. MTBDD::apply's static apply_op)
+    // persist across bddfinal()/bddinit() cycles. Reusing their codes
+    // for different operations would cause cache collisions.
 }

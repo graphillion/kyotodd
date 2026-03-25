@@ -125,8 +125,8 @@ static bddp mtbdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
             table.get_or_insert(result_val));
     }
 
-    // Normalize operand order for commutative cache reuse
-    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+    // Do NOT normalize operand order — the operation may be non-commutative
+    // (e.g. subtraction). Cache entries for (f,g) and (g,f) are distinct.
 
     bddp cached = bddrcache(cache_op, f, g);
     if (cached != bddnull) return cached;
@@ -179,7 +179,8 @@ static bddp mtzdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
             table.get_or_insert(result_val));
     }
 
-    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+    // Do NOT normalize operand order — the operation may be non-commutative
+    // (e.g. subtraction). Cache entries for (f,g) and (g,f) are distinct.
 
     bddp cached = bddrcache(cache_op, f, g);
     if (cached != bddnull) return cached;
@@ -288,10 +289,16 @@ static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
 
     bool f_term = (f & BDD_CONST_FLAG) != 0;
 
+    // Terminal fast path for condition
     if (f_term) {
         auto& table = MTBDDTerminalTable<T>::instance();
         T f_val = table.get_value(MTBDDTerminalTable<T>::terminal_index(f));
-        return (f_val == T{}) ? h : g;
+        if (f_val == T{}) return h;  // zero condition → always else
+        // Non-zero terminal condition: shortcircuit only if g and h are
+        // also terminals (no zero-suppressed variables to handle)
+        if ((g & BDD_CONST_FLAG) && (h & BDD_CONST_FLAG)) return g;
+        // Otherwise fall through: g/h may have zero-suppressed variables
+        // where the condition should evaluate to zero.
     }
 
     if (g == h) return g;
@@ -302,10 +309,10 @@ static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
     bool g_term = (g & BDD_CONST_FLAG) != 0;
     bool h_term = (h & BDD_CONST_FLAG) != 0;
 
-    bddvar f_var = node_var(f);
+    bddvar f_var = f_term ? 0 : node_var(f);
     bddvar g_var = g_term ? 0 : node_var(g);
     bddvar h_var = h_term ? 0 : node_var(h);
-    bddvar f_level = var2level[f_var];
+    bddvar f_level = f_term ? 0 : var2level[f_var];
     bddvar g_level = g_term ? 0 : var2level[g_var];
     bddvar h_level = h_term ? 0 : var2level[h_var];
 
@@ -317,12 +324,14 @@ static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
 
     bddp zero_t = BDD_CONST_FLAG | 0;
 
-    // Cofactors: f uses BDD semantics (condition), g/h use ZDD semantics
+    // Cofactors: all three (f, g, h) use ZDD semantics
     bddp f_lo, f_hi;
-    if (f_level == top_level) {
+    if (f_term) {
+        f_lo = f; f_hi = zero_t;  // terminal condition, missing var → zero
+    } else if (f_level == top_level) {
         f_lo = node_lo(f); f_hi = node_hi(f);
     } else {
-        f_lo = f; f_hi = f;
+        f_lo = f; f_hi = zero_t;  // ZDD: missing var → hi=zero
     }
 
     bddp g_lo, g_hi;
@@ -387,28 +396,29 @@ static bddp mtzdd_from_zdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op
     if (f == bddempty) return zero_t;
     if (f == bddsingle) return one_t;
 
-    // Resolve complement (ZDD: only lo is affected)
+    // ZDD complement edge affects only lo, not hi.
+    // Instead of absorbing complement into terminal mapping (which would
+    // incorrectly apply to hi as well), propagate the complement bit
+    // to the effective lo child and cache on the original (f, zero_t, one_t).
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp fn = f & ~BDD_COMP_FLAG;
 
-    bddp zt = comp ? one_t : zero_t;
-    bddp ot = comp ? zero_t : one_t;
-
-    bddp cached = bddrcache3(cache_op, fn, zt, ot);
+    bddp cached = bddrcache3(cache_op, f, zero_t, one_t);
     if (cached != bddnull) return cached;
 
     bddvar v = node_var(fn);
     bddp raw_lo = node_lo(fn);  // always non-complemented (ZDD invariant)
     bddp raw_hi = node_hi(fn);  // never complemented in ZDD
 
-    // ZDD complement affects only lo. Since we resolved complement by
-    // swapping zt/ot, the complement on lo in the recursion is handled
-    // by propagating zt/ot correctly.
-    bddp mt_lo = mtzdd_from_zdd_rec<T>(raw_lo, zt, ot, cache_op);
-    bddp mt_hi = mtzdd_from_zdd_rec<T>(raw_hi, zt, ot, cache_op);
+    // ZDD complement: ~(v, lo, hi) = (v, ~lo, hi)
+    // Toggle complement bit on lo when parent edge was complemented.
+    bddp eff_lo = comp ? (raw_lo ^ BDD_COMP_FLAG) : raw_lo;
+
+    bddp mt_lo = mtzdd_from_zdd_rec<T>(eff_lo, zero_t, one_t, cache_op);
+    bddp mt_hi = mtzdd_from_zdd_rec<T>(raw_hi, zero_t, one_t, cache_op);
 
     bddp result = mtzdd_getnode_raw(v, mt_lo, mt_hi);
-    bddwcache3(cache_op, fn, zt, ot, result);
+    bddwcache3(cache_op, f, zero_t, one_t, result);
     return result;
 }
 
@@ -474,6 +484,13 @@ public:
         }
         uint64_t idx = MTBDDTerminalTable<T>::terminal_index(root);
         return MTBDDTerminalTable<T>::instance().get_value(idx);
+    }
+
+    /** @brief Check if the terminal value equals T{1}. Hides DDBase::is_one(). */
+    bool is_one() const {
+        if (!(root & BDD_CONST_FLAG)) return false;
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(root);
+        return MTBDDTerminalTable<T>::instance().get_value(idx) == T{1};
     }
 
     bool operator==(const MTBDD& other) const { return root == other.root; }
@@ -633,6 +650,13 @@ public:
         return MTBDDTerminalTable<T>::instance().get_value(idx);
     }
 
+    /** @brief Check if the terminal value equals T{1}. Hides DDBase::is_one(). */
+    bool is_one() const {
+        if (!(root & BDD_CONST_FLAG)) return false;
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(root);
+        return MTBDDTerminalTable<T>::instance().get_value(idx) == T{1};
+    }
+
     bool operator==(const MTZDD& other) const { return root == other.root; }
     bool operator!=(const MTZDD& other) const { return root != other.root; }
 
@@ -676,7 +700,13 @@ public:
         if (root & BDD_CONST_FLAG) {
             auto& table = MTBDDTerminalTable<T>::instance();
             T val = table.get_value(MTBDDTerminalTable<T>::terminal_index(root));
-            return (val == T{}) ? else_case : then_case;
+            if (val == T{}) return else_case;
+            // Non-zero terminal: shortcircuit only if both branches are terminals
+            // (no zero-suppressed variables to handle in g/h)
+            if ((then_case.root & BDD_CONST_FLAG) &&
+                (else_case.root & BDD_CONST_FLAG))
+                return then_case;
+            // Fall through: g/h may have zero-suppressed variables
         }
         if (then_case.root == else_case.root) return then_case;
 
@@ -695,11 +725,9 @@ public:
         bddp f = root;
         bddvar num_vars = bddvarused();
 
-        // Determine the top level of the MTZDD
-        bddvar top_level = 0;
-        if (!(f & BDD_CONST_FLAG)) {
-            top_level = var2level[node_var(f)];
-        }
+        // Start from the highest level to check ALL zero-suppressed
+        // variables, including those above the root node's level.
+        bddvar top_level = num_vars;
 
         // Traverse from top level down to level 1.
         // Even after reaching a terminal, continue checking remaining
