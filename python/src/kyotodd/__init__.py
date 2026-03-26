@@ -1,5 +1,29 @@
 """KyotoDD - BDD/ZDD library for Python."""
 
+import os as _os
+import tempfile as _tempfile
+
+
+def _show_svg(self):
+    """Display the DD as an SVG diagram.
+
+    In Jupyter/Colab: renders inline using IPython.display.
+    Otherwise: opens in the default web browser.
+    """
+    svg = self.save_svg_str()
+    try:
+        from IPython.display import SVG, display
+        display(SVG(data=svg))
+    except ImportError:
+        import webbrowser
+        fd, path = _tempfile.mkstemp(suffix=".svg")
+        try:
+            _os.write(fd, svg.encode("utf-8"))
+        finally:
+            _os.close(fd)
+        webbrowser.open("file://" + path)
+
+
 from kyotodd._core import (
     BDD,
     ZDD,
@@ -40,6 +64,10 @@ from kyotodd._core import (
     MTZDDFloat,
     MTZDDInt,
 )
+
+for _cls in (BDD, ZDD, QDD, UnreducedDD, PiDD, RotPiDD, SeqBDD,
+             MVBDD, MVZDD, MTBDDFloat, MTBDDInt, MTZDDFloat, MTZDDInt):
+    _cls.show = _show_svg
 
 __all__ = [
     "BDD",

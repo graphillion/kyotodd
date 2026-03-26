@@ -840,9 +840,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const BDD& b) -> std::string {
-            return b.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const BDD& b, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -2119,9 +2116,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const ZDD& z) -> std::string {
-            return z.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const ZDD& z, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -2317,9 +2311,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const PiDD& p) -> std::string {
-            return p.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const PiDD& p, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -2599,9 +2590,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const RotPiDD& p) -> std::string {
-            return p.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const RotPiDD& p, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -2815,9 +2803,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const QDD& q) -> std::string {
-            return q.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const QDD& q, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -3026,11 +3011,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const UnreducedDD& u) -> std::string {
-            SvgParams params;
-            params.mode = DrawMode::Raw;
-            return u.save_svg(params);
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const UnreducedDD& u, py::object stream, bool draw_zero) {
             SvgParams params;
             params.mode = DrawMode::Raw;
@@ -3219,9 +3199,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const SeqBDD& s) -> std::string {
-            return s.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const SeqBDD& s, py::object stream, bool raw, bool draw_zero) {
             SvgParams params;
             params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
@@ -3561,9 +3538,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_edge_labels: If True, label edges with values.\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const MVBDD& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MVBDD& m, py::object stream, bool raw,
                                   bool draw_zero, bool draw_edge_labels) {
             SvgParams params;
@@ -3760,9 +3734,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_edge_labels: If True, label edges with values.\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const MVZDD& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MVZDD& m, py::object stream, bool raw,
                                   bool draw_zero, bool draw_edge_labels) {
             SvgParams params;
@@ -3908,9 +3879,6 @@ PYBIND11_MODULE(_core, m) {
            "    draw_zero: If True, draw the zero-value terminal.\n"
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("_repr_svg_", [](const MTBDDFloat& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MTBDDFloat& m, py::object stream, bool draw_zero) {
             SvgParams params;
             params.draw_zero = draw_zero;
@@ -4036,9 +4004,6 @@ PYBIND11_MODULE(_core, m) {
             return m.save_svg(params);
         }, py::arg("draw_zero") = true,
            "Export this MTBDD as an SVG string.\n")
-        .def("_repr_svg_", [](const MTBDDInt& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MTBDDInt& m, py::object stream, bool draw_zero) {
             SvgParams params;
             params.draw_zero = draw_zero;
@@ -4161,9 +4126,6 @@ PYBIND11_MODULE(_core, m) {
             return m.save_svg(params);
         }, py::arg("draw_zero") = true,
            "Export this MTZDD as an SVG string.\n")
-        .def("_repr_svg_", [](const MTZDDFloat& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MTZDDFloat& m, py::object stream, bool draw_zero) {
             SvgParams params;
             params.draw_zero = draw_zero;
@@ -4286,9 +4248,6 @@ PYBIND11_MODULE(_core, m) {
             return m.save_svg(params);
         }, py::arg("draw_zero") = true,
            "Export this MTZDD as an SVG string.\n")
-        .def("_repr_svg_", [](const MTZDDInt& m) -> std::string {
-            return m.save_svg(SvgParams());
-        }, "Return SVG string for Jupyter notebook display.")
         .def("save_svg_file", [](const MTZDDInt& m, py::object stream, bool draw_zero) {
             SvgParams params;
             params.draw_zero = draw_zero;
