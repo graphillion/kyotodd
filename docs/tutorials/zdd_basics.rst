@@ -37,8 +37,8 @@ Constants
    empty  = kyotodd.ZDD.empty   # ∅ (no sets)
    single = kyotodd.ZDD.single  # {∅} (contains only the empty set)
 
-   assert empty.card == 0
-   assert single.card == 1
+   assert empty.exact_count == 0
+   assert single.exact_count == 1
 
 Set Operations
 --------------
@@ -55,15 +55,15 @@ Combine families with set-theoretic operations:
 
    # Union: {{x1}, {x2}, {x1,x2}}
    union = F + G
-   print(f"Union: {union.card} sets")  # 3
+   print(f"Union: {union.exact_count} sets")  # 3
 
    # Intersection: {{x2}}
    inter = F & G
-   print(f"Intersection: {inter.card} sets")  # 1
+   print(f"Intersection: {inter.exact_count} sets")  # 1
 
    # Difference: {{x1}}
    diff = F - G
-   print(f"Difference: {diff.card} sets")  # 1
+   print(f"Difference: {diff.exact_count} sets")  # 1
 
    # Symmetric difference
    symdiff = F ^ G
@@ -80,11 +80,11 @@ Select subsets of a family based on variable membership:
 
    # Offset: sets NOT containing x1 → {{x2}}
    off = F.offset(x1)
-   assert off.card == 1
+   assert off.exact_count == 1
 
    # Onset: sets containing x1, keeping x1 → {{x1}, {x1,x2}}
    on = F.onset(x1)
-   assert on.card == 2
+   assert on.exact_count == 2
 
    # Change: toggle x1 in all sets
    ch = F.change(x1)
@@ -146,15 +146,15 @@ Unary Operations
 
    # Maximal sets: no proper superset in the family
    mx = F.maximal()
-   assert mx.card == 1  # {{x1,x2}}
+   assert mx.exact_count == 1  # {{x1,x2}}
 
    # Minimal sets: no proper subset in the family
    mn = F.minimal()
-   assert mn.card == 2  # {{x1}, {x2}}
+   assert mn.exact_count == 2  # {{x1}, {x2}}
 
    # Downward closure: all subsets of sets in the family
    cl = F.closure()
-   assert cl.card == 4  # {{}, {x1}, {x2}, {x1,x2}}
+   assert cl.exact_count == 4  # {{}, {x1}, {x2}, {x1,x2}}
 
    # Minimum hitting sets
    mh = F.minhit()
@@ -165,7 +165,7 @@ Counting
 .. code-block:: python
 
    F = s1 + s2 + s12
-   print(f"Family has {F.card} sets")  # 3
+   print(f"Family has {F.exact_count} sets")  # 3
 
 Import / Export
 ---------------

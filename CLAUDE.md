@@ -160,10 +160,13 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Operators: `&` (AND), `|` (OR), `^` (XOR), `~` (NOT), `<<` / `>>` (shift), `==`, `!=`.
 - Free functions: `bddnand()`, `bddnor()`, `bddxnor()`, `bddsmooth()`, `bddspread()`.
 - Cofactor/quantification: `At0(v)`, `At1(v)`, `Exist()`, `Univ()`, `Cofactor()`, `Swap()`.
+- Support: `Support()` (support set as BDD), `SupportVec()` (as vector). `Imply(g)` (implication check).
+- ITE: `BDD::Ite(f, g, h)` — static if-then-else.
 - Literal constructors: `BDD::prime(v)` (positive literal), `BDD::prime_not(v)` (negative literal).
 - Clause/cube constructors: `BDD::cube(lits)` (conjunction), `BDD::clause(lits)` (disjunction). DIMACS sign convention.
 - SAT counting: `count(n)` (double), `exact_count(n)` (BigInt), `exact_count(n, BddCountMemo&)`.
 - Sampling: `uniform_sample(rng, n, BddCountMemo&)` — uniformly sample one satisfying assignment.
+- Constants: `BDD::False`, `BDD::True`, `BDD::Null`.
 - Conversion: `to_qdd()` — convert BDD to quasi-reduced QDD.
 - I/O: `Export()`, `export_binary()` / `import_binary()`, `export_sapporo()` / `import_sapporo()`, `export_knuth()` / `import_knuth()` (deprecated), `save_graphviz()`, `export_binary_multi()` / `import_binary_multi()`.
 
@@ -179,9 +182,12 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`.
 - Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.
 - Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`.
+- Weight operations: `get_sum(weights)` (BigInt), `min_weight(weights)`, `max_weight(weights)`, `min_weight_set(weights)`, `max_weight_set(weights)`. Free functions: `bddweightsum()`, `bddminweight()`, `bddmaxweight()`, `bddminweightset()`, `bddmaxweightset()`.
+- Cost bound filtering: `cost_bound_le(weights, b)`, `cost_bound_ge(weights, b)`, `cost_bound_eq(weights, b)` — filter sets by total weight. Optionally accept `CostBoundMemo&` for caching. Free functions: `bddcostbound_le()`, `bddcostbound_ge()`.
 - Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F.
 - Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family.
 - Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
+- Constants: `ZDD::Empty`, `ZDD::Single`, `ZDD::Null`.
 - Rank-order iteration: `ZddRankIterator(zdd)` — STL input iterator enumerating sets in structure order (hi-first DFS). Value type: `vector<bddvar>`. `ZddRankRange(zdd)` — range wrapper for range-based for loops. Python: `iter_rank()`.
 - Random iteration: `ZddRandomIterator<RNG>(zdd, rng)` — STL input iterator enumerating sets in uniformly random order without replacement. Hybrid strategy: rejection sampling when `sampled < |F|/2`, direct sampling from `f - sampled` otherwise. Value type: `vector<bddvar>`. `ZddRandomRange<RNG>(zdd, rng)` — range wrapper. Python: `iter_random(seed=0)`.
 - Ranking: `rank(s)` (int64_t), `exact_rank(s)` (BigInt), `exact_rank(s, ZddCountMemo&)` — 0-based index of set `s` in ZDD structure order. Returns -1 if not in family. Free functions: `bddrank()`, `bddexactrank()`.
@@ -198,6 +204,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 
 - `ZddCountMemo(f)`: Memo for ZDD exact counting, associated with a specific ZDD root. Stores the memo table for `bddexactcount` results.
 - `BddCountMemo(f, n)`: Memo for BDD exact counting, associated with a specific BDD root and variable count n.
+- `CostBoundMemo`: Interval-memoization for cost-bound queries (`cost_bound_le`, `cost_bound_ge`).
 
 ## QDD class
 
@@ -256,6 +263,66 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Display: `Print()`, `Enum()`, `Enum2()`.
 - I/O: `save_svg()` — SVG visualization of the internal ZDD.
 
+## MTBDD class (template)
+
+- Defined in `include/mtbdd.h`. Template class `MTBDD<T>` parameterized by terminal value type `T`.
+- Multi-Terminal BDD. Maps Boolean variable assignments to values of type T (not just 0/1).
+- No complement edges — nodes are stored without complement normalization.
+- Terminal table: singleton `MTBDDTerminalTable<T>` maps values to indices. Index 0 is always `T{}` (zero value).
+- Node creation: `mtbdd_getnode(var, lo, hi)` / `mtbdd_getnode_raw(var, lo, hi)` — BDD-style reduction (jump rule: lo == hi → lo).
+- Apply: `mtbdd_apply_rec<T, BinOp>(f, g, op, cache_op)` — BDD cofactoring (missing var → pass through).
+- ITE: `mtbdd_ite_rec<T>(f, g, h, cache_op)` — if-then-else on MTBDD.
+- Pre-instantiated types: `MTBDDFloat` (`MTBDD<double>`), `MTBDDInt` (`MTBDD<int64_t>`).
+- Operations: `operator+`, `operator-`, `operator*` (apply with add/sub/mul), `ite(f, g, h)`.
+- Query: `terminal_value()`, `is_terminal()`, `top()`, `size()`, `evaluate(assignment)`.
+- I/O: `save_svg()` — SVG visualization with terminal labels via `terminal_name_map`.
+
+## MTZDD class (template)
+
+- Defined in `include/mtbdd.h`. Template class `MTZDD<T>` parameterized by terminal value type `T`.
+- Multi-Terminal ZDD. Like MTBDD but uses ZDD cofactoring (missing var → hi is zero terminal).
+- Node creation: `mtzdd_getnode(var, lo, hi)` / `mtzdd_getnode_raw(var, lo, hi)` — ZDD-style reduction (hi == zero_terminal → lo).
+- Apply: `mtzdd_apply_rec<T, BinOp>(f, g, op, cache_op)` — ZDD cofactoring.
+- Pre-instantiated types: `MTZDDFloat` (`MTZDD<double>`), `MTZDDInt` (`MTZDD<int64_t>`).
+- Operations: `operator+`, `operator-`, `operator*`, `ite(f, g, h)`.
+- Query: `terminal_value()`, `is_terminal()`, `top()`, `size()`, `evaluate(assignment)`.
+- I/O: `save_svg()` — SVG visualization with terminal labels.
+
+## MVBDD class
+
+- Defined in `include/mvdd.h`. Inherits from DDBase.
+- Multi-Valued BDD. Boolean function over multi-valued variables (each taking values 0..k-1).
+- Internally emulated by a standard BDD using one-hot encoding: each MVDD variable with domain size k uses k-1 internal DD variables.
+- Variable table: `MVDDVarTable` manages bidirectional mapping between MVDD variables and internal DD variables. `MVDDVarInfo` holds per-variable metadata.
+- Constructors: `MVBDD()`, `MVBDD(k, value)`, `MVBDD(table, bdd)`.
+- Factory: `zero(table)`, `one(table)`, `singleton(base, mv, value)`.
+- Variable management: `new_var()`, `k()`, `var_table()`.
+- ITE construction: `MVBDD::ite(base, mv, children)` — build by specifying child for each value.
+- Child access: `child(value)` — cofactor when top MVDD variable takes given value. `top_var()` — top MVDD variable number.
+- Boolean operations: `&`, `|`, `^`, `~`.
+- Evaluation: `evaluate(assignment)`.
+- Conversion: `to_bdd()`, `from_bdd(base, bdd)`.
+- Node count: `mvbdd_node_count()` (MVDD-level), `size()` (internal BDD-level).
+- I/O: `save_svg()` — k-way branching with colored edges in Expanded mode.
+
+## MVZDD class
+
+- Defined in `include/mvdd.h`. Inherits from DDBase.
+- Multi-Valued ZDD. Family of multi-valued assignments (each variable takes values 0..k-1).
+- Internally emulated by a standard ZDD using one-hot encoding.
+- Constructors: `MVZDD()`, `MVZDD(k, value)`, `MVZDD(table, zdd)`.
+- Factory: `zero(table)`, `one(table)`, `singleton(base, mv, value)`.
+- Variable management: `new_var()`, `k()`, `var_table()`.
+- ITE construction: `MVZDD::ite(base, mv, children)`.
+- Child access: `child(value)`, `top_var()`.
+- Set operations: `+` (union), `-` (difference), `&` (intersection).
+- Counting: `count()` (double), `exact_count()` (BigInt).
+- Evaluation: `evaluate(assignment)`.
+- Enumeration: `enumerate()`, `print_sets()`, `to_str()`.
+- Conversion: `to_zdd()`, `from_zdd(base, zdd)`.
+- Node count: `mvzdd_node_count()` (MVDD-level), `size()` (internal ZDD-level).
+- I/O: `save_svg()` — k-way branching with colored edges in Expanded mode.
+
 ## Size functions
 
 - `bddsize(f)` — DAG node count with complement edge sharing.
@@ -311,6 +378,17 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `include/bdd_internal.h` — Internal header (node accessor inline functions, GC guard, shift templates)
 - `include/bdd_node.h` — BddNode struct definition
 - `include/bigint.hpp` — Arbitrary-precision integer (BigInt) header-only library
+- `include/mtbdd.h` — MTBDD/MTZDD template classes and terminal table
+- `include/mvdd.h` — MVDDVarInfo, MVDDVarTable, MVBDD, MVZDD class declarations
+- `include/bddv.h` — BDDV (vector BDD) class declaration
+- `include/zbddv.h` — ZBDDV (vector ZDD) class declaration
+- `include/mlzbddv.h` — MLZBDDV (multi-level vector ZDD) class declaration
+- `include/btoi.h` — BtoI (BDD to integer mapping) class declaration
+- `include/ctoi.h` — CtoI (conversion to integer) class declaration
+- `include/sop.h` — SOP/SOPV (Sum of Products) class declarations
+- `include/zdd_rank_iter.h` — ZddRankIterator/ZddRankRange declarations
+- `include/zdd_random_iter.h` — ZddRandomIterator/ZddRandomRange template declarations
+- `include/zdd_weight_iter.h` — ZddMinWeightIterator/ZddMaxWeightIterator declarations
 - `src/bdd_base.cpp` — Global variables, initialization, variable management, unique table, cache, node creation
 - `src/bdd_ops.cpp` — BDD operations (and, or, xor, ite, cofactor, quantification, etc.)
 - `src/zdd_ops.cpp` — ZDD basic operations (offset, onset, change, union, intersec, subtract, div, join, meet, delta, etc.)
@@ -324,6 +402,17 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `src/pidd.cpp` — PiDD implementation (Swap, Cofact, Odd, multiplication, division, etc.)
 - `src/rotpidd.cpp` — RotPiDD implementation (LeftRot, Swap, Reverse, Order, Inverse, Insert, etc.)
 - `src/seqbdd.cpp` — SeqBDD implementation (concatenation, left quotient, print, etc.)
+- `src/mtbdd.cpp` — MTBDD/MTZDD implementation (terminal table registry, etc.)
+- `src/mvdd.cpp` — MVBDD/MVZDD implementation (variable table, ITE, operations, etc.)
+- `src/bddv.cpp` — BDDV implementation
+- `src/zbddv.cpp` — ZBDDV implementation
+- `src/mlzbddv.cpp` — MLZBDDV implementation
+- `src/btoi.cpp` — BtoI implementation
+- `src/ctoi.cpp` — CtoI implementation
+- `src/sop.cpp` — SOP implementation
+- `src/zdd_rank_iter.cpp` — ZddRankIterator implementation
+- `src/zdd_random_iter.cpp` — ZddRandomIterator implementation
+- `src/zdd_weight_iter.cpp` — ZddWeightIterator implementation
 - `include/qdd.h` — QDD class declaration
 - `include/unreduced_dd.h` — UnreducedDD class declaration
 - `include/seqbdd.h` — SeqBDD class declaration
@@ -338,8 +427,20 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `test/test_seqbdd.cpp` — SeqBDD tests
 - `test/test_ddbase.cpp` — DDBase tests
 - `test/test_svg_export.cpp` — SVG export tests
-- `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11, core classes only)
-  - Bound classes: BDD, ZDD, QDD, UnreducedDD, PiDD, RotPiDD, SeqBDD
+- `test/test_mtbdd.cpp` — MTBDD/MTZDD tests
+- `test/test_mvdd.cpp` — MVBDD/MVZDD tests
+- `test/test_bddv.cpp` — BDDV tests
+- `test/test_zbddv.cpp` — ZBDDV tests
+- `test/test_mlzbddv.cpp` — MLZBDDV tests
+- `test/test_btoi.cpp` — BtoI tests
+- `test/test_ctoi.cpp` — CtoI tests
+- `test/test_sop.cpp` — SOP tests
+- `test/test_zdd_rank_iter.cpp` — ZddRankIterator tests
+- `test/test_zdd_random_iter.cpp` — ZddRandomIterator tests
+- `test/test_zdd_weight_iter.cpp` — ZddWeightIterator tests
+- `python/src/kyotodd/_binding.cpp` — Python bindings (pybind11)
+  - Bound classes: BDD, ZDD, QDD, UnreducedDD, PiDD, RotPiDD, SeqBDD, MVBDD, MVZDD, MTBDDFloat, MTBDDInt, MTZDDFloat, MTZDDInt, MVDDVarInfo, MVDDVarTable, BddCountMemo, ZddCountMemo, CostBoundMemo, ZddRankRange/Iterator, ZddRandomRange/Iterator, ZddMinWeightRange/Iterator, ZddMaxWeightRange/Iterator
   - **Not bound** (C++ only): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP, SOPV
 - `docs/` — Sphinx documentation (API reference, tutorials, concepts)
 - `app/BDDQueen/` — N-Queens sample applications
+- `app/SvgExamples/` — SVG export sample application
