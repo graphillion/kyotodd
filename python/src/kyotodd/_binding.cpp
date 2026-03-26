@@ -272,8 +272,18 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.GetID());
         }, "Hash based on node ID.")
         .def("__repr__", [](const BDD& a) {
-            return "BDD(node_id=" + std::to_string(a.GetID()) + ")";
-        }, "Return string representation: BDD(node_id=...).")
+            std::ostringstream oss;
+            oss << "BDD: id=" << a.GetID();
+            if (a.is_terminal()) {
+                if (a.is_zero()) oss << " (false)";
+                else oss << " (true)";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
+        })
         .def("__bool__", [](const BDD&) -> bool {
             throw py::type_error(
                 "BDD cannot be converted to bool. "
@@ -2176,8 +2186,19 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.GetZDD().GetID());
         }, "Hash based on internal ZDD node ID.")
         .def("__repr__", [](const PiDD& a) {
-            return "PiDD(node_id=" + std::to_string(a.GetZDD().GetID()) + ")";
-        }, "Return string representation.")
+            std::ostringstream oss;
+            const ZDD& z = a.GetZDD();
+            oss << "PiDD: id=" << z.GetID();
+            if (z.is_terminal()) {
+                if (z.is_zero()) oss << " (empty)";
+                else oss << " (identity)";
+            } else {
+                bddvar v = z.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
+        })
         .def("__bool__", [](const PiDD&) -> bool {
             throw py::type_error(
                 "PiDD cannot be converted to bool. "
@@ -2372,8 +2393,19 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.GetZDD().GetID());
         }, "Hash based on internal ZDD node ID.")
         .def("__repr__", [](const RotPiDD& a) {
-            return "RotPiDD(node_id=" + std::to_string(a.GetZDD().GetID()) + ")";
-        }, "Return string representation.")
+            std::ostringstream oss;
+            const ZDD& z = a.GetZDD();
+            oss << "RotPiDD: id=" << z.GetID();
+            if (z.is_terminal()) {
+                if (z.is_zero()) oss << " (empty)";
+                else oss << " (identity)";
+            } else {
+                bddvar v = z.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
+        })
         .def("__bool__", [](const RotPiDD&) -> bool {
             throw py::type_error(
                 "RotPiDD cannot be converted to bool. "
@@ -2625,8 +2657,18 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.get_id());
         }, "Hash based on node ID.")
         .def("__repr__", [](const QDD& a) {
-            return "QDD(node_id=" + std::to_string(a.get_id()) + ")";
-        }, "Return string representation: QDD(node_id=...).")
+            std::ostringstream oss;
+            oss << "QDD: id=" << a.get_id();
+            if (a.is_terminal()) {
+                if (a.is_zero()) oss << " (false)";
+                else oss << " (true)";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
+        })
         .def("__bool__", [](const QDD&) -> bool {
             throw py::type_error(
                 "QDD cannot be converted to bool. "
@@ -2835,8 +2877,18 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.get_id());
         }, "Hash based on node ID.")
         .def("__repr__", [](const UnreducedDD& a) {
-            return "UnreducedDD(node_id=" + std::to_string(a.get_id()) + ")";
-        }, "Return string representation: UnreducedDD(node_id=...).")
+            std::ostringstream oss;
+            oss << "UnreducedDD: id=" << a.get_id();
+            if (a.is_terminal()) {
+                if (a.is_zero()) oss << " (false)";
+                else oss << " (true)";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
+        })
         .def("__bool__", [](const UnreducedDD&) -> bool {
             throw py::type_error(
                 "UnreducedDD cannot be converted to bool. "
@@ -3020,7 +3072,18 @@ PYBIND11_MODULE(_core, m) {
             return std::hash<uint64_t>()(a.get_zdd().GetID());
         })
         .def("__repr__", [](const SeqBDD& a) {
-            return "SeqBDD(node_id=" + std::to_string(a.get_zdd().GetID()) + ")";
+            std::ostringstream oss;
+            const ZDD& z = a.get_zdd();
+            oss << "SeqBDD: id=" << z.GetID();
+            if (z.is_terminal()) {
+                if (z.is_zero()) oss << " (empty)";
+                else oss << " (unit)";
+            } else {
+                bddvar v = z.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
+            return oss.str();
         })
         .def("__str__", [](const SeqBDD& a) {
             return a.seq_str();
@@ -3468,7 +3531,13 @@ PYBIND11_MODULE(_core, m) {
         })
         .def("__repr__", [](const MVBDD& a) {
             std::ostringstream oss;
-            oss << "MVBDD(node_id=" << a.get_id() << ", k=" << a.k() << ")";
+            oss << "MVBDD: id=" << a.get_id() << ", k=" << a.k();
+            if (a.is_terminal()) {
+                if (a.is_zero()) oss << " (false)";
+                else oss << " (true)";
+            } else {
+                oss << ", mv_var=" << a.top_var();
+            }
             return oss.str();
         })
         .def("__bool__", [](const MVBDD&) -> bool {
@@ -3660,7 +3729,13 @@ PYBIND11_MODULE(_core, m) {
         })
         .def("__repr__", [](const MVZDD& a) {
             std::ostringstream oss;
-            oss << "MVZDD(node_id=" << a.get_id() << ", k=" << a.k() << ")";
+            oss << "MVZDD: id=" << a.get_id() << ", k=" << a.k();
+            if (a.is_terminal()) {
+                if (a.is_zero()) oss << " (empty)";
+                else oss << " (unit)";
+            } else {
+                oss << ", mv_var=" << a.top_var();
+            }
             return oss.str();
         })
         .def("__str__", &MVZDD::to_str)
@@ -3808,7 +3883,14 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTBDDFloat& a) {
             std::ostringstream oss;
-            oss << "MTBDDFloat(node_id=" << a.get_id() << ")";
+            oss << "MTBDDFloat: id=" << a.get_id();
+            if (a.is_terminal()) {
+                oss << " (value=" << a.terminal_value() << ")";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
             return oss.str();
         })
         .def("__bool__", [](const MTBDDFloat&) -> bool {
@@ -3933,7 +4015,14 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTBDDInt& a) {
             std::ostringstream oss;
-            oss << "MTBDDInt(node_id=" << a.get_id() << ")";
+            oss << "MTBDDInt: id=" << a.get_id();
+            if (a.is_terminal()) {
+                oss << " (value=" << a.terminal_value() << ")";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
             return oss.str();
         })
         .def("__bool__", [](const MTBDDInt&) -> bool {
@@ -4051,7 +4140,14 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTZDDFloat& a) {
             std::ostringstream oss;
-            oss << "MTZDDFloat(node_id=" << a.get_id() << ")";
+            oss << "MTZDDFloat: id=" << a.get_id();
+            if (a.is_terminal()) {
+                oss << " (value=" << a.terminal_value() << ")";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
             return oss.str();
         })
         .def("__bool__", [](const MTZDDFloat&) -> bool {
@@ -4169,7 +4265,14 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTZDDInt& a) {
             std::ostringstream oss;
-            oss << "MTZDDInt(node_id=" << a.get_id() << ")";
+            oss << "MTZDDInt: id=" << a.get_id();
+            if (a.is_terminal()) {
+                oss << " (value=" << a.terminal_value() << ")";
+            } else {
+                bddvar v = a.top();
+                oss << ", var=" << v
+                    << ", level=" << BDD::to_level(v);
+            }
             return oss.str();
         })
         .def("__bool__", [](const MTZDDInt&) -> bool {
