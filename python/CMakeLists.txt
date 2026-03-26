@@ -28,6 +28,7 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/zdd_rank_iter.cpp
     ${KYOTODD_ROOT}/src/mvdd.cpp
     ${KYOTODD_ROOT}/src/mtbdd.cpp
+    ${KYOTODD_ROOT}/src/svg_export.cpp
 )
 
 pybind11_add_module(_core
