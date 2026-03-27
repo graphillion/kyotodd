@@ -1,5 +1,6 @@
 """KyotoDD - BDD/ZDD library for Python."""
 
+import atexit as _atexit
 import os as _os
 import tempfile as _tempfile
 
@@ -21,6 +22,7 @@ def _show_svg(self):
             _os.write(fd, svg.encode("utf-8"))
         finally:
             _os.close(fd)
+        _atexit.register(_os.unlink, path)
         webbrowser.open("file://" + path)
 
 

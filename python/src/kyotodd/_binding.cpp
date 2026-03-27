@@ -56,7 +56,7 @@ PYBIND11_MODULE(_core, m) {
         } catch (const py::error_already_set&) {
             throw;  // Let pybind11 handle Python errors
         } catch (const std::overflow_error& e) {
-            PyErr_SetString(PyExc_MemoryError, e.what());
+            PyErr_SetString(PyExc_OverflowError, e.what());
         } catch (const std::invalid_argument& e) {
             PyErr_SetString(PyExc_ValueError, e.what());
         } catch (const std::out_of_range& e) {

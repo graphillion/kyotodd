@@ -215,8 +215,10 @@ private:
  * ZDD node is queried with a different cost bound that falls within a cached
  * interval, the cached result is reused without recomputation.
  *
- * Can be reused across multiple cost_bound_le() / cost_bound_ge() / cost_bound_eq()
- * calls with different bounds on the same ZDD to benefit from accumulated memoization.
+ * Can be reused across multiple cost_bound_le() / cost_bound_eq() calls with
+ * different bounds on the same ZDD to benefit from accumulated memoization.
+ * Note: cost_bound_ge() does not use the caller-provided memo internally
+ * (it uses negated weights, which would conflict with the memo's binding).
  *
  * A single CostBoundMemo must only be used with one weights vector. On first
  * use, the weights are bound via bind_weights(); subsequent calls with a

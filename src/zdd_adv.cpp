@@ -1183,6 +1183,10 @@ bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
 static std::vector<int> costbound_negate_weights(const std::vector<int>& weights) {
     std::vector<int> neg(weights.size());
     for (size_t i = 0; i < weights.size(); ++i) {
+        if (weights[i] == INT_MIN) {
+            throw std::invalid_argument(
+                "bddcostbound_ge: weight value INT_MIN is not supported");
+        }
         neg[i] = -weights[i];
     }
     return neg;
@@ -1190,8 +1194,16 @@ static std::vector<int> costbound_negate_weights(const std::vector<int>& weights
 
 bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
                       CostBoundMemo& memo) {
+    if (b == LLONG_MIN) {
+        throw std::invalid_argument(
+            "bddcostbound_ge: bound value LLONG_MIN is not supported");
+    }
     std::vector<int> neg = costbound_negate_weights(weights);
-    return bddcostbound_le(f, neg, -b, memo);
+    // Use a local memo for the negated-weight call to avoid conflicting
+    // with the user's memo which is bound to the original weights.
+    CostBoundMemo local_memo;
+    (void)memo;  // user memo is not usable for negated-weight le call
+    return bddcostbound_le(f, neg, -b, local_memo);
 }
 
 // ---------------------------------------------------------------

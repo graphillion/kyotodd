@@ -807,6 +807,10 @@ class BDD:
         """Print BDD summary (ID, Var, Level, Size) and return as string."""
         ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class ZDD:
     """A Zero-suppressed Decision Diagram representing a family of sets.
@@ -2174,6 +2178,10 @@ class ZDD:
         """Print ZDD statistics (ID, Var, Size, Card, Lit, Len) and return as string."""
         ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 def init(node_count: int = 256, node_max: int = ...) -> None:
     """Initialize the BDD library.
@@ -2432,6 +2440,10 @@ class PiDD:
 
     def enum2(self) -> str:
         """Enumerate all permutations in expanded form and return as a string."""
+        ...
+
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
         ...
 
 
@@ -2694,6 +2706,10 @@ class RotPiDD:
         """
         ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 # ================================================================
 # QDD
@@ -2896,6 +2912,10 @@ class QDD:
             stream: A readable stream.
             ignore_type: If True, skip dd_type validation.
         """
+        ...
+
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
         ...
 
 
@@ -3117,6 +3137,10 @@ class UnreducedDD:
         """
         ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 # ================================================================
 # SeqBDD
@@ -3308,6 +3332,10 @@ class SeqBDD:
         """
         ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class MVDDVarInfo:
     """Information about a single MVDD variable."""
@@ -3496,6 +3524,10 @@ class MVBDD:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class MVZDD:
     """Multi-Valued ZDD.
@@ -3628,6 +3660,10 @@ class MVZDD:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class MTBDDFloat:
     """Multi-Terminal BDD with double (float) terminal values.
@@ -3704,6 +3740,10 @@ class MTBDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class MTBDDInt:
     """Multi-Terminal BDD with int64 terminal values."""
@@ -3776,6 +3816,10 @@ class MTBDDInt:
     def __eq__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
+
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
 
 
 class MTZDDFloat:
@@ -3850,6 +3894,10 @@ class MTZDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...
+
 
 class MTZDDInt:
     """Multi-Terminal ZDD with int64 terminal values."""
@@ -3922,3 +3970,7 @@ class MTZDDInt:
     def __eq__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
+
+    def show(self) -> None:
+        """Display the DD as an SVG diagram."""
+        ...

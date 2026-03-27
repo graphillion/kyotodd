@@ -353,6 +353,10 @@ ZddMinWeightIterator ZddMinWeightRange::end() const {
 static std::vector<int> negate_weights(const std::vector<int>& weights) {
     std::vector<int> neg(weights.size());
     for (size_t i = 0; i < weights.size(); ++i) {
+        if (weights[i] == INT_MIN) {
+            throw std::invalid_argument(
+                "ZddMaxWeightIterator: weight value INT_MIN is not supported");
+        }
         neg[i] = -weights[i];
     }
     return neg;

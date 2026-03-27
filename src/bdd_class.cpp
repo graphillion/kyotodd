@@ -559,6 +559,7 @@ ZDD ZDD::cost_bound_ge(const std::vector<int>& weights, long long b) const {
 ZDD ZDD::cost_bound_eq(const std::vector<int>& weights, long long b,
                         CostBoundMemo& memo) const {
     ZDD le_b = cost_bound_le(weights, b, memo);
+    if (b == LLONG_MIN) return le_b;  // no sum < LLONG_MIN, so le(b-1) is empty
     ZDD le_b1 = cost_bound_le(weights, b - 1, memo);
     return le_b - le_b1;
 }
