@@ -48,7 +48,7 @@ class TestPiDDConstruction:
     def test_repr(self):
         _setup_pidd(3)
         p = kyotodd.PiDD(1)
-        assert "node_id=" in repr(p)
+        assert "PiDD: id=" in repr(p)
 
 
 class TestPiDDSetOperations:

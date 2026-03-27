@@ -84,14 +84,13 @@ class TestBDDHash:
 class TestBDDRepr:
     def test_repr_false(self):
         r = repr(BDD.false_)
-        assert "BDD(node_id=" in r
+        assert "BDD: id=" in r
 
     def test_repr_var(self):
         kyotodd.new_var()
         x = BDD.var(1)
         r = repr(x)
-        assert r.startswith("BDD(node_id=")
-        assert r.endswith(")")
+        assert r.startswith("BDD: id=")
 
 
 class TestBDDBool:

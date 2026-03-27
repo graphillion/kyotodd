@@ -54,7 +54,7 @@ class TestQDDOperators:
 
     def test_repr(self):
         q = kyotodd.QDD(0)
-        assert "QDD(node_id=" in repr(q)
+        assert "QDD: id=" in repr(q)
 
     def test_bool_raises(self):
         q = kyotodd.QDD(0)

@@ -185,7 +185,7 @@ class BDD:
         """Hash based on node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: BDD(node_id=...)."""
+        """Return string representation: 'BDD: id=...'."""
         ...
 
     def nand(self, other: BDD) -> BDD:
@@ -931,7 +931,7 @@ class ZDD:
         """Hash based on node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: ZDD(node_id=...)."""
+        """Return string representation: 'ZDD: id=...'."""
         ...
 
     def __bool__(self) -> bool:
@@ -2748,7 +2748,7 @@ class QDD:
         """Hash based on node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: QDD(node_id=...)."""
+        """Return string representation: 'QDD: id=...'."""
         ...
     def __invert__(self) -> QDD:
         """Complement (negate): ~self."""
@@ -2974,7 +2974,7 @@ class UnreducedDD:
         """Hash based on node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: UnreducedDD(node_id=...)."""
+        """Return string representation: 'UnreducedDD: id=...'."""
         ...
     def __invert__(self) -> UnreducedDD:
         """Toggle complement bit (bit 0). O(1).
@@ -3180,7 +3180,7 @@ class SeqBDD:
         """Hash based on internal ZDD node ID."""
         ...
     def __repr__(self) -> str:
-        """Return string representation: SeqBDD(node_id=...)."""
+        """Return string representation: 'SeqBDD: id=...'."""
         ...
     def __str__(self) -> str:
         """Return the sequence string representation."""

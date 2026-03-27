@@ -76,8 +76,7 @@ class TestZDDHash:
 class TestZDDRepr:
     def test_repr(self):
         r = repr(ZDD.empty)
-        assert r.startswith("ZDD(node_id=")
-        assert r.endswith(")")
+        assert r.startswith("ZDD: id=")
 
 
 class TestZDDOperators:

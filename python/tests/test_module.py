@@ -108,7 +108,7 @@ def test_node_max_exhaustion_raises():
     v2 = kyotodd.new_var()
     v3 = kyotodd.new_var()
     v4 = kyotodd.new_var()
-    with pytest.raises(MemoryError):
+    with pytest.raises(OverflowError):
         a = BDD.var(v1) & BDD.var(v2) & BDD.var(v3) & BDD.var(v4)
         b = BDD.var(v1) | BDD.var(v2) | BDD.var(v3) | BDD.var(v4)
         c = a ^ b

@@ -45,7 +45,7 @@ class TestRotPiDDConstruction:
     def test_repr(self):
         _setup_rotpidd(3)
         r = kyotodd.RotPiDD(1)
-        assert "node_id=" in repr(r)
+        assert "RotPiDD: id=" in repr(r)
 
 
 class TestRotPiDDFromPerm:

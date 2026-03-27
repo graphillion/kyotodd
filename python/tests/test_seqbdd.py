@@ -35,7 +35,7 @@ class TestSeqBDDConstruction:
 
     def test_repr(self):
         s = kyotodd.SeqBDD(1)
-        assert "SeqBDD(node_id=" in repr(s)
+        assert "SeqBDD: id=" in repr(s)
 
     def test_equality(self):
         a = kyotodd.SeqBDD(0)

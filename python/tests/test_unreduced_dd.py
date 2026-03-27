@@ -56,7 +56,7 @@ class TestUnreducedDDOperators:
 
     def test_repr(self):
         u = kyotodd.UnreducedDD(0)
-        assert "UnreducedDD(node_id=" in repr(u)
+        assert "UnreducedDD: id=" in repr(u)
 
     def test_bool_raises(self):
         u = kyotodd.UnreducedDD(0)
