@@ -179,12 +179,12 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Operators: `+` (union), `-` (subtract), `&` (intersec), `*` (join), `/` (div), `%` (remainder), `^` (symdiff), `~` (complement), `<<` / `>>` (shift), `==`, `!=`.
 - Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`.
 - Set operations: `Offset(v)`, `OnSet(v)`, `OnSet0(v)`, `Change(v)`.
-- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`.
+- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements).
 - Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.
-- Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`.
+- Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`, `profile()` (set size distribution as `vector<BigInt>`), `profile_double()` (as `vector<double>`).
 - Weight operations: `get_sum(weights)` (BigInt), `min_weight(weights)`, `max_weight(weights)`, `min_weight_set(weights)`, `max_weight_set(weights)`. Free functions: `bddweightsum()`, `bddminweight()`, `bddmaxweight()`, `bddminweightset()`, `bddmaxweightset()`.
 - Cost bound filtering: `cost_bound_le(weights, b)`, `cost_bound_ge(weights, b)`, `cost_bound_eq(weights, b)` — filter sets by total weight. Optionally accept `CostBoundMemo&` for caching. Free functions: `bddcostbound_le()`, `bddcostbound_ge()`.
-- Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F.
+- Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F. `contains(s)` / `bddcontains()` — check if set s ∈ F.
 - Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family.
 - Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
 - Constants: `ZDD::Empty`, `ZDD::Single`, `ZDD::Null`.
