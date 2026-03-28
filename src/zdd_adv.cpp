@@ -1780,18 +1780,27 @@ bddp bddgetkheaviest(bddp f, int64_t k,
 // supersets_of
 // ============================================================
 
-static const std::vector<bddvar>* supersets_of_sorted_s = nullptr;
+struct BddpIdxPairHash {
+    std::size_t operator()(const std::pair<bddp, size_t>& p) const {
+        std::size_t h = std::hash<bddp>()(p.first);
+        h ^= std::hash<size_t>()(p.second) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
+typedef std::unordered_map<std::pair<bddp, size_t>, bddp, BddpIdxPairHash> BddpIdxMemo;
 
-static bddp bddsupersets_of_rec(bddp f, size_t idx) {
+static bddp bddsupersets_of_rec(
+    bddp f, size_t idx,
+    const std::vector<bddvar>& ss, BddpIdxMemo& memo) {
     if (f == bddempty) return bddempty;
-    const std::vector<bddvar>& ss = *supersets_of_sorted_s;
     if (idx == ss.size()) return f;
     if (f == bddsingle) return bddempty;
 
     BDD_RecurGuard guard;
 
-    bddp cached = bddrcache(BDD_OP_SUPERSETS_OF, f, static_cast<bddp>(idx));
-    if (cached != bddnull) return cached;
+    auto key = std::make_pair(f, idx);
+    auto it = memo.find(key);
+    if (it != memo.end()) return it->second;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -1808,20 +1817,17 @@ static bddp bddsupersets_of_rec(bddp f, size_t idx) {
     bddp result;
 
     if (s_level > f_level) {
-        // s has a variable not in the ZDD (zero-suppressed) → no superset
         result = bddempty;
     } else if (s_level == f_level) {
-        // s requires this variable → only hi branch qualifies
-        bddp hi = bddsupersets_of_rec(f_hi, idx + 1);
+        bddp hi = bddsupersets_of_rec(f_hi, idx + 1, ss, memo);
         result = ZDD::getnode_raw(f_var, bddempty, hi);
     } else {
-        // ZDD variable not in s → both branches may contain supersets
-        bddp lo = bddsupersets_of_rec(f_lo, idx);
-        bddp hi = bddsupersets_of_rec(f_hi, idx);
+        bddp lo = bddsupersets_of_rec(f_lo, idx, ss, memo);
+        bddp hi = bddsupersets_of_rec(f_hi, idx, ss, memo);
         result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
-    bddwcache(BDD_OP_SUPERSETS_OF, f, static_cast<bddp>(idx), result);
+    memo[key] = result;
     return result;
 }
 
@@ -1842,32 +1848,30 @@ bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s) {
     std::sort(sorted_s.begin(), sorted_s.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
 
-    supersets_of_sorted_s = &sorted_s;
-    bddp result = bdd_gc_guard([&]() -> bddp {
-        return bddsupersets_of_rec(f, 0);
+    return bdd_gc_guard([&]() -> bddp {
+        BddpIdxMemo memo;
+        return bddsupersets_of_rec(f, 0, sorted_s, memo);
     });
-    supersets_of_sorted_s = nullptr;
-    return result;
 }
 
 // ============================================================
 // subsets_of
 // ============================================================
 
-static const std::vector<bddvar>* subsets_of_sorted_s = nullptr;
-
-static bddp bddsubsets_of_rec(bddp f, size_t idx) {
+static bddp bddsubsets_of_rec(
+    bddp f, size_t idx,
+    const std::vector<bddvar>& ss, BddpIdxMemo& memo) {
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
-    const std::vector<bddvar>& ss = *subsets_of_sorted_s;
     if (idx == ss.size()) {
         return bddhasempty(f) ? bddsingle : bddempty;
     }
 
     BDD_RecurGuard guard;
 
-    bddp cached = bddrcache(BDD_OP_SUBSETS_OF, f, static_cast<bddp>(idx));
-    if (cached != bddnull) return cached;
+    auto key = std::make_pair(f, idx);
+    auto it = memo.find(key);
+    if (it != memo.end()) return it->second;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -1884,19 +1888,16 @@ static bddp bddsubsets_of_rec(bddp f, size_t idx) {
     bddp result;
 
     if (s_level > f_level) {
-        // s has a variable not in ZDD → skip it, all sets still qualify
-        result = bddsubsets_of_rec(f, idx + 1);
+        result = bddsubsets_of_rec(f, idx + 1, ss, memo);
     } else if (s_level == f_level) {
-        // Same variable: both lo and hi branches qualify
-        bddp lo = bddsubsets_of_rec(f_lo, idx + 1);
-        bddp hi = bddsubsets_of_rec(f_hi, idx + 1);
+        bddp lo = bddsubsets_of_rec(f_lo, idx + 1, ss, memo);
+        bddp hi = bddsubsets_of_rec(f_hi, idx + 1, ss, memo);
         result = ZDD::getnode_raw(f_var, lo, hi);
     } else {
-        // ZDD has variable not in s → only lo qualifies (extra vars disallowed)
-        result = bddsubsets_of_rec(f_lo, idx);
+        result = bddsubsets_of_rec(f_lo, idx, ss, memo);
     }
 
-    bddwcache(BDD_OP_SUBSETS_OF, f, static_cast<bddp>(idx), result);
+    memo[key] = result;
     return result;
 }
 
@@ -1916,28 +1917,26 @@ bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s) {
     std::sort(sorted_s.begin(), sorted_s.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
 
-    subsets_of_sorted_s = &sorted_s;
-    bddp result = bdd_gc_guard([&]() -> bddp {
-        return bddsubsets_of_rec(f, 0);
+    return bdd_gc_guard([&]() -> bddp {
+        BddpIdxMemo memo;
+        return bddsubsets_of_rec(f, 0, sorted_s, memo);
     });
-    subsets_of_sorted_s = nullptr;
-    return result;
 }
 
 // ============================================================
 // project
 // ============================================================
 
-static const std::unordered_set<bddvar>* project_vars_ptr = nullptr;
-
-static bddp bddproject_rec(bddp f) {
+static bddp bddproject_rec(
+    bddp f, const std::unordered_set<bddvar>& proj_vars,
+    std::unordered_map<bddp, bddp>& memo) {
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
 
     BDD_RecurGuard guard;
 
-    bddp cached = bddrcache(BDD_OP_PROJECT, f, 0);
-    if (cached != bddnull) return cached;
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
@@ -1949,19 +1948,17 @@ static bddp bddproject_rec(bddp f) {
 
     bddp result;
 
-    if (project_vars_ptr->count(f_var)) {
-        // Remove this variable: union of both branches
-        bddp lo_proj = bddproject_rec(f_lo);
-        bddp hi_proj = bddproject_rec(f_hi);
+    if (proj_vars.count(f_var)) {
+        bddp lo_proj = bddproject_rec(f_lo, proj_vars, memo);
+        bddp hi_proj = bddproject_rec(f_hi, proj_vars, memo);
         result = bddunion(lo_proj, hi_proj);
     } else {
-        // Keep this variable
-        bddp lo_proj = bddproject_rec(f_lo);
-        bddp hi_proj = bddproject_rec(f_hi);
+        bddp lo_proj = bddproject_rec(f_lo, proj_vars, memo);
+        bddp hi_proj = bddproject_rec(f_hi, proj_vars, memo);
         result = ZDD::getnode_raw(f_var, lo_proj, hi_proj);
     }
 
-    bddwcache(BDD_OP_PROJECT, f, 0, result);
+    memo[f] = result;
     return result;
 }
 
@@ -1977,12 +1974,10 @@ bddp bddproject(bddp f, const std::vector<bddvar>& vars) {
     }
 
     std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
-    project_vars_ptr = &var_set;
-    bddp result = bdd_gc_guard([&]() -> bddp {
-        return bddproject_rec(f);
+    return bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        return bddproject_rec(f, var_set, memo);
     });
-    project_vars_ptr = nullptr;
-    return result;
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {
