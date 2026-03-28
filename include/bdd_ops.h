@@ -568,6 +568,18 @@ bool bddhasempty(bddp f);
 bool bddcontains(bddp f, const std::vector<bddvar>& s);
 
 /**
+ * @brief Filter to sets of exactly k elements.
+ *
+ * Returns a ZDD containing only those sets in the family represented
+ * by @p f that have exactly @p k elements.
+ *
+ * @param f A ZDD node ID.
+ * @param k Required set size (must be >= 0).
+ * @return A ZDD node ID representing the filtered family.
+ */
+bddp bddchoose(bddp f, int k);
+
+/**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
  *
  * Same computation as bddcard, but returns a BigInt so the result

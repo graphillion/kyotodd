@@ -1456,6 +1456,17 @@ class ZDD:
         """
         ...
 
+    def choose(self, k: int) -> ZDD:
+        """Filter to sets of exactly k elements.
+
+        Args:
+            k: Required number of elements.
+
+        Returns:
+            A ZDD containing only sets with exactly k elements.
+        """
+        ...
+
     def min_weight(self, weights: List[int]) -> int:
         """Find the minimum weight sum among all sets in the family.
 

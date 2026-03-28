@@ -581,6 +581,62 @@ bool bddcontains(bddp f, const std::vector<bddvar>& s) {
     return (f == bddsingle && s_idx == sorted_s.size());
 }
 
+// Filter to sets of exactly k elements
+static bddp bddchoose_rec(bddp f, int k);
+
+bddp bddchoose(bddp f, int k) {
+    bddp_validate(f, "bddchoose");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (k < 0) return bddempty;
+    if (f == bddsingle) return (k == 0) ? bddsingle : bddempty;
+
+    // Complement toggles ∅ membership only (size 0).
+    // For k > 0, complement has no effect. For k == 0, resolve directly.
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    if (comp) {
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+        if (k == 0) {
+            return bddhasempty(f_raw) ? bddempty : bddsingle;
+        }
+        f = f_raw;
+    } else if (k == 0) {
+        return bddhasempty(f) ? bddsingle : bddempty;
+    }
+
+    // k > 0, f has no complement bit
+    return bdd_gc_guard([&]() -> bddp { return bddchoose_rec(f, k); });
+}
+
+static bddp bddchoose_rec(bddp f, int k) {
+    BDD_RecurGuard guard;
+
+    if (f == bddempty) return bddempty;
+    if (k < 0) return bddempty;
+    if (f == bddsingle) return (k == 0) ? bddsingle : bddempty;
+    if (k == 0) return bddhasempty(f) ? bddsingle : bddempty;
+
+    // For k > 0, complement only affects ∅ (size 0), so strip it.
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddp cached = bddrcache(BDD_OP_CHOOSE, f_raw, static_cast<bddp>(k));
+    if (cached != bddnull) return cached;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+    if (comp) lo = bddnot(lo);  // ZDD complement: lo only
+
+    bddp r0 = bddchoose_rec(lo, k);      // sets not containing var
+    bddp r1 = bddchoose_rec(hi, k - 1);  // sets containing var
+
+    bddp result = ZDD::getnode_raw(var, r0, r1);
+
+    bddwcache(BDD_OP_CHOOSE, f_raw, static_cast<bddp>(k), result);
+    return result;
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

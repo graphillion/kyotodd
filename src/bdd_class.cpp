@@ -265,6 +265,10 @@ bool ZDD::contains(const std::vector<bddvar>& s) const {
     return bddcontains(root, s);
 }
 
+ZDD ZDD::choose(int k) const {
+    return ZDD_ID(bddchoose(root, k));
+}
+
 ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }

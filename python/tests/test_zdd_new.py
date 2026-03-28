@@ -540,3 +540,50 @@ class TestZDDContains:
         zc = ~z                 # toggles empty set → {{1}, {}}
         assert zc.contains([])
         assert zc.contains([1])
+
+
+class TestZDDChoose:
+    def test_empty_family(self):
+        assert ZDD(0).choose(0) == ZDD(0)
+        assert ZDD(0).choose(1) == ZDD(0)
+
+    def test_unit_family_k0(self):
+        assert ZDD(1).choose(0) == ZDD(1)
+
+    def test_unit_family_k1(self):
+        assert ZDD(1).choose(1) == ZDD(0)
+
+    def test_negative_k(self):
+        assert ZDD(1).choose(-1) == ZDD(0)
+
+    def test_power_set(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        assert ps.choose(0) == ZDD(1)     # {{}}
+        assert ps.choose(1).exact_count == 3
+        assert ps.choose(2).exact_count == 3
+        assert ps.choose(3).exact_count == 1
+        assert ps.choose(4) == ZDD(0)
+
+    def test_combination_match(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        for k in range(4):
+            assert ps.choose(k) == ZDD.combination(3, k)
+
+    def test_complement_edge(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)  # {{1}}
+        zc = ~z                 # {{1}, {}}
+        assert zc.choose(0) == ZDD(1)   # {{}}
+        assert zc.choose(1) == z        # {{1}}
+
+    def test_filter_correctness(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        z = ZDD.from_sets([[1], [1, 2], [1, 2, 3]])
+        assert z.choose(1).enumerate() == [[1]]
+        assert z.choose(2).enumerate() == [[1, 2]]
+        assert z.choose(3).enumerate() == [[1, 2, 3]]

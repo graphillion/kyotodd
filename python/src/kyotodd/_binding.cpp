@@ -1394,6 +1394,12 @@ PYBIND11_MODULE(_core, m) {
              "    s: A list of variable numbers representing the set.\n\n"
              "Returns:\n"
              "    True if the set is in the family.\n")
+        .def("choose", &ZDD::choose, py::arg("k"),
+             "Filter to sets of exactly k elements.\n\n"
+             "Args:\n"
+             "    k: Required number of elements.\n\n"
+             "Returns:\n"
+             "    A ZDD containing only sets with exactly k elements.\n")
 
         // Rank / Unrank
         .def("rank", &ZDD::rank, py::arg("s"),

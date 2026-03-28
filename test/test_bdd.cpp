@@ -9578,6 +9578,93 @@ TEST_F(BDDTest, ZDD_Contains_MemberFunction) {
     EXPECT_FALSE(ps.contains({4}));
 }
 
+// --- bddchoose / ZDD::choose ---
+
+TEST_F(BDDTest, ZDD_Choose_TerminalCases) {
+    EXPECT_EQ(bddchoose(bddnull, 0), bddnull);
+    EXPECT_EQ(bddchoose(bddempty, 0), bddempty);
+    EXPECT_EQ(bddchoose(bddempty, 1), bddempty);
+    EXPECT_EQ(bddchoose(bddsingle, 0), bddsingle);
+    EXPECT_EQ(bddchoose(bddsingle, 1), bddempty);
+}
+
+TEST_F(BDDTest, ZDD_Choose_NegativeK) {
+    EXPECT_EQ(bddchoose(bddsingle, -1), bddempty);
+    bddp a = bddchange(bddsingle, 1);
+    EXPECT_EQ(bddchoose(a, -1), bddempty);
+}
+
+TEST_F(BDDTest, ZDD_Choose_ZeroK_WithEmpty) {
+    // {{1}, ∅} → choose(0) = {∅}
+    bddp a = bddchange(bddsingle, 1);
+    bddp f = bddunion(a, bddsingle);
+    EXPECT_EQ(bddchoose(f, 0), bddsingle);
+}
+
+TEST_F(BDDTest, ZDD_Choose_ZeroK_WithoutEmpty) {
+    // {{1}} → choose(0) = {}
+    bddp a = bddchange(bddsingle, 1);
+    EXPECT_EQ(bddchoose(a, 0), bddempty);
+}
+
+TEST_F(BDDTest, ZDD_Choose_PowerSet) {
+    ZDD ps = ZDD::power_set(3);
+    // C(3,0)=1, C(3,1)=3, C(3,2)=3, C(3,3)=1
+    ZDD c0 = ps.choose(0);
+    ZDD c1 = ps.choose(1);
+    ZDD c2 = ps.choose(2);
+    ZDD c3 = ps.choose(3);
+
+    EXPECT_EQ(c0.exact_count(), bigint::BigInt(1));
+    EXPECT_EQ(c1.exact_count(), bigint::BigInt(3));
+    EXPECT_EQ(c2.exact_count(), bigint::BigInt(3));
+    EXPECT_EQ(c3.exact_count(), bigint::BigInt(1));
+
+    // choose(k) should equal combination(3, k) for power_set(3)
+    EXPECT_EQ(c1.GetID(), ZDD::combination(3, 1).GetID());
+    EXPECT_EQ(c2.GetID(), ZDD::combination(3, 2).GetID());
+    EXPECT_EQ(c3.GetID(), ZDD::combination(3, 3).GetID());
+}
+
+TEST_F(BDDTest, ZDD_Choose_KExceedsMax) {
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_EQ(ps.choose(4), ZDD::Empty);
+    EXPECT_EQ(ps.choose(100), ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_Choose_ComplementEdge) {
+    bddp a = bddchange(bddsingle, 1);  // {{1}}
+    // ~{{1}} = {{1}, ∅}
+    bddp ca = bddnot(a);
+    EXPECT_EQ(bddchoose(ca, 0), bddsingle);  // {∅}
+    EXPECT_EQ(bddchoose(ca, 1), a);          // {{1}}
+
+    // {{1}, ∅}: complement removes ∅ → {{1}}
+    bddp u = bddunion(a, bddsingle);
+    bddp cu = bddnot(u);
+    EXPECT_EQ(bddchoose(cu, 0), bddempty);  // no ∅
+    EXPECT_EQ(bddchoose(cu, 1), a);         // {{1}}
+}
+
+TEST_F(BDDTest, ZDD_Choose_FilterCorrectness) {
+    // {{1}, {1,2}, {1,2,3}}
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    bddp s123 = bddchange(bddchange(bddchange(bddsingle, 1), 2), 3);
+    bddp f = bddunion(bddunion(s1, s12), s123);
+
+    ZDD r1 = ZDD_ID(bddchoose(f, 1));
+    ZDD r2 = ZDD_ID(bddchoose(f, 2));
+    ZDD r3 = ZDD_ID(bddchoose(f, 3));
+
+    EXPECT_EQ(r1.exact_count(), bigint::BigInt(1));  // {{1}}
+    EXPECT_EQ(r2.exact_count(), bigint::BigInt(1));  // {{1,2}}
+    EXPECT_EQ(r3.exact_count(), bigint::BigInt(1));  // {{1,2,3}}
+    EXPECT_TRUE(r1.contains({1}));
+    EXPECT_TRUE(r2.contains({1, 2}));
+    EXPECT_TRUE(r3.contains({1, 2, 3}));
+}
+
 // --- ZDD::singleton ---
 
 TEST_F(BDDTest, ZDD_Singleton) {

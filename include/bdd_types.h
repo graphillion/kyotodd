@@ -136,6 +136,7 @@ static const uint8_t BDD_OP_LSHIFTB = 45;
 static const uint8_t BDD_OP_RSHIFTB = 46;
 static const uint8_t BDD_OP_LSHIFTZ = 47;
 static const uint8_t BDD_OP_RSHIFTZ = 48;
+static const uint8_t BDD_OP_CHOOSE  = 68;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -1100,6 +1101,9 @@ public:
 
     /** @brief Check if a specific set is a member of the family. */
     bool contains(const std::vector<bddvar>& s) const;
+
+    /** @brief Filter to sets of exactly k elements. */
+    ZDD choose(int k) const;
 
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
