@@ -1418,3 +1418,66 @@ TEST_F(MTBDDClassTest, MTZDDCountForTerminalInt) {
     EXPECT_EQ(f.exact_count(int64_t(20)), bigint::BigInt(1));
     EXPECT_EQ(f.exact_count(int64_t(99)), bigint::BigInt(0));
 }
+
+// ========================================================================
+//  MTZDD has_empty tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptyZeroTerminal) {
+    // Zero terminal: empty assignment maps to 0 → false
+    MTZDD<double> f;
+    EXPECT_FALSE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptyNonZeroTerminal) {
+    // Non-zero terminal: empty assignment maps to 5.0 → true
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptySingleVar) {
+    // ite(v1, hi=3.0, lo=0.0)
+    // Empty assignment: all vars=0 → follow lo → 0.0 → false
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0), MTZDD<double>());
+    EXPECT_FALSE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptySingleVarNonZeroLo) {
+    // ite(v1, hi=3.0, lo=2.0)
+    // Empty assignment: all vars=0 → follow lo → 2.0 → true
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0), MTZDD<double>::terminal(2.0));
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptyMultiLevel) {
+    // v3 top, v1 below (v2 zero-suppressed between)
+    // ite(v3, hi=10, lo=ite(v1, hi=5, lo=0))
+    // Empty: v3=0 → lo → v1=0 → lo → 0 → false
+    auto inner = MTZDD<double>::ite(1, MTZDD<double>::terminal(5.0), MTZDD<double>());
+    auto f = MTZDD<double>::ite(3, MTZDD<double>::terminal(10.0), inner);
+    EXPECT_FALSE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptyMultiLevelNonZero) {
+    // v3 top, v1 below (v2 zero-suppressed between)
+    // ite(v3, hi=10, lo=ite(v1, hi=5, lo=7))
+    // Empty: v3=0 → lo → v1=0 → lo → 7 → true
+    auto inner = MTZDD<double>::ite(1, MTZDD<double>::terminal(5.0), MTZDD<double>::terminal(7.0));
+    auto f = MTZDD<double>::ite(3, MTZDD<double>::terminal(10.0), inner);
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDHasEmptyInt) {
+    // Test with int64_t type
+    auto zero = MTZDD<int64_t>();
+    auto t5 = MTZDD<int64_t>::terminal(5);
+    auto t3 = MTZDD<int64_t>::terminal(3);
+
+    // lo=0 → false
+    auto f1 = MTZDD<int64_t>::ite(1, t5, zero);
+    EXPECT_FALSE(f1.has_empty());
+
+    // lo=3 → true
+    auto f2 = MTZDD<int64_t>::ite(1, t5, t3);
+    EXPECT_TRUE(f2.has_empty());
+}

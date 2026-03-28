@@ -774,6 +774,18 @@ public:
         return MTZDD(mtzdd_cofactor1(root, v));
     }
 
+    // --- Empty assignment check ---
+
+    /** @brief Check if the empty assignment (all variables = 0) maps to a non-zero value. */
+    bool has_empty() const {
+        bddp f = root;
+        while (!(f & BDD_CONST_FLAG)) {
+            f = node_lo(f);
+        }
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+        return MTBDDTerminalTable<T>::instance().get_value(idx) != T{};
+    }
+
     // --- Counting (non-zero paths) ---
 
     /** @brief Count the number of non-zero terminal paths (double). */
