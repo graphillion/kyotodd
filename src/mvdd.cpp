@@ -849,6 +849,30 @@ bool MVZDD::contains(const std::vector<int>& s) const {
     return bddcontains(root, dd_set);
 }
 
+// --- Support ---
+
+std::vector<bddvar> MVZDD::support_vars() const {
+    if (!var_table_) return std::vector<bddvar>();
+
+    // Get DD-level support variables
+    std::vector<bddvar> dd_vars = bddsupport_vec(root);
+
+    // Convert to MVDD variable numbers, deduplicating
+    std::vector<bool> seen(var_table_->mvdd_var_count() + 1, false);
+    std::vector<bddvar> result;
+    for (size_t i = 0; i < dd_vars.size(); ++i) {
+        bddvar mv = var_table_->mvdd_var_of(dd_vars[i]);
+        if (mv != 0 && !seen[mv]) {
+            seen[mv] = true;
+            result.push_back(mv);
+        }
+    }
+
+    // Sort by MVDD variable number
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
 // --- Counting ---
 
 double MVZDD::count() const {
@@ -857,6 +881,11 @@ double MVZDD::count() const {
 
 bigint::BigInt MVZDD::exact_count() const {
     return bddexactcount(root);
+}
+
+bigint::BigInt MVZDD::exact_count(ZddCountMemo& memo) const {
+    ZDD z = to_zdd();
+    return z.exact_count(memo);
 }
 
 // --- Evaluation ---

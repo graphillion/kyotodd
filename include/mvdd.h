@@ -414,6 +414,14 @@ public:
      */
     bool contains(const std::vector<int>& s) const;
 
+    // --- Support ---
+
+    /**
+     * @brief Return all MVDD variable numbers appearing in the family.
+     * @return Sorted vector of MVDD variable numbers.
+     */
+    std::vector<bddvar> support_vars() const;
+
     // --- Counting ---
 
     /** @brief Count the number of MVDD assignments (double). */
@@ -421,6 +429,29 @@ public:
 
     /** @brief Count the number of MVDD assignments (exact). */
     bigint::BigInt exact_count() const;
+
+    /**
+     * @brief Count the number of MVDD assignments (exact, with memo).
+     * @param memo A ZddCountMemo created for the internal ZDD.
+     */
+    bigint::BigInt exact_count(ZddCountMemo& memo) const;
+
+    // --- Sampling ---
+
+    /**
+     * @brief Uniformly sample one assignment from the family at random.
+     *
+     * Each assignment in the family is selected with equal probability.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param rng The random number generator.
+     * @param memo A ZddCountMemo created for the internal ZDD.
+     * @return The sampled assignment as a vector of values
+     *         (0-indexed: result[i] is the value of MVDD variable i+1).
+     * @throws std::invalid_argument if the family is empty.
+     */
+    template<typename RNG>
+    std::vector<int> uniform_sample(RNG& rng, ZddCountMemo& memo);
 
     // --- Evaluation ---
 
@@ -563,6 +594,37 @@ inline std::string MVZDD::save_svg(const SvgParams& params) const {
 }
 inline std::string MVZDD::save_svg() const {
     return save_svg(SvgParams());
+}
+
+// ========================================================================
+//  MVZDD template implementations
+//  (requires ZDD::uniform_sample template from bdd.h — include bdd.h
+//   before using this template, or use the umbrella header)
+// ========================================================================
+
+template<typename RNG>
+std::vector<int> MVZDD::uniform_sample(RNG& rng, ZddCountMemo& memo) {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::uniform_sample: no var table");
+    }
+    ZDD z = to_zdd();
+    std::vector<bddvar> dd_set = z.uniform_sample(rng, memo);
+
+    // Convert DD-level set to MVDD assignment
+    bddvar n = var_table_->mvdd_var_count();
+    std::vector<int> assign(n, 0);
+    for (size_t j = 0; j < dd_set.size(); ++j) {
+        bddvar dv = dd_set[j];
+        bddvar mv = var_table_->mvdd_var_of(dv);
+        if (mv == 0) {
+            throw std::logic_error(
+                "MVZDD::uniform_sample: DD variable " + std::to_string(dv) +
+                " is not registered in the var table");
+        }
+        int idx = var_table_->dd_var_index(dv);
+        assign[mv - 1] = idx + 1;
+    }
+    return assign;
 }
 
 #endif

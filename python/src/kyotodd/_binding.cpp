@@ -3755,6 +3755,11 @@ PYBIND11_MODULE(_core, m) {
             "Args:\n"
             "    s: List of values (0-indexed: s[i] is the value of MVDD variable i+1).\n"
             "       Size must equal the number of MVDD variables.")
+        // Support
+        .def("support_vars", &MVZDD::support_vars,
+            "Return all MVDD variable numbers appearing in the family.\n\n"
+            "Returns:\n"
+            "    A sorted list of MVDD variable numbers.")
         // Counting
         .def_property_readonly("count", &MVZDD::count,
             "Number of assignments (double).")
@@ -3763,6 +3768,37 @@ PYBIND11_MODULE(_core, m) {
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "Number of assignments (arbitrary precision).")
+        .def("exact_count_with_memo", [](const MVZDD& z, ZddCountMemo& memo) -> py::int_ {
+            bigint::BigInt bi = z.exact_count(memo);
+            std::string s = bi.to_string();
+            return py::int_(py::str(s));
+        }, py::arg("memo"),
+           "Count the number of assignments using a memo for caching.\n\n"
+           "Args:\n"
+           "    memo: A ZddCountMemo object for caching.\n\n"
+           "Returns:\n"
+           "    The number of assignments as a Python int.")
+        // Sampling
+        .def("uniform_sample", [](MVZDD& z, uint64_t seed) -> std::vector<int> {
+            std::mt19937_64 rng(seed);
+            ZddCountMemo memo(z.to_zdd());
+            return z.uniform_sample(rng, memo);
+        }, py::arg("seed") = 0,
+           "Sample an assignment uniformly at random from the family.\n\n"
+           "Args:\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of values (0-indexed: result[i] is the value of MVDD variable i+1).")
+        .def("uniform_sample_with_memo", [](MVZDD& z, ZddCountMemo& memo, uint64_t seed) -> std::vector<int> {
+            std::mt19937_64 rng(seed);
+            return z.uniform_sample(rng, memo);
+        }, py::arg("memo"), py::arg("seed") = 0,
+           "Sample an assignment using a memo for caching.\n\n"
+           "Args:\n"
+           "    memo: A ZddCountMemo object for caching.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of values (0-indexed: result[i] is the value of MVDD variable i+1).")
         // Properties
         .def_property_readonly("k", &MVZDD::k,
             "Value domain size.")

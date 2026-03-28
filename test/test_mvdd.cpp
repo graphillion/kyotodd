@@ -3,6 +3,8 @@
 #include "mvdd.h"
 #include <sstream>
 #include <string>
+#include <random>
+#include <set>
 
 class MVDDTest : public ::testing::Test {
 protected:
@@ -1294,4 +1296,159 @@ TEST_F(MVDDTest, MVZDDContainsValueOutOfRange) {
     auto one = MVZDD::one(base.var_table());
     EXPECT_THROW(one.contains({3}), std::invalid_argument);
     EXPECT_THROW(one.contains({-1}), std::invalid_argument);
+}
+
+// ============================================================
+//  MVZDD support_vars
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDSupportVarsBasic) {
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+    bddvar v3 = base.new_var();
+
+    // Family only uses v1 and v3
+    auto s1 = MVZDD::singleton(base, v1, 1);
+    auto s3 = MVZDD::singleton(base, v3, 2);
+    MVZDD F = s1 + s3;
+
+    std::vector<bddvar> vars = F.support_vars();
+    EXPECT_EQ(vars.size(), 2u);
+    EXPECT_EQ(vars[0], v1);
+    EXPECT_EQ(vars[1], v3);
+    (void)v2;
+}
+
+TEST_F(MVDDTest, MVZDDSupportVarsEmpty) {
+    MVZDD base(2);
+    base.new_var();
+    auto empty = MVZDD::zero(base.var_table());
+    std::vector<bddvar> vars = empty.support_vars();
+    EXPECT_TRUE(vars.empty());
+}
+
+TEST_F(MVDDTest, MVZDDSupportVarsOne) {
+    // one() = { all-zero }, represented as terminal — no DD variables
+    MVZDD base(2);
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+    std::vector<bddvar> vars = one.support_vars();
+    EXPECT_TRUE(vars.empty());
+}
+
+// ============================================================
+//  MVZDD exact_count with memo
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDExactCountWithMemo) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Build a family with known size
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, 1, 1);
+    auto a02 = MVZDD::singleton(base, 2, 2);
+    MVZDD F = a00 + a10 + a02;
+
+    ZddCountMemo memo(F.to_zdd());
+    bigint::BigInt count1 = F.exact_count(memo);
+    EXPECT_EQ(count1.to_string(), "3");
+
+    // Calling again with same memo should give same result
+    bigint::BigInt count2 = F.exact_count(memo);
+    EXPECT_EQ(count2.to_string(), "3");
+}
+
+TEST_F(MVDDTest, MVZDDExactCountMemoConsistency) {
+    // exact_count() and exact_count(memo) should agree
+    MVZDD base(4);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto s11 = MVZDD::singleton(base, v1, 1);
+    auto s12 = MVZDD::singleton(base, v1, 2);
+    auto s13 = MVZDD::singleton(base, v1, 3);
+    auto s21 = MVZDD::singleton(base, v2, 1);
+    MVZDD F = s11 + s12 + s13 + s21;
+
+    ZddCountMemo memo(F.to_zdd());
+    bigint::BigInt with_memo = F.exact_count(memo);
+    bigint::BigInt without_memo = F.exact_count();
+    EXPECT_EQ(with_memo.to_string(), without_memo.to_string());
+}
+
+// ============================================================
+//  MVZDD uniform_sample
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDUniformSampleSingleElement) {
+    // Family with exactly one assignment: { (2, 0) }
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+    auto s = MVZDD::singleton(base, v1, 2);
+
+    std::mt19937_64 rng(42);
+    ZddCountMemo memo(s.to_zdd());
+    std::vector<int> sample = s.uniform_sample(rng, memo);
+
+    EXPECT_EQ(sample.size(), 2u);
+    EXPECT_EQ(sample[0], 2);  // v1 = 2
+    EXPECT_EQ(sample[1], 0);  // v2 = 0
+    (void)v2;
+}
+
+TEST_F(MVDDTest, MVZDDUniformSampleAllZero) {
+    // Family = { (0,0) }
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+
+    std::mt19937_64 rng(123);
+    ZddCountMemo memo(one.to_zdd());
+    std::vector<int> sample = one.uniform_sample(rng, memo);
+
+    EXPECT_EQ(sample.size(), 2u);
+    EXPECT_EQ(sample[0], 0);
+    EXPECT_EQ(sample[1], 0);
+}
+
+TEST_F(MVDDTest, MVZDDUniformSampleCoversAll) {
+    // Family with 3 assignments — sample many times, check all are hit
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+
+    auto s0 = MVZDD::one(base.var_table());       // (0)
+    auto s1 = MVZDD::singleton(base, v1, 1);      // (1)
+    auto s2 = MVZDD::singleton(base, v1, 2);      // (2)
+    MVZDD F = s0 + s1 + s2;
+
+    std::mt19937_64 rng(0);
+    ZddCountMemo memo(F.to_zdd());
+
+    std::set<int> seen;
+    for (int i = 0; i < 100; ++i) {
+        std::vector<int> sample = F.uniform_sample(rng, memo);
+        ASSERT_EQ(sample.size(), 1u);
+        int val = sample[0];
+        EXPECT_GE(val, 0);
+        EXPECT_LE(val, 2);
+        EXPECT_TRUE(F.contains(sample));
+        seen.insert(val);
+    }
+    // With 100 samples from 3 elements, all should appear
+    EXPECT_EQ(seen.size(), 3u);
+}
+
+TEST_F(MVDDTest, MVZDDUniformSampleEmptyThrows) {
+    MVZDD base(2);
+    base.new_var();
+    auto empty = MVZDD::zero(base.var_table());
+
+    std::mt19937_64 rng(0);
+    ZddCountMemo memo(empty.to_zdd());
+    EXPECT_THROW(empty.uniform_sample(rng, memo), std::exception);
 }
