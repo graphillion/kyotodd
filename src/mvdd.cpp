@@ -936,10 +936,13 @@ std::vector<int> MVZDD::dd_set_to_assignment(const std::vector<bddvar>& dd_set) 
     for (size_t j = 0; j < dd_set.size(); ++j) {
         bddvar dv = dd_set[j];
         bddvar mv = var_table_->mvdd_var_of(dv);
-        if (mv != 0) {
-            int idx = var_table_->dd_var_index(dv);
-            assign[mv - 1] = idx + 1;
+        if (mv == 0) {
+            throw std::logic_error(
+                "MVZDD::dd_set_to_assignment: DD variable " +
+                std::to_string(dv) + " is not registered in the var table");
         }
+        int idx = var_table_->dd_var_index(dv);
+        assign[mv - 1] = idx + 1;
     }
     return assign;
 }
@@ -978,12 +981,20 @@ std::vector<int> MVZDD::max_weight_set(const std::vector<std::vector<int>>& weig
 
 // --- Cost-bound filtering ---
 
+// Saturating subtraction for bound adjustment: clamps to LLONG_MIN/LLONG_MAX
+// instead of overflowing.
+static long long costbound_safe_sub(long long a, long long b) {
+    if (b > 0 && a < LLONG_MIN + b) return LLONG_MIN;
+    if (b < 0 && a > LLONG_MAX + b) return LLONG_MAX;
+    return a - b;
+}
+
 MVZDD MVZDD::cost_bound_le(const std::vector<std::vector<int>>& weights,
                              long long b, CostBoundMemo& memo) const {
     std::vector<int> dd_weights;
     long long base_weight;
     convert_weights(weights, dd_weights, base_weight, "MVZDD::cost_bound_le");
-    long long dd_bound = b - base_weight;
+    long long dd_bound = costbound_safe_sub(b, base_weight);
     return make_result(bddcostbound_le(root, dd_weights, dd_bound, memo));
 }
 
@@ -998,7 +1009,7 @@ MVZDD MVZDD::cost_bound_ge(const std::vector<std::vector<int>>& weights,
     std::vector<int> dd_weights;
     long long base_weight;
     convert_weights(weights, dd_weights, base_weight, "MVZDD::cost_bound_ge");
-    long long dd_bound = b - base_weight;
+    long long dd_bound = costbound_safe_sub(b, base_weight);
     return make_result(bddcostbound_ge(root, dd_weights, dd_bound, memo));
 }
 
@@ -1010,10 +1021,15 @@ MVZDD MVZDD::cost_bound_ge(const std::vector<std::vector<int>>& weights,
 
 MVZDD MVZDD::cost_bound_eq(const std::vector<std::vector<int>>& weights,
                              long long b, CostBoundMemo& memo) const {
-    MVZDD le_b = cost_bound_le(weights, b, memo);
-    if (b == LLONG_MIN) return le_b;
-    MVZDD le_b1 = cost_bound_le(weights, b - 1, memo);
-    return le_b - le_b1;
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::cost_bound_eq");
+    long long dd_bound = costbound_safe_sub(b, base_weight);
+    bddp le_b = bddcostbound_le(root, dd_weights, dd_bound, memo);
+    if (b == LLONG_MIN) return make_result(le_b);
+    long long dd_bound_m1 = costbound_safe_sub(b - 1, base_weight);
+    bddp le_b1 = bddcostbound_le(root, dd_weights, dd_bound_m1, memo);
+    return make_result(bddsubtract(le_b, le_b1));
 }
 
 MVZDD MVZDD::cost_bound_eq(const std::vector<std::vector<int>>& weights,
