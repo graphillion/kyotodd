@@ -1445,6 +1445,17 @@ class ZDD:
         """
         ...
 
+    def contains(self, s: List[int]) -> bool:
+        """Check if a set is a member of the family.
+
+        Args:
+            s: A list of variable numbers representing the set.
+
+        Returns:
+            True if the set is in the family.
+        """
+        ...
+
     def min_weight(self, weights: List[int]) -> int:
         """Find the minimum weight sum among all sets in the family.
 

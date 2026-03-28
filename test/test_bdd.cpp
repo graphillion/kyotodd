@@ -9482,6 +9482,102 @@ TEST_F(BDDTest, ZDD_HasEmpty_ComplementEdge) {
     EXPECT_FALSE(bddhasempty(bddnot(u)));  // complement removes ∅
 }
 
+// --- bddcontains / ZDD::contains ---
+
+TEST_F(BDDTest, ZDD_Contains_EmptyFamily) {
+    EXPECT_FALSE(bddcontains(bddempty, {}));
+    EXPECT_FALSE(bddcontains(bddempty, {1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_SingleFamily) {
+    // {∅} contains ∅ but not {1}
+    EXPECT_TRUE(bddcontains(bddsingle, {}));
+    EXPECT_FALSE(bddcontains(bddsingle, {1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_SingletonSet) {
+    bddp a = bddchange(bddsingle, 1);  // {{1}}
+    EXPECT_TRUE(bddcontains(a, {1}));
+    EXPECT_FALSE(bddcontains(a, {}));
+    EXPECT_FALSE(bddcontains(a, {2}));
+    EXPECT_FALSE(bddcontains(a, {1, 2}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_MultipleVars) {
+    // {{1,2}}
+    bddp s = bddchange(bddchange(bddsingle, 1), 2);
+    EXPECT_TRUE(bddcontains(s, {1, 2}));
+    EXPECT_FALSE(bddcontains(s, {1}));
+    EXPECT_FALSE(bddcontains(s, {2}));
+    EXPECT_FALSE(bddcontains(s, {}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_FamilyWithEmpty) {
+    // {{1}, ∅}
+    bddp a = bddchange(bddsingle, 1);
+    bddp f = bddunion(a, bddsingle);
+    EXPECT_TRUE(bddcontains(f, {1}));
+    EXPECT_TRUE(bddcontains(f, {}));
+    EXPECT_FALSE(bddcontains(f, {2}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_DuplicateInput) {
+    bddp a = bddchange(bddsingle, 1);  // {{1}}
+    EXPECT_TRUE(bddcontains(a, {1, 1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_UnsortedInput) {
+    bddp s = bddchange(bddchange(bddsingle, 1), 2);  // {{1,2}}
+    EXPECT_TRUE(bddcontains(s, {2, 1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_PowerSet) {
+    ZDD ps = ZDD::power_set(3);
+    // All 8 subsets should be contained
+    EXPECT_TRUE(bddcontains(ps.GetID(), {}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {1}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {2}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {3}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {1, 2}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {1, 3}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {2, 3}));
+    EXPECT_TRUE(bddcontains(ps.GetID(), {1, 2, 3}));
+    // {4} should not be contained (variable 4 exists but not in power_set(3))
+}
+
+TEST_F(BDDTest, ZDD_Contains_ComplementEdge) {
+    bddp a = bddchange(bddsingle, 1);  // {{1}}, no ∅
+    // ~{{1}} toggles ∅ membership → {{1}, ∅} → has ∅
+    EXPECT_TRUE(bddcontains(bddnot(a), {}));
+    EXPECT_TRUE(bddcontains(bddnot(a), {1}));
+
+    bddp u = bddunion(a, bddsingle);  // {{1}, ∅}
+    // ~{{1}, ∅} removes ∅ → {{1}}
+    EXPECT_FALSE(bddcontains(bddnot(u), {}));
+    EXPECT_TRUE(bddcontains(bddnot(u), {1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_ConsistencyWithEnumerate) {
+    ZDD ps = ZDD::power_set(3);
+    auto all_sets = ps.enumerate();
+    for (auto& s : all_sets) {
+        EXPECT_TRUE(ps.contains(s));
+    }
+    // A non-member
+    EXPECT_FALSE(ps.contains({4}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_Null) {
+    EXPECT_FALSE(bddcontains(bddnull, {}));
+    EXPECT_FALSE(bddcontains(bddnull, {1}));
+}
+
+TEST_F(BDDTest, ZDD_Contains_MemberFunction) {
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_TRUE(ps.contains({1, 2}));
+    EXPECT_FALSE(ps.contains({4}));
+}
+
 // --- ZDD::singleton ---
 
 TEST_F(BDDTest, ZDD_Singleton) {

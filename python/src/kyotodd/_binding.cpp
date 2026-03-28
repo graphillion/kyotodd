@@ -1388,6 +1388,12 @@ PYBIND11_MODULE(_core, m) {
              "Check if the empty set is a member of the family.\n\n"
              "Returns:\n"
              "    True if the family contains the empty set.\n")
+        .def("contains", &ZDD::contains, py::arg("s"),
+             "Check if a set is a member of the family.\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers representing the set.\n\n"
+             "Returns:\n"
+             "    True if the set is in the family.\n")
 
         // Rank / Unrank
         .def("rank", &ZDD::rank, py::arg("s"),

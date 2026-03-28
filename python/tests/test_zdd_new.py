@@ -475,3 +475,68 @@ class TestZDDGraphviz:
         with open(path) as f:
             content = f.read()
         assert "digraph" in content
+
+
+class TestZDDContains:
+    def test_empty_family(self):
+        assert not ZDD(0).contains([])
+        assert not ZDD(0).contains([1])
+
+    def test_unit_family(self):
+        assert ZDD(1).contains([])
+        assert not ZDD(1).contains([1])
+
+    def test_singleton(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)
+        assert z.contains([1])
+        assert not z.contains([])
+
+    def test_multi_var_set(self):
+        kyotodd.new_var()
+        kyotodd.new_var()
+        z = ZDD.from_sets([[1, 2]])
+        assert z.contains([1, 2])
+        assert not z.contains([1])
+        assert not z.contains([2])
+
+    def test_family_with_empty(self):
+        kyotodd.new_var()
+        z = _make_singleton(1) + ZDD(1)  # {{1}, {}}
+        assert z.contains([1])
+        assert z.contains([])
+        assert not z.contains([2])
+
+    def test_duplicate_input(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)
+        assert z.contains([1, 1])
+
+    def test_unsorted_input(self):
+        kyotodd.new_var()
+        kyotodd.new_var()
+        z = ZDD.from_sets([[1, 2]])
+        assert z.contains([2, 1])
+
+    def test_power_set(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        assert ps.contains([])
+        assert ps.contains([1])
+        assert ps.contains([1, 2])
+        assert ps.contains([1, 2, 3])
+
+    def test_consistency_with_enumerate(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        for s in ps.enumerate():
+            assert ps.contains(s)
+
+    def test_complement_edge(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)  # {{1}}
+        zc = ~z                 # toggles empty set → {{1}, {}}
+        assert zc.contains([])
+        assert zc.contains([1])

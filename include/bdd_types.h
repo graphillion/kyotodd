@@ -1098,6 +1098,9 @@ public:
     /** @brief Check if the empty set (∅) is a member of the family. */
     bool has_empty() const;
 
+    /** @brief Check if a specific set is a member of the family. */
+    bool contains(const std::vector<bddvar>& s) const;
+
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
 

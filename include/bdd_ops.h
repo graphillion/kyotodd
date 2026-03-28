@@ -556,6 +556,18 @@ uint64_t bddlen(bddp f);
 bool bddhasempty(bddp f);
 
 /**
+ * @brief Check if a specific set is a member of the ZDD family.
+ *
+ * Tests whether the set @p s belongs to the family represented by @p f.
+ * Traverses the ZDD iteratively in O(|s| + depth) time.
+ *
+ * @param f A ZDD node ID.
+ * @param s The set to test (variable numbers). Duplicates and order are ignored.
+ * @return true if @p s is in the family, false otherwise.
+ */
+bool bddcontains(bddp f, const std::vector<bddvar>& s);
+
+/**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
  *
  * Same computation as bddcard, but returns a BigInt so the result

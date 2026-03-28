@@ -536,6 +536,51 @@ bool bddhasempty(bddp f) {
     }
 }
 
+// Check if set s is a member of the ZDD family
+bool bddcontains(bddp f, const std::vector<bddvar>& s) {
+    bddp_validate(f, "bddcontains");
+    if (f == bddnull) return false;
+
+    // Sort by level descending, deduplicate
+    std::vector<bddvar> sorted_s(s);
+    std::sort(sorted_s.begin(), sorted_s.end());
+    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
+                   sorted_s.end());
+    std::sort(sorted_s.begin(), sorted_s.end(),
+              [](bddvar a, bddvar b) {
+                  return var2level[a] > var2level[b];
+              });
+
+    size_t s_idx = 0;
+
+    while (!(f & BDD_CONST_FLAG)) {
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+        if (comp) lo = bddnot(lo);  // ZDD complement: lo only
+
+        // Variables in s with higher level than current node are
+        // zero-suppressed (hi == bddempty), so s is not in the family.
+        if (s_idx < sorted_s.size() &&
+            var2level[sorted_s[s_idx]] > var2level[var]) {
+            return false;
+        }
+
+        if (s_idx < sorted_s.size() && sorted_s[s_idx] == var) {
+            s_idx++;
+            f = hi;  // var is in s: follow hi-edge
+        } else {
+            f = lo;  // var is not in s: follow lo-edge
+        }
+    }
+
+    // At terminal: success iff we consumed all elements and reached bddsingle
+    return (f == bddsingle && s_idx == sorted_s.size());
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

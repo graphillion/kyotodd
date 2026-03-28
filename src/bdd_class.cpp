@@ -261,6 +261,10 @@ bool ZDD::has_empty() const {
     return bddhasempty(root);
 }
 
+bool ZDD::contains(const std::vector<bddvar>& s) const {
+    return bddcontains(root, s);
+}
+
 ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }
