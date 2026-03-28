@@ -269,6 +269,14 @@ ZDD ZDD::choose(int k) const {
     return ZDD_ID(bddchoose(root, k));
 }
 
+std::vector<bigint::BigInt> ZDD::profile() const {
+    return bddprofile(root);
+}
+
+std::vector<double> ZDD::profile_double() const {
+    return bddprofile_double(root);
+}
+
 ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }

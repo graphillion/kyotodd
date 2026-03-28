@@ -9665,6 +9665,106 @@ TEST_F(BDDTest, ZDD_Choose_FilterCorrectness) {
     EXPECT_TRUE(r3.contains({1, 2, 3}));
 }
 
+// --- bddprofile / ZDD::profile ---
+
+TEST_F(BDDTest, ZDD_Profile_EmptyFamily) {
+    auto p = bddprofile(bddempty);
+    EXPECT_TRUE(p.empty());
+}
+
+TEST_F(BDDTest, ZDD_Profile_Null) {
+    auto p = bddprofile(bddnull);
+    EXPECT_TRUE(p.empty());
+}
+
+TEST_F(BDDTest, ZDD_Profile_SingleFamily) {
+    // {∅} → profile = [1]
+    auto p = bddprofile(bddsingle);
+    ASSERT_EQ(p.size(), 1u);
+    EXPECT_EQ(p[0], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_SingletonSet) {
+    // {{1}} → profile = [0, 1]
+    bddp a = bddchange(bddsingle, 1);
+    auto p = bddprofile(a);
+    ASSERT_EQ(p.size(), 2u);
+    EXPECT_EQ(p[0], bigint::BigInt(0));
+    EXPECT_EQ(p[1], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_MixedSizes) {
+    // {{1}, {1,2}, {1,2,3}} → profile = [0, 1, 1, 1]
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    bddp s123 = bddchange(bddchange(bddchange(bddsingle, 1), 2), 3);
+    bddp f = bddunion(bddunion(s1, s12), s123);
+    auto p = bddprofile(f);
+    ASSERT_EQ(p.size(), 4u);
+    EXPECT_EQ(p[0], bigint::BigInt(0));
+    EXPECT_EQ(p[1], bigint::BigInt(1));
+    EXPECT_EQ(p[2], bigint::BigInt(1));
+    EXPECT_EQ(p[3], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_WithEmpty) {
+    // {{}, {1}, {1,2}} → profile = [1, 1, 1]
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    bddp f = bddunion(bddunion(bddsingle, s1), s12);
+    auto p = bddprofile(f);
+    ASSERT_EQ(p.size(), 3u);
+    EXPECT_EQ(p[0], bigint::BigInt(1));
+    EXPECT_EQ(p[1], bigint::BigInt(1));
+    EXPECT_EQ(p[2], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_PowerSet) {
+    // power_set(3) → [1, 3, 3, 1] (binomial coefficients)
+    ZDD ps = ZDD::power_set(3);
+    auto p = bddprofile(ps.GetID());
+    ASSERT_EQ(p.size(), 4u);
+    EXPECT_EQ(p[0], bigint::BigInt(1));
+    EXPECT_EQ(p[1], bigint::BigInt(3));
+    EXPECT_EQ(p[2], bigint::BigInt(3));
+    EXPECT_EQ(p[3], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_SumsToCount) {
+    ZDD ps = ZDD::power_set(3);
+    auto p = ps.profile();
+    bigint::BigInt total(0);
+    for (auto& v : p) total += v;
+    EXPECT_EQ(total, ps.exact_count());
+}
+
+TEST_F(BDDTest, ZDD_Profile_ChooseConsistency) {
+    ZDD ps = ZDD::power_set(3);
+    auto p = ps.profile();
+    for (size_t k = 0; k < p.size(); k++) {
+        EXPECT_EQ(p[k], ps.choose(static_cast<int>(k)).exact_count());
+    }
+}
+
+TEST_F(BDDTest, ZDD_Profile_ComplementEdge) {
+    bddp a = bddchange(bddsingle, 1);  // {{1}}, profile = [0, 1]
+    // ~{{1}} = {{1}, ∅}, profile = [1, 1]
+    auto p = bddprofile(bddnot(a));
+    ASSERT_EQ(p.size(), 2u);
+    EXPECT_EQ(p[0], bigint::BigInt(1));
+    EXPECT_EQ(p[1], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Profile_Double) {
+    ZDD ps = ZDD::power_set(3);
+    auto pd = ps.profile_double();
+    ASSERT_EQ(pd.size(), 4u);
+    EXPECT_DOUBLE_EQ(pd[0], 1.0);
+    EXPECT_DOUBLE_EQ(pd[1], 3.0);
+    EXPECT_DOUBLE_EQ(pd[2], 3.0);
+    EXPECT_DOUBLE_EQ(pd[3], 1.0);
+}
+
 // --- ZDD::singleton ---
 
 TEST_F(BDDTest, ZDD_Singleton) {

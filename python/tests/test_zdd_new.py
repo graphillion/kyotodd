@@ -587,3 +587,54 @@ class TestZDDChoose:
         assert z.choose(1).enumerate() == [[1]]
         assert z.choose(2).enumerate() == [[1, 2]]
         assert z.choose(3).enumerate() == [[1, 2, 3]]
+
+
+class TestZDDProfile:
+    def test_empty_family(self):
+        assert ZDD(0).profile() == []
+
+    def test_unit_family(self):
+        assert ZDD(1).profile() == [1]
+
+    def test_singleton_set(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)
+        assert z.profile() == [0, 1]
+
+    def test_power_set(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        assert ps.profile() == [1, 3, 3, 1]
+
+    def test_sums_to_count(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        assert sum(ps.profile()) == ps.exact_count
+
+    def test_choose_consistency(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        p = ps.profile()
+        for k in range(len(p)):
+            assert ps.choose(k).exact_count == p[k]
+
+    def test_complement_edge(self):
+        kyotodd.new_var()
+        z = _make_singleton(1)  # {{1}}, profile = [0, 1]
+        zc = ~z                 # {{1}, {}}, profile = [1, 1]
+        assert zc.profile() == [1, 1]
+
+    def test_profile_double(self):
+        for _ in range(3):
+            kyotodd.new_var()
+        ps = ZDD.power_set(3)
+        assert ps.profile_double() == [1.0, 3.0, 3.0, 1.0]
+
+    def test_with_empty_set(self):
+        kyotodd.new_var()
+        kyotodd.new_var()
+        z = ZDD.from_sets([[], [1], [1, 2]])
+        assert z.profile() == [1, 1, 1]

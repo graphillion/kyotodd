@@ -1467,6 +1467,24 @@ class ZDD:
         """
         ...
 
+    def profile(self) -> List[int]:
+        """Return the set size distribution (arbitrary precision).
+
+        Returns:
+            A list where profile[i] is the number of sets with exactly
+            i elements. The list length is max_set_size + 1.
+        """
+        ...
+
+    def profile_double(self) -> List[float]:
+        """Return the set size distribution (floating-point).
+
+        Returns:
+            A list where profile[i] is the number of sets with exactly
+            i elements (float).
+        """
+        ...
+
     def min_weight(self, weights: List[int]) -> int:
         """Find the minimum weight sum among all sets in the family.
 

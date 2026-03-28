@@ -580,6 +580,27 @@ bool bddcontains(bddp f, const std::vector<bddvar>& s);
 bddp bddchoose(bddp f, int k);
 
 /**
+ * @brief Return the set size distribution of a ZDD family (arbitrary precision).
+ *
+ * Returns a vector where result[i] is the number of sets with exactly i elements.
+ * The vector length is max_set_size + 1.
+ *
+ * @param f A ZDD node ID.
+ * @return The profile vector (empty for null or empty family).
+ */
+std::vector<bigint::BigInt> bddprofile(bddp f);
+
+/**
+ * @brief Return the set size distribution of a ZDD family (double precision).
+ *
+ * Same as bddprofile but returns doubles for efficiency with small families.
+ *
+ * @param f A ZDD node ID.
+ * @return The profile vector (empty for null or empty family).
+ */
+std::vector<double> bddprofile_double(bddp f);
+
+/**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
  *
  * Same computation as bddcard, but returns a BigInt so the result

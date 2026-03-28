@@ -637,6 +637,78 @@ static bddp bddchoose_rec(bddp f, int k) {
     return result;
 }
 
+// Set size distribution (profile / f-vector)
+typedef std::unordered_map<bddp, std::vector<bigint::BigInt>> ProfileMemoMap;
+
+static std::vector<bigint::BigInt> bddprofile_rec(
+    bddp f, ProfileMemoMap& memo) {
+    if (f == bddempty) return {};
+    if (f == bddsingle) return {bigint::BigInt(1)};
+
+    BDD_RecurGuard guard;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = memo.find(f_raw);
+    std::vector<bigint::BigInt> result;
+    if (it != memo.end()) {
+        result = it->second;
+    } else {
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        auto prof_lo = bddprofile_rec(lo, memo);
+        auto prof_hi = bddprofile_rec(hi, memo);
+
+        // hi-result shifted by +1 (each set in hi includes the current variable)
+        size_t max_len = std::max(prof_lo.size(), prof_hi.size() + 1);
+        result.resize(max_len);
+
+        for (size_t i = 0; i < prof_lo.size(); i++) {
+            result[i] += prof_lo[i];
+        }
+        for (size_t i = 0; i < prof_hi.size(); i++) {
+            result[i + 1] += prof_hi[i];
+        }
+
+        memo[f_raw] = result;
+    }
+
+    // Complement toggles empty set membership → adjust profile[0]
+    if (comp) {
+        if (result.empty()) {
+            result.push_back(bigint::BigInt(1));
+        } else if (bddhasempty(f_raw)) {
+            result[0] -= bigint::BigInt(1);
+            while (!result.empty() && result.back().is_zero()) result.pop_back();
+        } else {
+            result[0] += bigint::BigInt(1);
+        }
+    }
+
+    return result;
+}
+
+std::vector<bigint::BigInt> bddprofile(bddp f) {
+    bddp_validate(f, "bddprofile");
+    if (f == bddnull) return {};
+    ProfileMemoMap memo;
+    return bddprofile_rec(f, memo);
+}
+
+std::vector<double> bddprofile_double(bddp f) {
+    bddp_validate(f, "bddprofile_double");
+    if (f == bddnull) return {};
+    auto bigint_result = bddprofile(f);
+    std::vector<double> result;
+    result.reserve(bigint_result.size());
+    for (auto& v : bigint_result) {
+        result.push_back(std::stod(v.to_string()));
+    }
+    return result;
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

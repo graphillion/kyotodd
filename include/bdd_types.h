@@ -1105,6 +1105,12 @@ public:
     /** @brief Filter to sets of exactly k elements. */
     ZDD choose(int k) const;
 
+    /** @brief Return the set size distribution (arbitrary precision). */
+    std::vector<bigint::BigInt> profile() const;
+
+    /** @brief Return the set size distribution (double precision). */
+    std::vector<double> profile_double() const;
+
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
 
