@@ -1323,10 +1323,16 @@ PYBIND11_MODULE(_core, m) {
              "The total literal count across all sets in the family.")
         .def_property_readonly("max_set_size", &ZDD::Len,
              "The maximum set size in the family.")
+        .def_property_readonly("min_set_size", &ZDD::min_size,
+             "The minimum set size in the family.")
         .def_property_readonly("is_poly", &ZDD::IsPoly,
              "1 if the family has >= 2 sets, 0 otherwise.")
         .def_property_readonly("support", [](const ZDD& z) { return z.Support(); },
              "The support set as a ZDD.")
+        .def("support_vars", &ZDD::support_vars,
+             "Return all variable numbers appearing in the ZDD.\n\n"
+             "Returns:\n"
+             "    A list of variable numbers, sorted by level (highest first).\n")
         .def_property_readonly("top_var", [](const ZDD& z) -> bddvar {
             return bddtop(z.GetID());
         }, "The top (root) variable number of this ZDD.")
