@@ -167,7 +167,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - SAT counting: `count(n)` (double), `exact_count(n)` (BigInt), `exact_count(n, BddCountMemo&)`.
 - Sampling: `uniform_sample(rng, n, BddCountMemo&)` — uniformly sample one satisfying assignment.
 - Constants: `BDD::False`, `BDD::True`, `BDD::Null`.
-- Conversion: `to_qdd()` — convert BDD to quasi-reduced QDD.
+- Conversion: `to_qdd()` — convert BDD to quasi-reduced QDD. `to_zdd(n)` — convert BDD (characteristic function) to ZDD (family) over n variables.
 - I/O: `Export()`, `export_binary()` / `import_binary()`, `export_sapporo()` / `import_sapporo()`, `export_knuth()` / `import_knuth()` (deprecated), `save_graphviz()`, `export_binary_multi()` / `import_binary_multi()`.
 
 ## ZDD class
@@ -179,7 +179,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Operators: `+` (union), `-` (subtract), `&` (intersec), `*` (join), `/` (div), `%` (remainder), `^` (symdiff), `~` (complement), `<<` / `>>` (shift), `==`, `!=`.
 - Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`.
 - Set operations: `Offset(v)`, `OnSet(v)`, `OnSet0(v)`, `Change(v)`.
-- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements), `size_le(k)` (sets of at most k elements), `size_ge(k)` (sets of at least k elements).
+- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements), `size_le(k)` (sets of at most k elements), `size_ge(k)` (sets of at least k elements), `supersets_of(s)` (sets containing s), `subsets_of(s)` (subsets of s), `project(vars)` (remove variables from all sets).
 - Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.
 - Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`, `min_size()` (minimum set size), `profile()` (set size distribution as `vector<BigInt>`), `profile_double()` (as `vector<double>`), `support_vars()` (variable numbers appearing in the ZDD).
 - Weight operations: `get_sum(weights)` (BigInt), `min_weight(weights)`, `max_weight(weights)`, `min_weight_set(weights)`, `max_weight_set(weights)`. Free functions: `bddweightsum()`, `bddminweight()`, `bddmaxweight()`, `bddminweightset()`, `bddmaxweightset()`.
@@ -197,7 +197,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - K-heaviest extraction: `get_k_heaviest(k, weights, strict)` (int64_t/BigInt) — return k sets with largest total weight. Computed as `f - get_k_lightest(|F|-k, -strict)`. Free functions: `bddgetkheaviest()`.
 - Construction: `ZDD::singleton(v)`, `ZDD::single_set(vars)`, `ZDD::from_sets(sets)`, `ZDD::power_set(n)`, `ZDD::power_set(vars)`, `ZDD::combination(n, k)`, `ZDD::random_family(n, rng)`.
 - Display: `print_sets(os)`, `print_sets(os, delim1, delim2)`, `print_sets(os, delim1, delim2, var_name_map)`, `to_str()`.
-- Conversion: `to_qdd()` — convert ZDD to quasi-reduced QDD.
+- Conversion: `to_qdd()` — convert ZDD to quasi-reduced QDD. `to_bdd(n)` — convert ZDD (family) to BDD (characteristic function) over n variables.
 - I/O: `Export()`, `export_binary()` / `import_binary()`, `export_sapporo()` / `import_sapporo()`, `export_knuth()` / `import_knuth()` (deprecated), `save_graphviz()`, `export_graphillion()` / `import_graphillion()`, `export_binary_multi()` / `import_binary_multi()`.
 
 ### Memo classes
