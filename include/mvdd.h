@@ -495,6 +495,56 @@ public:
      */
     std::vector<int> max_weight_set(const std::vector<std::vector<int>>& weights) const;
 
+    // --- Cost-bound filtering ---
+
+    /**
+     * @brief Extract all assignments with total cost <= b.
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @param b Cost bound.
+     * @param memo CostBoundMemo for caching across calls with different bounds.
+     *             The memo binds to the internally converted DD-level weights.
+     * @return An MVZDD containing assignments with cost <= b.
+     */
+    MVZDD cost_bound_le(const std::vector<std::vector<int>>& weights,
+                         long long b, CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo. */
+    MVZDD cost_bound_le(const std::vector<std::vector<int>>& weights,
+                         long long b) const;
+
+    /**
+     * @brief Extract all assignments with total cost >= b.
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @param b Cost bound.
+     * @param memo CostBoundMemo (not used internally; accepted for API consistency).
+     * @return An MVZDD containing assignments with cost >= b.
+     */
+    MVZDD cost_bound_ge(const std::vector<std::vector<int>>& weights,
+                         long long b, CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo. */
+    MVZDD cost_bound_ge(const std::vector<std::vector<int>>& weights,
+                         long long b) const;
+
+    /**
+     * @brief Extract all assignments with total cost exactly b.
+     *
+     * Computed as cost_bound_le(b) - cost_bound_le(b - 1).
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @param b Cost bound.
+     * @param memo CostBoundMemo for caching (shared between the two le calls).
+     * @return An MVZDD containing assignments with cost == b.
+     */
+    MVZDD cost_bound_eq(const std::vector<std::vector<int>>& weights,
+                         long long b, CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo. */
+    MVZDD cost_bound_eq(const std::vector<std::vector<int>>& weights,
+                         long long b) const;
+
     // --- Evaluation ---
 
     /**

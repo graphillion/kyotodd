@@ -3828,6 +3828,61 @@ PYBIND11_MODULE(_core, m) {
             "             MVDD variable i+1 takes value v.\n\n"
             "Returns:\n"
             "    The assignment as a list of values.")
+        // Cost-bound filtering
+        .def("cost_bound_le", [](const MVZDD& z, const std::vector<std::vector<int>>& weights,
+                                  long long b) -> MVZDD {
+            return z.cost_bound_le(weights, b);
+        }, py::arg("weights"), py::arg("b"),
+           "Extract assignments with total cost <= b.\n\n"
+           "Args:\n"
+           "    weights: 2D list where weights[i][v] is the weight when\n"
+           "             MVDD variable i+1 takes value v.\n"
+           "    b: Cost bound.\n\n"
+           "Returns:\n"
+           "    An MVZDD containing assignments with cost <= b.")
+        .def("cost_bound_le_with_memo", [](const MVZDD& z,
+                const std::vector<std::vector<int>>& weights,
+                long long b, CostBoundMemo& memo) -> MVZDD {
+            return z.cost_bound_le(weights, b, memo);
+        }, py::arg("weights"), py::arg("b"), py::arg("memo"),
+           "Extract assignments with total cost <= b, reusing a memo.\n\n"
+           "Args:\n"
+           "    weights: 2D weight table.\n"
+           "    b: Cost bound.\n"
+           "    memo: A CostBoundMemo object for caching across calls.")
+        .def("cost_bound_ge", [](const MVZDD& z, const std::vector<std::vector<int>>& weights,
+                                  long long b) -> MVZDD {
+            return z.cost_bound_ge(weights, b);
+        }, py::arg("weights"), py::arg("b"),
+           "Extract assignments with total cost >= b.\n\n"
+           "Args:\n"
+           "    weights: 2D weight table.\n"
+           "    b: Cost bound.\n\n"
+           "Returns:\n"
+           "    An MVZDD containing assignments with cost >= b.")
+        .def("cost_bound_ge_with_memo", [](const MVZDD& z,
+                const std::vector<std::vector<int>>& weights,
+                long long b, CostBoundMemo& memo) -> MVZDD {
+            return z.cost_bound_ge(weights, b, memo);
+        }, py::arg("weights"), py::arg("b"), py::arg("memo"),
+           "Extract assignments with total cost >= b, reusing a memo.")
+        .def("cost_bound_eq", [](const MVZDD& z, const std::vector<std::vector<int>>& weights,
+                                  long long b) -> MVZDD {
+            return z.cost_bound_eq(weights, b);
+        }, py::arg("weights"), py::arg("b"),
+           "Extract assignments with total cost exactly b.\n\n"
+           "Computed as cost_bound_le(b) - cost_bound_le(b - 1).\n\n"
+           "Args:\n"
+           "    weights: 2D weight table.\n"
+           "    b: Cost bound.\n\n"
+           "Returns:\n"
+           "    An MVZDD containing assignments with cost == b.")
+        .def("cost_bound_eq_with_memo", [](const MVZDD& z,
+                const std::vector<std::vector<int>>& weights,
+                long long b, CostBoundMemo& memo) -> MVZDD {
+            return z.cost_bound_eq(weights, b, memo);
+        }, py::arg("weights"), py::arg("b"), py::arg("memo"),
+           "Extract assignments with cost == b, reusing a memo.")
         // Properties
         .def_property_readonly("k", &MVZDD::k,
             "Value domain size.")

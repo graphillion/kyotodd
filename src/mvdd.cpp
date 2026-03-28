@@ -976,6 +976,52 @@ std::vector<int> MVZDD::max_weight_set(const std::vector<std::vector<int>>& weig
     return dd_set_to_assignment(dd_set);
 }
 
+// --- Cost-bound filtering ---
+
+MVZDD MVZDD::cost_bound_le(const std::vector<std::vector<int>>& weights,
+                             long long b, CostBoundMemo& memo) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::cost_bound_le");
+    long long dd_bound = b - base_weight;
+    return make_result(bddcostbound_le(root, dd_weights, dd_bound, memo));
+}
+
+MVZDD MVZDD::cost_bound_le(const std::vector<std::vector<int>>& weights,
+                             long long b) const {
+    CostBoundMemo memo;
+    return cost_bound_le(weights, b, memo);
+}
+
+MVZDD MVZDD::cost_bound_ge(const std::vector<std::vector<int>>& weights,
+                             long long b, CostBoundMemo& memo) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::cost_bound_ge");
+    long long dd_bound = b - base_weight;
+    return make_result(bddcostbound_ge(root, dd_weights, dd_bound, memo));
+}
+
+MVZDD MVZDD::cost_bound_ge(const std::vector<std::vector<int>>& weights,
+                             long long b) const {
+    CostBoundMemo memo;
+    return cost_bound_ge(weights, b, memo);
+}
+
+MVZDD MVZDD::cost_bound_eq(const std::vector<std::vector<int>>& weights,
+                             long long b, CostBoundMemo& memo) const {
+    MVZDD le_b = cost_bound_le(weights, b, memo);
+    if (b == LLONG_MIN) return le_b;
+    MVZDD le_b1 = cost_bound_le(weights, b - 1, memo);
+    return le_b - le_b1;
+}
+
+MVZDD MVZDD::cost_bound_eq(const std::vector<std::vector<int>>& weights,
+                             long long b) const {
+    CostBoundMemo memo;
+    return cost_bound_eq(weights, b, memo);
+}
+
 // --- Evaluation ---
 
 bool MVZDD::evaluate(const std::vector<int>& assignment) const {

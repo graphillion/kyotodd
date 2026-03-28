@@ -1643,3 +1643,277 @@ TEST_F(MVDDTest, MVZDDWeightSetSizeMismatch) {
     EXPECT_THROW(one.min_weight_set({}), std::invalid_argument);
     EXPECT_THROW(one.max_weight_set({}), std::invalid_argument);
 }
+
+// ============================================================
+//  MVZDD cost_bound_le
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCostBoundLeBasic) {
+    // k=3, 2 variables
+    // Family = { (0,0), (1,0), (2,0), (0,1), (0,2) }
+    // weights: var1 = {0, 10, 20}, var2 = {0, 5, 15}
+    // (0,0)=0, (1,0)=10, (2,0)=20, (0,1)=5, (0,2)=15
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a20 = MVZDD::singleton(base, v1, 2);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a20 + a01 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    // cost <= 10: {(0,0)=0, (1,0)=10, (0,1)=5}
+    MVZDD le10 = F.cost_bound_le(weights, 10);
+    EXPECT_EQ(le10.count(), 3.0);
+    EXPECT_TRUE(le10.contains({0, 0}));
+    EXPECT_TRUE(le10.contains({1, 0}));
+    EXPECT_TRUE(le10.contains({0, 1}));
+    EXPECT_FALSE(le10.contains({2, 0}));
+    EXPECT_FALSE(le10.contains({0, 2}));
+
+    // cost <= 0: only (0,0)
+    MVZDD le0 = F.cost_bound_le(weights, 0);
+    EXPECT_EQ(le0.count(), 1.0);
+    EXPECT_TRUE(le0.contains({0, 0}));
+
+    // cost <= 100: all
+    MVZDD le100 = F.cost_bound_le(weights, 100);
+    EXPECT_EQ(le100, F);
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundLeWithVal0Cost) {
+    // val=0 has non-zero weight
+    // k=2, 1 variable
+    // Family = { (0), (1) }
+    // weights: var1 = {3, 7}
+    // (0)=3, (1)=7
+    MVZDD base(2);
+    bddvar v1 = base.new_var();
+
+    auto a0 = MVZDD::one(base.var_table());
+    auto a1 = MVZDD::singleton(base, v1, 1);
+    MVZDD F = a0 + a1;
+
+    std::vector<std::vector<int>> weights = {{3, 7}};
+
+    // cost <= 5: only (0)=3
+    MVZDD le5 = F.cost_bound_le(weights, 5);
+    EXPECT_EQ(le5.count(), 1.0);
+    EXPECT_TRUE(le5.contains({0}));
+
+    // cost <= 7: both
+    MVZDD le7 = F.cost_bound_le(weights, 7);
+    EXPECT_EQ(le7.count(), 2.0);
+
+    // cost <= 2: empty
+    MVZDD le2 = F.cost_bound_le(weights, 2);
+    EXPECT_TRUE(le2.is_zero());
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundLeEmpty) {
+    MVZDD base(2);
+    base.new_var();
+    auto empty = MVZDD::zero(base.var_table());
+    std::vector<std::vector<int>> weights = {{0, 1}};
+    MVZDD result = empty.cost_bound_le(weights, 100);
+    EXPECT_TRUE(result.is_zero());
+}
+
+// ============================================================
+//  MVZDD cost_bound_ge
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCostBoundGeBasic) {
+    // Same family as above
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a20 = MVZDD::singleton(base, v1, 2);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a20 + a01 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    // cost >= 15: {(2,0)=20, (0,2)=15}
+    MVZDD ge15 = F.cost_bound_ge(weights, 15);
+    EXPECT_EQ(ge15.count(), 2.0);
+    EXPECT_TRUE(ge15.contains({2, 0}));
+    EXPECT_TRUE(ge15.contains({0, 2}));
+
+    // cost >= 0: all
+    MVZDD ge0 = F.cost_bound_ge(weights, 0);
+    EXPECT_EQ(ge0, F);
+
+    // cost >= 100: empty
+    MVZDD ge100 = F.cost_bound_ge(weights, 100);
+    EXPECT_TRUE(ge100.is_zero());
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundGeWithVal0Cost) {
+    // k=2, 1 variable, val=0 has weight 3
+    MVZDD base(2);
+    bddvar v1 = base.new_var();
+
+    auto a0 = MVZDD::one(base.var_table());
+    auto a1 = MVZDD::singleton(base, v1, 1);
+    MVZDD F = a0 + a1;
+
+    std::vector<std::vector<int>> weights = {{3, 7}};
+
+    // cost >= 5: only (1)=7
+    MVZDD ge5 = F.cost_bound_ge(weights, 5);
+    EXPECT_EQ(ge5.count(), 1.0);
+    EXPECT_TRUE(ge5.contains({1}));
+
+    // cost >= 3: both
+    MVZDD ge3 = F.cost_bound_ge(weights, 3);
+    EXPECT_EQ(ge3.count(), 2.0);
+}
+
+// ============================================================
+//  MVZDD cost_bound_eq
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCostBoundEqBasic) {
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a20 = MVZDD::singleton(base, v1, 2);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a20 + a01 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    // cost == 10: {(1,0)=10}
+    MVZDD eq10 = F.cost_bound_eq(weights, 10);
+    EXPECT_EQ(eq10.count(), 1.0);
+    EXPECT_TRUE(eq10.contains({1, 0}));
+
+    // cost == 0: {(0,0)=0}
+    MVZDD eq0 = F.cost_bound_eq(weights, 0);
+    EXPECT_EQ(eq0.count(), 1.0);
+    EXPECT_TRUE(eq0.contains({0, 0}));
+
+    // cost == 7: empty (no assignment with cost 7)
+    MVZDD eq7 = F.cost_bound_eq(weights, 7);
+    EXPECT_TRUE(eq7.is_zero());
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundEqWithVal0Cost) {
+    // k=2, 1 variable, weights = {3, 7}
+    MVZDD base(2);
+    bddvar v1 = base.new_var();
+
+    auto a0 = MVZDD::one(base.var_table());
+    auto a1 = MVZDD::singleton(base, v1, 1);
+    MVZDD F = a0 + a1;
+
+    std::vector<std::vector<int>> weights = {{3, 7}};
+
+    MVZDD eq3 = F.cost_bound_eq(weights, 3);
+    EXPECT_EQ(eq3.count(), 1.0);
+    EXPECT_TRUE(eq3.contains({0}));
+
+    MVZDD eq7 = F.cost_bound_eq(weights, 7);
+    EXPECT_EQ(eq7.count(), 1.0);
+    EXPECT_TRUE(eq7.contains({1}));
+}
+
+// ============================================================
+//  MVZDD cost_bound with memo
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCostBoundMemoReuse) {
+    // Using a memo across multiple le calls should give correct results
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a20 = MVZDD::singleton(base, v1, 2);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a20 + a01 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    CostBoundMemo memo;
+
+    MVZDD le5 = F.cost_bound_le(weights, 5, memo);
+    EXPECT_EQ(le5.count(), 2.0);  // (0,0)=0, (0,1)=5
+
+    MVZDD le10 = F.cost_bound_le(weights, 10, memo);
+    EXPECT_EQ(le10.count(), 3.0);  // +  (1,0)=10
+
+    MVZDD le20 = F.cost_bound_le(weights, 20, memo);
+    EXPECT_EQ(le20.count(), 5.0);  // all
+
+    // eq using the same memo
+    MVZDD eq15 = F.cost_bound_eq(weights, 15, memo);
+    EXPECT_EQ(eq15.count(), 1.0);
+    EXPECT_TRUE(eq15.contains({0, 2}));
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundConsistency) {
+    // Verify: le(b) + ge(b+1) == F  for any b
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a02;  // costs: 0, 10, 15
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    for (long long b : {-1LL, 0LL, 5LL, 10LL, 15LL, 20LL}) {
+        MVZDD le = F.cost_bound_le(weights, b);
+        MVZDD ge = F.cost_bound_ge(weights, b + 1);
+        EXPECT_EQ(le + ge, F) << "Failed for b=" << b;
+    }
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundNegativeWeights) {
+    // Weights can be negative
+    // k=3, 1 variable, weights = {-5, 3, -10}
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+
+    auto s0 = MVZDD::one(base.var_table());
+    auto s1 = MVZDD::singleton(base, v1, 1);
+    auto s2 = MVZDD::singleton(base, v1, 2);
+    MVZDD F = s0 + s1 + s2;
+
+    std::vector<std::vector<int>> weights = {{-5, 3, -10}};
+
+    // costs: (0)=-5, (1)=3, (2)=-10
+    // le(-5): {(0)=-5, (2)=-10}
+    MVZDD le_m5 = F.cost_bound_le(weights, -5);
+    EXPECT_EQ(le_m5.count(), 2.0);
+    EXPECT_TRUE(le_m5.contains({0}));
+    EXPECT_TRUE(le_m5.contains({2}));
+
+    // ge(0): {(1)=3}
+    MVZDD ge0 = F.cost_bound_ge(weights, 0);
+    EXPECT_EQ(ge0.count(), 1.0);
+    EXPECT_TRUE(ge0.contains({1}));
+
+    // eq(-10): {(2)}
+    MVZDD eq_m10 = F.cost_bound_eq(weights, -10);
+    EXPECT_EQ(eq_m10.count(), 1.0);
+    EXPECT_TRUE(eq_m10.contains({2}));
+}
