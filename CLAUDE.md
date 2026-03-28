@@ -285,6 +285,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Apply: `mtzdd_apply_rec<T, BinOp>(f, g, op, cache_op)` — ZDD cofactoring.
 - Pre-instantiated types: `MTZDDFloat` (`MTZDD<double>`), `MTZDDInt` (`MTZDD<int64_t>`).
 - Operations: `operator+`, `operator-`, `operator*`, `ite(f, g, h)`.
+- Cofactor: `cofactor0(v)` (fix v=0), `cofactor1(v)` (fix v=1). ZDD semantics: zero-suppressed var=0 returns self, var=1 returns zero terminal. Free functions: `mtzdd_cofactor0(f, v)`, `mtzdd_cofactor1(f, v)`.
 - Query: `terminal_value()`, `is_terminal()`, `top()`, `size()`, `evaluate(assignment)`.
 - I/O: `save_svg()` — SVG visualization with terminal labels. `export_binary(strm)` / `import_binary(strm)` — binary format serialization (dd_type=5). `export_binary(filename)` / `import_binary(filename)` — file-based overloads.
 

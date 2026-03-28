@@ -107,6 +107,11 @@ bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi);
 bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi);
 uint8_t mtbdd_alloc_op_code();
 
+// --- Forward declarations for MTZDD cofactor (defined in mtbdd.cpp) ---
+
+bddp mtzdd_cofactor0(bddp f, bddvar v);
+bddp mtzdd_cofactor1(bddp f, bddvar v);
+
 // --- Apply templates (BDD cofactoring) ---
 
 template<typename T, typename BinOp>
@@ -673,6 +678,18 @@ public:
 
     bool operator==(const MTZDD& other) const { return root == other.root; }
     bool operator!=(const MTZDD& other) const { return root != other.root; }
+
+    // --- Cofactor ---
+
+    /** @brief Fix variable v to 0. Returns sub-MTZDD for v=0. */
+    MTZDD cofactor0(bddvar v) const {
+        return MTZDD(mtzdd_cofactor0(root, v));
+    }
+
+    /** @brief Fix variable v to 1. Returns sub-MTZDD for v=1. */
+    MTZDD cofactor1(bddvar v) const {
+        return MTZDD(mtzdd_cofactor1(root, v));
+    }
 
     // --- Generic apply ---
 

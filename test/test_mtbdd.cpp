@@ -1108,3 +1108,152 @@ TEST_F(MTBDDClassTest, MTZDDImportTruncatedThrows) {
     ss.seekg(0);
     EXPECT_THROW(MTZDD<double>::import_binary(ss), std::runtime_error);
 }
+
+// ========================================================================
+//  MTZDD cofactor tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDCofactor0Terminal) {
+    auto t = MTZDD<double>::terminal(5.0);
+    BDD::new_var();
+    auto c = t.cofactor0(1);
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_DOUBLE_EQ(c.terminal_value(), 5.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactor1Terminal) {
+    auto t = MTZDD<double>::terminal(5.0);
+    BDD::new_var();
+    // Terminal cofactor1 → zero terminal (ZDD: missing var=1 → zero)
+    auto c = t.cofactor1(1);
+    EXPECT_TRUE(c.is_terminal());
+    EXPECT_TRUE(c.is_zero());
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactor0AtTopVar) {
+    BDD::new_var();
+    auto hi = MTZDD<double>::terminal(10.0);
+    auto lo = MTZDD<double>::terminal(20.0);
+    auto f = MTZDD<double>::ite(1, hi, lo);
+
+    // cofactor0(1): fix var 1 to 0 → lo branch = 20.0
+    auto c0 = f.cofactor0(1);
+    EXPECT_TRUE(c0.is_terminal());
+    EXPECT_DOUBLE_EQ(c0.terminal_value(), 20.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactor1AtTopVar) {
+    BDD::new_var();
+    auto hi = MTZDD<double>::terminal(10.0);
+    auto lo = MTZDD<double>::terminal(20.0);
+    auto f = MTZDD<double>::ite(1, hi, lo);
+
+    // cofactor1(1): fix var 1 to 1 → hi branch = 10.0
+    auto c1 = f.cofactor1(1);
+    EXPECT_TRUE(c1.is_terminal());
+    EXPECT_DOUBLE_EQ(c1.terminal_value(), 10.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactor0ZeroSuppressed) {
+    BDD::new_var();
+    BDD::new_var();
+    // f only uses var 1 (level 1), var 2 (level 2) is zero-suppressed
+    auto hi = MTZDD<int64_t>::terminal(10);
+    auto lo = MTZDD<int64_t>::terminal(20);
+    auto f = MTZDD<int64_t>::ite(1, hi, lo);
+
+    // cofactor0(2): var 2 is above f's top → v=0 is default → return f
+    auto c0 = f.cofactor0(2);
+    EXPECT_EQ(c0, f);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactor1ZeroSuppressed) {
+    BDD::new_var();
+    BDD::new_var();
+    auto hi = MTZDD<int64_t>::terminal(10);
+    auto lo = MTZDD<int64_t>::terminal(20);
+    auto f = MTZDD<int64_t>::ite(1, hi, lo);
+
+    // cofactor1(2): var 2 is zero-suppressed → zero
+    auto c1 = f.cofactor1(2);
+    EXPECT_TRUE(c1.is_terminal());
+    EXPECT_TRUE(c1.is_zero());
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactorMultiLevel) {
+    BDD::new_var();
+    BDD::new_var();
+    BDD::new_var();
+    // f: var 3 (top) → var 1 → terminals
+    //   var3=1: (var1=1: 100, var1=0: 200)
+    //   var3=0: 300
+    auto t100 = MTZDD<int64_t>::terminal(100);
+    auto t200 = MTZDD<int64_t>::terminal(200);
+    auto t300 = MTZDD<int64_t>::terminal(300);
+    auto inner = MTZDD<int64_t>::ite(1, t100, t200);
+    auto f = MTZDD<int64_t>::ite(3, inner, t300);
+
+    // cofactor0(3): fix var 3 to 0 → lo branch = 300
+    auto c0_3 = f.cofactor0(3);
+    EXPECT_TRUE(c0_3.is_terminal());
+    EXPECT_EQ(c0_3.terminal_value(), 300);
+
+    // cofactor1(3): fix var 3 to 1 → hi branch = inner
+    auto c1_3 = f.cofactor1(3);
+    EXPECT_EQ(c1_3.evaluate({0, 0, 0, 0}), 200);
+    EXPECT_EQ(c1_3.evaluate({0, 1, 0, 0}), 100);
+
+    // cofactor0(1): fix var 1 to 0 in f → recurse into var 3 node
+    // var3=1: inner.cofactor0(1) = 200, var3=0: 300
+    auto c0_1 = f.cofactor0(1);
+    EXPECT_EQ(c0_1.evaluate({0, 0, 0, 0}), 300);
+    EXPECT_EQ(c0_1.evaluate({0, 0, 0, 1}), 200);
+
+    // cofactor1(1): fix var 1 to 1 in f
+    // var3=1: inner.cofactor1(1) = 100, var3=0: zero (300.cofactor1(1)=0)
+    auto c1_1 = f.cofactor1(1);
+    EXPECT_EQ(c1_1.evaluate({0, 0, 0, 0}), 0);
+    EXPECT_EQ(c1_1.evaluate({0, 0, 0, 1}), 100);
+
+    // cofactor on var 2 (zero-suppressed in f)
+    auto c0_2 = f.cofactor0(2);
+    EXPECT_EQ(c0_2, f);  // v=0 is default for missing var
+    auto c1_2 = f.cofactor1(2);
+    EXPECT_TRUE(c1_2.is_zero());  // missing var=1 → zero
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactorFromZDD) {
+    BDD::new_var();
+    BDD::new_var();
+    BDD::new_var();
+    // ZDD: {{1}, {2}, {1,2}}
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD f = x1 + x2 + (x1 * x2);
+    auto mf = MTZDD<double>::from_zdd(f, 0.0, 1.0);
+
+    // cofactor1(1): sets containing var 1 → {{}, {2}} = 1.0 where x1 removed
+    auto c1 = mf.cofactor1(1);
+    EXPECT_DOUBLE_EQ(c1.evaluate({0, 0, 0}), 1.0);  // {} → 1
+    EXPECT_DOUBLE_EQ(c1.evaluate({0, 0, 1}), 1.0);  // {2} → 1
+
+    // cofactor0(1): sets not containing var 1 → {{2}}
+    auto c0 = mf.cofactor0(1);
+    EXPECT_DOUBLE_EQ(c0.evaluate({0, 0, 0}), 0.0);  // {} → 0
+    EXPECT_DOUBLE_EQ(c0.evaluate({0, 0, 1}), 1.0);  // {2} → 1
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactorVarOutOfRange) {
+    auto t = MTZDD<double>::terminal(1.0);
+    EXPECT_THROW(t.cofactor0(0), std::invalid_argument);
+    EXPECT_THROW(t.cofactor1(0), std::invalid_argument);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCofactorZeroTerminal) {
+    MTZDD<double> zero;
+    BDD::new_var();
+    auto c0 = zero.cofactor0(1);
+    EXPECT_TRUE(c0.is_zero());
+    auto c1 = zero.cofactor1(1);
+    EXPECT_TRUE(c1.is_zero());
+}

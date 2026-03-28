@@ -4316,6 +4316,14 @@ PYBIND11_MODULE(_core, m) {
             "Evaluate the MTZDD for the given assignment.\n\n"
             "Args:\n"
             "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("cofactor0", &MTZDDFloat::cofactor0, py::arg("var"),
+           "Fix variable to 0. Returns the sub-MTZDD for var=0.\n\n"
+           "Args:\n"
+           "    var: Variable number to fix to 0.")
+        .def("cofactor1", &MTZDDFloat::cofactor1, py::arg("var"),
+           "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
+           "Args:\n"
+           "    var: Variable number to fix to 1.")
         .def("ite_cond", [](const MTZDDFloat& cond, const MTZDDFloat& then_case,
                             const MTZDDFloat& else_case) {
             return cond.ite(then_case, else_case);
@@ -4452,6 +4460,14 @@ PYBIND11_MODULE(_core, m) {
             "Evaluate the MTZDD for the given assignment.\n\n"
             "Args:\n"
             "    assignment: List of ints (0/1), indexed by variable number.")
+        .def("cofactor0", &MTZDDInt::cofactor0, py::arg("var"),
+           "Fix variable to 0. Returns the sub-MTZDD for var=0.\n\n"
+           "Args:\n"
+           "    var: Variable number to fix to 0.")
+        .def("cofactor1", &MTZDDInt::cofactor1, py::arg("var"),
+           "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
+           "Args:\n"
+           "    var: Variable number to fix to 1.")
         .def("ite_cond", [](const MTZDDInt& cond, const MTZDDInt& then_case,
                             const MTZDDInt& else_case) {
             return cond.ite(then_case, else_case);
