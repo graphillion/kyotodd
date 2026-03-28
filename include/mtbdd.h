@@ -8,6 +8,7 @@
 #include <vector>
 #include <unordered_map>
 #include <stdexcept>
+#include "bigint.hpp"
 
 // --- Forward declarations for non-template functions (defined in mtbdd.cpp) ---
 
@@ -427,6 +428,45 @@ static bddp mtzdd_from_zdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op
     return result;
 }
 
+// --- MTZDD count helpers (non-zero path counting) ---
+// MTZDD has no complement edges, so counting is straightforward:
+// zero terminal → 0, non-zero terminal → 1, internal → count(lo) + count(hi).
+
+static inline double mtzdd_count_rec(
+    bddp f, std::unordered_map<bddp, double>& memo) {
+    if (f & BDD_CONST_FLAG) {
+        uint64_t idx = f & ~BDD_CONST_FLAG;
+        return (idx == 0) ? 0.0 : 1.0;
+    }
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bddp lo = node_lo(f);
+    bddp hi = node_hi(f);
+    double count = mtzdd_count_rec(lo, memo) + mtzdd_count_rec(hi, memo);
+    memo[f] = count;
+    return count;
+}
+
+static inline bigint::BigInt mtzdd_exact_count_rec(
+    bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    if (f & BDD_CONST_FLAG) {
+        uint64_t idx = f & ~BDD_CONST_FLAG;
+        return (idx == 0) ? bigint::BigInt(0) : bigint::BigInt(1);
+    }
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bddp lo = node_lo(f);
+    bddp hi = node_hi(f);
+    bigint::BigInt count = mtzdd_exact_count_rec(lo, memo)
+                         + mtzdd_exact_count_rec(hi, memo);
+    memo[f] = count;
+    return count;
+}
+
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
 
 template<typename T>
@@ -689,6 +729,20 @@ public:
     /** @brief Fix variable v to 1. Returns sub-MTZDD for v=1. */
     MTZDD cofactor1(bddvar v) const {
         return MTZDD(mtzdd_cofactor1(root, v));
+    }
+
+    // --- Counting (non-zero paths) ---
+
+    /** @brief Count the number of non-zero terminal paths (double). */
+    double count() const {
+        std::unordered_map<bddp, double> memo;
+        return mtzdd_count_rec(root, memo);
+    }
+
+    /** @brief Count the number of non-zero terminal paths (exact BigInt). */
+    bigint::BigInt exact_count() const {
+        std::unordered_map<bddp, bigint::BigInt> memo;
+        return mtzdd_exact_count_rec(root, memo);
     }
 
     // --- Generic apply ---

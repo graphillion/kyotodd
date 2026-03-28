@@ -1257,3 +1257,103 @@ TEST_F(MTBDDClassTest, MTZDDCofactorZeroTerminal) {
     auto c1 = zero.cofactor1(1);
     EXPECT_TRUE(c1.is_zero());
 }
+
+// ========================================================================
+//  MTZDD count / exact_count tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDCountZeroTerminal) {
+    MTZDD<double> zero;
+    EXPECT_DOUBLE_EQ(zero.count(), 0.0);
+    EXPECT_EQ(zero.exact_count(), bigint::BigInt(0));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountNonZeroTerminal) {
+    auto t = MTZDD<double>::terminal(5.0);
+    EXPECT_DOUBLE_EQ(t.count(), 1.0);
+    EXPECT_EQ(t.exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountSingleVar) {
+    // var 1: hi=3.0, lo=zero → 1 non-zero path ({1} -> 3.0)
+    BDD::new_var();
+    auto t3 = MTZDD<double>::terminal(3.0);
+    MTZDD<double> zero;
+    auto f = MTZDD<double>::ite(1, t3, zero);
+    EXPECT_DOUBLE_EQ(f.count(), 1.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountTwoPaths) {
+    // var 1: hi=3.0, lo=2.0 → 2 non-zero paths
+    BDD::new_var();
+    auto t3 = MTZDD<double>::terminal(3.0);
+    auto t2 = MTZDD<double>::terminal(2.0);
+    auto f = MTZDD<double>::ite(1, t3, t2);
+    EXPECT_DOUBLE_EQ(f.count(), 2.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(2));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountMultipleVars) {
+    // Build MTZDD with 2 variables (var 2 = level 2 = top):
+    //   var 2: hi=t5, lo=var1_node
+    //   var 1: hi=t3, lo=zero
+    // Paths: {2} -> 5.0, {1} -> 3.0 → 2 non-zero paths
+    BDD::new_var();  // var 1, level 1
+    BDD::new_var();  // var 2, level 2
+    auto t5 = MTZDD<double>::terminal(5.0);
+    auto t3 = MTZDD<double>::terminal(3.0);
+    MTZDD<double> zero;
+    auto v1_node = MTZDD<double>::ite(1, t3, zero);
+    auto f = MTZDD<double>::ite(2, t5, v1_node);
+    EXPECT_DOUBLE_EQ(f.count(), 2.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(2));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountFullTree) {
+    // Full binary tree with 2 variables (var 2 = top), all non-zero terminals:
+    //   var 2: hi=var1_hi, lo=var1_lo
+    //   var1_lo: hi=t2, lo=t1
+    //   var1_hi: hi=t4, lo=t3
+    // 4 non-zero paths: {1,2}->4, {2}->3, {1}->2, {}->1
+    BDD::new_var();  // var 1, level 1
+    BDD::new_var();  // var 2, level 2
+    auto t1 = MTZDD<double>::terminal(1.0);
+    auto t2 = MTZDD<double>::terminal(2.0);
+    auto t3 = MTZDD<double>::terminal(3.0);
+    auto t4 = MTZDD<double>::terminal(4.0);
+    auto v1_lo = MTZDD<double>::ite(1, t2, t1);
+    auto v1_hi = MTZDD<double>::ite(1, t4, t3);
+    auto f = MTZDD<double>::ite(2, v1_hi, v1_lo);
+    EXPECT_DOUBLE_EQ(f.count(), 4.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(4));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountMixedZeroNonZero) {
+    // var 2 (top): hi=var1_node, lo=zero
+    // var 1: hi=t3, lo=zero
+    // Only 1 non-zero path: {1,2} -> 3
+    BDD::new_var();  // var 1
+    BDD::new_var();  // var 2
+    auto t3 = MTZDD<double>::terminal(3.0);
+    MTZDD<double> zero;
+    auto v1_node = MTZDD<double>::ite(1, t3, zero);
+    auto f = MTZDD<double>::ite(2, v1_node, zero);
+    EXPECT_DOUBLE_EQ(f.count(), 1.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountInt) {
+    // Test with int64_t type
+    BDD::new_var();
+    auto t10 = MTZDD<int64_t>::terminal(10);
+    auto t20 = MTZDD<int64_t>::terminal(20);
+    MTZDD<int64_t> zero;
+    auto f = MTZDD<int64_t>::ite(1, t10, t20);
+    EXPECT_DOUBLE_EQ(f.count(), 2.0);
+    EXPECT_EQ(f.exact_count(), bigint::BigInt(2));
+
+    auto g = MTZDD<int64_t>::ite(1, t10, zero);
+    EXPECT_DOUBLE_EQ(g.count(), 1.0);
+    EXPECT_EQ(g.exact_count(), bigint::BigInt(1));
+}
