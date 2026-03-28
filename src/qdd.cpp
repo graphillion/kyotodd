@@ -214,6 +214,127 @@ QDD ZDD::to_qdd() const {
 }
 
 
+// ============================================================
+// Direct ZDD <-> BDD conversion (without QDD intermediate)
+// ============================================================
+
+// Fill ZDD-suppressed levels as BDD nodes: (var, current, bddfalse)
+// Meaning: "variable=1 → false" (ZDD zero-suppression in BDD terms)
+static bddp fill_zdd_levels_as_bdd(bddp child, bddvar child_level, bddvar target_level) {
+    bddp current = child;
+    for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
+        bddvar var = level2var[lev];
+        current = BDD::getnode_raw(var, current, bddfalse);
+    }
+    return current;
+}
+
+// Fill BDD don't-care levels as ZDD nodes: (var, current, current)
+// Meaning: "variable present or absent, same result"
+static bddp fill_bdd_levels_as_zdd(bddp child, bddvar child_level, bddvar target_level) {
+    bddp current = child;
+    for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
+        bddvar var = level2var[lev];
+        current = ZDD::getnode_raw(var, current, current);
+    }
+    return current;
+}
+
+static bddp zdd_to_bdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
+    BDD_RecurGuard guard;
+    if (f == bddempty) return bddfalse;
+    if (f == bddsingle) return bddtrue;
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    // ZDD complement: only lo toggled
+    bddp base = f & ~BDD_COMP_FLAG;
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp lo = node_lo(base);
+    bddp hi = node_hi(base);
+    if (comp) lo = bddnot(lo);
+
+    // Use SOURCE (ZDD) child levels, not target (BDD) levels,
+    // because BDD jump rule may collapse nodes and change levels.
+    bddvar lo_src_level = bddp_level(lo);
+    bddvar hi_src_level = bddp_level(hi);
+
+    bddp bdd_lo = zdd_to_bdd_rec(lo, memo);
+    bddp bdd_hi = zdd_to_bdd_rec(hi, memo);
+
+    bddvar node_level = var2level[node_var(base)];
+
+    // Fill ZDD-suppressed levels with BDD "hi=false" nodes
+    bdd_lo = fill_zdd_levels_as_bdd(bdd_lo, lo_src_level, node_level - 1);
+    bdd_hi = fill_zdd_levels_as_bdd(bdd_hi, hi_src_level, node_level - 1);
+
+    bddp result = BDD::getnode_raw(node_var(base), bdd_lo, bdd_hi);
+    memo[f] = result;
+    return result;
+}
+
+BDD ZDD::to_bdd(int n) const {
+    if (root == bddnull) return BDD::Null;
+    bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        bddvar root_src_level = bddp_level(root);
+        bddp bdd_root = zdd_to_bdd_rec(root, memo);
+        return fill_zdd_levels_as_bdd(bdd_root, root_src_level, nv);
+    });
+    return BDD_ID(result);
+}
+
+static bddp bdd_to_zdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
+    BDD_RecurGuard guard;
+    if (f == bddfalse) return bddempty;
+    if (f == bddtrue) return bddsingle;
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    // BDD complement: both lo and hi toggled
+    bddp base = f & ~BDD_COMP_FLAG;
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp lo = node_lo(base);
+    bddp hi = node_hi(base);
+    if (comp) {
+        lo = bddnot(lo);
+        hi = bddnot(hi);
+    }
+
+    // Use SOURCE (BDD) child levels, not target (ZDD) levels,
+    // because ZDD zero-suppression may collapse nodes and change levels.
+    bddvar lo_src_level = bddp_level(lo);
+    bddvar hi_src_level = bddp_level(hi);
+
+    bddp zdd_lo = bdd_to_zdd_rec(lo, memo);
+    bddp zdd_hi = bdd_to_zdd_rec(hi, memo);
+
+    bddvar node_level = var2level[node_var(base)];
+
+    // Fill BDD don't-care levels with ZDD "both branches same" nodes
+    zdd_lo = fill_bdd_levels_as_zdd(zdd_lo, lo_src_level, node_level - 1);
+    zdd_hi = fill_bdd_levels_as_zdd(zdd_hi, hi_src_level, node_level - 1);
+
+    bddp result = ZDD::getnode_raw(node_var(base), zdd_lo, zdd_hi);
+    memo[f] = result;
+    return result;
+}
+
+ZDD BDD::to_zdd(int n) const {
+    if (root == bddnull) return ZDD::Null;
+    bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        bddvar root_src_level = bddp_level(root);
+        bddp zdd_root = bdd_to_zdd_rec(root, memo);
+        return fill_bdd_levels_as_zdd(zdd_root, root_src_level, nv);
+    });
+    return ZDD_ID(result);
+}
+
 QDD QDD_ID(bddp p) {
     if (p != bddnull && !(p & BDD_CONST_FLAG)) {
         if (!bddp_is_reduced(p)) {

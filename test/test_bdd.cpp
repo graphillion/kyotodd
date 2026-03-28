@@ -13597,3 +13597,124 @@ TEST_F(BDDTest, Project_Idempotent) {
     EXPECT_EQ(f.project(vars).project(vars), f.project(vars));
 }
 
+// ============================================================
+// to_bdd / to_zdd tests
+// ============================================================
+
+TEST_F(BDDTest, ZDD_ToBdd_EmptyFamily) {
+    bddnewvar();
+    bddnewvar();
+    ZDD empty(0);
+    BDD bdd = empty.to_bdd();
+    EXPECT_TRUE(bdd.is_zero());
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_UnitFamily) {
+    bddnewvar();
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    BDD bdd = unit.to_bdd();
+    // ∅ corresponds to all variables false
+    // BDD should be true only when all vars are 0
+    // That's ~x1 & ~x2
+    BDD x1 = BDD::prime(1);
+    BDD x2 = BDD::prime(2);
+    EXPECT_EQ(bdd, ~x1 & ~x2);
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_Singleton) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);  // {{1}}
+    BDD bdd = f.to_bdd();
+    // {1} corresponds to x1=1, x2=0
+    BDD x1 = BDD::prime(1);
+    BDD x2 = BDD::prime(2);
+    EXPECT_EQ(bdd, x1 & ~x2);
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_PowerSet) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    BDD bdd = ps.to_bdd();
+    // Power set = every assignment is a valid set → BDD is true
+    EXPECT_TRUE(bdd.is_one());
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_ConsistencyWithQDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2}) + ZDD::singleton(v3);
+    BDD direct = f.to_bdd();
+    BDD via_qdd = f.to_qdd().to_bdd();
+    EXPECT_EQ(direct, via_qdd);
+}
+
+TEST_F(BDDTest, BDD_ToZdd_False) {
+    bddnewvar();
+    bddnewvar();
+    BDD f = BDD::False;
+    ZDD z = f.to_zdd();
+    EXPECT_TRUE(z.is_zero());
+}
+
+TEST_F(BDDTest, BDD_ToZdd_True) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    BDD f = BDD::True;
+    ZDD z = f.to_zdd();
+    // True BDD → power set (every assignment maps to a set)
+    EXPECT_EQ(z, ZDD::power_set(3));
+}
+
+TEST_F(BDDTest, BDD_ToZdd_ConsistencyWithQDD) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD x1 = BDD::prime(v1);
+    BDD x2 = BDD::prime(v2);
+    BDD f = x1 & ~x2;
+    ZDD direct = f.to_zdd();
+    ZDD via_qdd = f.to_qdd().to_zdd();
+    EXPECT_EQ(direct, via_qdd);
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_RoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v3}) + ZDD::singleton(v2) + ZDD::Single;
+    int n = 3;
+    ZDD roundtrip = f.to_bdd(n).to_zdd(n);
+    EXPECT_EQ(roundtrip, f);
+}
+
+TEST_F(BDDTest, BDD_ToZdd_RoundTrip) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD x1 = BDD::prime(v1);
+    BDD x2 = BDD::prime(v2);
+    BDD x3 = BDD::prime(v3);
+    BDD f = (x1 | x2) & ~x3;
+    int n = 3;
+    BDD roundtrip = f.to_zdd(n).to_bdd(n);
+    EXPECT_EQ(roundtrip, f);
+}
+
+TEST_F(BDDTest, ZDD_ToBdd_WithN) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);  // {{1}}
+    // Convert over 2 variables (not all 3)
+    BDD bdd2 = f.to_bdd(2);
+    BDD x1 = BDD::prime(1);
+    BDD x2 = BDD::prime(2);
+    EXPECT_EQ(bdd2, x1 & ~x2);
+}
+
