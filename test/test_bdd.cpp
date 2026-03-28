@@ -13425,3 +13425,175 @@ TEST_F(BDDTest, ZDD_SupportVars_ConsistencyWithSupport) {
     EXPECT_TRUE(sv_set.count(v3));
 }
 
+// ============================================================
+// supersets_of tests
+// ============================================================
+
+TEST_F(BDDTest, SupersetsOf_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.supersets_of({1}), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SupersetsOf_EmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    // Every set is a superset of ∅
+    EXPECT_EQ(f.supersets_of({}), f);
+}
+
+TEST_F(BDDTest, SupersetsOf_Basic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {{v1,v2}, {v1,v3}, {v2,v3}}
+    ZDD f = ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v3})
+          + ZDD::single_set({v2, v3});
+    ZDD result = f.supersets_of({v1});
+    // Sets containing v1: {v1,v2}, {v1,v3}
+    ZDD expected = ZDD::single_set({v1, v2}) + ZDD::single_set({v1, v3});
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, SupersetsOf_NoMatch) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+    EXPECT_EQ(f.supersets_of({v3}), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SupersetsOf_PowerSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    ZDD result = ps.supersets_of({v1, v2});
+    // Supersets of {v1,v2}: {v1,v2}, {v1,v2,v3}
+    ZDD expected = ZDD::single_set({v1, v2}) + ZDD::single_set({v1, v2, v3});
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, SupersetsOf_UnitFamily) {
+    bddvar v1 = bddnewvar();
+    ZDD unit(1);  // {∅}
+    // ∅ is not a superset of {v1}
+    EXPECT_EQ(unit.supersets_of({v1}), ZDD::Empty);
+    // ∅ is a superset of ∅
+    EXPECT_EQ(unit.supersets_of({}), unit);
+}
+
+// ============================================================
+// subsets_of tests
+// ============================================================
+
+TEST_F(BDDTest, SubsetsOf_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.subsets_of({1}), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SubsetsOf_Basic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {{v1,v2,v3}, {v1,v2}, {v1}}
+    ZDD f = ZDD::single_set({v1, v2, v3})
+          + ZDD::single_set({v1, v2})
+          + ZDD::singleton(v1);
+    ZDD result = f.subsets_of({v1, v2});
+    // Subsets of {v1,v2}: {v1,v2}, {v1}
+    ZDD expected = ZDD::single_set({v1, v2}) + ZDD::singleton(v1);
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, SubsetsOf_EmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {∅, {v1}, {v1,v2}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    // Only ∅ is a subset of ∅
+    EXPECT_EQ(f.subsets_of({}), ZDD::Single);
+}
+
+TEST_F(BDDTest, SubsetsOf_PowerSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    ZDD result = ps.subsets_of({v1, v2});
+    // Subsets of {v1,v2}: ∅, {v1}, {v2}, {v1,v2}
+    ZDD expected = ZDD::Single + ZDD::singleton(v1) + ZDD::singleton(v2)
+                 + ZDD::single_set({v1, v2});
+    EXPECT_EQ(result, expected);
+}
+
+TEST_F(BDDTest, SubsetsOf_ConsistencyWithPermit) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3) - ZDD::Single;
+    std::vector<bddvar> s = {v1, v3};
+    ZDD result = f.subsets_of(s);
+    ZDD permit_result = f.Permit(ZDD::single_set(s));
+    EXPECT_EQ(result, permit_result);
+}
+
+// ============================================================
+// project tests
+// ============================================================
+
+TEST_F(BDDTest, Project_EmptyFamily) {
+    bddvar v1 = bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.project({v1}), ZDD::Empty);
+}
+
+TEST_F(BDDTest, Project_EmptyVars) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.project({}), f);
+}
+
+TEST_F(BDDTest, Project_SingleVar) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2, v3}) + ZDD::single_set({v1, v3});
+    ZDD result = f.project({v2});
+    // Remove v2: {{v1,v3}} (duplicates merge)
+    ZDD expected_manual = f.Offset(v2) + f.OnSet0(v2);
+    EXPECT_EQ(result, expected_manual);
+}
+
+TEST_F(BDDTest, Project_MultipleVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {{v1,v2,v3}, {v1}}
+    ZDD f = ZDD::single_set({v1, v2, v3}) + ZDD::singleton(v1);
+    ZDD result = f.project({v2, v3});
+    // Remove v2 and v3: {{v1}} (both sets collapse to {v1})
+    EXPECT_EQ(result, ZDD::singleton(v1));
+}
+
+TEST_F(BDDTest, Project_AllVars) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2}) + ZDD::singleton(v1);
+    ZDD result = f.project({v1, v2});
+    // Remove all vars: {∅}
+    EXPECT_EQ(result, ZDD::Single);
+}
+
+TEST_F(BDDTest, Project_Idempotent) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    std::vector<bddvar> vars = {v2};
+    EXPECT_EQ(f.project(vars).project(vars), f.project(vars));
+}
+

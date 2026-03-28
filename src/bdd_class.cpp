@@ -599,6 +599,18 @@ ZDD ZDD::size_ge(int k) const {
     return cost_bound_ge(weights, static_cast<long long>(k));
 }
 
+ZDD ZDD::supersets_of(const std::vector<bddvar>& s) const {
+    return ZDD_ID(bddsupersets_of(root, s));
+}
+
+ZDD ZDD::subsets_of(const std::vector<bddvar>& s) const {
+    return ZDD_ID(bddsubsets_of(root, s));
+}
+
+ZDD ZDD::project(const std::vector<bddvar>& vars) const {
+    return ZDD_ID(bddproject(root, vars));
+}
+
 // --- ZDD::rank / unrank ---
 
 int64_t ZDD::rank(const std::vector<bddvar>& s) const {

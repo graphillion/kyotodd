@@ -8,6 +8,7 @@
 #include <map>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 
 static bddp bdddisjoin_rec(bddp f, bddp g);
 
@@ -1773,6 +1774,215 @@ bddp bddgetkheaviest(bddp f, int64_t k,
         throw std::invalid_argument("bddgetkheaviest: k must be >= 0");
     }
     return bddgetkheaviest(f, bigint::BigInt(k), weights, strict);
+}
+
+// ============================================================
+// supersets_of
+// ============================================================
+
+static const std::vector<bddvar>* supersets_of_sorted_s = nullptr;
+
+static bddp bddsupersets_of_rec(bddp f, size_t idx) {
+    if (f == bddempty) return bddempty;
+    const std::vector<bddvar>& ss = *supersets_of_sorted_s;
+    if (idx == ss.size()) return f;
+    if (f == bddsingle) return bddempty;
+
+    BDD_RecurGuard guard;
+
+    bddp cached = bddrcache(BDD_OP_SUPERSETS_OF, f, static_cast<bddp>(idx));
+    if (cached != bddnull) return cached;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar f_var = node_var(f_raw);
+    bddvar f_level = var2level[f_var];
+    bddvar s_var = ss[idx];
+    bddvar s_level = var2level[s_var];
+
+    bddp f_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    if (comp) f_lo = bddnot(f_lo);
+
+    bddp result;
+
+    if (s_level > f_level) {
+        // s has a variable not in the ZDD (zero-suppressed) → no superset
+        result = bddempty;
+    } else if (s_level == f_level) {
+        // s requires this variable → only hi branch qualifies
+        bddp hi = bddsupersets_of_rec(f_hi, idx + 1);
+        result = ZDD::getnode_raw(f_var, bddempty, hi);
+    } else {
+        // ZDD variable not in s → both branches may contain supersets
+        bddp lo = bddsupersets_of_rec(f_lo, idx);
+        bddp hi = bddsupersets_of_rec(f_hi, idx);
+        result = ZDD::getnode_raw(f_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_SUPERSETS_OF, f, static_cast<bddp>(idx), result);
+    return result;
+}
+
+bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s) {
+    bddp_validate(f, "bddsupersets_of");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (s.empty()) return f;
+
+    std::vector<bddvar> sorted_s(s);
+    std::sort(sorted_s.begin(), sorted_s.end());
+    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
+                   sorted_s.end());
+    for (bddvar v : sorted_s) {
+        if (v < 1 || v > bdd_varcount)
+            throw std::invalid_argument("bddsupersets_of: variable out of range");
+    }
+    std::sort(sorted_s.begin(), sorted_s.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+
+    supersets_of_sorted_s = &sorted_s;
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        return bddsupersets_of_rec(f, 0);
+    });
+    supersets_of_sorted_s = nullptr;
+    return result;
+}
+
+// ============================================================
+// subsets_of
+// ============================================================
+
+static const std::vector<bddvar>* subsets_of_sorted_s = nullptr;
+
+static bddp bddsubsets_of_rec(bddp f, size_t idx) {
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    const std::vector<bddvar>& ss = *subsets_of_sorted_s;
+    if (idx == ss.size()) {
+        return bddhasempty(f) ? bddsingle : bddempty;
+    }
+
+    BDD_RecurGuard guard;
+
+    bddp cached = bddrcache(BDD_OP_SUBSETS_OF, f, static_cast<bddp>(idx));
+    if (cached != bddnull) return cached;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar f_var = node_var(f_raw);
+    bddvar f_level = var2level[f_var];
+    bddvar s_var = ss[idx];
+    bddvar s_level = var2level[s_var];
+
+    bddp f_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    if (comp) f_lo = bddnot(f_lo);
+
+    bddp result;
+
+    if (s_level > f_level) {
+        // s has a variable not in ZDD → skip it, all sets still qualify
+        result = bddsubsets_of_rec(f, idx + 1);
+    } else if (s_level == f_level) {
+        // Same variable: both lo and hi branches qualify
+        bddp lo = bddsubsets_of_rec(f_lo, idx + 1);
+        bddp hi = bddsubsets_of_rec(f_hi, idx + 1);
+        result = ZDD::getnode_raw(f_var, lo, hi);
+    } else {
+        // ZDD has variable not in s → only lo qualifies (extra vars disallowed)
+        result = bddsubsets_of_rec(f_lo, idx);
+    }
+
+    bddwcache(BDD_OP_SUBSETS_OF, f, static_cast<bddp>(idx), result);
+    return result;
+}
+
+bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s) {
+    bddp_validate(f, "bddsubsets_of");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+
+    std::vector<bddvar> sorted_s(s);
+    std::sort(sorted_s.begin(), sorted_s.end());
+    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
+                   sorted_s.end());
+    for (bddvar v : sorted_s) {
+        if (v < 1 || v > bdd_varcount)
+            throw std::invalid_argument("bddsubsets_of: variable out of range");
+    }
+    std::sort(sorted_s.begin(), sorted_s.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+
+    subsets_of_sorted_s = &sorted_s;
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        return bddsubsets_of_rec(f, 0);
+    });
+    subsets_of_sorted_s = nullptr;
+    return result;
+}
+
+// ============================================================
+// project
+// ============================================================
+
+static const std::unordered_set<bddvar>* project_vars_ptr = nullptr;
+
+static bddp bddproject_rec(bddp f) {
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    BDD_RecurGuard guard;
+
+    bddp cached = bddrcache(BDD_OP_PROJECT, f, 0);
+    if (cached != bddnull) return cached;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar f_var = node_var(f_raw);
+    bddp f_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    if (comp) f_lo = bddnot(f_lo);
+
+    bddp result;
+
+    if (project_vars_ptr->count(f_var)) {
+        // Remove this variable: union of both branches
+        bddp lo_proj = bddproject_rec(f_lo);
+        bddp hi_proj = bddproject_rec(f_hi);
+        result = bddunion(lo_proj, hi_proj);
+    } else {
+        // Keep this variable
+        bddp lo_proj = bddproject_rec(f_lo);
+        bddp hi_proj = bddproject_rec(f_hi);
+        result = ZDD::getnode_raw(f_var, lo_proj, hi_proj);
+    }
+
+    bddwcache(BDD_OP_PROJECT, f, 0, result);
+    return result;
+}
+
+bddp bddproject(bddp f, const std::vector<bddvar>& vars) {
+    bddp_validate(f, "bddproject");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (vars.empty()) return f;
+
+    for (bddvar v : vars) {
+        if (v < 1 || v > bdd_varcount)
+            throw std::invalid_argument("bddproject: variable out of range");
+    }
+
+    std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
+    project_vars_ptr = &var_set;
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        return bddproject_rec(f);
+    });
+    project_vars_ptr = nullptr;
+    return result;
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {

@@ -557,6 +557,23 @@ uint64_t bddlen(bddp f);
 uint64_t bddminsize(bddp f);
 
 /**
+ * @brief Extract supersets of a given set from a ZDD family.
+ * Returns all sets A in f where s ⊆ A.
+ */
+bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s);
+
+/**
+ * @brief Extract subsets of a given set from a ZDD family.
+ * Returns all sets A in f where A ⊆ s.
+ */
+bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s);
+
+/**
+ * @brief Project (remove) specified variables from all sets in a ZDD family.
+ */
+bddp bddproject(bddp f, const std::vector<bddvar>& vars);
+
+/**
  * @brief Check if the empty set (∅) is a member of a ZDD family.
  *
  * Returns true if ∅ ∈ F, i.e. the family represented by @p f

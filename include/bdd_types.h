@@ -138,6 +138,9 @@ static const uint8_t BDD_OP_LSHIFTZ = 47;
 static const uint8_t BDD_OP_RSHIFTZ = 48;
 static const uint8_t BDD_OP_CHOOSE  = 68;
 static const uint8_t BDD_OP_MINSIZE = 69;
+static const uint8_t BDD_OP_SUPERSETS_OF = 70;
+static const uint8_t BDD_OP_SUBSETS_OF   = 71;
+static const uint8_t BDD_OP_PROJECT      = 72;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -588,6 +591,8 @@ public:
 
     /** @brief Convert to a QDD (quasi-reduced BDD) by inserting lo==hi identity nodes at skipped levels. */
     QDD to_qdd() const;
+    /** @brief Convert BDD (characteristic function) to ZDD (family) over n variables. If n=0, uses var_used(). */
+    ZDD to_zdd(int n = 0) const;
 
     /** @brief Return the BDD representing variable v (positive literal). */
     static BDD prime(bddvar v);
@@ -1119,6 +1124,8 @@ public:
 
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
+    /** @brief Convert ZDD (family) to BDD (characteristic function) over n variables. If n=0, uses var_used(). */
+    BDD to_bdd(int n = 0) const;
 
     /** @brief Return the ZDD representing {{v}} (a family with one singleton set). */
     static ZDD singleton(bddvar v);
@@ -1278,6 +1285,13 @@ public:
      * @throws std::invalid_argument if this ZDD is null.
      */
     ZDD size_ge(int k) const;
+
+    /** @brief Extract all supersets of a given set. Returns {A ∈ F | s ⊆ A}. */
+    ZDD supersets_of(const std::vector<bddvar>& s) const;
+    /** @brief Extract all subsets of a given set. Returns {A ∈ F | A ⊆ s}. */
+    ZDD subsets_of(const std::vector<bddvar>& s) const;
+    /** @brief Project (remove) specified variables from all sets. */
+    ZDD project(const std::vector<bddvar>& vars) const;
 
     /**
      * @brief Rank a set in the family (int64_t version).
