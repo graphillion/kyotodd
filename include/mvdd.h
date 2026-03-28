@@ -453,6 +453,48 @@ public:
     template<typename RNG>
     std::vector<int> uniform_sample(RNG& rng, ZddCountMemo& memo);
 
+    // --- Weight operations ---
+
+    /**
+     * @brief Find the minimum weight sum among all assignments in the family.
+     *
+     * @param weights 2D weight table. weights[i][v] is the weight when MVDD
+     *        variable i+1 takes value v. Size must be mvdd_var_count, and each
+     *        inner vector must have size k.
+     * @return The minimum total weight.
+     * @throws std::invalid_argument if the family is empty or weights size is wrong.
+     */
+    long long min_weight(const std::vector<std::vector<int>>& weights) const;
+
+    /**
+     * @brief Find the maximum weight sum among all assignments in the family.
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @return The maximum total weight.
+     * @throws std::invalid_argument if the family is empty or weights size is wrong.
+     */
+    long long max_weight(const std::vector<std::vector<int>>& weights) const;
+
+    /**
+     * @brief Find an assignment with the minimum weight sum.
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @return The assignment as a vector of values
+     *         (0-indexed: result[i] is the value of MVDD variable i+1).
+     * @throws std::invalid_argument if the family is empty or weights size is wrong.
+     */
+    std::vector<int> min_weight_set(const std::vector<std::vector<int>>& weights) const;
+
+    /**
+     * @brief Find an assignment with the maximum weight sum.
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @return The assignment as a vector of values
+     *         (0-indexed: result[i] is the value of MVDD variable i+1).
+     * @throws std::invalid_argument if the family is empty or weights size is wrong.
+     */
+    std::vector<int> max_weight_set(const std::vector<std::vector<int>>& weights) const;
+
     // --- Evaluation ---
 
     /**
@@ -526,6 +568,23 @@ private:
     void check_compatible(const MVZDD& other) const;
     MVZDD make_result(bddp p) const;
     MVZDD(std::shared_ptr<MVDDVarTable> table, bddp p);
+
+    /**
+     * @brief Validate and convert 2D MVZDD weights to DD-level weights.
+     * @param weights 2D weight table.
+     * @param[out] dd_weights DD-level weight vector.
+     * @param[out] base_weight Constant offset (sum of weights[mv-1][0]).
+     * @param caller Function name for error messages.
+     */
+    void convert_weights(const std::vector<std::vector<int>>& weights,
+                         std::vector<int>& dd_weights,
+                         long long& base_weight,
+                         const char* caller) const;
+
+    /**
+     * @brief Convert a DD-level variable set to an MVZDD assignment vector.
+     */
+    std::vector<int> dd_set_to_assignment(const std::vector<bddvar>& dd_set) const;
 };
 
 // ========================================================================

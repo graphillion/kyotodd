@@ -1452,3 +1452,194 @@ TEST_F(MVDDTest, MVZDDUniformSampleEmptyThrows) {
     ZddCountMemo memo(empty.to_zdd());
     EXPECT_THROW(empty.uniform_sample(rng, memo), std::exception);
 }
+
+// ============================================================
+//  MVZDD min_weight / max_weight
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDMinMaxWeightBasic) {
+    // k=3, 2 variables
+    // Family = { (0,0), (1,0), (0,2) }
+    // weights[0] = {0, 10, 20}  (var1: val0=0, val1=10, val2=20)
+    // weights[1] = {0, 5, 15}   (var2: val0=0, val1=5, val2=15)
+    // (0,0) weight = 0+0 = 0
+    // (1,0) weight = 10+0 = 10
+    // (0,2) weight = 0+15 = 15
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    EXPECT_EQ(F.min_weight(weights), 0);
+    EXPECT_EQ(F.max_weight(weights), 15);
+}
+
+TEST_F(MVDDTest, MVZDDMinMaxWeightWithVal0Cost) {
+    // val=0 also has non-zero weight
+    // k=2, 2 variables
+    // Family = { (0,0), (1,0), (0,1), (1,1) }
+    // weights[0] = {3, 7}   (var1: val0=3, val1=7)
+    // weights[1] = {2, 8}   (var2: val0=2, val1=8)
+    // (0,0) = 3+2 = 5
+    // (1,0) = 7+2 = 9
+    // (0,1) = 3+8 = 11
+    // (1,1) = 7+8 = 15
+    MVZDD base(2);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    // Build (1,1) via ITE
+    auto a11 = MVZDD::ite(base, v1, {
+        MVZDD::zero(base.var_table()),  // v1=0: empty
+        MVZDD::singleton(base, v2, 1)   // v1=1: {(1,1)}
+    });
+    MVZDD F = a00 + a10 + a01 + a11;
+
+    std::vector<std::vector<int>> weights = {{3, 7}, {2, 8}};
+
+    EXPECT_EQ(F.min_weight(weights), 5);
+    EXPECT_EQ(F.max_weight(weights), 15);
+}
+
+TEST_F(MVDDTest, MVZDDMinMaxWeightSingleAssignment) {
+    // Family = { (2) }
+    // weights[0] = {1, 5, 9}
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    auto s = MVZDD::singleton(base, v1, 2);
+
+    std::vector<std::vector<int>> weights = {{1, 5, 9}};
+
+    EXPECT_EQ(s.min_weight(weights), 9);
+    EXPECT_EQ(s.max_weight(weights), 9);
+}
+
+TEST_F(MVDDTest, MVZDDMinMaxWeightNegativeWeights) {
+    // Family = { (0), (1), (2) }
+    // weights[0] = {-5, 3, -10}
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+
+    auto s0 = MVZDD::one(base.var_table());
+    auto s1 = MVZDD::singleton(base, v1, 1);
+    auto s2 = MVZDD::singleton(base, v1, 2);
+    MVZDD F = s0 + s1 + s2;
+
+    std::vector<std::vector<int>> weights = {{-5, 3, -10}};
+
+    EXPECT_EQ(F.min_weight(weights), -10);
+    EXPECT_EQ(F.max_weight(weights), 3);
+}
+
+// ============================================================
+//  MVZDD min_weight_set / max_weight_set
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDMinWeightSetBasic) {
+    // k=3, 2 variables
+    // Family = { (0,0), (1,0), (0,2) }
+    // weights: var1 = {0, 10, 20}, var2 = {0, 5, 15}
+    // min = (0,0) with weight 0
+    // max = (0,2) with weight 15
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = a00 + a10 + a02;
+
+    std::vector<std::vector<int>> weights = {{0, 10, 20}, {0, 5, 15}};
+
+    std::vector<int> min_set = F.min_weight_set(weights);
+    EXPECT_EQ(min_set, (std::vector<int>{0, 0}));
+
+    std::vector<int> max_set = F.max_weight_set(weights);
+    EXPECT_EQ(max_set, (std::vector<int>{0, 2}));
+}
+
+TEST_F(MVDDTest, MVZDDMinWeightSetWithVal0Cost) {
+    // k=2, 2 variables
+    // Family = { (0,0), (1,0), (0,1), (1,1) }
+    // weights: var1 = {3, 7}, var2 = {2, 8}
+    // min = (0,0)=5, max = (1,1)=15
+    MVZDD base(2);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    auto a01 = MVZDD::singleton(base, v2, 1);
+    auto a11 = MVZDD::ite(base, v1, {
+        MVZDD::zero(base.var_table()),
+        MVZDD::singleton(base, v2, 1)
+    });
+    MVZDD F = a00 + a10 + a01 + a11;
+
+    std::vector<std::vector<int>> weights = {{3, 7}, {2, 8}};
+
+    std::vector<int> min_set = F.min_weight_set(weights);
+    EXPECT_EQ(min_set, (std::vector<int>{0, 0}));
+
+    std::vector<int> max_set = F.max_weight_set(weights);
+    EXPECT_EQ(max_set, (std::vector<int>{1, 1}));
+}
+
+TEST_F(MVDDTest, MVZDDMinWeightSetResultInFamily) {
+    // Verify that the returned set is actually in the family
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    auto s12 = MVZDD::ite(base, v1, {
+        MVZDD::zero(base.var_table()),
+        MVZDD::singleton(base, v2, 2),
+        MVZDD::zero(base.var_table())
+    });
+    auto s20 = MVZDD::singleton(base, v1, 2);
+    MVZDD F = s12 + s20;
+
+    std::vector<std::vector<int>> weights = {{0, 1, 100}, {0, 50, 2}};
+
+    std::vector<int> min_set = F.min_weight_set(weights);
+    EXPECT_TRUE(F.contains(min_set));
+
+    std::vector<int> max_set = F.max_weight_set(weights);
+    EXPECT_TRUE(F.contains(max_set));
+}
+
+// ============================================================
+//  MVZDD weight validation errors
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDWeightSizeMismatch) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+
+    // Wrong outer size
+    EXPECT_THROW(one.min_weight({{0, 1, 2}}), std::invalid_argument);
+    // Wrong inner size
+    EXPECT_THROW(one.min_weight({{0, 1}, {0, 1}}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDWeightSetSizeMismatch) {
+    MVZDD base(2);
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+
+    // Wrong outer size (0 instead of 1)
+    EXPECT_THROW(one.min_weight_set({}), std::invalid_argument);
+    EXPECT_THROW(one.max_weight_set({}), std::invalid_argument);
+}

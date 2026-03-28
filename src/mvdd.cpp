@@ -888,6 +888,94 @@ bigint::BigInt MVZDD::exact_count(ZddCountMemo& memo) const {
     return z.exact_count(memo);
 }
 
+// --- Weight operations (private helpers) ---
+
+void MVZDD::convert_weights(const std::vector<std::vector<int>>& weights,
+                             std::vector<int>& dd_weights,
+                             long long& base_weight,
+                             const char* caller) const {
+    if (!var_table_) {
+        throw std::logic_error(std::string(caller) + ": no var table");
+    }
+    bddvar n = var_table_->mvdd_var_count();
+    int kv = var_table_->k();
+    if (weights.size() != n) {
+        throw std::invalid_argument(
+            std::string(caller) + ": weights size must equal mvdd_var_count (" +
+            std::to_string(n) + "), got " + std::to_string(weights.size()));
+    }
+    for (size_t i = 0; i < weights.size(); ++i) {
+        if (static_cast<int>(weights[i].size()) != kv) {
+            throw std::invalid_argument(
+                std::string(caller) + ": weights[" + std::to_string(i) +
+                "] size must be k (" + std::to_string(kv) + "), got " +
+                std::to_string(weights[i].size()));
+        }
+    }
+
+    // Build DD-level weight vector
+    bddvar num_dd_vars = bddvarused();
+    dd_weights.assign(num_dd_vars + 1, 0);
+    base_weight = 0;
+
+    for (bddvar mv = 1; mv <= n; ++mv) {
+        base_weight += weights[mv - 1][0];
+        const std::vector<bddvar>& dvars = var_table_->dd_vars_of(mv);
+        for (int idx = 0; idx < static_cast<int>(dvars.size()); ++idx) {
+            bddvar dv = dvars[idx];
+            if (dv < dd_weights.size()) {
+                dd_weights[dv] = weights[mv - 1][idx + 1] - weights[mv - 1][0];
+            }
+        }
+    }
+}
+
+std::vector<int> MVZDD::dd_set_to_assignment(const std::vector<bddvar>& dd_set) const {
+    bddvar n = var_table_->mvdd_var_count();
+    std::vector<int> assign(n, 0);
+    for (size_t j = 0; j < dd_set.size(); ++j) {
+        bddvar dv = dd_set[j];
+        bddvar mv = var_table_->mvdd_var_of(dv);
+        if (mv != 0) {
+            int idx = var_table_->dd_var_index(dv);
+            assign[mv - 1] = idx + 1;
+        }
+    }
+    return assign;
+}
+
+// --- Weight operations ---
+
+long long MVZDD::min_weight(const std::vector<std::vector<int>>& weights) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::min_weight");
+    return base_weight + bddminweight(root, dd_weights);
+}
+
+long long MVZDD::max_weight(const std::vector<std::vector<int>>& weights) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::max_weight");
+    return base_weight + bddmaxweight(root, dd_weights);
+}
+
+std::vector<int> MVZDD::min_weight_set(const std::vector<std::vector<int>>& weights) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::min_weight_set");
+    std::vector<bddvar> dd_set = bddminweightset(root, dd_weights);
+    return dd_set_to_assignment(dd_set);
+}
+
+std::vector<int> MVZDD::max_weight_set(const std::vector<std::vector<int>>& weights) const {
+    std::vector<int> dd_weights;
+    long long base_weight;
+    convert_weights(weights, dd_weights, base_weight, "MVZDD::max_weight_set");
+    std::vector<bddvar> dd_set = bddmaxweightset(root, dd_weights);
+    return dd_set_to_assignment(dd_set);
+}
+
 // --- Evaluation ---
 
 bool MVZDD::evaluate(const std::vector<int>& assignment) const {

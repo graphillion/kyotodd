@@ -3799,6 +3799,35 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of values (0-indexed: result[i] is the value of MVDD variable i+1).")
+        // Weight operations
+        .def("min_weight", &MVZDD::min_weight, py::arg("weights"),
+            "Find the minimum weight sum among all assignments.\n\n"
+            "Args:\n"
+            "    weights: 2D list where weights[i][v] is the weight when\n"
+            "             MVDD variable i+1 takes value v.\n\n"
+            "Returns:\n"
+            "    The minimum total weight.")
+        .def("max_weight", &MVZDD::max_weight, py::arg("weights"),
+            "Find the maximum weight sum among all assignments.\n\n"
+            "Args:\n"
+            "    weights: 2D list where weights[i][v] is the weight when\n"
+            "             MVDD variable i+1 takes value v.\n\n"
+            "Returns:\n"
+            "    The maximum total weight.")
+        .def("min_weight_set", &MVZDD::min_weight_set, py::arg("weights"),
+            "Find an assignment with the minimum weight sum.\n\n"
+            "Args:\n"
+            "    weights: 2D list where weights[i][v] is the weight when\n"
+            "             MVDD variable i+1 takes value v.\n\n"
+            "Returns:\n"
+            "    The assignment as a list of values.")
+        .def("max_weight_set", &MVZDD::max_weight_set, py::arg("weights"),
+            "Find an assignment with the maximum weight sum.\n\n"
+            "Args:\n"
+            "    weights: 2D list where weights[i][v] is the weight when\n"
+            "             MVDD variable i+1 takes value v.\n\n"
+            "Returns:\n"
+            "    The assignment as a list of values.")
         // Properties
         .def_property_readonly("k", &MVZDD::k,
             "Value domain size.")
