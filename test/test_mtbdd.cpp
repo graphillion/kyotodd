@@ -1481,3 +1481,35 @@ TEST_F(MTBDDClassTest, MTZDDHasEmptyInt) {
     auto f2 = MTZDD<int64_t>::ite(1, t5, t3);
     EXPECT_TRUE(f2.has_empty());
 }
+
+// ========================================================================
+//  MTZDD support_vars tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDSupportVarsZeroTerminal) {
+    MTZDD<double> f;
+    EXPECT_TRUE(f.support_vars().empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDSupportVarsNonZeroTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_TRUE(f.support_vars().empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDSupportVarsSingleVar) {
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0), MTZDD<double>());
+    auto vars = f.support_vars();
+    ASSERT_EQ(vars.size(), 1u);
+    EXPECT_EQ(vars[0], 1u);
+}
+
+TEST_F(MTBDDClassTest, MTZDDSupportVarsMultiVar) {
+    // v3 top, v1 bottom (v2 zero-suppressed)
+    auto inner = MTZDD<double>::ite(1, MTZDD<double>::terminal(5.0), MTZDD<double>());
+    auto f = MTZDD<double>::ite(3, MTZDD<double>::terminal(10.0), inner);
+    auto vars = f.support_vars();
+    ASSERT_EQ(vars.size(), 2u);
+    // Sorted by level (highest first): v3, v1
+    EXPECT_EQ(vars[0], 3u);
+    EXPECT_EQ(vars[1], 1u);
+}

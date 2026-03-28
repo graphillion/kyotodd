@@ -786,6 +786,13 @@ public:
         return MTBDDTerminalTable<T>::instance().get_value(idx) != T{};
     }
 
+    // --- Support variables ---
+
+    /** @brief Return all variable numbers appearing in the MTZDD, sorted by level (highest first). */
+    std::vector<bddvar> support_vars() const {
+        return bddsupport_vec(root);
+    }
+
     // --- Counting (non-zero paths) ---
 
     /** @brief Count the number of non-zero terminal paths (double). */
