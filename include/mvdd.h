@@ -396,9 +396,23 @@ public:
     MVZDD operator+(const MVZDD& other) const;   // union
     MVZDD operator-(const MVZDD& other) const;   // difference
     MVZDD operator&(const MVZDD& other) const;   // intersection
+    MVZDD operator^(const MVZDD& other) const;   // symmetric difference
     MVZDD& operator+=(const MVZDD& other);
     MVZDD& operator-=(const MVZDD& other);
     MVZDD& operator&=(const MVZDD& other);
+    MVZDD& operator^=(const MVZDD& other);
+
+    // --- Membership ---
+
+    /** @brief Check if the all-zero assignment is in the family. */
+    bool has_empty() const;
+
+    /**
+     * @brief Check if the given assignment is in the family.
+     * @param s MVDD assignment (0-indexed: s[i] is the value of MVDD variable i+1).
+     *          Size must equal the number of registered MVDD variables.
+     */
+    bool contains(const std::vector<int>& s) const;
 
     // --- Counting ---
 

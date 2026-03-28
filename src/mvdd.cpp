@@ -807,6 +807,48 @@ MVZDD& MVZDD::operator&=(const MVZDD& other) {
     return *this;
 }
 
+MVZDD MVZDD::operator^(const MVZDD& other) const {
+    check_compatible(other);
+    return make_result(bddsymdiff(root, other.root));
+}
+
+MVZDD& MVZDD::operator^=(const MVZDD& other) {
+    check_compatible(other);
+    root = bddsymdiff(root, other.root);
+    return *this;
+}
+
+// --- Membership ---
+
+bool MVZDD::has_empty() const {
+    return bddhasempty(root);
+}
+
+bool MVZDD::contains(const std::vector<int>& s) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::contains: no var table");
+    }
+    if (s.size() != var_table_->mvdd_var_count()) {
+        throw std::invalid_argument("MVZDD::contains: assignment size mismatch");
+    }
+    int kv = var_table_->k();
+
+    // Convert MVDD assignment to ZDD-level set (list of DD variables)
+    std::vector<bddvar> dd_set;
+    for (bddvar mv = 1; mv <= var_table_->mvdd_var_count(); ++mv) {
+        int val = s[mv - 1];
+        if (val < 0 || val >= kv) {
+            throw std::invalid_argument("MVZDD::contains: value out of range");
+        }
+        if (val > 0) {
+            const std::vector<bddvar>& dvars = var_table_->dd_vars_of(mv);
+            dd_set.push_back(dvars[val - 1]);
+        }
+    }
+
+    return bddcontains(root, dd_set);
+}
+
 // --- Counting ---
 
 double MVZDD::count() const {

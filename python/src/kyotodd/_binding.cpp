@@ -3746,6 +3746,15 @@ PYBIND11_MODULE(_core, m) {
         // Conversion
         .def("to_zdd", &MVZDD::to_zdd,
             "Return the internal ZDD.")
+        // Membership
+        .def_property_readonly("has_empty", &MVZDD::has_empty,
+            "True if the all-zero assignment is in the family.")
+        .def("contains", &MVZDD::contains,
+            py::arg("s"),
+            "Check if the given assignment is in the family.\n\n"
+            "Args:\n"
+            "    s: List of values (0-indexed: s[i] is the value of MVDD variable i+1).\n"
+            "       Size must equal the number of MVDD variables.")
         // Counting
         .def_property_readonly("count", &MVZDD::count,
             "Number of assignments (double).")
@@ -3780,12 +3789,16 @@ PYBIND11_MODULE(_core, m) {
             "Difference.")
         .def("__and__", [](const MVZDD& a, const MVZDD& b) { return a & b; },
             "Intersection.")
+        .def("__xor__", [](const MVZDD& a, const MVZDD& b) { return a ^ b; },
+            "Symmetric difference.")
         .def("__iadd__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a += b; return a; },
             py::return_value_policy::reference_internal, "In-place union.")
         .def("__isub__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a -= b; return a; },
             py::return_value_policy::reference_internal, "In-place difference.")
         .def("__iand__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a &= b; return a; },
             py::return_value_policy::reference_internal, "In-place intersection.")
+        .def("__ixor__", [](MVZDD& a, const MVZDD& b) -> MVZDD& { a ^= b; return a; },
+            py::return_value_policy::reference_internal, "In-place symmetric difference.")
         // Comparison
         .def("__eq__", [](const MVZDD& a, const MVZDD& b) { return a == b; })
         .def("__ne__", [](const MVZDD& a, const MVZDD& b) { return a != b; })

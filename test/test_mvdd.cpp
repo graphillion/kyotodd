@@ -1144,3 +1144,154 @@ TEST_F(MVDDTest, MVBDDSaveSvgAllSolid) {
     // MVBDD should NOT have dashed edges
     EXPECT_FALSE(svg_contains(svg, "stroke-dasharray"));
 }
+
+// ============================================================
+//  MVZDD operator^  (symmetric difference)
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDSymDiffBasic) {
+    // k=3, 2 variables
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+
+    // A = { (0,0), (1,0) }
+    auto a00 = MVZDD::one(base.var_table());
+    auto a10 = MVZDD::singleton(base, v1, 1);
+    MVZDD A = a00 + a10;
+
+    // B = { (0,0), (0,2) }
+    auto b02 = MVZDD::singleton(base, v2, 2);
+    MVZDD B = a00 + b02;
+
+    // A ^ B = { (1,0), (0,2) }
+    MVZDD result = A ^ B;
+    EXPECT_EQ(result.count(), 2.0);
+    EXPECT_TRUE(result.evaluate({1, 0}));
+    EXPECT_TRUE(result.evaluate({0, 2}));
+    EXPECT_FALSE(result.evaluate({0, 0}));  // in both, removed
+}
+
+TEST_F(MVDDTest, MVZDDSymDiffSelf) {
+    MVZDD base(2);
+    base.new_var();
+    auto s = MVZDD::singleton(base, 1, 1);
+    MVZDD result = s ^ s;
+    EXPECT_TRUE(result.is_zero());
+}
+
+TEST_F(MVDDTest, MVZDDSymDiffEmpty) {
+    MVZDD base(2);
+    base.new_var();
+    auto s = MVZDD::singleton(base, 1, 1);
+    auto empty = MVZDD::zero(base.var_table());
+    EXPECT_EQ(s ^ empty, s);
+    EXPECT_EQ(empty ^ s, s);
+}
+
+TEST_F(MVDDTest, MVZDDSymDiffInPlace) {
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+
+    auto a = MVZDD::singleton(base, v1, 1);
+    auto b = MVZDD::singleton(base, v1, 2);
+    MVZDD c = a + b;
+
+    c ^= a;
+    // c was {(1),(2)}, a was {(1)} => c should be {(2)}
+    EXPECT_EQ(c.count(), 1.0);
+    EXPECT_TRUE(c.evaluate({2}));
+    EXPECT_FALSE(c.evaluate({1}));
+}
+
+// ============================================================
+//  MVZDD has_empty
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDHasEmptyTrue) {
+    // one() = { all-zero assignment } = "empty" in ZDD terms
+    MVZDD base(3);
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+    EXPECT_TRUE(one.has_empty());
+}
+
+TEST_F(MVDDTest, MVZDDHasEmptyFalse) {
+    MVZDD base(3);
+    base.new_var();
+    auto s = MVZDD::singleton(base, 1, 2);
+    EXPECT_FALSE(s.has_empty());
+}
+
+TEST_F(MVDDTest, MVZDDHasEmptyUnion) {
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    auto s = MVZDD::singleton(base, v1, 1);
+    auto one = MVZDD::one(base.var_table());
+    MVZDD combined = s + one;
+    EXPECT_TRUE(combined.has_empty());
+}
+
+TEST_F(MVDDTest, MVZDDHasEmptyZero) {
+    MVZDD base(2);
+    base.new_var();
+    auto empty = MVZDD::zero(base.var_table());
+    EXPECT_FALSE(empty.has_empty());
+}
+
+// ============================================================
+//  MVZDD contains
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDContainsBasic) {
+    // k=3, 2 variables
+    // Family = { (1,0), (0,2) }
+    MVZDD base(3);
+    bddvar v1 = base.new_var();
+    bddvar v2 = base.new_var();
+    auto s10 = MVZDD::singleton(base, v1, 1);
+    auto s02 = MVZDD::singleton(base, v2, 2);
+    MVZDD F = s10 + s02;
+
+    EXPECT_TRUE(F.contains({1, 0}));
+    EXPECT_TRUE(F.contains({0, 2}));
+    EXPECT_FALSE(F.contains({0, 0}));
+    EXPECT_FALSE(F.contains({1, 2}));
+    EXPECT_FALSE(F.contains({2, 0}));
+    EXPECT_FALSE(F.contains({0, 1}));
+}
+
+TEST_F(MVDDTest, MVZDDContainsAllZero) {
+    // Family = { (0,0) }
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+    EXPECT_TRUE(one.contains({0, 0}));
+    EXPECT_FALSE(one.contains({1, 0}));
+}
+
+TEST_F(MVDDTest, MVZDDContainsEmpty) {
+    MVZDD base(2);
+    base.new_var();
+    auto empty = MVZDD::zero(base.var_table());
+    EXPECT_FALSE(empty.contains({0}));
+    EXPECT_FALSE(empty.contains({1}));
+}
+
+TEST_F(MVDDTest, MVZDDContainsSizeMismatch) {
+    MVZDD base(2);
+    base.new_var();
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+    EXPECT_THROW(one.contains({0}), std::invalid_argument);
+    EXPECT_THROW(one.contains({0, 0, 0}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDContainsValueOutOfRange) {
+    MVZDD base(3);
+    base.new_var();
+    auto one = MVZDD::one(base.var_table());
+    EXPECT_THROW(one.contains({3}), std::invalid_argument);
+    EXPECT_THROW(one.contains({-1}), std::invalid_argument);
+}
