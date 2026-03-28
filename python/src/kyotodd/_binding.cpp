@@ -516,6 +516,12 @@ PYBIND11_MODULE(_core, m) {
              "Convert to a Quasi-reduced Decision Diagram (QDD).\n\n"
              "Returns:\n"
              "    The QDD representation.\n")
+        .def("to_zdd", &BDD::to_zdd, py::arg("n") = 0,
+             "Convert BDD (characteristic function) to ZDD (family).\n\n"
+             "Args:\n"
+             "    n: Number of variables (0 = use var_used()).\n\n"
+             "Returns:\n"
+             "    The ZDD family.\n")
 
         // Counting
         .def("count", &BDD::count, py::arg("n"),
@@ -1831,6 +1837,32 @@ PYBIND11_MODULE(_core, m) {
            "    A ZDD containing all sets with size >= k.\n\n"
            "Raises:\n"
            "    ValueError: If the ZDD is null.\n")
+        .def("supersets_of", &ZDD::supersets_of, py::arg("s"),
+             "Extract all supersets of the given set.\n\n"
+             "Returns {A in F | s is a subset of A}.\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers.\n\n"
+             "Returns:\n"
+             "    A ZDD containing all supersets of s.\n")
+        .def("subsets_of", &ZDD::subsets_of, py::arg("s"),
+             "Extract all subsets of the given set.\n\n"
+             "Returns {A in F | A is a subset of s}.\n\n"
+             "Args:\n"
+             "    s: A list of variable numbers.\n\n"
+             "Returns:\n"
+             "    A ZDD containing all subsets of s.\n")
+        .def("project", &ZDD::project, py::arg("vars"),
+             "Project (remove) specified variables from all sets.\n\n"
+             "Args:\n"
+             "    vars: A list of variable numbers to remove.\n\n"
+             "Returns:\n"
+             "    A ZDD with the specified variables removed from all sets.\n")
+        .def("to_bdd", &ZDD::to_bdd, py::arg("n") = 0,
+             "Convert ZDD (family) to BDD (characteristic function).\n\n"
+             "Args:\n"
+             "    n: Number of variables (0 = use var_used()).\n\n"
+             "Returns:\n"
+             "    The BDD characteristic function.\n")
 
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {
