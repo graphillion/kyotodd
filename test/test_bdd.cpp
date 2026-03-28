@@ -12318,6 +12318,139 @@ TEST_F(BDDTest, CostBoundEq_SimpleOverload) {
     EXPECT_EQ(f.cost_bound_eq(w, 5), f);
 }
 
+// ---- size_le / size_ge tests ----
+
+TEST_F(BDDTest, SizeLe_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.size_le(0), ZDD::Empty);
+    EXPECT_EQ(empty.size_le(5), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SizeLe_UnitFamily) {
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    EXPECT_EQ(unit.size_le(0), unit);   // |∅| = 0 <= 0
+    EXPECT_EQ(unit.size_le(5), unit);
+}
+
+TEST_F(BDDTest, SizeLe_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    EXPECT_EQ(f.size_le(0), ZDD::Empty);  // |{v1}| = 1 > 0
+    EXPECT_EQ(f.size_le(1), f);           // |{v1}| = 1 <= 1
+    EXPECT_EQ(f.size_le(5), f);
+}
+
+TEST_F(BDDTest, SizeLe_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // f = {{v1}, {v1, v2}, {v1, v2, v3}}
+    ZDD f = ZDD::singleton(v1)
+          + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+
+    EXPECT_EQ(f.size_le(0), ZDD::Empty);
+    EXPECT_EQ(f.size_le(1), ZDD::singleton(v1));
+    EXPECT_EQ(f.size_le(2), ZDD::singleton(v1) + ZDD::single_set({v1, v2}));
+    EXPECT_EQ(f.size_le(3), f);
+    EXPECT_EQ(f.size_le(10), f);
+}
+
+TEST_F(BDDTest, SizeLe_WithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // f = {∅, {v1}, {v1, v2}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+
+    EXPECT_EQ(f.size_le(0), ZDD::Single);  // only ∅
+    EXPECT_EQ(f.size_le(1), ZDD::Single + ZDD::singleton(v1));
+    EXPECT_EQ(f.size_le(2), f);
+}
+
+TEST_F(BDDTest, SizeLe_CrossValidateWithChoose) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
+
+    // size_le(k) should equal union of choose(0) + choose(1) + ... + choose(k)
+    for (int k = 0; k <= 3; ++k) {
+        ZDD expected(0);
+        for (int j = 0; j <= k; ++j) {
+            expected = expected + f.choose(j);
+        }
+        EXPECT_EQ(f.size_le(k), expected);
+    }
+}
+
+TEST_F(BDDTest, SizeGe_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.size_ge(0), ZDD::Empty);
+    EXPECT_EQ(empty.size_ge(5), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SizeGe_UnitFamily) {
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    EXPECT_EQ(unit.size_ge(0), unit);     // |∅| = 0 >= 0
+    EXPECT_EQ(unit.size_ge(1), ZDD::Empty);  // |∅| = 0 < 1
+}
+
+TEST_F(BDDTest, SizeGe_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    EXPECT_EQ(f.size_ge(0), f);   // |{v1}| = 1 >= 0
+    EXPECT_EQ(f.size_ge(1), f);   // |{v1}| = 1 >= 1
+    EXPECT_EQ(f.size_ge(2), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SizeGe_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // f = {{v1}, {v1, v2}, {v1, v2, v3}}
+    ZDD f = ZDD::singleton(v1)
+          + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+
+    EXPECT_EQ(f.size_ge(0), f);
+    EXPECT_EQ(f.size_ge(1), f);
+    EXPECT_EQ(f.size_ge(2), ZDD::single_set({v1, v2}) + ZDD::single_set({v1, v2, v3}));
+    EXPECT_EQ(f.size_ge(3), ZDD::single_set({v1, v2, v3}));
+    EXPECT_EQ(f.size_ge(4), ZDD::Empty);
+}
+
+TEST_F(BDDTest, SizeGe_CrossValidateWithChoose) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
+
+    // size_ge(k) should equal union of choose(k) + choose(k+1) + ... + choose(3)
+    for (int k = 0; k <= 4; ++k) {
+        ZDD expected(0);
+        for (int j = k; j <= 3; ++j) {
+            expected = expected + f.choose(j);
+        }
+        EXPECT_EQ(f.size_ge(k), expected);
+    }
+}
+
+TEST_F(BDDTest, SizeLeGe_Complement) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+
+    // size_le(k) + size_ge(k+1) == f for all k
+    for (int k = 0; k <= 3; ++k) {
+        EXPECT_EQ(f.size_le(k) + f.size_ge(k + 1), f);
+    }
+}
+
 // ---- get_sum / bddweightsum tests ----
 
 TEST_F(BDDTest, WeightSum_EmptyFamily) {

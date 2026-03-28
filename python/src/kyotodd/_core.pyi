@@ -1823,6 +1823,38 @@ class ZDD:
         """
         ...
 
+    def size_le(self, k: int) -> ZDD:
+        """Extract all sets with at most k elements.
+
+        Returns a ZDD representing {X in F | |X| <= k}.
+
+        Args:
+            k: Maximum set size.
+
+        Returns:
+            A ZDD containing all sets with size <= k.
+
+        Raises:
+            ValueError: If the ZDD is null.
+        """
+        ...
+
+    def size_ge(self, k: int) -> ZDD:
+        """Extract all sets with at least k elements.
+
+        Returns a ZDD representing {X in F | |X| >= k}.
+
+        Args:
+            k: Minimum set size.
+
+        Returns:
+            A ZDD containing all sets with size >= k.
+
+        Raises:
+            ValueError: If the ZDD is null.
+        """
+        ...
+
     @staticmethod
     def singleton(v: int) -> ZDD:
         """Create the ZDD {{v}} (a family with one singleton set).

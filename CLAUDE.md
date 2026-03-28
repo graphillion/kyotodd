@@ -179,7 +179,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Operators: `+` (union), `-` (subtract), `&` (intersec), `*` (join), `/` (div), `%` (remainder), `^` (symdiff), `~` (complement), `<<` / `>>` (shift), `==`, `!=`.
 - Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`.
 - Set operations: `Offset(v)`, `OnSet(v)`, `OnSet0(v)`, `Change(v)`.
-- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements).
+- Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements), `size_le(k)` (sets of at most k elements), `size_ge(k)` (sets of at least k elements).
 - Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.
 - Counting: `Card()` (uint64, saturating), `count()` (double), `exact_count()` (BigInt), `exact_count(ZddCountMemo&)`, `Lit()`, `Len()`, `profile()` (set size distribution as `vector<BigInt>`), `profile_double()` (as `vector<double>`).
 - Weight operations: `get_sum(weights)` (BigInt), `min_weight(weights)`, `max_weight(weights)`, `min_weight_set(weights)`, `max_weight_set(weights)`. Free functions: `bddweightsum()`, `bddminweight()`, `bddmaxweight()`, `bddminweightset()`, `bddmaxweightset()`.

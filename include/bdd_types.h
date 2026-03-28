@@ -1250,6 +1250,30 @@ public:
     ZDD cost_bound_eq(const std::vector<int>& weights, long long b) const;
 
     /**
+     * @brief Extract all sets with at most k elements.
+     *
+     * Returns a ZDD representing {X ∈ S_f | |X| ≤ k}.
+     * Equivalent to cost_bound_le with all weights equal to 1.
+     *
+     * @param k Maximum set size.
+     * @return ZDD representing all sets with size <= k.
+     * @throws std::invalid_argument if this ZDD is null.
+     */
+    ZDD size_le(int k) const;
+
+    /**
+     * @brief Extract all sets with at least k elements.
+     *
+     * Returns a ZDD representing {X ∈ S_f | |X| ≥ k}.
+     * Equivalent to cost_bound_ge with all weights equal to 1.
+     *
+     * @param k Minimum set size.
+     * @return ZDD representing all sets with size >= k.
+     * @throws std::invalid_argument if this ZDD is null.
+     */
+    ZDD size_ge(int k) const;
+
+    /**
      * @brief Rank a set in the family (int64_t version).
      *
      * Returns the 0-based index of @p s in the ZDD's structure-based ordering.

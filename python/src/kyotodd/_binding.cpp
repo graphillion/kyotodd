@@ -1803,6 +1803,29 @@ PYBIND11_MODULE(_core, m) {
            "    ValueError: If the ZDD is null, weights is too small,\n"
            "                or a different weights vector was used with this memo.\n")
 
+        .def("size_le", [](const ZDD& z, int k) -> ZDD {
+            return z.size_le(k);
+        }, py::arg("k"),
+           "Extract all sets with at most k elements.\n\n"
+           "Returns a ZDD representing {X in F | |X| <= k}.\n\n"
+           "Args:\n"
+           "    k: Maximum set size.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with size <= k.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null.\n")
+        .def("size_ge", [](const ZDD& z, int k) -> ZDD {
+            return z.size_ge(k);
+        }, py::arg("k"),
+           "Extract all sets with at least k elements.\n\n"
+           "Returns a ZDD representing {X in F | |X| >= k}.\n\n"
+           "Args:\n"
+           "    k: Minimum set size.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with size >= k.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null.\n")
+
         // Static factory methods
         .def_static("singleton", [](bddvar v) -> ZDD {
             ensure_init();

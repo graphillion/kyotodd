@@ -585,6 +585,20 @@ ZDD ZDD::cost_bound_eq(const std::vector<int>& weights, long long b) const {
     return cost_bound_eq(weights, b, memo);
 }
 
+// --- ZDD::size_le / size_ge ---
+
+ZDD ZDD::size_le(int k) const {
+    std::vector<int> weights(bddvarused() + 1, 1);
+    weights[0] = 0;
+    return cost_bound_le(weights, static_cast<long long>(k));
+}
+
+ZDD ZDD::size_ge(int k) const {
+    std::vector<int> weights(bddvarused() + 1, 1);
+    weights[0] = 0;
+    return cost_bound_ge(weights, static_cast<long long>(k));
+}
+
 // --- ZDD::rank / unrank ---
 
 int64_t ZDD::rank(const std::vector<bddvar>& s) const {
