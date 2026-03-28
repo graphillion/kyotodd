@@ -137,6 +137,7 @@ static const uint8_t BDD_OP_RSHIFTB = 46;
 static const uint8_t BDD_OP_LSHIFTZ = 47;
 static const uint8_t BDD_OP_RSHIFTZ = 48;
 static const uint8_t BDD_OP_CHOOSE  = 68;
+static const uint8_t BDD_OP_MINSIZE = 69;
 
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
@@ -911,6 +912,8 @@ public:
     uint64_t Lit() const;
     /** @brief Return the maximum set size in the family. */
     uint64_t Len() const;
+    /** @brief Return the minimum set size in the family. */
+    uint64_t min_size() const;
     /**
      * @brief Return the cardinality as a hexadecimal string.
      * @deprecated Use count() or exact_count() instead.
@@ -1104,6 +1107,9 @@ public:
 
     /** @brief Filter to sets of exactly k elements. */
     ZDD choose(int k) const;
+
+    /** @brief Return all variable numbers appearing in the ZDD. */
+    std::vector<bddvar> support_vars() const;
 
     /** @brief Return the set size distribution (arbitrary precision). */
     std::vector<bigint::BigInt> profile() const;

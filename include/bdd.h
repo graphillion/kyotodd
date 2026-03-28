@@ -662,6 +662,10 @@ inline ZDD ZDD::Support() const {
     return z;
 }
 
+inline std::vector<bddvar> ZDD::support_vars() const {
+    return bddsupport_vec(root);
+}
+
 inline uint64_t ZDD::plain_size() const {
     return bddplainsize(root, true);
 }
@@ -686,6 +690,10 @@ inline uint64_t ZDD::Lit() const {
 
 inline uint64_t ZDD::Len() const {
     return bddlen(root);
+}
+
+inline uint64_t ZDD::min_size() const {
+    return bddminsize(root);
 }
 
 inline char* ZDD::CardMP16(char* s) const {

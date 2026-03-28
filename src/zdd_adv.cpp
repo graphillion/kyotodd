@@ -946,6 +946,53 @@ uint64_t bddlen(bddp f) {
     return result;
 }
 
+static uint64_t bddminsize_rec(bddp f) {
+    if (f == bddempty) return UINT64_MAX;
+    if (f == bddsingle) return 0;
+
+    BDD_RecurGuard guard;
+
+    bddp cached = bddrcache(BDD_OP_MINSIZE, f, 0);
+    if (cached != bddnull) {
+        return cached;
+    }
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+    if (comp) lo = bddnot(lo);
+
+    uint64_t min0 = bddminsize_rec(lo);
+    uint64_t min1 = bddminsize_rec(hi);
+
+    if (min1 != UINT64_MAX) {
+        if (min1 >= BDDLEN_MAX) {
+            min1 = BDDLEN_MAX;
+        } else {
+            min1 += 1;
+        }
+    }
+
+    uint64_t result = (min0 < min1) ? min0 : min1;
+
+    bddwcache(BDD_OP_MINSIZE, f, 0, result);
+    return result;
+}
+
+uint64_t bddminsize(bddp f) {
+    bddp_validate(f, "bddminsize");
+    if (f == bddnull) return 0;
+    if (f == bddempty) return 0;
+    if (f == bddsingle) return 0;
+
+    if (bddhasempty(f)) return 0;
+
+    uint64_t r = bddminsize_rec(f);
+    return (r == UINT64_MAX) ? 0 : r;
+}
+
 static double bddcount_rec(
     bddp f, std::unordered_map<bddp, double>& memo) {
     if (f == bddempty) return 0.0;

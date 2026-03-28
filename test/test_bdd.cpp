@@ -13264,3 +13264,164 @@ TEST_F(BDDTest, ZDD_GetKLightest_FreeFunctions) {
     EXPECT_EQ(bddcard(h), 1u);
 }
 
+// ============================================================
+// min_size tests
+// ============================================================
+
+TEST_F(BDDTest, MinSize_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.min_size(), 0u);
+    EXPECT_EQ(bddminsize(empty.GetID()), 0u);
+}
+
+TEST_F(BDDTest, MinSize_UnitFamily) {
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    EXPECT_EQ(unit.min_size(), 0u);
+}
+
+TEST_F(BDDTest, MinSize_SingletonSet) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    EXPECT_EQ(f.min_size(), 1u);
+}
+
+TEST_F(BDDTest, MinSize_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // f = {{v1}, {v1, v2}, {v1, v2, v3}}
+    ZDD f = ZDD::singleton(v1)
+          + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_EQ(f.min_size(), 1u);
+    EXPECT_EQ(f.Len(), 3u);
+}
+
+TEST_F(BDDTest, MinSize_WithEmpty) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // f = {∅, {v1}, {v1, v2}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    EXPECT_EQ(f.min_size(), 0u);
+}
+
+TEST_F(BDDTest, MinSize_PowerSet) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    EXPECT_EQ(f.min_size(), 0u);
+    EXPECT_EQ(f.Len(), 3u);
+}
+
+TEST_F(BDDTest, MinSize_PowerSetWithoutEmpty) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3) - ZDD::Single;
+    EXPECT_EQ(f.min_size(), 1u);
+}
+
+TEST_F(BDDTest, MinSize_ComplementEdge) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD all = ZDD::power_set(3);
+    ZDD f = all - ZDD::single_set({v1, v2, v3});
+    // Still has ∅, so min should be 0
+    EXPECT_EQ(f.min_size(), 0u);
+}
+
+TEST_F(BDDTest, MinSize_OnlyLargeSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // f = {{v1,v2}, {v1,v3}, {v2,v3}, {v1,v2,v3}}
+    ZDD f = ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v3})
+          + ZDD::single_set({v2, v3})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_EQ(f.min_size(), 2u);
+    EXPECT_EQ(f.Len(), 3u);
+}
+
+TEST_F(BDDTest, MinSize_ConsistencyWithProfile) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3) - ZDD::Single;
+    auto prof = f.profile();
+    uint64_t expected_min = 0;
+    for (size_t k = 0; k < prof.size(); ++k) {
+        if (prof[k] > bigint::BigInt(0)) {
+            expected_min = k;
+            break;
+        }
+    }
+    EXPECT_EQ(f.min_size(), expected_min);
+}
+
+TEST_F(BDDTest, MinSize_LenConsistency) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_LE(f.min_size(), f.Len());
+}
+
+// ============================================================
+// support_vars tests
+// ============================================================
+
+TEST_F(BDDTest, ZDD_SupportVars_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    auto sv = empty.support_vars();
+    EXPECT_TRUE(sv.empty());
+}
+
+TEST_F(BDDTest, ZDD_SupportVars_UnitFamily) {
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    auto sv = unit.support_vars();
+    EXPECT_TRUE(sv.empty());
+}
+
+TEST_F(BDDTest, ZDD_SupportVars_Singleton) {
+    bddvar v1 = bddnewvar();
+    bddnewvar();  // v2 unused
+    ZDD f = ZDD::singleton(v1);
+    auto sv = f.support_vars();
+    EXPECT_EQ(sv.size(), 1u);
+    EXPECT_EQ(sv[0], v1);
+}
+
+TEST_F(BDDTest, ZDD_SupportVars_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
+    auto sv = f.support_vars();
+    EXPECT_EQ(sv.size(), 3u);
+    // Sorted by level descending (v3 > v2 > v1)
+    std::vector<bddvar> expected = {v3, v2, v1};
+    EXPECT_EQ(sv, expected);
+}
+
+TEST_F(BDDTest, ZDD_SupportVars_ConsistencyWithSupport) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    auto sv = f.support_vars();
+    EXPECT_EQ(sv.size(), 3u);
+    // Check all variables are present
+    std::set<bddvar> sv_set(sv.begin(), sv.end());
+    EXPECT_TRUE(sv_set.count(v1));
+    EXPECT_TRUE(sv_set.count(v2));
+    EXPECT_TRUE(sv_set.count(v3));
+}
+

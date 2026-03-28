@@ -545,6 +545,18 @@ uint64_t bddlit(bddp f);
 uint64_t bddlen(bddp f);
 
 /**
+ * @brief Return the minimum set size in a ZDD family.
+ *
+ * Returns the size of the smallest set in the family represented by @p f.
+ * For example, if f = {{a,b},{a},{b,c,d}}, returns min(2,1,3) = 1.
+ *
+ * @param f A ZDD node ID.
+ *
+ * @return The minimum set size, or 0 for the empty family or {∅}.
+ */
+uint64_t bddminsize(bddp f);
+
+/**
  * @brief Check if the empty set (∅) is a member of a ZDD family.
  *
  * Returns true if ∅ ∈ F, i.e. the family represented by @p f
