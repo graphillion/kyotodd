@@ -275,7 +275,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Pre-instantiated types: `MTBDDFloat` (`MTBDD<double>`), `MTBDDInt` (`MTBDD<int64_t>`).
 - Operations: `operator+`, `operator-`, `operator*` (apply with add/sub/mul), `ite(f, g, h)`.
 - Query: `terminal_value()`, `is_terminal()`, `top()`, `size()`, `evaluate(assignment)`.
-- I/O: `save_svg()` — SVG visualization with terminal labels via `terminal_name_map`.
+- I/O: `save_svg()` — SVG visualization with terminal labels via `terminal_name_map`. `export_binary(strm)` / `import_binary(strm)` — binary format serialization (dd_type=4). `export_binary(filename)` / `import_binary(filename)` — file-based overloads.
 
 ## MTZDD class (template)
 
@@ -286,7 +286,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Pre-instantiated types: `MTZDDFloat` (`MTZDD<double>`), `MTZDDInt` (`MTZDD<int64_t>`).
 - Operations: `operator+`, `operator-`, `operator*`, `ite(f, g, h)`.
 - Query: `terminal_value()`, `is_terminal()`, `top()`, `size()`, `evaluate(assignment)`.
-- I/O: `save_svg()` — SVG visualization with terminal labels.
+- I/O: `save_svg()` — SVG visualization with terminal labels. `export_binary(strm)` / `import_binary(strm)` — binary format serialization (dd_type=5). `export_binary(filename)` / `import_binary(filename)` — file-based overloads.
 
 ## MVBDD class
 

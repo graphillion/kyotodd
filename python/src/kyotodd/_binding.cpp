@@ -4113,6 +4113,20 @@ PYBIND11_MODULE(_core, m) {
            "Args:\n"
            "    stream: A text stream to write SVG to.\n"
            "    draw_zero: If True, draw the zero-value terminal.\n")
+        .def("export_binary_bytes", [](const MTBDDFloat& m) -> py::bytes {
+            std::ostringstream oss(std::ios::binary);
+            m.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this MTBDD as binary bytes.")
+        .def_static("import_binary_bytes", [](py::bytes data) {
+            ensure_init();
+            std::string s = data;
+            std::istringstream iss(s, std::ios::binary);
+            return MTBDDFloat::import_binary(iss);
+        }, py::arg("data"),
+           "Import an MTBDD from binary bytes.\n\n"
+           "Args:\n"
+           "    data: Binary data (bytes).")
     ;
 
     // --- MTBDDInt ---
@@ -4235,6 +4249,20 @@ PYBIND11_MODULE(_core, m) {
             stream.attr("write")(svg);
         }, py::arg("stream"), py::arg("draw_zero") = true,
            "Export this MTBDD as SVG to a text stream.\n")
+        .def("export_binary_bytes", [](const MTBDDInt& m) -> py::bytes {
+            std::ostringstream oss(std::ios::binary);
+            m.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this MTBDD as binary bytes.")
+        .def_static("import_binary_bytes", [](py::bytes data) {
+            ensure_init();
+            std::string s = data;
+            std::istringstream iss(s, std::ios::binary);
+            return MTBDDInt::import_binary(iss);
+        }, py::arg("data"),
+           "Import an MTBDD from binary bytes.\n\n"
+           "Args:\n"
+           "    data: Binary data (bytes).")
     ;
 
     // --- MTZDDFloat ---
@@ -4357,6 +4385,20 @@ PYBIND11_MODULE(_core, m) {
             stream.attr("write")(svg);
         }, py::arg("stream"), py::arg("draw_zero") = true,
            "Export this MTZDD as SVG to a text stream.\n")
+        .def("export_binary_bytes", [](const MTZDDFloat& m) -> py::bytes {
+            std::ostringstream oss(std::ios::binary);
+            m.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this MTZDD as binary bytes.")
+        .def_static("import_binary_bytes", [](py::bytes data) {
+            ensure_init();
+            std::string s = data;
+            std::istringstream iss(s, std::ios::binary);
+            return MTZDDFloat::import_binary(iss);
+        }, py::arg("data"),
+           "Import an MTZDD from binary bytes.\n\n"
+           "Args:\n"
+           "    data: Binary data (bytes).")
     ;
 
     // --- MTZDDInt ---
@@ -4479,5 +4521,19 @@ PYBIND11_MODULE(_core, m) {
             stream.attr("write")(svg);
         }, py::arg("stream"), py::arg("draw_zero") = true,
            "Export this MTZDD as SVG to a text stream.\n")
+        .def("export_binary_bytes", [](const MTZDDInt& m) -> py::bytes {
+            std::ostringstream oss(std::ios::binary);
+            m.export_binary(oss);
+            return py::bytes(oss.str());
+        }, "Export this MTZDD as binary bytes.")
+        .def_static("import_binary_bytes", [](py::bytes data) {
+            ensure_init();
+            std::string s = data;
+            std::istringstream iss(s, std::ios::binary);
+            return MTZDDInt::import_binary(iss);
+        }, py::arg("data"),
+           "Import an MTZDD from binary bytes.\n\n"
+           "Args:\n"
+           "    data: Binary data (bytes).")
     ;
 }

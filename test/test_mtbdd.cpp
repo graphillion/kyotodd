@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <sstream>
 #include "bdd.h"
 #include "mtbdd.h"
 
@@ -870,4 +871,240 @@ TEST_F(MTBDDClassTest, IsOneCorrectForMTZDD) {
     EXPECT_TRUE(f1.is_one());
     EXPECT_FALSE(f0.is_one());
     EXPECT_TRUE(f0.is_zero());
+}
+
+// ========================================================================
+//  MTBDD binary export/import tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTBDDExportImportTerminalDouble) {
+    auto t42 = MTBDD<double>::terminal(42.5);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    t42.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<double>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_DOUBLE_EQ(imported.terminal_value(), 42.5);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportTerminalInt) {
+    auto t100 = MTBDD<int64_t>::terminal(100);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    t100.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<int64_t>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_EQ(imported.terminal_value(), 100);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportZeroTerminal) {
+    MTBDD<double> zero;
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    zero.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<double>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_TRUE(imported.is_zero());
+    EXPECT_DOUBLE_EQ(imported.terminal_value(), 0.0);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportSingleVar) {
+    BDD::new_var();
+    BDD::new_var();
+    // f(x1) = x1 ? 3.0 : 7.0
+    auto hi = MTBDD<double>::terminal(3.0);
+    auto lo = MTBDD<double>::terminal(7.0);
+    auto f = MTBDD<double>::ite(1, hi, lo);
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    f.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<double>::import_binary(ss);
+
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 0}), 7.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 1}), 3.0);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportMultiVar) {
+    BDD::new_var();
+    BDD::new_var();
+    BDD::new_var();
+    // f(x2, x1) = x2 ? (x1 ? 10 : 20) : 30
+    // var 2 (level 2) is root, var 1 (level 1) is inner
+    auto t10 = MTBDD<int64_t>::terminal(10);
+    auto t20 = MTBDD<int64_t>::terminal(20);
+    auto t30 = MTBDD<int64_t>::terminal(30);
+    auto inner = MTBDD<int64_t>::ite(1, t10, t20);
+    auto f = MTBDD<int64_t>::ite(2, inner, t30);
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    f.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<int64_t>::import_binary(ss);
+
+    EXPECT_EQ(imported.evaluate({0, 0, 0}), 30);
+    EXPECT_EQ(imported.evaluate({0, 0, 1}), 20);
+    EXPECT_EQ(imported.evaluate({0, 1, 1}), 10);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportApplyResult) {
+    BDD::new_var();
+    BDD::new_var();
+    auto a = MTBDD<double>::ite(1, MTBDD<double>::terminal(2.0),
+                                   MTBDD<double>::terminal(3.0));
+    auto b = MTBDD<double>::ite(1, MTBDD<double>::terminal(10.0),
+                                   MTBDD<double>::terminal(20.0));
+    auto sum = a + b;
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    sum.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<double>::import_binary(ss);
+
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 0}), 23.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 1}), 12.0);
+}
+
+// ========================================================================
+//  MTZDD binary export/import tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDExportImportTerminalDouble) {
+    auto t = MTZDD<double>::terminal(3.14);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    t.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<double>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_DOUBLE_EQ(imported.terminal_value(), 3.14);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportTerminalInt) {
+    auto t = MTZDD<int64_t>::terminal(-42);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    t.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<int64_t>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_EQ(imported.terminal_value(), -42);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportZeroTerminal) {
+    MTZDD<double> zero;
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    zero.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<double>::import_binary(ss);
+    EXPECT_TRUE(imported.is_terminal());
+    EXPECT_TRUE(imported.is_zero());
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportSingleVar) {
+    BDD::new_var();
+    BDD::new_var();
+    // ZDD-style: variable 1 present → 5.0, absent → 2.0
+    auto hi = MTZDD<double>::terminal(5.0);
+    auto lo = MTZDD<double>::terminal(2.0);
+    auto f = MTZDD<double>::ite(1, hi, lo);
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    f.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<double>::import_binary(ss);
+
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 0}), 2.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 1}), 5.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportMultiVar) {
+    BDD::new_var();
+    BDD::new_var();
+    BDD::new_var();
+    // var 2 (level 2) is root, var 1 (level 1) is inner
+    auto t1 = MTZDD<int64_t>::terminal(1);
+    auto t2 = MTZDD<int64_t>::terminal(2);
+    auto t3 = MTZDD<int64_t>::terminal(3);
+    auto inner = MTZDD<int64_t>::ite(1, t1, t2);
+    auto f = MTZDD<int64_t>::ite(2, inner, t3);
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    f.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<int64_t>::import_binary(ss);
+
+    EXPECT_EQ(imported.evaluate({0, 0, 0}), 3);
+    EXPECT_EQ(imported.evaluate({0, 0, 1}), 2);
+    EXPECT_EQ(imported.evaluate({0, 1, 1}), 1);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportFromZDD) {
+    BDD::new_var();
+    BDD::new_var();
+    BDD::new_var();
+    // Create a ZDD and convert to MTZDD
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD f = x1 + x2;  // {{1}, {2}}
+    auto mf = MTZDD<double>::from_zdd(f, 0.0, 1.0);
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    mf.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<double>::import_binary(ss);
+
+    // {1} → 1.0, {2} → 1.0, {} → 0.0, {1,2} → 0.0 (ZDD semantics)
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 0, 0}), 0.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 1, 0}), 1.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 0, 1}), 1.0);
+    EXPECT_DOUBLE_EQ(imported.evaluate({0, 1, 1}), 0.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportApplyResult) {
+    BDD::new_var();
+    BDD::new_var();
+    auto a = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(10),
+                                    MTZDD<int64_t>::terminal(20));
+    auto b = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(3),
+                                    MTZDD<int64_t>::terminal(7));
+    auto sum = a + b;
+
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    sum.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<int64_t>::import_binary(ss);
+
+    EXPECT_EQ(imported.evaluate({0, 0}), 27);
+    EXPECT_EQ(imported.evaluate({0, 1}), 13);
+}
+
+TEST_F(MTBDDClassTest, MTBDDExportImportNegativeDouble) {
+    auto tn = MTBDD<double>::terminal(-99.5);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    tn.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTBDD<double>::import_binary(ss);
+    EXPECT_DOUBLE_EQ(imported.terminal_value(), -99.5);
+}
+
+TEST_F(MTBDDClassTest, MTZDDExportImportNegativeInt) {
+    auto tn = MTZDD<int64_t>::terminal(-1000000);
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    tn.export_binary(ss);
+    ss.seekg(0);
+    auto imported = MTZDD<int64_t>::import_binary(ss);
+    EXPECT_EQ(imported.terminal_value(), -1000000);
+}
+
+TEST_F(MTBDDClassTest, MTBDDImportBadMagicThrows) {
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    ss.write("XYZ", 3);
+    ss.seekg(0);
+    EXPECT_THROW(MTBDD<double>::import_binary(ss), std::runtime_error);
+}
+
+TEST_F(MTBDDClassTest, MTZDDImportTruncatedThrows) {
+    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
+    ss.write("BD", 2);  // incomplete magic
+    ss.seekg(0);
+    EXPECT_THROW(MTZDD<double>::import_binary(ss), std::runtime_error);
 }

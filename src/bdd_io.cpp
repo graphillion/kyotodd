@@ -1145,6 +1145,8 @@ static const char* dd_type_name(uint8_t t) {
         case 1: return "QDD";
         case 2: return "BDD";
         case 3: return "ZDD";
+        case 4: return "MTBDD";
+        case 5: return "MTZDD";
         default: return "Unknown";
     }
 }
