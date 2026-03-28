@@ -1513,3 +1513,70 @@ TEST_F(MTBDDClassTest, MTZDDSupportVarsMultiVar) {
     EXPECT_EQ(vars[0], 3u);
     EXPECT_EQ(vars[1], 1u);
 }
+
+// ========================================================================
+//  MTZDD enumerate tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateZeroTerminal) {
+    MTZDD<double> f;
+    auto paths = f.enumerate();
+    EXPECT_TRUE(paths.empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateNonZeroTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 1u);
+    EXPECT_TRUE(paths[0].first.empty());
+    EXPECT_DOUBLE_EQ(paths[0].second, 5.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateSingleVar) {
+    // ite(v1, hi=3.0, lo=0.0): only hi path is non-zero
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0), MTZDD<double>());
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 1u);
+    ASSERT_EQ(paths[0].first.size(), 1u);
+    EXPECT_EQ(paths[0].first[0], 1u);
+    EXPECT_DOUBLE_EQ(paths[0].second, 3.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateTwoPaths) {
+    // ite(v1, hi=3.0, lo=2.0): both paths non-zero
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0),
+                                   MTZDD<double>::terminal(2.0));
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 2u);
+    // lo path first (empty set -> 2.0), then hi path ({1} -> 3.0)
+    EXPECT_TRUE(paths[0].first.empty());
+    EXPECT_DOUBLE_EQ(paths[0].second, 2.0);
+    ASSERT_EQ(paths[1].first.size(), 1u);
+    EXPECT_EQ(paths[1].first[0], 1u);
+    EXPECT_DOUBLE_EQ(paths[1].second, 3.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateMultiVarSorted) {
+    // v3 top, v1 bottom: path {v1, v3} should be sorted as {1, 3}
+    auto inner = MTZDD<double>::ite(1, MTZDD<double>::terminal(5.0), MTZDD<double>());
+    auto f = MTZDD<double>::ite(3, MTZDD<double>::terminal(10.0), inner);
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 2u);
+    // lo of v3 -> inner -> hi of v1 -> {1} -> 5.0
+    ASSERT_EQ(paths[0].first.size(), 1u);
+    EXPECT_EQ(paths[0].first[0], 1u);
+    EXPECT_DOUBLE_EQ(paths[0].second, 5.0);
+    // hi of v3 -> {3} -> 10.0
+    ASSERT_EQ(paths[1].first.size(), 1u);
+    EXPECT_EQ(paths[1].first[0], 3u);
+    EXPECT_DOUBLE_EQ(paths[1].second, 10.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDEnumerateInt) {
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(7),
+                                    MTZDD<int64_t>::terminal(3));
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 2u);
+    EXPECT_EQ(paths[0].second, 3);
+    EXPECT_EQ(paths[1].second, 7);
+}

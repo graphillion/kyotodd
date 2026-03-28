@@ -688,6 +688,29 @@ private:
 template<typename T>
 using ADD = MTBDD<T>;
 
+// --- MTZDD enumerate helper ---
+
+template<typename T>
+static void mtzdd_enumerate_rec(
+    bddp f,
+    std::vector<bddvar>& current,
+    std::vector<std::pair<std::vector<bddvar>, T> >& result)
+{
+    if (f & BDD_CONST_FLAG) {
+        uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+        T val = MTBDDTerminalTable<T>::instance().get_value(idx);
+        if (val != T{}) {
+            result.push_back(std::make_pair(current, val));
+        }
+        return;
+    }
+    bddvar var = node_var(f);
+    mtzdd_enumerate_rec<T>(node_lo(f), current, result);
+    current.push_back(var);
+    mtzdd_enumerate_rec<T>(node_hi(f), current, result);
+    current.pop_back();
+}
+
 // --- MTZDD<T> class (Multi-Terminal ZDD) ---
 
 template<typename T>
@@ -791,6 +814,19 @@ public:
     /** @brief Return all variable numbers appearing in the MTZDD, sorted by level (highest first). */
     std::vector<bddvar> support_vars() const {
         return bddsupport_vec(root);
+    }
+
+    // --- Enumeration ---
+
+    /** @brief Enumerate all non-zero paths as (variable set, terminal value) pairs. */
+    std::vector<std::pair<std::vector<bddvar>, T> > enumerate() const {
+        std::vector<std::pair<std::vector<bddvar>, T> > result;
+        std::vector<bddvar> current;
+        mtzdd_enumerate_rec<T>(root, current, result);
+        for (size_t i = 0; i < result.size(); ++i) {
+            std::sort(result[i].first.begin(), result[i].first.end());
+        }
+        return result;
     }
 
     // --- Counting (non-zero paths) ---
