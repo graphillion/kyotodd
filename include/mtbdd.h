@@ -829,6 +829,18 @@ public:
         return result;
     }
 
+    // --- Display ---
+
+    /** @brief Print all non-zero paths to the stream. */
+    void print_sets(std::ostream& os) const;
+
+    /** @brief Print all non-zero paths with custom variable names. */
+    void print_sets(std::ostream& os,
+                    const std::vector<std::string>& var_name_map) const;
+
+    /** @brief Return a string representation of all non-zero paths. */
+    std::string to_str() const;
+
     // --- Counting (non-zero paths) ---
 
     /** @brief Count the number of non-zero terminal paths (double). */
@@ -1539,6 +1551,53 @@ inline std::string MTZDD<T>::save_svg(const SvgParams& params) const {
 template<typename T>
 inline std::string MTZDD<T>::save_svg() const {
     return save_svg(SvgParams());
+}
+
+// ========================================================================
+//  MTZDD print_sets / to_str inline implementations
+// ========================================================================
+
+template<typename T>
+inline void MTZDD<T>::print_sets(std::ostream& os) const {
+    std::vector<std::pair<std::vector<bddvar>, T> > paths = enumerate();
+    for (size_t i = 0; i < paths.size(); ++i) {
+        if (i > 0) os << ", ";
+        os << "{";
+        for (size_t j = 0; j < paths[i].first.size(); ++j) {
+            if (j > 0) os << ",";
+            os << paths[i].first[j];
+        }
+        os << "} -> " << paths[i].second;
+    }
+}
+
+template<typename T>
+inline void MTZDD<T>::print_sets(
+    std::ostream& os,
+    const std::vector<std::string>& var_name_map) const
+{
+    std::vector<std::pair<std::vector<bddvar>, T> > paths = enumerate();
+    for (size_t i = 0; i < paths.size(); ++i) {
+        if (i > 0) os << ", ";
+        os << "{";
+        for (size_t j = 0; j < paths[i].first.size(); ++j) {
+            if (j > 0) os << ",";
+            bddvar v = paths[i].first[j];
+            if (v < var_name_map.size() && !var_name_map[v].empty()) {
+                os << var_name_map[v];
+            } else {
+                os << v;
+            }
+        }
+        os << "} -> " << paths[i].second;
+    }
+}
+
+template<typename T>
+inline std::string MTZDD<T>::to_str() const {
+    std::ostringstream oss;
+    print_sets(oss);
+    return oss.str();
 }
 
 #endif

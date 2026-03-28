@@ -1580,3 +1580,69 @@ TEST_F(MTBDDClassTest, MTZDDEnumerateInt) {
     EXPECT_EQ(paths[0].second, 3);
     EXPECT_EQ(paths[1].second, 7);
 }
+
+// ========================================================================
+//  MTZDD to_str / print_sets tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDToStrZeroTerminal) {
+    MTZDD<double> f;
+    EXPECT_EQ(f.to_str(), "");
+}
+
+TEST_F(MTBDDClassTest, MTZDDToStrNonZeroTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.to_str(), "{} -> 5");
+}
+
+TEST_F(MTBDDClassTest, MTZDDToStrSingleVar) {
+    // ite(v1, hi=3, lo=0): only {1} -> 3
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(3),
+                                    MTZDD<int64_t>());
+    EXPECT_EQ(f.to_str(), "{1} -> 3");
+}
+
+TEST_F(MTBDDClassTest, MTZDDToStrTwoPaths) {
+    // ite(v1, hi=3, lo=2): {} -> 2, {1} -> 3
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(3),
+                                    MTZDD<int64_t>::terminal(2));
+    EXPECT_EQ(f.to_str(), "{} -> 2, {1} -> 3");
+}
+
+TEST_F(MTBDDClassTest, MTZDDToStrMultiVar) {
+    // v3 top, v1 bottom
+    // lo of v3 -> ite(v1, 5, 0) -> {1} -> 5
+    // hi of v3 -> 10 -> {3} -> 10
+    auto inner = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(5),
+                                        MTZDD<int64_t>());
+    auto f = MTZDD<int64_t>::ite(3, MTZDD<int64_t>::terminal(10), inner);
+    EXPECT_EQ(f.to_str(), "{1} -> 5, {3} -> 10");
+}
+
+TEST_F(MTBDDClassTest, MTZDDPrintSetsMatchesToStr) {
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(7),
+                                    MTZDD<int64_t>::terminal(3));
+    std::ostringstream oss;
+    f.print_sets(oss);
+    EXPECT_EQ(oss.str(), f.to_str());
+}
+
+TEST_F(MTBDDClassTest, MTZDDPrintSetsVarNameMap) {
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(7),
+                                    MTZDD<int64_t>::terminal(3));
+    std::vector<std::string> names = {"unused", "x"};
+    std::ostringstream oss;
+    f.print_sets(oss, names);
+    EXPECT_EQ(oss.str(), "{} -> 3, {x} -> 7");
+}
+
+TEST_F(MTBDDClassTest, MTZDDPrintSetsVarNameMapPartial) {
+    // var_name_map only covers v1, v2 falls back to number
+    auto inner = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(5),
+                                        MTZDD<int64_t>());
+    auto f = MTZDD<int64_t>::ite(3, MTZDD<int64_t>::terminal(10), inner);
+    std::vector<std::string> names = {"", "a"};  // only v1 has a name
+    std::ostringstream oss;
+    f.print_sets(oss, names);
+    EXPECT_EQ(oss.str(), "{a} -> 5, {3} -> 10");
+}
