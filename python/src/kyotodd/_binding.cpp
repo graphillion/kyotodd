@@ -4324,11 +4324,19 @@ PYBIND11_MODULE(_core, m) {
            "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 1.")
-        .def("count", &MTZDDFloat::count,
+        .def("count", [](const MTZDDFloat& m) { return m.count(); },
            "Count the number of non-zero terminal paths (as float).")
+        .def("count", [](const MTZDDFloat& m, double terminal) {
+            return m.count(terminal);
+        }, py::arg("terminal"),
+           "Count paths leading to the specific terminal value (as float).")
         .def("exact_count", [](const MTZDDFloat& m) {
             return m.exact_count().to_string();
         }, "Count the number of non-zero terminal paths (exact, as string).")
+        .def("exact_count", [](const MTZDDFloat& m, double terminal) {
+            return m.exact_count(terminal).to_string();
+        }, py::arg("terminal"),
+           "Count paths leading to the specific terminal value (exact, as string).")
         .def("ite_cond", [](const MTZDDFloat& cond, const MTZDDFloat& then_case,
                             const MTZDDFloat& else_case) {
             return cond.ite(then_case, else_case);
@@ -4473,11 +4481,19 @@ PYBIND11_MODULE(_core, m) {
            "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 1.")
-        .def("count", &MTZDDInt::count,
+        .def("count", [](const MTZDDInt& m) { return m.count(); },
            "Count the number of non-zero terminal paths (as float).")
+        .def("count", [](const MTZDDInt& m, int64_t terminal) {
+            return m.count(terminal);
+        }, py::arg("terminal"),
+           "Count paths leading to the specific terminal value (as float).")
         .def("exact_count", [](const MTZDDInt& m) {
             return m.exact_count().to_string();
         }, "Count the number of non-zero terminal paths (exact, as string).")
+        .def("exact_count", [](const MTZDDInt& m, int64_t terminal) {
+            return m.exact_count(terminal).to_string();
+        }, py::arg("terminal"),
+           "Count paths leading to the specific terminal value (exact, as string).")
         .def("ite_cond", [](const MTZDDInt& cond, const MTZDDInt& then_case,
                             const MTZDDInt& else_case) {
             return cond.ite(then_case, else_case);

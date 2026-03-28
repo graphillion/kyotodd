@@ -1357,3 +1357,64 @@ TEST_F(MTBDDClassTest, MTZDDCountInt) {
     EXPECT_DOUBLE_EQ(g.count(), 1.0);
     EXPECT_EQ(g.exact_count(), bigint::BigInt(1));
 }
+
+// ========================================================================
+//  MTZDD count(terminal) / exact_count(terminal) tests
+// ========================================================================
+
+TEST_F(MTBDDClassTest, MTZDDCountForTerminalBasic) {
+    // var 1: hi=3.0, lo=2.0 → 2 non-zero paths
+    BDD::new_var();
+    auto t3 = MTZDD<double>::terminal(3.0);
+    auto t2 = MTZDD<double>::terminal(2.0);
+    auto f = MTZDD<double>::ite(1, t3, t2);
+    EXPECT_DOUBLE_EQ(f.count(3.0), 1.0);
+    EXPECT_DOUBLE_EQ(f.count(2.0), 1.0);
+    EXPECT_DOUBLE_EQ(f.count(0.0), 0.0);   // zero terminal not reachable
+    EXPECT_DOUBLE_EQ(f.count(99.0), 0.0);  // non-existent value
+    EXPECT_EQ(f.exact_count(3.0), bigint::BigInt(1));
+    EXPECT_EQ(f.exact_count(2.0), bigint::BigInt(1));
+    EXPECT_EQ(f.exact_count(99.0), bigint::BigInt(0));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountForTerminalShared) {
+    // Two paths lead to the same terminal value 5.0:
+    //   var 2 (top): hi=t5, lo=v1
+    //   var 1:       hi=t5, lo=zero
+    // Paths: {2}->5.0, {1}->5.0 → count(5.0) == 2
+    BDD::new_var();  // var 1
+    BDD::new_var();  // var 2
+    auto t5 = MTZDD<double>::terminal(5.0);
+    MTZDD<double> zero;
+    auto v1 = MTZDD<double>::ite(1, t5, zero);
+    auto f = MTZDD<double>::ite(2, t5, v1);
+    EXPECT_DOUBLE_EQ(f.count(5.0), 2.0);
+    EXPECT_DOUBLE_EQ(f.count(0.0), 1.0);  // path: {} → zero
+    EXPECT_EQ(f.exact_count(5.0), bigint::BigInt(2));
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountForTerminalZero) {
+    // Zero terminal itself: count(0.0) on a zero terminal → 1
+    MTZDD<double> zero;
+    EXPECT_DOUBLE_EQ(zero.count(0.0), 1.0);
+    EXPECT_DOUBLE_EQ(zero.count(3.0), 0.0);
+    EXPECT_EQ(zero.exact_count(0.0), bigint::BigInt(1));
+
+    // Non-zero terminal: count(5.0) → 1, count(0.0) → 0
+    auto t5 = MTZDD<double>::terminal(5.0);
+    EXPECT_DOUBLE_EQ(t5.count(5.0), 1.0);
+    EXPECT_DOUBLE_EQ(t5.count(0.0), 0.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDCountForTerminalInt) {
+    BDD::new_var();
+    auto t10 = MTZDD<int64_t>::terminal(10);
+    auto t20 = MTZDD<int64_t>::terminal(20);
+    auto f = MTZDD<int64_t>::ite(1, t10, t20);
+    EXPECT_DOUBLE_EQ(f.count(int64_t(10)), 1.0);
+    EXPECT_DOUBLE_EQ(f.count(int64_t(20)), 1.0);
+    EXPECT_DOUBLE_EQ(f.count(int64_t(99)), 0.0);
+    EXPECT_EQ(f.exact_count(int64_t(10)), bigint::BigInt(1));
+    EXPECT_EQ(f.exact_count(int64_t(20)), bigint::BigInt(1));
+    EXPECT_EQ(f.exact_count(int64_t(99)), bigint::BigInt(0));
+}

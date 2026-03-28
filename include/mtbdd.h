@@ -65,6 +65,13 @@ public:
         return value_to_index_.find(value) != value_to_index_.end();
     }
 
+    bool find_index(const T& value, uint64_t& index) const {
+        auto it = value_to_index_.find(value);
+        if (it == value_to_index_.end()) return false;
+        index = it->second;
+        return true;
+    }
+
     uint64_t size() const override {
         return values_.size();
     }
@@ -467,6 +474,42 @@ static inline bigint::BigInt mtzdd_exact_count_rec(
     return count;
 }
 
+// --- MTZDD count helpers (target-specific terminal counting) ---
+
+static inline double mtzdd_count_for_terminal_rec(
+    bddp f, bddp target, std::unordered_map<bddp, double>& memo) {
+    if (f & BDD_CONST_FLAG) {
+        return (f == target) ? 1.0 : 0.0;
+    }
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bddp lo = node_lo(f);
+    bddp hi = node_hi(f);
+    double count = mtzdd_count_for_terminal_rec(lo, target, memo)
+                 + mtzdd_count_for_terminal_rec(hi, target, memo);
+    memo[f] = count;
+    return count;
+}
+
+static inline bigint::BigInt mtzdd_exact_count_for_terminal_rec(
+    bddp f, bddp target, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    if (f & BDD_CONST_FLAG) {
+        return (f == target) ? bigint::BigInt(1) : bigint::BigInt(0);
+    }
+
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
+    bddp lo = node_lo(f);
+    bddp hi = node_hi(f);
+    bigint::BigInt count = mtzdd_exact_count_for_terminal_rec(lo, target, memo)
+                         + mtzdd_exact_count_for_terminal_rec(hi, target, memo);
+    memo[f] = count;
+    return count;
+}
+
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
 
 template<typename T>
@@ -743,6 +786,26 @@ public:
     bigint::BigInt exact_count() const {
         std::unordered_map<bddp, bigint::BigInt> memo;
         return mtzdd_exact_count_rec(root, memo);
+    }
+
+    /** @brief Count paths leading to the specific terminal value (double). */
+    double count(const T& terminal) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        uint64_t idx;
+        if (!table.find_index(terminal, idx)) return 0.0;
+        bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
+        std::unordered_map<bddp, double> memo;
+        return mtzdd_count_for_terminal_rec(root, target, memo);
+    }
+
+    /** @brief Count paths leading to the specific terminal value (exact BigInt). */
+    bigint::BigInt exact_count(const T& terminal) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        uint64_t idx;
+        if (!table.find_index(terminal, idx)) return bigint::BigInt(0);
+        bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
+        std::unordered_map<bddp, bigint::BigInt> memo;
+        return mtzdd_exact_count_for_terminal_rec(root, target, memo);
     }
 
     // --- Generic apply ---
