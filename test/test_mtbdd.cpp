@@ -1646,3 +1646,204 @@ TEST_F(MTBDDClassTest, MTZDDPrintSetsVarNameMapPartial) {
     f.print_sets(oss, names);
     EXPECT_EQ(oss.str(), "{a} -> 5, {3} -> 10");
 }
+
+// --- MTZDD threshold / to_zdd tests ---
+
+TEST_F(MTBDDClassTest, MTZDDThresholdGtTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_gt(3.0), ZDD::Single);
+    EXPECT_EQ(f.threshold_gt(5.0), ZDD::Empty);
+    EXPECT_EQ(f.threshold_gt(6.0), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdGeTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_ge(5.0), ZDD::Single);
+    EXPECT_EQ(f.threshold_ge(5.1), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdEqTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_eq(5.0), ZDD::Single);
+    EXPECT_EQ(f.threshold_eq(4.0), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdLtTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_lt(6.0), ZDD::Single);
+    EXPECT_EQ(f.threshold_lt(5.0), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdLeTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_le(5.0), ZDD::Single);
+    EXPECT_EQ(f.threshold_le(4.9), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdNeTerminal) {
+    auto f = MTZDD<double>::terminal(5.0);
+    EXPECT_EQ(f.threshold_ne(5.0), ZDD::Empty);
+    EXPECT_EQ(f.threshold_ne(0.0), ZDD::Single);
+}
+
+TEST_F(MTBDDClassTest, MTZDDToZddTerminal) {
+    auto zero = MTZDD<double>::terminal(0.0);
+    EXPECT_EQ(zero.to_zdd(), ZDD::Empty);
+    auto nonzero = MTZDD<double>::terminal(3.0);
+    EXPECT_EQ(nonzero.to_zdd(), ZDD::Single);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdSingleVar) {
+    // ite(1, hi=3.0, lo=0.0) → ZDD zero-suppression: lo=0 terminal removed
+    // Result MTZDD: {1}->3.0 only (lo = zero terminal, suppressed)
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0),
+                                MTZDD<double>::terminal(0.0));
+    // threshold_gt(2.0): {1}->3.0 passes → ZDD {{1}}
+    auto z1 = f.threshold_gt(2.0);
+    EXPECT_EQ(z1.count(), 1.0);
+    auto sets1 = z1.enumerate();
+    ASSERT_EQ(sets1.size(), 1u);
+    EXPECT_EQ(sets1[0], std::vector<bddvar>({1}));
+
+    // threshold_eq(0.0): {}->0.0 path exists (node not suppressed since hi!=0)
+    auto z_eq0 = f.threshold_eq(0.0);
+    EXPECT_EQ(z_eq0, ZDD::Single);  // {{}} = family containing empty set
+
+    // to_zdd(): same as threshold_gt(0) here
+    auto z2 = f.to_zdd();
+    EXPECT_EQ(z2.count(), 1.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdSingleVarNonZeroLo) {
+    // ite(1, hi=3.0, lo=1.0) → both branches non-zero
+    // Paths: {}->1.0, {1}->3.0
+    auto f = MTZDD<double>::ite(1, MTZDD<double>::terminal(3.0),
+                                MTZDD<double>::terminal(1.0));
+    // threshold_gt(2.0): only {1}->3.0 passes
+    auto z1 = f.threshold_gt(2.0);
+    EXPECT_EQ(z1.count(), 1.0);
+    auto sets1 = z1.enumerate();
+    ASSERT_EQ(sets1.size(), 1u);
+    EXPECT_EQ(sets1[0], std::vector<bddvar>({1}));
+
+    // threshold_ge(1.0): both paths pass
+    auto z2 = f.threshold_ge(1.0);
+    EXPECT_EQ(z2.count(), 2.0);
+
+    // threshold_eq(1.0): only {}->1.0
+    auto z3 = f.threshold_eq(1.0);
+    EXPECT_EQ(z3.count(), 1.0);
+    EXPECT_TRUE(z3.has_empty());
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdMultiPath) {
+    // Build MTZDD with: {}->1, {1}->3, {2}->5, {1,2}->7
+    auto t1 = MTZDD<double>::terminal(1.0);
+    auto t3 = MTZDD<double>::terminal(3.0);
+    auto t5 = MTZDD<double>::terminal(5.0);
+    auto t7 = MTZDD<double>::terminal(7.0);
+    auto lo = MTZDD<double>::ite(1, t3, t1);    // v1: hi=3, lo=1
+    auto hi = MTZDD<double>::ite(1, t7, t5);    // v1: hi=7, lo=5
+    auto f = MTZDD<double>::ite(2, hi, lo);     // v2: hi=hi, lo=lo
+
+    // Verify structure via enumerate
+    auto paths = f.enumerate();
+    ASSERT_EQ(paths.size(), 4u);
+
+    // threshold_gt(4.0): {2}->5, {1,2}->7
+    auto z1 = f.threshold_gt(4.0);
+    EXPECT_EQ(z1.count(), 2.0);
+    auto sets1 = z1.enumerate();
+    ASSERT_EQ(sets1.size(), 2u);
+
+    // threshold_ge(3.0): {1}->3, {2}->5, {1,2}->7
+    auto z2 = f.threshold_ge(3.0);
+    EXPECT_EQ(z2.count(), 3.0);
+
+    // threshold_lt(5.0): {}->1, {1}->3
+    auto z3 = f.threshold_lt(5.0);
+    EXPECT_EQ(z3.count(), 2.0);
+    EXPECT_TRUE(z3.has_empty());
+
+    // threshold_le(3.0): {}->1, {1}->3
+    auto z4 = f.threshold_le(3.0);
+    EXPECT_EQ(z4.count(), 2.0);
+
+    // threshold_eq(5.0): {2}->5 only
+    auto z5 = f.threshold_eq(5.0);
+    EXPECT_EQ(z5.count(), 1.0);
+
+    // threshold_ne(1.0): {1}->3, {2}->5, {1,2}->7
+    auto z6 = f.threshold_ne(1.0);
+    EXPECT_EQ(z6.count(), 3.0);
+
+    // to_zdd(): all 4 paths are non-zero
+    auto z7 = f.to_zdd();
+    EXPECT_EQ(z7.count(), 4.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDToZddRoundTrip) {
+    // ZDD → MTZDD → to_zdd() → should equal original ZDD
+    auto z1 = ZDD::singleton(1);
+    auto z2 = ZDD::singleton(2);
+    auto z = z1 + z2;  // {{1}, {2}}
+    auto mtzdd = MTZDD<double>::from_zdd(z);
+    auto z_back = mtzdd.to_zdd();
+    EXPECT_EQ(z_back, z);
+}
+
+TEST_F(MTBDDClassTest, MTZDDToZddRoundTripWithEmpty) {
+    // ZDD with empty set: {{}, {1}}
+    auto z = ZDD::Single + ZDD::singleton(1);
+    auto mtzdd = MTZDD<double>::from_zdd(z);
+    auto z_back = mtzdd.to_zdd();
+    EXPECT_EQ(z_back, z);
+}
+
+TEST_F(MTBDDClassTest, MTZDDToZddAllZero) {
+    auto f = MTZDD<double>();  // zero terminal
+    EXPECT_EQ(f.to_zdd(), ZDD::Empty);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdInt) {
+    // Same pattern with int64_t
+    auto f = MTZDD<int64_t>::ite(1, MTZDD<int64_t>::terminal(10),
+                              MTZDD<int64_t>::terminal(3));
+    auto z1 = f.threshold_gt(5);
+    EXPECT_EQ(z1.count(), 1.0);
+    auto sets1 = z1.enumerate();
+    ASSERT_EQ(sets1.size(), 1u);
+    EXPECT_EQ(sets1[0], std::vector<bddvar>({1}));
+
+    auto z2 = f.threshold_ge(3);
+    EXPECT_EQ(z2.count(), 2.0);
+
+    auto z3 = f.to_zdd();
+    EXPECT_EQ(z3.count(), 2.0);
+}
+
+TEST_F(MTBDDClassTest, MTZDDThresholdBruteForce) {
+    // Build MTZDD, enumerate paths, verify threshold result matches
+    auto t0 = MTZDD<double>::terminal(0.0);
+    auto t2 = MTZDD<double>::terminal(2.0);
+    auto t4 = MTZDD<double>::terminal(4.0);
+    auto t6 = MTZDD<double>::terminal(6.0);
+    auto inner = MTZDD<double>::ite(1, t4, t2);
+    auto f = MTZDD<double>::ite(2, t6, inner);  // {2}->6, {1}->4, {}->2
+
+    auto all_paths = f.enumerate();
+    // Verify threshold_gt(3.0) by brute force
+    auto z = f.threshold_gt(3.0);
+    auto zdd_sets = z.enumerate();
+
+    // Collect expected sets from enumerate
+    std::vector<std::vector<bddvar>> expected;
+    for (const auto& p : all_paths) {
+        if (p.second > 3.0) {
+            expected.push_back(p.first);
+        }
+    }
+    std::sort(expected.begin(), expected.end());
+    std::sort(zdd_sets.begin(), zdd_sets.end());
+    EXPECT_EQ(zdd_sets, expected);
+}

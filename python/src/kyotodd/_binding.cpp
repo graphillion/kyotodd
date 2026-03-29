@@ -4420,6 +4420,20 @@ PYBIND11_MODULE(_core, m) {
            "Import an MTZDD from binary bytes.\n\n"
            "Args:\n"
            "    data: Binary data (bytes).")
+        .def("threshold_gt", &MTZDDFloat::threshold_gt, py::arg("val"),
+            "Extract paths where terminal > val, as ZDD.")
+        .def("threshold_ge", &MTZDDFloat::threshold_ge, py::arg("val"),
+            "Extract paths where terminal >= val, as ZDD.")
+        .def("threshold_eq", &MTZDDFloat::threshold_eq, py::arg("val"),
+            "Extract paths where terminal == val, as ZDD.")
+        .def("threshold_lt", &MTZDDFloat::threshold_lt, py::arg("val"),
+            "Extract paths where terminal < val, as ZDD.")
+        .def("threshold_le", &MTZDDFloat::threshold_le, py::arg("val"),
+            "Extract paths where terminal <= val, as ZDD.")
+        .def("threshold_ne", &MTZDDFloat::threshold_ne, py::arg("val"),
+            "Extract paths where terminal != val, as ZDD.")
+        .def("to_zdd", &MTZDDFloat::to_zdd,
+            "Extract all non-zero paths as ZDD.")
     ;
 
     // --- MTZDDInt ---
@@ -4577,5 +4591,19 @@ PYBIND11_MODULE(_core, m) {
            "Import an MTZDD from binary bytes.\n\n"
            "Args:\n"
            "    data: Binary data (bytes).")
+        .def("threshold_gt", &MTZDDInt::threshold_gt, py::arg("val"),
+            "Extract paths where terminal > val, as ZDD.")
+        .def("threshold_ge", &MTZDDInt::threshold_ge, py::arg("val"),
+            "Extract paths where terminal >= val, as ZDD.")
+        .def("threshold_eq", &MTZDDInt::threshold_eq, py::arg("val"),
+            "Extract paths where terminal == val, as ZDD.")
+        .def("threshold_lt", &MTZDDInt::threshold_lt, py::arg("val"),
+            "Extract paths where terminal < val, as ZDD.")
+        .def("threshold_le", &MTZDDInt::threshold_le, py::arg("val"),
+            "Extract paths where terminal <= val, as ZDD.")
+        .def("threshold_ne", &MTZDDInt::threshold_ne, py::arg("val"),
+            "Extract paths where terminal != val, as ZDD.")
+        .def("to_zdd", &MTZDDInt::to_zdd,
+            "Extract all non-zero paths as ZDD.")
     ;
 }

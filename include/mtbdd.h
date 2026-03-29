@@ -7,6 +7,7 @@
 #include "bdd_internal.h"
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <stdexcept>
 #include "bigint.hpp"
 
@@ -711,6 +712,32 @@ static void mtzdd_enumerate_rec(
     current.pop_back();
 }
 
+// --- MTZDD to ZDD threshold conversion helper ---
+
+template<typename T>
+static bddp mtzdd_to_zdd_rec(
+    bddp f,
+    const std::unordered_set<bddp>& pred_terminals,
+    uint8_t cache_op)
+{
+    BDD_RecurGuard guard;
+
+    if (f & BDD_CONST_FLAG) {
+        return pred_terminals.count(f) ? bddsingle : bddempty;
+    }
+
+    bddp cached = bddrcache(cache_op, f, 0);
+    if (cached != bddnull) return cached;
+
+    bddvar var = node_var(f);
+    bddp lo = mtzdd_to_zdd_rec<T>(node_lo(f), pred_terminals, cache_op);
+    bddp hi = mtzdd_to_zdd_rec<T>(node_hi(f), pred_terminals, cache_op);
+    bddp result = ZDD::getnode_raw(var, lo, hi);
+
+    bddwcache(cache_op, f, 0, result);
+    return result;
+}
+
 // --- MTZDD<T> class (Multi-Terminal ZDD) ---
 
 template<typename T>
@@ -814,6 +841,125 @@ public:
     /** @brief Return all variable numbers appearing in the MTZDD, sorted by level (highest first). */
     std::vector<bddvar> support_vars() const {
         return bddsupport_vec(root);
+    }
+
+    // --- Threshold / ZDD conversion ---
+
+    /** @brief Extract paths where terminal value > val, as ZDD. */
+    ZDD threshold_gt(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (table.get_value(i) > val) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract paths where terminal value >= val, as ZDD. */
+    ZDD threshold_ge(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (!(table.get_value(i) < val)) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract paths where terminal value == val, as ZDD. */
+    ZDD threshold_eq(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (table.get_value(i) == val) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract paths where terminal value < val, as ZDD. */
+    ZDD threshold_lt(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (table.get_value(i) < val) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract paths where terminal value <= val, as ZDD. */
+    ZDD threshold_le(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (!(table.get_value(i) > val)) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract paths where terminal value != val, as ZDD. */
+    ZDD threshold_ne(const T& val) const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 0; i < table.size(); ++i) {
+            if (!(table.get_value(i) == val)) {
+                pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+            }
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
+    }
+
+    /** @brief Extract all non-zero paths as ZDD. Equivalent to threshold_ne(T{}). */
+    ZDD to_zdd() const {
+        auto& table = MTBDDTerminalTable<T>::instance();
+        std::unordered_set<bddp> pred_terminals;
+        for (uint64_t i = 1; i < table.size(); ++i) {
+            pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
+        }
+        if (pred_terminals.empty()) return ZDD(0);
+        static uint8_t op = mtbdd_alloc_op_code();
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+        });
+        return ZDD_ID(result);
     }
 
     // --- Enumeration ---
