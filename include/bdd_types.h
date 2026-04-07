@@ -136,6 +136,7 @@ static const uint8_t BDD_OP_LSHIFTB = 45;
 static const uint8_t BDD_OP_RSHIFTB = 46;
 static const uint8_t BDD_OP_LSHIFTZ = 47;
 static const uint8_t BDD_OP_RSHIFTZ = 48;
+static const uint8_t BDD_OP_PRODUCT = 49;
 static const uint8_t BDD_OP_CHOOSE  = 68;
 static const uint8_t BDD_OP_MINSIZE = 69;
 
@@ -868,6 +869,17 @@ public:
      * @return The resulting ZDD.
      */
     ZDD Nonsub(const ZDD& g) const;
+    /**
+     * @brief Cross product of two families over disjoint variable sets.
+     *
+     * For each pair (A, B) where A is in this family and B is in @p g,
+     * include A ∪ B in the result. The two families must use disjoint
+     * variable sets (behavior is undefined otherwise).
+     * More efficient than join when variables are known to be disjoint.
+     * @param g The other family.
+     * @return The resulting ZDD.
+     */
+    ZDD product(const ZDD& g) const;
     /**
      * @brief Disjoint product of two families.
      *

@@ -177,7 +177,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Applies ZDD zero-suppression rule: `hi == bddempty` → return lo.
 - Uses ZDD complement edge semantics (only lo flipped).
 - Operators: `+` (union), `-` (subtract), `&` (intersec), `*` (join), `/` (div), `%` (remainder), `^` (symdiff), `~` (complement), `<<` / `>>` (shift), `==`, `!=`.
-- Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`.
+- Binary operations: `bddsymdiff()`, `bddremainder()`, `bdddisjoin()`, `bddjointjoin()`, `bddmeet()`, `bdddelta()`, `product()` / `bddproduct()` (cross product for disjoint variable sets, more efficient than join).
 - Set operations: `Offset(v)`, `OnSet(v)`, `OnSet0(v)`, `Change(v)`.
 - Filtering: `Restrict()`, `Permit()`, `Nonsup()`, `Nonsub()`, `Maximal()`, `Minimal()`, `Minhit()`, `Closure()`, `choose(k)` (sets of exactly k elements), `size_le(k)` (sets of at most k elements), `size_ge(k)` (sets of at least k elements), `supersets_of(s)` (sets containing s), `subsets_of(s)` (subsets of s), `project(vars)` (remove variables from all sets).
 - Analysis: `Always()`, `SymChk()`, `ImplyChk()`, `CoImplyChk()`, `SymGrp()`, `SymGrpNaive()`, `SymSet()`, `ImplySet()`, `CoImplySet()`, `Divisor()`, `IsPoly()`, `PermitSym()`.

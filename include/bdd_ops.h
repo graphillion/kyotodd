@@ -325,6 +325,19 @@ bddp bddsymdiff(bddp f, bddp g);
 bddp bddjoin(bddp f, bddp g);
 
 /**
+ * @brief Cross product of two ZDD families over disjoint variable sets.
+ *
+ * For each pair (A, B) where A ∈ f and B ∈ g, include A ∪ B in the result.
+ * The two families must use disjoint variable sets (behavior is undefined otherwise).
+ * More efficient than bddjoin when variables are known to be disjoint.
+ *
+ * @param f First family.
+ * @param g Second family.
+ * @return The resulting ZDD.
+ */
+bddp bddproduct(bddp f, bddp g);
+
+/**
  * @brief Meet (cross product with intersection of elements) of two ZDD families.
  *
  * For each pair (A, B) where A ∈ f and B ∈ g, include A ∩ B in the result.

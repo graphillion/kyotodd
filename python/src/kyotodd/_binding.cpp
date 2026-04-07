@@ -1047,6 +1047,16 @@ PYBIND11_MODULE(_core, m) {
              "    g: The constraining family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
+        .def("product", &ZDD::product, py::arg("g"),
+             "Cross product of two families over disjoint variable sets.\n\n"
+             "For each pair (A, B) where A is in this family and B is in g,\n"
+             "include A | B in the result. The two families must use disjoint\n"
+             "variable sets. More efficient than join (*) when variables are\n"
+             "known to be disjoint.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The resulting ZDD.\n")
         .def("disjoin", &ZDD::Disjoin, py::arg("g"),
              "Disjoint product of two families.\n\n"
              "For each pair (A, B) where A is in this family and B is in g,\n"

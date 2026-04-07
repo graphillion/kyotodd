@@ -541,6 +541,12 @@ inline ZDD& ZDD::operator*=(const ZDD& other) {
     return *this;
 }
 
+inline ZDD ZDD::product(const ZDD& other) const {
+    ZDD z(0);
+    z.root = bddproduct(root, other.root);
+    return z;
+}
+
 inline ZDD ZDD::operator%(const ZDD& other) const {
     ZDD z(0);
     z.root = bddremainder(root, other.root);

@@ -641,6 +641,67 @@ static bddp bddjoin_rec(bddp f, bddp g) {
     return result;
 }
 
+static bddp bddproduct_rec(bddp f, bddp g);
+
+bddp bddproduct(bddp f, bddp g) {
+    bddp_validate(f, "bddproduct");
+    bddp_validate(g, "bddproduct");
+    if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+
+    // Normalize order (product is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    return bdd_gc_guard([&]() -> bddp { return bddproduct_rec(f, g); });
+}
+
+static bddp bddproduct_rec(bddp f, bddp g) {
+    BDD_RecurGuard guard;
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+
+    // Normalize order (product is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Cache lookup
+    bddp cached = bddrcache(BDD_OP_PRODUCT, f, g);
+    if (cached != bddnull) return cached;
+
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+
+    bddp result;
+
+    if (f_level > g_level) {
+        // Decompose f; g has no sets with f_var (disjoint)
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp lo = bddproduct_rec(f_lo, g);
+        bddp hi = bddproduct_rec(f_hi, g);
+        result = ZDD::getnode_raw(f_var, lo, hi);
+    } else {
+        // Decompose g; f has no sets with g_var (disjoint)
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        bddp lo = bddproduct_rec(f, g_lo);
+        bddp hi = bddproduct_rec(f, g_hi);
+        result = ZDD::getnode_raw(g_var, lo, hi);
+    }
+
+    bddwcache(BDD_OP_PRODUCT, f, g, result);
+    return result;
+}
+
 static bddp bddmeet_rec(bddp f, bddp g);
 
 bddp bddmeet(bddp f, bddp g) {

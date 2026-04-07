@@ -9862,6 +9862,104 @@ TEST_F(BDDTest, ZDD_ElementFrequency_ConsistencyWithEnumerate) {
     EXPECT_EQ(freq[3], bigint::BigInt(1));
 }
 
+// --- bddproduct / ZDD::product ---
+
+TEST_F(BDDTest, ZDD_Product_EmptyLeft) {
+    ZDD e(0);
+    ZDD s = ZDD::singleton(1);
+    EXPECT_TRUE(e.product(s).is_zero());
+}
+
+TEST_F(BDDTest, ZDD_Product_EmptyRight) {
+    ZDD s = ZDD::singleton(1);
+    ZDD e(0);
+    EXPECT_TRUE(s.product(e).is_zero());
+}
+
+TEST_F(BDDTest, ZDD_Product_UnitLeft) {
+    // {∅} × G = G
+    ZDD u(1);
+    ZDD g = ZDD::singleton(2);
+    ZDD result = u.product(g);
+    EXPECT_EQ(result.GetID(), g.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Product_UnitRight) {
+    // F × {∅} = F
+    ZDD f = ZDD::singleton(1);
+    ZDD u(1);
+    ZDD result = f.product(u);
+    EXPECT_EQ(result.GetID(), f.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Product_SingletonPair) {
+    // {{1}} × {{2}} = {{1,2}}
+    ZDD f = ZDD::singleton(1);
+    ZDD g = ZDD::singleton(2);
+    ZDD result = f.product(g);
+    auto sets = result.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    ASSERT_EQ(sets[0].size(), 2u);
+    std::vector<bddvar> expected = {1, 2};
+    EXPECT_EQ(sets[0], expected);
+}
+
+TEST_F(BDDTest, ZDD_Product_CardinalityIsMultiplicative) {
+    // |F × G| = |F| * |G| for disjoint variable sets
+    // F = power_set({1,2}) = 4 sets, G = power_set({3,4}) = 4 sets
+    ZDD f = ZDD::power_set({1, 2});
+    ZDD g = ZDD::power_set({3, 4});
+    ZDD result = f.product(g);
+    EXPECT_EQ(result.exact_count(), f.exact_count() * g.exact_count());
+}
+
+TEST_F(BDDTest, ZDD_Product_ConsistencyWithJoin) {
+    // For disjoint variable sets, product should equal join
+    ZDD f = ZDD::power_set({1, 2});
+    ZDD g = ZDD::power_set({3, 4});
+    ZDD prod = f.product(g);
+    ZDD join = f * g;
+    EXPECT_EQ(prod.GetID(), join.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Product_WithEmptySet) {
+    // F = {{}, {1}}, G = {{3}} → {{3}, {1,3}}
+    ZDD f = ZDD(1) + ZDD::singleton(1);
+    ZDD g = ZDD::singleton(3);
+    ZDD result = f.product(g);
+    auto sets = result.enumerate();
+    ASSERT_EQ(sets.size(), 2u);
+}
+
+TEST_F(BDDTest, ZDD_Product_LargerExample) {
+    // F = {{1}, {2}}, G = {{3}, {4}}
+    // Result = {{1,3}, {1,4}, {2,3}, {2,4}}
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    ZDD g = ZDD::singleton(3) + ZDD::singleton(4);
+    ZDD result = f.product(g);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(4));
+    auto sets = result.enumerate();
+    ASSERT_EQ(sets.size(), 4u);
+    // Each set should have exactly 2 elements
+    for (auto& s : sets) {
+        EXPECT_EQ(s.size(), 2u);
+    }
+}
+
+TEST_F(BDDTest, ZDD_Product_Commutative) {
+    ZDD f = ZDD::power_set({1, 2});
+    ZDD g = ZDD::power_set({3, 4});
+    EXPECT_EQ(f.product(g).GetID(), g.product(f).GetID());
+}
+
+TEST_F(BDDTest, ZDD_Product_FreeFunction) {
+    bddp f = ZDD::power_set({1, 2}).GetID();
+    bddp g = ZDD::power_set({3, 4}).GetID();
+    bddp result = bddproduct(f, g);
+    bddp join = bddjoin(f, g);
+    EXPECT_EQ(result, join);
+}
+
 // --- ZDD::average_size ---
 
 TEST_F(BDDTest, ZDD_AverageSize_EmptyFamily) {
