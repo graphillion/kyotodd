@@ -265,6 +265,10 @@ bool ZDD::contains(const std::vector<bddvar>& s) const {
     return bddcontains(root, s);
 }
 
+bool ZDD::is_subset_family(const ZDD& g) const {
+    return bddissubset(root, g.root);
+}
+
 ZDD ZDD::choose(int k) const {
     return ZDD_ID(bddchoose(root, k));
 }

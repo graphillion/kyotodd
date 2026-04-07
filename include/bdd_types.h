@@ -1119,6 +1119,9 @@ public:
     /** @brief Check if a specific set is a member of the family. */
     bool contains(const std::vector<bddvar>& s) const;
 
+    /** @brief Check if this family is a subset of another (F ⊆ G). */
+    bool is_subset_family(const ZDD& g) const;
+
     /** @brief Filter to sets of exactly k elements. */
     ZDD choose(int k) const;
 

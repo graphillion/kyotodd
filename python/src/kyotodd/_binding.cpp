@@ -1416,6 +1416,15 @@ PYBIND11_MODULE(_core, m) {
              "    s: A list of variable numbers representing the set.\n\n"
              "Returns:\n"
              "    True if the set is in the family.\n")
+        .def("is_subset_family", &ZDD::is_subset_family, py::arg("g"),
+             "Check if this family is a subset of another (F ⊆ G).\n\n"
+             "Returns True if every set in this family is also in g.\n"
+             "More efficient than `(self - g).is_zero()` due to early\n"
+             "termination.\n\n"
+             "Args:\n"
+             "    g: The candidate superset family.\n\n"
+             "Returns:\n"
+             "    True if this family is a subset of g.\n")
         .def("choose", &ZDD::choose, py::arg("k"),
              "Filter to sets of exactly k elements.\n\n"
              "Args:\n"

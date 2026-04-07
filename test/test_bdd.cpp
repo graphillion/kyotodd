@@ -9578,6 +9578,90 @@ TEST_F(BDDTest, ZDD_Contains_MemberFunction) {
     EXPECT_FALSE(ps.contains({4}));
 }
 
+// --- bddissubset / ZDD::is_subset_family ---
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_EmptyIsSubsetOfAll) {
+    ZDD e(0);
+    ZDD u(1);
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_TRUE(e.is_subset_family(e));
+    EXPECT_TRUE(e.is_subset_family(u));
+    EXPECT_TRUE(e.is_subset_family(ps));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_SelfSubset) {
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_TRUE(ps.is_subset_family(ps));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_UnitFamily) {
+    // {∅} ⊆ power_set(3)  → true
+    ZDD u(1);
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_TRUE(u.is_subset_family(ps));
+    // power_set(3) ⊆ {∅}  → false
+    EXPECT_FALSE(ps.is_subset_family(u));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_SingletonSubset) {
+    // {{1}} ⊆ {{1}, {2}} → true
+    ZDD s1 = ZDD::singleton(1);
+    ZDD s2 = ZDD::singleton(2);
+    ZDD f = s1 + s2;
+    EXPECT_TRUE(s1.is_subset_family(f));
+    EXPECT_TRUE(s2.is_subset_family(f));
+    // {{1}, {2}} ⊆ {{1}} → false
+    EXPECT_FALSE(f.is_subset_family(s1));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_NotSubset) {
+    // {{1}} ⊆ {{2}} → false
+    ZDD s1 = ZDD::singleton(1);
+    ZDD s2 = ZDD::singleton(2);
+    EXPECT_FALSE(s1.is_subset_family(s2));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_ChooseSubsetOfPowerSet) {
+    // C(3,2) ⊆ power_set(3) → true
+    ZDD ps = ZDD::power_set(3);
+    ZDD c32 = ZDD::combination(3, 2);
+    EXPECT_TRUE(c32.is_subset_family(ps));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_ComplementEdge) {
+    // {{1}} complemented → {{1}, ∅}
+    // {{1}, ∅} ⊆ power_set(3) → true
+    ZDD s1 = ZDD::singleton(1);
+    ZDD comp = ~s1;
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_TRUE(comp.is_subset_family(ps));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_ConsistencyWithSubtract) {
+    // F ⊆ G iff (F - G) == ∅
+    ZDD ps = ZDD::power_set(3);
+    ZDD c32 = ZDD::combination(3, 2);
+    ZDD s1 = ZDD::singleton(1);
+
+    EXPECT_EQ(c32.is_subset_family(ps), (c32 - ps).is_zero());
+    EXPECT_EQ(ps.is_subset_family(c32), (ps - c32).is_zero());
+    EXPECT_EQ(s1.is_subset_family(c32), (s1 - c32).is_zero());
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_Null) {
+    ZDD n(-1);
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_FALSE(n.is_subset_family(ps));
+    EXPECT_FALSE(ps.is_subset_family(n));
+}
+
+TEST_F(BDDTest, ZDD_IsSubsetFamily_FreeFunction) {
+    bddp ps = ZDD::power_set(3).GetID();
+    bddp c32 = ZDD::combination(3, 2).GetID();
+    EXPECT_TRUE(bddissubset(c32, ps));
+    EXPECT_FALSE(bddissubset(ps, c32));
+}
+
 // --- bddchoose / ZDD::choose ---
 
 TEST_F(BDDTest, ZDD_Choose_TerminalCases) {

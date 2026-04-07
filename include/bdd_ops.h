@@ -610,6 +610,19 @@ bool bddhasempty(bddp f);
 bool bddcontains(bddp f, const std::vector<bddvar>& s);
 
 /**
+ * @brief Check if one ZDD family is a subset of another.
+ *
+ * Returns true if every set in @p f is also in @p g (i.e. f ⊆ g).
+ * More efficient than `bddsubtract(f, g) == bddempty` because it
+ * can terminate early as soon as a non-member is found.
+ *
+ * @param f The candidate subset family.
+ * @param g The candidate superset family.
+ * @return true if f ⊆ g.
+ */
+bool bddissubset(bddp f, bddp g);
+
+/**
  * @brief Filter to sets of exactly k elements.
  *
  * Returns a ZDD containing only those sets in the family represented

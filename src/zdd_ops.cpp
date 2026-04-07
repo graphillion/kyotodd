@@ -422,6 +422,73 @@ static bddp bddsubtract_rec(bddp f, bddp g) {
     return result;
 }
 
+typedef std::unordered_map<bddp, std::unordered_map<bddp, bool>> SubsetMemoMap;
+
+static bool bddissubset_rec(bddp f, bddp g, SubsetMemoMap& memo) {
+    // Terminal / identity cases
+    if (f == bddempty) return true;
+    if (g == bddempty) return false;  // f is non-empty
+    if (f == g) return true;
+    // f == bddsingle: {∅} ⊆ G iff ∅ ∈ G
+    if (f == bddsingle) return bddhasempty(g);
+    // g == bddsingle: f is non-trivial, can't be ⊆ {∅}
+    if (g == bddsingle) return false;
+
+    BDD_RecurGuard guard;
+
+    // Memo lookup
+    auto it_f = memo.find(f);
+    if (it_f != memo.end()) {
+        auto it_g = it_f->second.find(g);
+        if (it_g != it_f->second.end()) return it_g->second;
+    }
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bool result;
+
+    if (f_level > g_level) {
+        // f has variable v, g doesn't → g has no sets containing v.
+        // f_hi (non-empty by ZDD zero-suppression) can't be ⊆ ∅.
+        result = false;
+    } else if (g_level > f_level) {
+        // g has variable v, f doesn't → check f ⊆ g_lo
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddissubset_rec(f, g_lo, memo);
+    } else {
+        // Same top variable
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        // Early termination: check hi first (often smaller)
+        result = bddissubset_rec(f_hi, g_hi, memo)
+              && bddissubset_rec(f_lo, g_lo, memo);
+    }
+
+    memo[f][g] = result;
+    return result;
+}
+
+bool bddissubset(bddp f, bddp g) {
+    bddp_validate(f, "bddissubset");
+    bddp_validate(g, "bddissubset");
+    if (f == bddnull || g == bddnull) return false;
+    if (f == bddempty) return true;
+    if (f == g) return true;
+    SubsetMemoMap memo;
+    return bddissubset_rec(f, g, memo);
+}
+
 static bddp bdddiv_rec(bddp f, bddp g);
 
 bddp bdddiv(bddp f, bddp g) {
