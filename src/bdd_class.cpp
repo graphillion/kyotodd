@@ -281,6 +281,18 @@ std::vector<double> ZDD::profile_double() const {
     return bddprofile_double(root);
 }
 
+double ZDD::average_size() const {
+    auto prof = profile_double();
+    double total_sets = 0.0;
+    double total_elements = 0.0;
+    for (size_t i = 0; i < prof.size(); i++) {
+        total_sets += prof[i];
+        total_elements += static_cast<double>(i) * prof[i];
+    }
+    if (total_sets == 0.0) return 0.0;
+    return total_elements / total_sets;
+}
+
 ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }

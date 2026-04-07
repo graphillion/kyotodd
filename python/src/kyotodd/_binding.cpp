@@ -1430,6 +1430,11 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    A list where profile[i] is the number of sets with exactly\n"
              "    i elements (float).\n")
+        .def("average_size", &ZDD::average_size,
+             "Return the average set size in the family.\n\n"
+             "Returns:\n"
+             "    The average number of elements per set (float).\n"
+             "    Returns 0.0 for empty families.\n")
         .def("element_frequency", [](const ZDD& z) -> std::vector<py::int_> {
             auto v = z.element_frequency();
             std::vector<py::int_> result;

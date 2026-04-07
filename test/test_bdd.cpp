@@ -9862,6 +9862,48 @@ TEST_F(BDDTest, ZDD_ElementFrequency_ConsistencyWithEnumerate) {
     EXPECT_EQ(freq[3], bigint::BigInt(1));
 }
 
+// --- ZDD::average_size ---
+
+TEST_F(BDDTest, ZDD_AverageSize_EmptyFamily) {
+    ZDD e(0);
+    EXPECT_DOUBLE_EQ(e.average_size(), 0.0);
+}
+
+TEST_F(BDDTest, ZDD_AverageSize_UnitFamily) {
+    // {∅} → average size = 0
+    ZDD u(1);
+    EXPECT_DOUBLE_EQ(u.average_size(), 0.0);
+}
+
+TEST_F(BDDTest, ZDD_AverageSize_SingletonSet) {
+    // {{1}} → average size = 1
+    ZDD s = ZDD::singleton(1);
+    EXPECT_DOUBLE_EQ(s.average_size(), 1.0);
+}
+
+TEST_F(BDDTest, ZDD_AverageSize_MixedSizes) {
+    // {{1}, {1,2}, {1,2,3}} → sizes 1,2,3 → avg = 2.0
+    ZDD s1 = ZDD::singleton(1);
+    ZDD s12 = ZDD::single_set({1, 2});
+    ZDD s123 = ZDD::single_set({1, 2, 3});
+    ZDD f = s1 + s12 + s123;
+    EXPECT_DOUBLE_EQ(f.average_size(), 2.0);
+}
+
+TEST_F(BDDTest, ZDD_AverageSize_PowerSet) {
+    // power_set(3): 8 sets, total elements = 12, avg = 1.5
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_DOUBLE_EQ(ps.average_size(), 1.5);
+}
+
+TEST_F(BDDTest, ZDD_AverageSize_WithEmpty) {
+    // {{}, {1,2}} → sizes 0,2 → avg = 1.0
+    ZDD e(1);
+    ZDD s12 = ZDD::single_set({1, 2});
+    ZDD f = e + s12;
+    EXPECT_DOUBLE_EQ(f.average_size(), 1.0);
+}
+
 // --- ZDD::singleton ---
 
 TEST_F(BDDTest, ZDD_Singleton) {

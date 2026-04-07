@@ -1123,6 +1123,9 @@ public:
     /** @brief Return the set size distribution (double precision). */
     std::vector<double> profile_double() const;
 
+    /** @brief Return the average set size in the family (double). */
+    double average_size() const;
+
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
     /** @brief Convert ZDD (family) to BDD (characteristic function) over n variables. If n=0, uses var_used(). */
