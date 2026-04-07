@@ -1430,6 +1430,19 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    A list where profile[i] is the number of sets with exactly\n"
              "    i elements (float).\n")
+        .def("element_frequency", [](const ZDD& z) -> std::vector<py::int_> {
+            auto v = z.element_frequency();
+            std::vector<py::int_> result;
+            result.reserve(v.size());
+            for (auto& bi : v) {
+                result.push_back(py::int_(py::str(bi.to_string())));
+            }
+            return result;
+        },
+             "Return the element frequency (arbitrary precision).\n\n"
+             "Returns:\n"
+             "    A list where result[v] is the number of sets containing\n"
+             "    variable v. The list length is max_variable + 1.\n")
 
         // Rank / Unrank
         .def("rank", &ZDD::rank, py::arg("s"),

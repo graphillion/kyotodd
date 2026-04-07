@@ -630,6 +630,17 @@ std::vector<bigint::BigInt> bddprofile(bddp f);
 std::vector<double> bddprofile_double(bddp f);
 
 /**
+ * @brief Return the element frequency of a ZDD family (arbitrary precision).
+ *
+ * For each variable v, result[v] is the number of sets in the family
+ * that contain v. The vector length is max_variable + 1.
+ *
+ * @param f A ZDD node ID.
+ * @return The frequency vector (empty for null, empty, or unit family).
+ */
+std::vector<bigint::BigInt> bddelmfreq(bddp f);
+
+/**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
  *
  * Same computation as bddcard, but returns a BigInt so the result

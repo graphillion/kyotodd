@@ -1116,6 +1116,10 @@ public:
     /** @brief Return the set size distribution (arbitrary precision). */
     std::vector<bigint::BigInt> profile() const;
 
+    /** @brief Return the element frequency (arbitrary precision).
+     *  result[v] = number of sets containing variable v. */
+    std::vector<bigint::BigInt> element_frequency() const;
+
     /** @brief Return the set size distribution (double precision). */
     std::vector<double> profile_double() const;
 

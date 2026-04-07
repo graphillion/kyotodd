@@ -273,6 +273,10 @@ std::vector<bigint::BigInt> ZDD::profile() const {
     return bddprofile(root);
 }
 
+std::vector<bigint::BigInt> ZDD::element_frequency() const {
+    return bddelmfreq(root);
+}
+
 std::vector<double> ZDD::profile_double() const {
     return bddprofile_double(root);
 }

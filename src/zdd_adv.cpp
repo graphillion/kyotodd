@@ -710,6 +710,60 @@ std::vector<double> bddprofile_double(bddp f) {
     return result;
 }
 
+// ---- element frequency ----
+
+typedef std::unordered_map<bddp, std::vector<bigint::BigInt>> ElmFreqMemoMap;
+
+static std::vector<bigint::BigInt> bddelmfreq_rec(
+    bddp f, ElmFreqMemoMap& freq_memo, CountMemoMap& count_memo) {
+    // Terminal: no variables → empty frequency
+    if (f == bddempty || f == bddsingle) return {};
+
+    BDD_RecurGuard guard;
+
+    // Complement doesn't affect element frequency
+    // (only toggles empty set membership, ∅ has no elements)
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = freq_memo.find(f_raw);
+    if (it != freq_memo.end()) return it->second;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    auto freq_lo = bddelmfreq_rec(lo, freq_memo, count_memo);
+    auto freq_hi = bddelmfreq_rec(hi, freq_memo, count_memo);
+
+    // Result vector: needs to cover variable var at minimum
+    size_t result_size = static_cast<size_t>(var) + 1;
+    if (freq_lo.size() > result_size) result_size = freq_lo.size();
+    if (freq_hi.size() > result_size) result_size = freq_hi.size();
+
+    std::vector<bigint::BigInt> result(result_size);
+
+    for (size_t i = 0; i < freq_lo.size(); i++) {
+        result[i] += freq_lo[i];
+    }
+    for (size_t i = 0; i < freq_hi.size(); i++) {
+        result[i] += freq_hi[i];
+    }
+
+    // Variable var: every set in hi subtree contains var
+    result[var] += bddexactcount(hi, count_memo);
+
+    freq_memo[f_raw] = result;
+    return result;
+}
+
+std::vector<bigint::BigInt> bddelmfreq(bddp f) {
+    bddp_validate(f, "bddelmfreq");
+    if (f == bddnull) return {};
+    ElmFreqMemoMap freq_memo;
+    CountMemoMap count_memo;
+    return bddelmfreq_rec(f, freq_memo, count_memo);
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

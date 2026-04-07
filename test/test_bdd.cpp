@@ -9765,6 +9765,103 @@ TEST_F(BDDTest, ZDD_Profile_Double) {
     EXPECT_DOUBLE_EQ(pd[3], 1.0);
 }
 
+// --- bddelmfreq / ZDD::element_frequency ---
+
+TEST_F(BDDTest, ZDD_ElementFrequency_EmptyFamily) {
+    auto freq = bddelmfreq(bddempty);
+    EXPECT_TRUE(freq.empty());
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_Null) {
+    auto freq = bddelmfreq(bddnull);
+    EXPECT_TRUE(freq.empty());
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_UnitFamily) {
+    // {∅} → no variables → empty
+    auto freq = bddelmfreq(bddsingle);
+    EXPECT_TRUE(freq.empty());
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_SingletonSet) {
+    // {{1}} → freq[1] = 1
+    bddp a = bddchange(bddsingle, 1);
+    auto freq = bddelmfreq(a);
+    ASSERT_GE(freq.size(), 2u);
+    EXPECT_EQ(freq[0], bigint::BigInt(0));
+    EXPECT_EQ(freq[1], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_TwoSets) {
+    // {{1}, {1,2}} → freq[1] = 2, freq[2] = 1
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    bddp f = bddunion(s1, s12);
+    auto freq = bddelmfreq(f);
+    ASSERT_GE(freq.size(), 3u);
+    EXPECT_EQ(freq[1], bigint::BigInt(2));
+    EXPECT_EQ(freq[2], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_PowerSet) {
+    // power_set(3) = all subsets of {1,2,3}, 8 sets total
+    // Each variable appears in exactly half (4) of the sets
+    ZDD ps = ZDD::power_set(3);
+    auto freq = ps.element_frequency();
+    ASSERT_GE(freq.size(), 4u);
+    EXPECT_EQ(freq[1], bigint::BigInt(4));
+    EXPECT_EQ(freq[2], bigint::BigInt(4));
+    EXPECT_EQ(freq[3], bigint::BigInt(4));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_WithEmpty) {
+    // {{}, {1}, {1,2}} → freq[1] = 2, freq[2] = 1
+    // Empty set doesn't affect frequency
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s12 = bddchange(bddchange(bddsingle, 1), 2);
+    bddp f = bddunion(bddunion(bddsingle, s1), s12);
+    auto freq = bddelmfreq(f);
+    ASSERT_GE(freq.size(), 3u);
+    EXPECT_EQ(freq[1], bigint::BigInt(2));
+    EXPECT_EQ(freq[2], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_ComplementEdge) {
+    // {{1}} complemented → {{1}, ∅}
+    // freq[1] should still be 1 (∅ adds no variable frequency)
+    bddp a = bddchange(bddsingle, 1);
+    auto freq = bddelmfreq(bddnot(a));
+    ASSERT_GE(freq.size(), 2u);
+    EXPECT_EQ(freq[1], bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_SumsToLit) {
+    // Sum of all frequencies == total literal count (Lit)
+    ZDD ps = ZDD::power_set(3);
+    auto freq = ps.element_frequency();
+    bigint::BigInt total(0);
+    for (auto& v : freq) total += v;
+    // Lit() returns total number of literals across all sets
+    EXPECT_EQ(total, bigint::BigInt(ps.Lit()));
+}
+
+TEST_F(BDDTest, ZDD_ElementFrequency_ConsistencyWithEnumerate) {
+    // Verify against brute-force enumeration
+    // {{1}, {2}, {1,2,3}}
+    bddp s1 = bddchange(bddsingle, 1);
+    bddp s2 = bddchange(bddsingle, 2);
+    bddp s123 = bddchange(bddchange(bddchange(bddsingle, 1), 2), 3);
+    bddp f = bddunion(bddunion(s1, s2), s123);
+    auto freq = bddelmfreq(f);
+    // freq[1] = 2 (in {1} and {1,2,3})
+    // freq[2] = 2 (in {2} and {1,2,3})
+    // freq[3] = 1 (in {1,2,3})
+    ASSERT_GE(freq.size(), 4u);
+    EXPECT_EQ(freq[1], bigint::BigInt(2));
+    EXPECT_EQ(freq[2], bigint::BigInt(2));
+    EXPECT_EQ(freq[3], bigint::BigInt(1));
+}
+
 // --- ZDD::singleton ---
 
 TEST_F(BDDTest, ZDD_Singleton) {
