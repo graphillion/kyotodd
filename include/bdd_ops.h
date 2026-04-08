@@ -623,6 +623,17 @@ bool bddcontains(bddp f, const std::vector<bddvar>& s);
 bool bddissubset(bddp f, bddp g);
 
 /**
+ * @brief Return the union of all sets in the family as a single-set ZDD.
+ *
+ * For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}.
+ * Returns empty for null or empty family.
+ *
+ * @param f A ZDD node ID.
+ * @return A ZDD node ID representing {{union of all sets}}.
+ */
+bddp bddflatten(bddp f);
+
+/**
  * @brief Filter to sets of exactly k elements.
  *
  * Returns a ZDD containing only those sets in the family represented

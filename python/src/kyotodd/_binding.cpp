@@ -1425,6 +1425,12 @@ PYBIND11_MODULE(_core, m) {
              "    g: The candidate superset family.\n\n"
              "Returns:\n"
              "    True if this family is a subset of g.\n")
+        .def("flatten", &ZDD::flatten,
+             "Return the union of all sets as a single-set ZDD.\n\n"
+             "For F = {S1, S2, ...}, returns {{S1 | S2 | ...}}.\n\n"
+             "Returns:\n"
+             "    A ZDD containing exactly one set (the union of all sets\n"
+             "    in the family). Empty for an empty family.\n")
         .def("choose", &ZDD::choose, py::arg("k"),
              "Filter to sets of exactly k elements.\n\n"
              "Args:\n"

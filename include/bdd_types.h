@@ -1122,6 +1122,10 @@ public:
     /** @brief Check if this family is a subset of another (F ⊆ G). */
     bool is_subset_family(const ZDD& g) const;
 
+    /** @brief Return the union of all sets in the family as a single-set ZDD.
+     *  For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}. */
+    ZDD flatten() const;
+
     /** @brief Filter to sets of exactly k elements. */
     ZDD choose(int k) const;
 

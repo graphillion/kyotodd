@@ -269,6 +269,10 @@ bool ZDD::is_subset_family(const ZDD& g) const {
     return bddissubset(root, g.root);
 }
 
+ZDD ZDD::flatten() const {
+    return ZDD_ID(bddflatten(root));
+}
+
 ZDD ZDD::choose(int k) const {
     return ZDD_ID(bddchoose(root, k));
 }

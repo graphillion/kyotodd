@@ -764,6 +764,19 @@ std::vector<bigint::BigInt> bddelmfreq(bddp f) {
     return bddelmfreq_rec(f, freq_memo, count_memo);
 }
 
+bddp bddflatten(bddp f) {
+    bddp_validate(f, "bddflatten");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    auto vars = bddsupport_vec(f);
+    if (vars.empty()) return bddsingle;  // non-empty family with no variables → {∅}
+    bddp result = bddsingle;
+    for (bddvar v : vars) {
+        result = bddchange(result, v);
+    }
+    return result;
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

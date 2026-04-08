@@ -9662,6 +9662,86 @@ TEST_F(BDDTest, ZDD_IsSubsetFamily_FreeFunction) {
     EXPECT_FALSE(bddissubset(ps, c32));
 }
 
+// --- bddflatten / ZDD::flatten ---
+
+TEST_F(BDDTest, ZDD_Flatten_EmptyFamily) {
+    ZDD e(0);
+    ZDD result = e.flatten();
+    EXPECT_TRUE(result.is_zero());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_Null) {
+    EXPECT_EQ(bddflatten(bddnull), bddnull);
+}
+
+TEST_F(BDDTest, ZDD_Flatten_UnitFamily) {
+    // {∅} → {∅}
+    ZDD u(1);
+    ZDD result = u.flatten();
+    EXPECT_TRUE(result.is_one());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_SingletonSet) {
+    // {{1}} → {{1}}
+    ZDD s1 = ZDD::singleton(1);
+    ZDD result = s1.flatten();
+    EXPECT_EQ(result.GetID(), s1.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_TwoDisjointSets) {
+    // {{1}, {2}} → {{1,2}}
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    ZDD result = f.flatten();
+    ZDD expected = ZDD::single_set({1, 2});
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_OverlappingSets) {
+    // {{1,2}, {2,3}} → {{1,2,3}}
+    ZDD f = ZDD::single_set({1, 2}) + ZDD::single_set({2, 3});
+    ZDD result = f.flatten();
+    ZDD expected = ZDD::single_set({1, 2, 3});
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_PowerSet) {
+    // power_set(3) → {{1,2,3}}
+    ZDD ps = ZDD::power_set(3);
+    ZDD result = ps.flatten();
+    ZDD expected = ZDD::single_set({1, 2, 3});
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_WithEmptySet) {
+    // {{}, {1,2}} → {{1,2}} (∅ contributes nothing)
+    ZDD f = ZDD(1) + ZDD::single_set({1, 2});
+    ZDD result = f.flatten();
+    ZDD expected = ZDD::single_set({1, 2});
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_ComplementEdge) {
+    // ~{{1}} = {{1}, ∅} → flatten = {{1}}
+    ZDD s1 = ZDD::singleton(1);
+    ZDD comp = ~s1;
+    ZDD result = comp.flatten();
+    EXPECT_EQ(result.GetID(), s1.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Flatten_ResultIsSingleSet) {
+    // flatten always returns 0 or 1 sets
+    ZDD ps = ZDD::power_set(4);
+    ZDD result = ps.flatten();
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, ZDD_Flatten_FreeFunction) {
+    bddp f = bddunion(bddchange(bddsingle, 1), bddchange(bddsingle, 2));
+    bddp result = bddflatten(f);
+    bddp expected = bddchange(bddchange(bddsingle, 1), 2);
+    EXPECT_EQ(result, expected);
+}
+
 // --- bddchoose / ZDD::choose ---
 
 TEST_F(BDDTest, ZDD_Choose_TerminalCases) {
