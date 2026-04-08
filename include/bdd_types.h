@@ -1317,6 +1317,18 @@ public:
     ZDD project(const std::vector<bddvar>& vars) const;
 
     /**
+     * @brief Coalesce (merge) two variables into one.
+     *
+     * Merges variable @p v2 into @p v1. In each set of the family,
+     * if v1 or v2 (or both) is present, the result set contains v1;
+     * v2 is removed. Duplicate sets are eliminated.
+     * @param v1 The surviving variable.
+     * @param v2 The variable to merge into v1 (eliminated).
+     * @return A new ZDD with v2 merged into v1.
+     */
+    ZDD coalesce(bddvar v1, bddvar v2) const;
+
+    /**
      * @brief Rank a set in the family (int64_t version).
      *
      * Returns the 0-based index of @p s in the ZDD's structure-based ordering.

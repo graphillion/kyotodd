@@ -777,6 +777,33 @@ bddp bddflatten(bddp f) {
     return result;
 }
 
+bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
+    bddp_validate(f, "bddcoalesce");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (v1 == v2) return f;
+    // If v2 is not an allocated variable, no set can contain it → unchanged
+    if (v2 < 1 || v2 > bdd_varcount) return f;
+    // Terminal: {∅} has no variables → unchanged
+    if (f == bddsingle) return bddsingle;
+
+    return bdd_gc_guard([&]() -> bddp {
+        // A = sets not containing v2 (unchanged)
+        bddp a = bddoffset(f, v2);
+        // B = sets containing v2, with v2 removed
+        bddp b = bddonset0(f, v2);
+
+        // Ensure v1 is present in every set of B:
+        // - sets already having v1: keep as is
+        // - sets without v1: add v1
+        bddp b_has_v1 = bddonset(b, v1);
+        bddp b_no_v1 = bddoffset(b, v1);
+        bddp b_merged = bddunion(b_has_v1, bddchange(b_no_v1, v1));
+
+        return bddunion(a, b_merged);
+    });
+}
+
 static bddp bddminhit_rec(bddp f);
 
 bddp bddminhit(bddp f) {

@@ -9742,6 +9742,101 @@ TEST_F(BDDTest, ZDD_Flatten_FreeFunction) {
     EXPECT_EQ(result, expected);
 }
 
+// --- bddcoalesce / ZDD::coalesce ---
+
+TEST_F(BDDTest, ZDD_Coalesce_EmptyFamily) {
+    ZDD e(0);
+    EXPECT_TRUE(e.coalesce(1, 2).is_zero());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_UnitFamily) {
+    // {∅} → {∅} (no variables to merge)
+    ZDD u(1);
+    EXPECT_TRUE(u.coalesce(1, 2).is_one());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_SameVariable) {
+    // coalesce(v, v) = identity
+    ZDD f = ZDD::power_set(3);
+    EXPECT_EQ(f.coalesce(1, 1).GetID(), f.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_V2NotPresent) {
+    // {{1}} coalesce(1,2): v2=2 not present → unchanged
+    ZDD s1 = ZDD::singleton(1);
+    ZDD result = s1.coalesce(1, 2);
+    EXPECT_EQ(result.GetID(), s1.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_V1NotPresent) {
+    // {{2}} coalesce(1,2): v2=2 replaced by v1=1 → {{1}}
+    ZDD s2 = ZDD::singleton(2);
+    ZDD result = s2.coalesce(1, 2);
+    ZDD expected = ZDD::singleton(1);
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_BothPresent) {
+    // {{1,2}} coalesce(1,2): both present → v2 removed, v1 stays → {{1}}
+    ZDD s12 = ZDD::single_set({1, 2});
+    ZDD result = s12.coalesce(1, 2);
+    ZDD expected = ZDD::singleton(1);
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_MergesDuplicates) {
+    // {{1}, {2}} coalesce(1,2): both become {{1}} → {{1}} (deduplicated)
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    ZDD result = f.coalesce(1, 2);
+    ZDD expected = ZDD::singleton(1);
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_MixedSets) {
+    // {{1,3}, {2,3}} coalesce(1,2): → {{1,3}} (deduplicated)
+    ZDD f = ZDD::single_set({1, 3}) + ZDD::single_set({2, 3});
+    ZDD result = f.coalesce(1, 2);
+    ZDD expected = ZDD::single_set({1, 3});
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_PreservesOtherVariables) {
+    // {{2,3}} coalesce(1,2): → {{1,3}}
+    ZDD f = ZDD::single_set({2, 3});
+    ZDD result = f.coalesce(1, 2);
+    auto sets = result.enumerate();
+    ASSERT_EQ(sets.size(), 1u);
+    std::vector<bddvar> expected = {1, 3};
+    EXPECT_EQ(sets[0], expected);
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_WithEmptySet) {
+    // {{}, {1}, {2}} coalesce(1,2): ∅→∅, {1}→{1}, {2}→{1} → {{}, {1}}
+    ZDD f = ZDD(1) + ZDD::singleton(1) + ZDD::singleton(2);
+    ZDD result = f.coalesce(1, 2);
+    ZDD expected = ZDD(1) + ZDD::singleton(1);
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_ConsistencyWithEnumerate) {
+    // Verify by brute-force: enumerate, coalesce each set, compare
+    // F = {{1,2}, {2,3}, {3}}
+    ZDD f = ZDD::single_set({1, 2}) + ZDD::single_set({2, 3}) + ZDD::singleton(3);
+    ZDD result = f.coalesce(1, 2);
+    // {1,2} → v2 removed, v1 stays → {1}
+    // {2,3} → v2 replaced by v1 → {1,3}
+    // {3}   → no v1 or v2 → {3}
+    ZDD expected = ZDD::singleton(1) + ZDD::single_set({1, 3}) + ZDD::singleton(3);
+    EXPECT_EQ(result.GetID(), expected.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_FreeFunction) {
+    bddp f = bddunion(bddchange(bddsingle, 1), bddchange(bddsingle, 2));
+    bddp result = bddcoalesce(f, 1, 2);
+    bddp expected = bddchange(bddsingle, 1);
+    EXPECT_EQ(result, expected);
+}
+
 // --- bddchoose / ZDD::choose ---
 
 TEST_F(BDDTest, ZDD_Choose_TerminalCases) {

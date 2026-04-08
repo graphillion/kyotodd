@@ -273,6 +273,10 @@ ZDD ZDD::flatten() const {
     return ZDD_ID(bddflatten(root));
 }
 
+ZDD ZDD::coalesce(bddvar v1, bddvar v2) const {
+    return ZDD_ID(bddcoalesce(root, v1, v2));
+}
+
 ZDD ZDD::choose(int k) const {
     return ZDD_ID(bddchoose(root, k));
 }

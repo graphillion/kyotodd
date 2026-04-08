@@ -1900,6 +1900,15 @@ PYBIND11_MODULE(_core, m) {
              "    vars: A list of variable numbers to remove.\n\n"
              "Returns:\n"
              "    A ZDD with the specified variables removed from all sets.\n")
+        .def("coalesce", &ZDD::coalesce, py::arg("v1"), py::arg("v2"),
+             "Coalesce (merge) two variables into one.\n\n"
+             "Merges variable v2 into v1. In each set, if v1 or v2\n"
+             "(or both) is present, the result contains v1; v2 is removed.\n\n"
+             "Args:\n"
+             "    v1: The surviving variable.\n"
+             "    v2: The variable to merge into v1.\n\n"
+             "Returns:\n"
+             "    A new ZDD with v2 merged into v1.\n")
         .def("to_bdd", &ZDD::to_bdd, py::arg("n") = 0,
              "Convert ZDD (family) to BDD (characteristic function).\n\n"
              "Args:\n"

@@ -587,6 +587,20 @@ bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s);
 bddp bddproject(bddp f, const std::vector<bddvar>& vars);
 
 /**
+ * @brief Coalesce (merge) two variables in a ZDD family.
+ *
+ * Merges variable @p v2 into @p v1. In each set of the family,
+ * if v1 or v2 (or both) is present, the result set contains v1;
+ * v2 is removed. Duplicate sets are eliminated.
+ *
+ * @param f A ZDD node ID.
+ * @param v1 The surviving variable.
+ * @param v2 The variable to merge into v1 (eliminated).
+ * @return A ZDD node ID representing the coalesced family.
+ */
+bddp bddcoalesce(bddp f, bddvar v1, bddvar v2);
+
+/**
  * @brief Check if the empty set (∅) is a member of a ZDD family.
  *
  * Returns true if ∅ ∈ F, i.e. the family represented by @p f
