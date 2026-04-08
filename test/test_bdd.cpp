@@ -14214,3 +14214,175 @@ TEST_F(BDDTest, ZDD_ToBdd_WithN) {
     EXPECT_EQ(bdd2, x1 & ~x2);
 }
 
+// --- ZDD::sample_k ---
+
+TEST_F(BDDTest, ZDD_SampleK_EmptyFamily) {
+    ZDD f(0);  // empty family
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    ZDD result = f.sample_k(3, rng, memo);
+    EXPECT_EQ(result, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_ZeroK) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    ZDD result = f.sample_k(0, rng, memo);
+    EXPECT_EQ(result, ZDD::Empty);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_KGreaterThanTotal) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);  // {{1}, {2}}
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    ZDD result = f.sample_k(10, rng, memo);
+    EXPECT_EQ(result, f);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_KEqualsTotal) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    ZDD result = f.sample_k(2, rng, memo);
+    EXPECT_EQ(result, f);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_SingleElement) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2) + ZDD::singleton(3);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    ZDD result = f.sample_k(1, rng, memo);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(1));
+    // Result must be a subset of f
+    EXPECT_TRUE(result.is_subset_family(f));
+}
+
+TEST_F(BDDTest, ZDD_SampleK_CorrectCount) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of {1,2,3} = 8 sets
+    ZDD f = ZDD::power_set(3);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(123);
+    ZDD result = f.sample_k(5, rng, memo);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(5));
+    EXPECT_TRUE(result.is_subset_family(f));
+}
+
+TEST_F(BDDTest, ZDD_SampleK_SubsetOfOriginal) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of {1,2,3,4} = 16 sets
+    ZDD f = ZDD::power_set(4);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(999);
+    for (int k = 1; k <= 15; ++k) {
+        ZDD result = f.sample_k(k, rng, memo);
+        EXPECT_EQ(result.exact_count(), bigint::BigInt(k));
+        EXPECT_TRUE(result.is_subset_family(f));
+    }
+}
+
+TEST_F(BDDTest, ZDD_SampleK_WithEmptySet) {
+    bddnewvar();
+    bddnewvar();
+    // F = {∅, {1}, {2}} — 3 sets including ∅
+    ZDD f = ZDD::Single + ZDD::singleton(1) + ZDD::singleton(2);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(77);
+    ZDD result = f.sample_k(2, rng, memo);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(2));
+    EXPECT_TRUE(result.is_subset_family(f));
+}
+
+TEST_F(BDDTest, ZDD_SampleK_DifferentSeeds) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of {1,..,5} = 32 sets, sample 3
+    ZDD f = ZDD::power_set(5);
+    ZddCountMemo memo(f);
+
+    std::mt19937_64 rng1(111);
+    ZDD r1 = f.sample_k(3, rng1, memo);
+
+    std::mt19937_64 rng2(222);
+    ZDD r2 = f.sample_k(3, rng2, memo);
+
+    // Both are valid samples
+    EXPECT_EQ(r1.exact_count(), bigint::BigInt(3));
+    EXPECT_EQ(r2.exact_count(), bigint::BigInt(3));
+    EXPECT_TRUE(r1.is_subset_family(f));
+    EXPECT_TRUE(r2.is_subset_family(f));
+    // Very unlikely to be identical with different seeds
+    // (not guaranteed but extremely improbable for 32-choose-3 = 4960)
+    EXPECT_NE(r1, r2);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_NullThrows) {
+    ZDD f;
+    f = ZDD::Null;
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.sample_k(1, rng, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_NegativeKThrows) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.sample_k(-1, rng, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_SampleK_Uniformity) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}, {3}}, sample k=1 many times
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2) + ZDD::singleton(3);
+    ZddCountMemo memo(f);
+
+    int counts[4] = {};  // counts[1..3]
+    const int trials = 3000;
+    std::mt19937_64 rng(12345);
+    for (int i = 0; i < trials; ++i) {
+        ZDD result = f.sample_k(1, rng, memo);
+        auto sets = result.enumerate();
+        ASSERT_EQ(sets.size(), 1u);
+        ASSERT_EQ(sets[0].size(), 1u);
+        counts[sets[0][0]]++;
+    }
+    // Each should be ~1000 (±150)
+    for (int v = 1; v <= 3; ++v) {
+        EXPECT_GT(counts[v], 700);
+        EXPECT_LT(counts[v], 1300);
+    }
+}
+
+TEST_F(BDDTest, ZDD_SampleK_LargerFamily) {
+    for (int i = 0; i < 6; ++i) bddnewvar();
+    // Power set of {1,..,6} = 64 sets
+    ZDD f = ZDD::power_set(6);
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+
+    ZDD result = f.sample_k(20, rng, memo);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(20));
+    EXPECT_TRUE(result.is_subset_family(f));
+}
+

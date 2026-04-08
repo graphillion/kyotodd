@@ -837,6 +837,22 @@ public:
     /// @endcond
 
     /**
+     * @brief Uniformly sample k sets from the family and return as a ZDD.
+     *
+     * Each combination of k distinct sets is selected with equal probability.
+     * Uses hypergeometric distribution at each node to split k between branches.
+     * When k >= |F|, returns the original ZDD unchanged.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param k Number of sets to sample.
+     * @param rng The random number generator.
+     * @param memo A ZddCountMemo created for this ZDD.
+     * @return A ZDD containing the sampled k sets.
+     */
+    template<typename RNG>
+    ZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo);
+
+    /**
      * @brief Enumerate all sets in the ZDD family.
      *
      * Returns every set in the family as a vector of variable numbers.

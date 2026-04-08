@@ -991,6 +991,140 @@ std::vector<bddvar> BDD::uniform_sample(RNG& rng, bddvar n, BddCountMemo& memo) 
         n, memo);
 }
 
+// ---------------------------------------------------------------
+// Hypergeometric sampling: draw k from population N where K are
+// "successes", using sequential Bernoulli trials.
+// Returns the number of successes drawn.
+// ---------------------------------------------------------------
+namespace detail {
+
+template<typename RNG>
+bigint::BigInt hypergeometric_sample(
+    const bigint::BigInt& k,      // number of draws
+    const bigint::BigInt& K,      // successes in population
+    const bigint::BigInt& N,      // population size
+    RNG& rng)
+{
+    // Edge cases
+    if (k.is_zero() || K.is_zero()) return bigint::BigInt(0);
+    if (K == N) return k;
+
+    // Sequential Bernoulli: for each of k draws, decide success/fail
+    bigint::BigInt successes(0);
+    bigint::BigInt remaining_K = K;
+    bigint::BigInt remaining_N = N;
+
+    // We iterate min(k, N) times at most.
+    // At each step: P(success) = remaining_K / remaining_N
+    // Draw uniform in [0, remaining_N), success if < remaining_K
+    bigint::BigInt draws_left = k;
+    while (draws_left > bigint::BigInt(0) && remaining_K > bigint::BigInt(0)) {
+        // If remaining draws >= remaining population, take all remaining successes
+        if (draws_left >= remaining_N) {
+            successes = successes + remaining_K;
+            break;
+        }
+        // If remaining successes == remaining population, every draw is success
+        if (remaining_K == remaining_N) {
+            successes = successes + draws_left;
+            break;
+        }
+
+        bigint::BigInt r = bigint::uniform_random(remaining_N, rng);
+        if (r < remaining_K) {
+            successes = successes + bigint::BigInt(1);
+            remaining_K = remaining_K - bigint::BigInt(1);
+        }
+        remaining_N = remaining_N - bigint::BigInt(1);
+        draws_left = draws_left - bigint::BigInt(1);
+    }
+    return successes;
+}
+
+template<typename RNG>
+bddp sample_k_rec(
+    bddp f,
+    const bigint::BigInt& k,
+    RNG& rng,
+    CountMemoMap& memo)
+{
+    // Base cases
+    if (k.is_zero() || f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;  // k >= 1, only ∅ in family
+
+    bigint::BigInt total = bddexactcount(f, memo);
+    if (k >= total) return f;
+
+    // Decompose with ZDD complement edge handling
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp raw_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    bddp f_lo = comp ? bddnot(raw_lo) : raw_lo;
+
+    bigint::BigInt count_hi = bddexactcount(f_hi, memo);
+    bigint::BigInt count_lo = total - count_hi;
+
+    // Hypergeometric: from k draws in population of size total,
+    // count_hi are "successes" (hi-branch sets)
+    bigint::BigInt k_hi = hypergeometric_sample(k, count_hi, total, rng);
+    bigint::BigInt k_lo = k - k_hi;
+
+    bddp result_lo = sample_k_rec(f_lo, k_lo, rng, memo);
+    bddp result_hi = sample_k_rec(f_hi, k_hi, rng, memo);
+
+    return ZDD::getnode_raw(var, result_lo, result_hi);
+}
+
+} // namespace detail
+
+template<typename RNG>
+ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
+    if (root == bddnull) {
+        throw std::invalid_argument("sample_k: null ZDD");
+    }
+    if (k < 0) {
+        throw std::invalid_argument("sample_k: k must be >= 0");
+    }
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "sample_k: memo was created for a different ZDD");
+    }
+    if (!memo.stored()) {
+        exact_count(memo);
+    }
+
+    if (k == 0 || root == bddempty) return ZDD(0);  // empty family
+
+    bigint::BigInt bk(k);
+    bigint::BigInt total = bddexactcount(root, memo.map());
+    if (bk >= total) return *this;
+
+    // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
+    bool has_empty = bddhasempty(root);
+    if (has_empty) {
+        // P(include ∅) = k / total
+        bigint::BigInt r = bigint::uniform_random(total, rng);
+        if (r < bk) {
+            // Include ∅, sample k-1 from f without ∅
+            bddp f_no_empty = bddnot(root);  // toggle ∅
+            bddp sampled = detail::sample_k_rec(
+                f_no_empty, bk - bigint::BigInt(1), rng, memo.map());
+            return ZDD_ID(bddnot(sampled));  // add ∅ back
+        } else {
+            // Exclude ∅, sample k from f without ∅
+            bddp f_no_empty = bddnot(root);
+            bddp sampled = detail::sample_k_rec(
+                f_no_empty, bk, rng, memo.map());
+            return ZDD_ID(sampled);
+        }
+    }
+
+    return ZDD_ID(detail::sample_k_rec(root, bk, rng, memo.map()));
+}
+
 template<typename RNG>
 ZDD ZDD::random_family(bddvar n, RNG& rng) {
     // Ensure variables exist

@@ -1400,6 +1400,30 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of variable numbers in the sampled set.\n")
+        .def("sample_k", [](ZDD& z, int64_t k, uint64_t seed) -> ZDD {
+            std::mt19937_64 rng(seed);
+            ZddCountMemo memo(z);
+            return z.sample_k(k, rng, memo);
+        }, py::arg("k"), py::arg("seed") = 0,
+           "Sample k sets uniformly at random and return as a ZDD.\n\n"
+           "Uses hypergeometric distribution to split k between branches\n"
+           "at each node, constructing the result ZDD directly.\n\n"
+           "Args:\n"
+           "    k: Number of sets to sample.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A ZDD containing the sampled k sets.\n")
+        .def("sample_k_with_memo", [](ZDD& z, int64_t k, ZddCountMemo& memo, uint64_t seed) -> ZDD {
+            std::mt19937_64 rng(seed);
+            return z.sample_k(k, rng, memo);
+        }, py::arg("k"), py::arg("memo"), py::arg("seed") = 0,
+           "Sample k sets using a memo for caching.\n\n"
+           "Args:\n"
+           "    k: Number of sets to sample.\n"
+           "    memo: A ZddCountMemo object for caching.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A ZDD containing the sampled k sets.\n")
 
         // Enumeration
         .def("enumerate", &ZDD::enumerate,
