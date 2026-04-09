@@ -1060,6 +1060,8 @@ bddp sample_k_rec(
     if (k.is_zero() || f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;  // k >= 1, only ∅ in family
 
+    BDD_RecurGuard guard;
+
     bigint::BigInt total = bddexactcount(f, memo);
     if (k >= total) return f;
 
@@ -1133,27 +1135,30 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
     bigint::BigInt total = bddexactcount(root, memo.map());
     if (bk >= total) return *this;
 
-    // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
-    bool has_empty = bddhasempty(root);
-    if (has_empty) {
-        // P(include ∅) = k / total
-        bigint::BigInt r = bigint::uniform_random(total, rng);
-        if (r < bk) {
-            // Include ∅, sample k-1 from f without ∅
-            bddp f_no_empty = bddnot(root);  // toggle ∅
-            bddp sampled = detail::sample_k_rec(
-                f_no_empty, bk - bigint::BigInt(1), rng, memo.map());
-            return ZDD_ID(bddnot(sampled));  // add ∅ back
-        } else {
-            // Exclude ∅, sample k from f without ∅
-            bddp f_no_empty = bddnot(root);
-            bddp sampled = detail::sample_k_rec(
-                f_no_empty, bk, rng, memo.map());
-            return ZDD_ID(sampled);
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
+        bool has_empty = bddhasempty(root);
+        if (has_empty) {
+            // P(include ∅) = k / total
+            bigint::BigInt r = bigint::uniform_random(total, rng);
+            if (r < bk) {
+                // Include ∅, sample k-1 from f without ∅
+                bddp f_no_empty = bddnot(root);  // toggle ∅
+                bddp sampled = detail::sample_k_rec(
+                    f_no_empty, bk - bigint::BigInt(1), rng, memo.map());
+                return bddnot(sampled);  // add ∅ back
+            } else {
+                // Exclude ∅, sample k from f without ∅
+                bddp f_no_empty = bddnot(root);
+                bddp sampled = detail::sample_k_rec(
+                    f_no_empty, bk, rng, memo.map());
+                return sampled;
+            }
         }
-    }
 
-    return ZDD_ID(detail::sample_k_rec(root, bk, rng, memo.map()));
+        return detail::sample_k_rec(root, bk, rng, memo.map());
+    });
+    return ZDD_ID(result);
 }
 
 template<typename RNG>
@@ -1169,20 +1174,23 @@ ZDD ZDD::random_subset(double p, RNG& rng) {
 
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
-    bool has_empty = bddhasempty(root);
-    if (has_empty) {
-        bool include_empty = (dist(rng) < p);
-        bddp f_no_empty = bddnot(root);
-        bddp sampled = detail::random_subset_rec(
-            f_no_empty, p, rng, dist);
-        if (include_empty) {
-            return ZDD_ID(bddnot(sampled));  // add ∅ back
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
+        bool has_empty = bddhasempty(root);
+        if (has_empty) {
+            bool include_empty = (dist(rng) < p);
+            bddp f_no_empty = bddnot(root);
+            bddp sampled = detail::random_subset_rec(
+                f_no_empty, p, rng, dist);
+            if (include_empty) {
+                return bddnot(sampled);  // add ∅ back
+            }
+            return sampled;
         }
-        return ZDD_ID(sampled);
-    }
 
-    return ZDD_ID(detail::random_subset_rec(root, p, rng, dist));
+        return detail::random_subset_rec(root, p, rng, dist);
+    });
+    return ZDD_ID(result);
 }
 
 template<typename RNG>
@@ -1203,10 +1211,13 @@ std::vector<bddvar> ZDD::boltzmann_sample(
     const std::vector<double>& weights, double beta,
     RNG& rng, WeightedSampleMemo& memo)
 {
-    (void)weights;
-    (void)beta;
+    if (memo.mode() != WeightMode::Product) {
+        throw std::invalid_argument(
+            "boltzmann_sample: memo must use Product mode");
+    }
+    std::vector<double> tw = boltzmann_weights(weights, beta);
     return weighted_sample_impl(
-        memo.weights(), memo.mode(),
+        tw, WeightMode::Product,
         [&rng](double upper) -> double {
             std::uniform_real_distribution<double> dist(0.0, upper);
             return dist(rng);

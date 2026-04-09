@@ -9762,10 +9762,24 @@ TEST_F(BDDTest, ZDD_Coalesce_SameVariable) {
 }
 
 TEST_F(BDDTest, ZDD_Coalesce_V2NotPresent) {
-    // {{1}} coalesce(1,2): v2=2 not present → unchanged
+    // {{1}} coalesce(1,2): v2=2 allocated but not in any set → unchanged
+    ZDD::new_var();  // var 1
+    ZDD::new_var();  // var 2
     ZDD s1 = ZDD::singleton(1);
     ZDD result = s1.coalesce(1, 2);
     EXPECT_EQ(result.GetID(), s1.GetID());
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_V1OutOfRange) {
+    ZDD::new_var();
+    ZDD s1 = ZDD::singleton(1);
+    EXPECT_THROW(s1.coalesce(99, 1), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_Coalesce_V2OutOfRange) {
+    ZDD::new_var();
+    ZDD s1 = ZDD::singleton(1);
+    EXPECT_THROW(s1.coalesce(1, 99), std::invalid_argument);
 }
 
 TEST_F(BDDTest, ZDD_Coalesce_V1NotPresent) {
@@ -14630,6 +14644,30 @@ TEST_F(BDDTest, ZDD_BoltzmannSample_ZeroBeta) {
         EXPECT_GT(counts[v], 700);
         EXPECT_LT(counts[v], 1300);
     }
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_WrongMemoMode) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 1.0, 2.0};
+    // Sum mode memo is invalid for boltzmann_sample
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.boltzmann_sample(w, 1.0, rng, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_MemoWeightsMismatch) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w1 = {0.0, 1.0, 2.0};
+    std::vector<double> w2 = {0.0, 3.0, 4.0};
+    WeightedSampleMemo memo(f, w1, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+    // Passing different weights than memo was created with should throw
+    EXPECT_THROW(f.weighted_sample(w2, WeightMode::Sum, rng, memo),
+                 std::invalid_argument);
 }
 
 TEST_F(BDDTest, ZDD_WeightedSample_Product_LargerFamily) {

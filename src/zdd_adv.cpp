@@ -781,11 +781,15 @@ bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
     bddp_validate(f, "bddcoalesce");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
-    if (v1 == v2) return f;
-    // If v2 is not an allocated variable, no set can contain it → unchanged
-    if (v2 < 1 || v2 > bdd_varcount) return f;
     // Terminal: {∅} has no variables → unchanged
     if (f == bddsingle) return bddsingle;
+    if (v1 == v2) return f;
+    if (v1 < 1 || v1 > bdd_varcount) {
+        throw std::invalid_argument("bddcoalesce: v1 out of range");
+    }
+    if (v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddcoalesce: v2 out of range");
+    }
 
     return bdd_gc_guard([&]() -> bddp {
         // A = sets not containing v2 (unchanged)

@@ -705,11 +705,17 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             "weighted_sample: memo mode mismatch");
     }
 
-    // Validate weights size
-    bddvar top_v = bddtop(root);
-    if (top_v > 0 && weights.size() <= static_cast<size_t>(top_v)) {
-        throw std::invalid_argument(
-            "weighted_sample: weights.size() must be > top variable");
+    // Validate weights size against max variable in support
+    {
+        std::vector<bddvar> sup = bddsupport_vec(root);
+        bddvar max_var = 0;
+        for (bddvar v : sup) {
+            if (v > max_var) max_var = v;
+        }
+        if (max_var > 0 && weights.size() <= static_cast<size_t>(max_var)) {
+            throw std::invalid_argument(
+                "weighted_sample: weights.size() must be > max variable in support");
+        }
     }
 
     // Validate non-negative weights
@@ -719,6 +725,12 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
                 "weighted_sample: negative weight at index "
                 + std::to_string(i));
         }
+    }
+
+    // Validate weights match memo's weights
+    if (weights != memo.weights()) {
+        throw std::invalid_argument(
+            "weighted_sample: weights do not match memo's weights");
     }
 
     // Populate memo if needed
