@@ -14657,6 +14657,32 @@ TEST_F(BDDTest, ZDD_BoltzmannSample_WrongMemoMode) {
     EXPECT_THROW(f.boltzmann_sample(w, 1.0, rng, memo), std::invalid_argument);
 }
 
+TEST_F(BDDTest, ZDD_BoltzmannSample_WeightsMismatch) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w1 = {0.0, 1.0, 2.0};
+    std::vector<double> w2 = {0.0, 5.0, 10.0};
+    double beta = 1.0;
+    // Memo created with w1, but boltzmann_sample called with w2
+    auto tw1 = ZDD::boltzmann_weights(w1, beta);
+    WeightedSampleMemo memo(f, tw1, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.boltzmann_sample(w2, beta, rng, memo), std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_BetaMismatch) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 1.0, 2.0};
+    // Memo created with beta=1.0, but boltzmann_sample called with beta=2.0
+    auto tw = ZDD::boltzmann_weights(w, 1.0);
+    WeightedSampleMemo memo(f, tw, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.boltzmann_sample(w, 2.0, rng, memo), std::invalid_argument);
+}
+
 TEST_F(BDDTest, ZDD_WeightedSample_MemoWeightsMismatch) {
     bddnewvar();
     bddnewvar();

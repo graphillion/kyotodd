@@ -770,11 +770,13 @@ bddp bddflatten(bddp f) {
     if (f == bddempty) return bddempty;
     auto vars = bddsupport_vec(f);
     if (vars.empty()) return bddsingle;  // non-empty family with no variables → {∅}
-    bddp result = bddsingle;
-    for (bddvar v : vars) {
-        result = bddchange(result, v);
-    }
-    return result;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp result = bddsingle;
+        for (bddvar v : vars) {
+            result = bddchange(result, v);
+        }
+        return result;
+    });
 }
 
 bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
