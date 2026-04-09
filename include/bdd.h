@@ -1013,8 +1013,11 @@ bigint::BigInt hypergeometric_sample(
     const bigint::BigInt& N,      // population size
     RNG& rng)
 {
+    const bigint::BigInt zero(0);
+    const bigint::BigInt one(1);
+
     // Edge cases
-    if (k.is_zero() || K.is_zero()) return bigint::BigInt(0);
+    if (k.is_zero() || K.is_zero()) return zero;
     if (K == N) return k;
 
     // Sequential Bernoulli: for each of k draws, decide success/fail
@@ -1026,7 +1029,7 @@ bigint::BigInt hypergeometric_sample(
     // At each step: P(success) = remaining_K / remaining_N
     // Draw uniform in [0, remaining_N), success if < remaining_K
     bigint::BigInt draws_left = k;
-    while (draws_left > bigint::BigInt(0) && remaining_K > bigint::BigInt(0)) {
+    while (draws_left > zero && remaining_K > zero) {
         // If remaining draws >= remaining population, take all remaining successes
         if (draws_left >= remaining_N) {
             successes = successes + remaining_K;
@@ -1040,11 +1043,11 @@ bigint::BigInt hypergeometric_sample(
 
         bigint::BigInt r = bigint::uniform_random(remaining_N, rng);
         if (r < remaining_K) {
-            successes = successes + bigint::BigInt(1);
-            remaining_K = remaining_K - bigint::BigInt(1);
+            successes = successes + one;
+            remaining_K = remaining_K - one;
         }
-        remaining_N = remaining_N - bigint::BigInt(1);
-        draws_left = draws_left - bigint::BigInt(1);
+        remaining_N = remaining_N - one;
+        draws_left = draws_left - one;
     }
     return successes;
 }
@@ -1214,6 +1217,17 @@ std::vector<bddvar> ZDD::boltzmann_sample(
     if (memo.mode() != WeightMode::Product) {
         throw std::invalid_argument(
             "boltzmann_sample: memo must use Product mode");
+    }
+    // On first call, validate weights/beta by computing transformed weights.
+    // On subsequent calls (memo already stored), skip redundant exp() calls
+    // and use the memo's stored weights directly.
+    if (memo.stored()) {
+        return weighted_sample_impl(
+            memo.weights(), WeightMode::Product,
+            [&rng](double upper) -> double {
+                std::uniform_real_distribution<double> dist(0.0, upper);
+                return dist(rng);
+            }, memo);
     }
     std::vector<double> tw = boltzmann_weights(weights, beta);
     return weighted_sample_impl(

@@ -819,6 +819,12 @@ static bddp bddproduct_rec(bddp f, bddp g) {
 
     bddp result;
 
+    if (f_level == g_level) {
+        throw std::invalid_argument(
+            "bddproduct: operands must have disjoint variable sets "
+            "(variable " + std::to_string(f_var) + " appears in both)");
+    }
+
     if (f_level > g_level) {
         // Decompose f; g has no sets with f_var (disjoint)
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);

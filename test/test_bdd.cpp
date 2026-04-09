@@ -10234,6 +10234,35 @@ TEST_F(BDDTest, ZDD_Product_FreeFunction) {
     EXPECT_EQ(result, join);
 }
 
+TEST_F(BDDTest, ZDD_Product_ComplementEdge) {
+    // F = power_set({1,2}) uses complement edges internally.
+    // G = {{3}} is a simple singleton.
+    // Result should equal join for disjoint variables.
+    ZDD f = ZDD::power_set({1, 2});
+    ZDD g = ZDD::singleton(3);
+    ZDD prod = f.product(g);
+    ZDD join = f * g;
+    EXPECT_EQ(prod.GetID(), join.GetID());
+    // Verify sets: {{3}, {1,3}, {2,3}, {1,2,3}}
+    EXPECT_EQ(prod.exact_count(), bigint::BigInt(4));
+    auto sets = prod.enumerate();
+    for (auto& s : sets) {
+        bool has3 = false;
+        for (bddvar v : s) {
+            if (v == 3) has3 = true;
+        }
+        EXPECT_TRUE(has3);
+    }
+}
+
+TEST_F(BDDTest, ZDD_Product_NonDisjointThrows) {
+    // product() requires disjoint variable sets.
+    // Overlapping variables should throw.
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    ZDD g = ZDD::singleton(2) + ZDD::singleton(3);
+    EXPECT_THROW(f.product(g), std::invalid_argument);
+}
+
 // --- ZDD::average_size ---
 
 TEST_F(BDDTest, ZDD_AverageSize_EmptyFamily) {
