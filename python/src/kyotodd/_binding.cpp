@@ -1449,6 +1449,18 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A ZDD containing the sampled k sets.\n")
+        .def("random_subset", [](ZDD& z, double p, uint64_t seed) -> ZDD {
+            std::mt19937_64 rng(seed);
+            return z.random_subset(p, rng);
+        }, py::arg("p"), py::arg("seed") = 0,
+           "Include each set independently with probability p.\n\n"
+           "Each set in the family is included in the result with\n"
+           "probability p, independently. Returns a new ZDD.\n\n"
+           "Args:\n"
+           "    p: Inclusion probability (0.0 to 1.0).\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A ZDD containing the randomly selected sets.\n")
         .def("weighted_sample", [](ZDD& z, const std::vector<double>& weights,
                                    WeightMode mode, uint64_t seed) -> std::vector<bddvar> {
             std::mt19937_64 rng(seed);

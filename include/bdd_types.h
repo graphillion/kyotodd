@@ -895,6 +895,20 @@ public:
     ZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo);
 
     /**
+     * @brief Include each set independently with probability p.
+     *
+     * Each set in the family is included in the result with probability p,
+     * independently of all other sets. Returns a new ZDD.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param p Inclusion probability (0.0 <= p <= 1.0).
+     * @param rng The random number generator.
+     * @return A ZDD containing the randomly selected sets.
+     */
+    template<typename RNG>
+    ZDD random_subset(double p, RNG& rng);
+
+    /**
      * @brief Sample a set proportional to its aggregated weight.
      *
      * P(S) = w(S) / sum(w(S') for all S' in F).

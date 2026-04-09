@@ -14869,4 +14869,135 @@ TEST_F(BDDTest, IsDisjoint_Symmetric) {
     EXPECT_EQ(a.is_disjoint(b), b.is_disjoint(a));
 }
 
+// ============================================================
+// random_subset tests
+// ============================================================
+
+TEST_F(BDDTest, RandomSubset_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    std::mt19937_64 rng(42);
+    ZDD result = empty.random_subset(0.5, rng);
+    EXPECT_TRUE(result.is_zero());
+}
+
+TEST_F(BDDTest, RandomSubset_ProbZero) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    std::mt19937_64 rng(42);
+    ZDD result = f.random_subset(0.0, rng);
+    EXPECT_TRUE(result.is_zero());
+}
+
+TEST_F(BDDTest, RandomSubset_ProbOne) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::power_set(2);
+    std::mt19937_64 rng(42);
+    ZDD result = f.random_subset(1.0, rng);
+    EXPECT_EQ(result, f);
+}
+
+TEST_F(BDDTest, RandomSubset_InvalidProb) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.random_subset(-0.1, rng), std::invalid_argument);
+    EXPECT_THROW(f.random_subset(1.1, rng), std::invalid_argument);
+}
+
+TEST_F(BDDTest, RandomSubset_NullZDD) {
+    ZDD f = ZDD::Null;
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(f.random_subset(0.5, rng), std::invalid_argument);
+}
+
+TEST_F(BDDTest, RandomSubset_UnitFamily) {
+    bddnewvar();
+    ZDD f = ZDD::Single;  // {∅}
+    std::mt19937_64 rng(42);
+    // Run several times: should get either Empty or Single
+    bool got_empty = false, got_single = false;
+    for (int i = 0; i < 100; ++i) {
+        ZDD result = f.random_subset(0.5, rng);
+        if (result.is_zero()) got_empty = true;
+        else if (result == ZDD::Single) got_single = true;
+        else FAIL() << "Unexpected result from random_subset on {∅}";
+    }
+    EXPECT_TRUE(got_empty);
+    EXPECT_TRUE(got_single);
+}
+
+TEST_F(BDDTest, RandomSubset_IsSubfamily) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    std::mt19937_64 rng(42);
+    for (int i = 0; i < 20; ++i) {
+        ZDD result = f.random_subset(0.5, rng);
+        EXPECT_TRUE(result.is_subset_family(f));
+    }
+}
+
+TEST_F(BDDTest, RandomSubset_SizeRange) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(4);  // 16 sets
+    std::mt19937_64 rng(42);
+    for (int i = 0; i < 20; ++i) {
+        ZDD result = f.random_subset(0.5, rng);
+        double cnt = result.count();
+        EXPECT_GE(cnt, 0.0);
+        EXPECT_LE(cnt, 16.0);
+    }
+}
+
+TEST_F(BDDTest, RandomSubset_StatisticalMean) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(5);  // 32 sets
+    double p = 0.3;
+    double expected_mean = p * 32.0;
+    int trials = 1000;
+    double total = 0.0;
+    std::mt19937_64 rng(123);
+    for (int i = 0; i < trials; ++i) {
+        ZDD result = f.random_subset(p, rng);
+        total += result.count();
+    }
+    double mean = total / trials;
+    // Allow ±3 standard deviations: stdev ≈ sqrt(n*p*(1-p)) ≈ sqrt(32*0.3*0.7) ≈ 2.59
+    // stdev of mean ≈ 2.59 / sqrt(1000) ≈ 0.082
+    // 5-sigma margin: 0.41
+    EXPECT_NEAR(mean, expected_mean, 1.0);
+}
+
+TEST_F(BDDTest, RandomSubset_DifferentSeeds) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(4);  // 16 sets
+    std::mt19937_64 rng1(1);
+    std::mt19937_64 rng2(2);
+    // With 16 sets and p=0.5, probability of identical results is (C(16,k)/2^16)^2
+    // summed over k, which is very small. Run a few times to be safe.
+    bool found_different = false;
+    for (int i = 0; i < 10; ++i) {
+        ZDD r1 = f.random_subset(0.5, rng1);
+        ZDD r2 = f.random_subset(0.5, rng2);
+        if (r1 != r2) {
+            found_different = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_different);
+}
 

@@ -1086,6 +1086,29 @@ bddp sample_k_rec(
     return ZDD::getnode_raw(var, result_lo, result_hi);
 }
 
+template<typename RNG>
+bddp random_subset_rec(bddp f, double p, RNG& rng,
+                        std::uniform_real_distribution<double>& dist)
+{
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return (dist(rng) < p) ? bddsingle : bddempty;
+
+    BDD_RecurGuard guard;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    bddvar var = node_var(f_raw);
+    bddp raw_lo = node_lo(f_raw);
+    bddp f_hi = node_hi(f_raw);
+    bddp f_lo = comp ? bddnot(raw_lo) : raw_lo;
+
+    bddp result_lo = random_subset_rec(f_lo, p, rng, dist);
+    bddp result_hi = random_subset_rec(f_hi, p, rng, dist);
+
+    return ZDD::getnode_raw(var, result_lo, result_hi);
+}
+
 } // namespace detail
 
 template<typename RNG>
@@ -1131,6 +1154,35 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
     }
 
     return ZDD_ID(detail::sample_k_rec(root, bk, rng, memo.map()));
+}
+
+template<typename RNG>
+ZDD ZDD::random_subset(double p, RNG& rng) {
+    if (root == bddnull) {
+        throw std::invalid_argument("random_subset: null ZDD");
+    }
+    if (!(p >= 0.0 && p <= 1.0)) {  // catches NaN too
+        throw std::invalid_argument("random_subset: p must be in [0.0, 1.0]");
+    }
+    if (root == bddempty || p == 0.0) return ZDD(0);
+    if (p == 1.0) return *this;
+
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
+    bool has_empty = bddhasempty(root);
+    if (has_empty) {
+        bool include_empty = (dist(rng) < p);
+        bddp f_no_empty = bddnot(root);
+        bddp sampled = detail::random_subset_rec(
+            f_no_empty, p, rng, dist);
+        if (include_empty) {
+            return ZDD_ID(bddnot(sampled));  // add ∅ back
+        }
+        return ZDD_ID(sampled);
+    }
+
+    return ZDD_ID(detail::random_subset_rec(root, p, rng, dist));
 }
 
 template<typename RNG>
