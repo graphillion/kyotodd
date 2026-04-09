@@ -1046,6 +1046,9 @@ public:
     uint64_t Len() const;
     /** @brief Return the minimum set size in the family. */
     uint64_t min_size() const;
+    /** @brief Return the maximum set size in the family.
+     *  Equivalent to Len(). */
+    uint64_t max_size() const;
     /**
      * @brief Return the cardinality as a hexadecimal string.
      * @deprecated Use count() or exact_count() instead.
@@ -1239,6 +1242,10 @@ public:
 
     /** @brief Check if this family is a subset of another (F ⊆ G). */
     bool is_subset_family(const ZDD& g) const;
+
+    /** @brief Check if two families are disjoint (F ∩ G = ∅).
+     *  Early termination: returns as soon as a common set is found. */
+    bool is_disjoint(const ZDD& g) const;
 
     /** @brief Return the union of all sets in the family as a single-set ZDD.
      *  For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}. */

@@ -489,6 +489,76 @@ bool bddissubset(bddp f, bddp g) {
     return bddissubset_rec(f, g, memo);
 }
 
+static bool bddisdisjoint_rec(bddp f, bddp g, SubsetMemoMap& memo) {
+    // Terminal / identity cases
+    if (f == bddempty || g == bddempty) return true;
+    if (f == g) return false;  // non-empty and identical → share all sets
+    // {∅} ∩ G: disjoint iff ∅ ∉ G
+    if (f == bddsingle) return !bddhasempty(g);
+    if (g == bddsingle) return !bddhasempty(f);
+
+    // Canonical order: smaller first for memo efficiency
+    if (f > g) { bddp t = f; f = g; g = t; }
+
+    BDD_RecurGuard guard;
+
+    // Memo lookup
+    auto it_f = memo.find(f);
+    if (it_f != memo.end()) {
+        auto it_g = it_f->second.find(g);
+        if (it_g != it_f->second.end()) return it_g->second;
+    }
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bool result;
+
+    if (f_level > g_level) {
+        // f has variable v, g doesn't.
+        // ZDD: g has no sets containing v, so g_hi = 0 for var v.
+        // f_hi ∩ g_hi = f_hi ∩ 0 = 0 (trivially disjoint).
+        // Check: f_lo ∩ g disjoint?
+        bddp f_lo = node_lo(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        result = bddisdisjoint_rec(f_lo, g, memo);
+    } else if (g_level > f_level) {
+        // g has variable v, f doesn't.
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddisdisjoint_rec(f, g_lo, memo);
+    } else {
+        // Same top variable
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        // Both hi and lo must be disjoint; early termination on first non-disjoint
+        result = bddisdisjoint_rec(f_hi, g_hi, memo)
+              && bddisdisjoint_rec(f_lo, g_lo, memo);
+    }
+
+    memo[f][g] = result;
+    return result;
+}
+
+bool bddisdisjoint(bddp f, bddp g) {
+    bddp_validate(f, "bddisdisjoint");
+    bddp_validate(g, "bddisdisjoint");
+    if (f == bddnull || g == bddnull) return true;
+    if (f == bddempty || g == bddempty) return true;
+    if (f == g) return false;
+    SubsetMemoMap memo;
+    return bddisdisjoint_rec(f, g, memo);
+}
+
 static bddp bdddiv_rec(bddp f, bddp g);
 
 bddp bdddiv(bddp f, bddp g) {

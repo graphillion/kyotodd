@@ -1088,6 +1088,11 @@ uint64_t bddminsize(bddp f) {
     return (r == UINT64_MAX) ? 0 : r;
 }
 
+uint64_t bddmaxsize(bddp f) {
+    bddp_validate(f, "bddmaxsize");
+    return bddlen(f);
+}
+
 static double bddcount_rec(
     bddp f, std::unordered_map<bddp, double>& memo) {
     if (f == bddempty) return 0.0;

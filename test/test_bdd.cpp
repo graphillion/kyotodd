@@ -14668,4 +14668,205 @@ TEST_F(BDDTest, ZDD_WeightedSample_Sum_OnlyEmptySet) {
     EXPECT_TRUE(s.empty());
 }
 
+// ============================================================
+// max_size tests
+// ============================================================
+
+TEST_F(BDDTest, MaxSize_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.max_size(), 0u);
+    EXPECT_EQ(bddmaxsize(empty.GetID()), 0u);
+}
+
+TEST_F(BDDTest, MaxSize_UnitFamily) {
+    bddnewvar();
+    ZDD unit(1);  // {∅}
+    EXPECT_EQ(unit.max_size(), 0u);
+}
+
+TEST_F(BDDTest, MaxSize_SingletonSet) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);  // {{v1}}
+    EXPECT_EQ(f.max_size(), 1u);
+}
+
+TEST_F(BDDTest, MaxSize_MultipleSets) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // f = {{v1}, {v1, v2}, {v1, v2, v3}}
+    ZDD f = ZDD::singleton(v1)
+          + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_EQ(f.max_size(), 3u);
+}
+
+TEST_F(BDDTest, MaxSize_WithEmpty) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // f = {∅, {v1}, {v1, v2}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    EXPECT_EQ(f.max_size(), 2u);
+}
+
+TEST_F(BDDTest, MaxSize_PowerSet) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    EXPECT_EQ(f.max_size(), 3u);
+}
+
+TEST_F(BDDTest, MaxSize_EqualsLen) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_EQ(f.max_size(), f.Len());
+}
+
+TEST_F(BDDTest, MaxSize_MinMaxConsistency) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2})
+          + ZDD::single_set({v1, v2, v3});
+    EXPECT_LE(f.min_size(), f.max_size());
+}
+
+TEST_F(BDDTest, MaxSize_ConsistencyWithProfile) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3) - ZDD::Single;
+    auto prof = f.profile();
+    uint64_t expected_max = 0;
+    for (size_t k = 0; k < prof.size(); ++k) {
+        if (prof[k] > bigint::BigInt(0)) {
+            expected_max = k;
+        }
+    }
+    EXPECT_EQ(f.max_size(), expected_max);
+}
+
+// ============================================================
+// is_disjoint tests
+// ============================================================
+
+TEST_F(BDDTest, IsDisjoint_BothEmpty) {
+    bddnewvar();
+    ZDD a(0), b(0);
+    EXPECT_TRUE(a.is_disjoint(b));
+    EXPECT_TRUE(bddisdisjoint(a.GetID(), b.GetID()));
+}
+
+TEST_F(BDDTest, IsDisjoint_OneEmpty) {
+    bddvar v1 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b(0);
+    EXPECT_TRUE(a.is_disjoint(b));
+    EXPECT_TRUE(b.is_disjoint(a));
+}
+
+TEST_F(BDDTest, IsDisjoint_Identical) {
+    bddvar v1 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    EXPECT_FALSE(a.is_disjoint(a));
+}
+
+TEST_F(BDDTest, IsDisjoint_TrueCase) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}}, b = {{v2}}
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    EXPECT_TRUE(a.is_disjoint(b));
+    EXPECT_TRUE(b.is_disjoint(a));
+}
+
+TEST_F(BDDTest, IsDisjoint_FalseCase) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v2}}, b = {{v2}, {v1, v2}}
+    ZDD a = ZDD::singleton(v1) + ZDD::singleton(v2);
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v2});
+    EXPECT_FALSE(a.is_disjoint(b));
+}
+
+TEST_F(BDDTest, IsDisjoint_EmptySetOverlap) {
+    bddvar v1 = bddnewvar();
+    // a = {∅, {v1}}, b = {∅}
+    ZDD a = ZDD::Single + ZDD::singleton(v1);
+    ZDD b = ZDD::Single;
+    EXPECT_FALSE(a.is_disjoint(b));
+}
+
+TEST_F(BDDTest, IsDisjoint_EmptySetNoOverlap) {
+    bddvar v1 = bddnewvar();
+    // a = {{v1}}, b = {∅}
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::Single;
+    EXPECT_TRUE(a.is_disjoint(b));
+}
+
+TEST_F(BDDTest, IsDisjoint_ConsistentWithIntersection) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // a = {{v1}, {v1, v2}}, b = {{v2}, {v2, v3}}
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v2, v3});
+    bool disjoint = a.is_disjoint(b);
+    bool intersec_empty = (a & b).is_zero();
+    EXPECT_EQ(disjoint, intersec_empty);
+}
+
+TEST_F(BDDTest, IsDisjoint_ConsistentWithIntersection_Overlap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v1, v2}}, b = {{v1}, {v2}}
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    ZDD b = ZDD::singleton(v1) + ZDD::singleton(v2);
+    bool disjoint = a.is_disjoint(b);
+    bool intersec_empty = (a & b).is_zero();
+    EXPECT_EQ(disjoint, intersec_empty);
+}
+
+TEST_F(BDDTest, IsDisjoint_PowerSetVsComplement) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD all = ZDD::power_set(3);
+    ZDD a = ZDD::Single;  // {∅}
+    ZDD b = all - a;  // everything except ∅
+    EXPECT_TRUE(a.is_disjoint(b));
+    EXPECT_FALSE(a.is_disjoint(all));
+}
+
+TEST_F(BDDTest, IsDisjoint_LargerExample) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    bddvar v4 = bddnewvar();
+    // a = all sets of size <= 2
+    ZDD all = ZDD::power_set(4);
+    ZDD a = all.size_le(2);
+    // b = all sets of size >= 3
+    ZDD b = all.size_ge(3);
+    EXPECT_TRUE(a.is_disjoint(b));
+    // Verify with intersection
+    EXPECT_TRUE((a & b).is_zero());
+}
+
+TEST_F(BDDTest, IsDisjoint_Symmetric) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v3});
+    EXPECT_EQ(a.is_disjoint(b), b.is_disjoint(a));
+}
+
 

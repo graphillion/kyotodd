@@ -702,6 +702,14 @@ inline uint64_t ZDD::min_size() const {
     return bddminsize(root);
 }
 
+inline uint64_t ZDD::max_size() const {
+    return bddmaxsize(root);
+}
+
+inline bool ZDD::is_disjoint(const ZDD& g) const {
+    return bddisdisjoint(root, g.root);
+}
+
 inline char* ZDD::CardMP16(char* s) const {
     return bddcardmp16(root, s);
 }

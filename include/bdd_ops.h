@@ -570,6 +570,31 @@ uint64_t bddlen(bddp f);
 uint64_t bddminsize(bddp f);
 
 /**
+ * @brief Return the maximum set size in a ZDD family.
+ *
+ * Equivalent to bddlen(). Provided for symmetry with bddminsize().
+ *
+ * @param f A ZDD node ID.
+ *
+ * @return The maximum set size, or 0 for the empty family or {∅}.
+ *         Returns (2^39 - 1) if saturated.
+ */
+uint64_t bddmaxsize(bddp f);
+
+/**
+ * @brief Check if two ZDD families are disjoint (F ∩ G = ∅).
+ *
+ * Returns true if f and g have no common set. Uses early termination:
+ * returns false as soon as a common set is found.
+ *
+ * @param f A ZDD node ID.
+ * @param g A ZDD node ID.
+ *
+ * @return true if F ∩ G = ∅, false otherwise.
+ */
+bool bddisdisjoint(bddp f, bddp g);
+
+/**
  * @brief Extract supersets of a given set from a ZDD family.
  * Returns all sets A in f where s ⊆ A.
  */

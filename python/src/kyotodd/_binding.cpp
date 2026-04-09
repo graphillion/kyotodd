@@ -1531,6 +1531,19 @@ PYBIND11_MODULE(_core, m) {
              "    g: The candidate superset family.\n\n"
              "Returns:\n"
              "    True if this family is a subset of g.\n")
+        .def("is_disjoint", &ZDD::is_disjoint, py::arg("g"),
+             "Check if two families are disjoint (F ∩ G = ∅).\n\n"
+             "More efficient than `(self & g).is_zero()` due to early\n"
+             "termination.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    True if the families have no common set.\n")
+        .def("max_size", &ZDD::max_size,
+             "Return the maximum set size in the family.\n\n"
+             "Equivalent to the max_set_size property.\n\n"
+             "Returns:\n"
+             "    The size of the largest set, or 0 for empty/unit family.\n")
         .def("flatten", &ZDD::flatten,
              "Return the union of all sets as a single-set ZDD.\n\n"
              "For F = {S1, S2, ...}, returns {{S1 | S2 | ...}}.\n\n"
