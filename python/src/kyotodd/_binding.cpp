@@ -1519,6 +1519,16 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    A list of variable numbers in the sampled set.\n")
 
+        .def_static("boltzmann_weights", &ZDD::boltzmann_weights,
+           py::arg("weights"), py::arg("beta"),
+           "Transform weights for Boltzmann sampling.\n\n"
+           "Computes tw[i] = exp(-beta * weights[i]) for each variable.\n\n"
+           "Args:\n"
+           "    weights: Weight vector indexed by variable number.\n"
+           "    beta: Inverse temperature parameter.\n\n"
+           "Returns:\n"
+           "    Transformed weight vector for use with WeightedSampleMemo(Product mode).\n")
+
         // Enumeration
         .def("enumerate", &ZDD::enumerate,
              "Enumerate all sets in the family.\n\n"

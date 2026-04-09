@@ -552,7 +552,7 @@ static bool bddisdisjoint_rec(bddp f, bddp g, SubsetMemoMap& memo) {
 bool bddisdisjoint(bddp f, bddp g) {
     bddp_validate(f, "bddisdisjoint");
     bddp_validate(g, "bddisdisjoint");
-    if (f == bddnull || g == bddnull) return true;
+    if (f == bddnull || g == bddnull) return false;
     if (f == bddempty || g == bddempty) return true;
     if (f == g) return false;
     SubsetMemoMap memo;

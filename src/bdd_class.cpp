@@ -677,7 +677,14 @@ std::vector<double> ZDD::boltzmann_weights(
     std::vector<double> tw(weights.size());
     if (!tw.empty()) tw[0] = 0.0;
     for (size_t i = 1; i < weights.size(); ++i) {
-        tw[i] = std::exp(-beta * weights[i]);
+        double v = std::exp(-beta * weights[i]);
+        if (!std::isfinite(v)) {
+            throw std::invalid_argument(
+                "boltzmann_weights: non-finite transformed weight at index "
+                + std::to_string(i)
+                + " (check beta and weights values)");
+        }
+        tw[i] = v;
     }
     return tw;
 }
@@ -718,12 +725,13 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
         }
     }
 
-    // Validate non-negative weights
+    // Validate non-negative finite weights
     for (size_t i = 1; i < weights.size(); ++i) {
-        if (weights[i] < 0.0) {
+        if (!std::isfinite(weights[i]) || weights[i] < 0.0) {
             throw std::invalid_argument(
-                "weighted_sample: negative weight at index "
-                + std::to_string(i));
+                "weighted_sample: invalid weight at index "
+                + std::to_string(i)
+                + " (must be non-negative and finite)");
         }
     }
 

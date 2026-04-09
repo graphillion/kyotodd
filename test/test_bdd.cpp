@@ -8,6 +8,7 @@
 #include <sstream>
 #include <unordered_set>
 #include <climits>
+#include <limits>
 
 class BDDTest : public ::testing::Test {
 protected:
@@ -14572,6 +14573,37 @@ TEST_F(BDDTest, ZDD_WeightedSample_ZeroTotal_Throws) {
         std::invalid_argument);
 }
 
+TEST_F(BDDTest, ZDD_WeightedSample_InfWeight_Throws) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<double> w = {0.0, std::numeric_limits<double>::infinity()};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Product, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_NaNWeight_Throws) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<double> w = {0.0, std::numeric_limits<double>::quiet_NaN()};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Sum, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannWeights_Overflow_Throws) {
+    // beta < 0 with large weight causes exp() to overflow to inf
+    bddnewvar();
+    std::vector<double> w = {0.0, 1000.0};
+    EXPECT_THROW(
+        ZDD::boltzmann_weights(w, -100.0),
+        std::invalid_argument);
+}
+
 TEST_F(BDDTest, ZDD_WeightedSample_MemoReuse) {
     bddnewvar();
     bddnewvar();
@@ -14931,6 +14963,16 @@ TEST_F(BDDTest, IsDisjoint_Symmetric) {
     ZDD a = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
     ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v3});
     EXPECT_EQ(a.is_disjoint(b), b.is_disjoint(a));
+}
+
+TEST_F(BDDTest, IsDisjoint_Null) {
+    bddvar v1 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    // null is not a valid family; is_disjoint should return false
+    // (consistent with is_subset_family returning false for null)
+    EXPECT_FALSE(ZDD::Null.is_disjoint(a));
+    EXPECT_FALSE(a.is_disjoint(ZDD::Null));
+    EXPECT_FALSE(ZDD::Null.is_disjoint(ZDD::Null));
 }
 
 // ============================================================
