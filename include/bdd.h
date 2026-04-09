@@ -1126,6 +1126,34 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
 }
 
 template<typename RNG>
+std::vector<bddvar> ZDD::weighted_sample(
+    const std::vector<double>& weights, WeightMode mode,
+    RNG& rng, WeightedSampleMemo& memo)
+{
+    return weighted_sample_impl(
+        weights, mode,
+        [&rng](double upper) -> double {
+            std::uniform_real_distribution<double> dist(0.0, upper);
+            return dist(rng);
+        }, memo);
+}
+
+template<typename RNG>
+std::vector<bddvar> ZDD::boltzmann_sample(
+    const std::vector<double>& weights, double beta,
+    RNG& rng, WeightedSampleMemo& memo)
+{
+    (void)weights;
+    (void)beta;
+    return weighted_sample_impl(
+        memo.weights(), memo.mode(),
+        [&rng](double upper) -> double {
+            std::uniform_real_distribution<double> dist(0.0, upper);
+            return dist(rng);
+        }, memo);
+}
+
+template<typename RNG>
 ZDD ZDD::random_family(bddvar n, RNG& rng) {
     // Ensure variables exist
     while (bdd_varcount < n) {

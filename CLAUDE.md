@@ -185,7 +185,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Weight operations: `get_sum(weights)` (BigInt), `min_weight(weights)`, `max_weight(weights)`, `min_weight_set(weights)`, `max_weight_set(weights)`. Free functions: `bddweightsum()`, `bddminweight()`, `bddmaxweight()`, `bddminweightset()`, `bddmaxweightset()`.
 - Cost bound filtering: `cost_bound_le(weights, b)`, `cost_bound_ge(weights, b)`, `cost_bound_eq(weights, b)` — filter sets by total weight. Optionally accept `CostBoundMemo&` for caching. Free functions: `bddcostbound_le()`, `bddcostbound_ge()`.
 - Membership: `has_empty()` / `bddhasempty()` — check if ∅ ∈ F. `contains(s)` / `bddcontains()` — check if set s ∈ F. `is_subset_family(g)` / `bddissubset(f, g)` — check if F ⊆ G (early termination). `flatten()` / `bddflatten()` — union of all sets as a single-set ZDD.
-- Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family. `sample_k(k, rng, ZddCountMemo&)` — uniformly sample k sets and return as a ZDD (hypergeometric distribution at each node).
+- Sampling: `uniform_sample(rng, ZddCountMemo&)` — uniformly sample one set from the family. `sample_k(k, rng, ZddCountMemo&)` — uniformly sample k sets and return as a ZDD (hypergeometric distribution at each node). `weighted_sample(weights, mode, rng, WeightedSampleMemo&)` — sample one set proportional to aggregated weight (Sum or Product mode via `WeightMode` enum). `boltzmann_sample(weights, beta, rng, WeightedSampleMemo&)` — sample from Boltzmann distribution P(S) ∝ exp(-β·Σw[v]). Static helper: `boltzmann_weights(weights, beta)` for weight transformation.
 - Enumeration: `enumerate()` — return all sets as `vector<vector<bddvar>>`.
 - Constants: `ZDD::Empty`, `ZDD::Single`, `ZDD::Null`.
 - Rank-order iteration: `ZddRankIterator(zdd)` — STL input iterator enumerating sets in structure order (hi-first DFS). Value type: `vector<bddvar>`. `ZddRankRange(zdd)` — range wrapper for range-based for loops. Python: `iter_rank()`.
@@ -205,6 +205,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - `ZddCountMemo(f)`: Memo for ZDD exact counting, associated with a specific ZDD root. Stores the memo table for `bddexactcount` results.
 - `BddCountMemo(f, n)`: Memo for BDD exact counting, associated with a specific BDD root and variable count n.
 - `CostBoundMemo`: Interval-memoization for cost-bound queries (`cost_bound_le`, `cost_bound_ge`).
+- `WeightedSampleMemo(ZDD, weights, mode)`: Memo for weighted sampling. Stores precomputed weight aggregation values per node. `WeightMode::Sum` or `WeightMode::Product`.
 
 ## QDD class
 

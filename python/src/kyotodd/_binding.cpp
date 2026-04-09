@@ -235,6 +235,31 @@ PYBIND11_MODULE(_core, m) {
         .def("clear", &CostBoundMemo::clear,
              "Clear all cached entries. The weights binding is preserved.\n");
 
+    // WeightMode enum
+    py::enum_<WeightMode>(m, "WeightMode",
+        "Weight aggregation mode for weighted_sample().")
+        .value("Sum", WeightMode::Sum,
+            "w(S) = sum of weights. Empty set weight = 0.")
+        .value("Product", WeightMode::Product,
+            "w(S) = product of weights. Empty set weight = 1.");
+
+    // WeightedSampleMemo class
+    py::class_<WeightedSampleMemo>(m, "WeightedSampleMemo",
+        "Memo for weighted sampling.\n\n"
+        "Caches precomputed weight values for weighted_sample calls.\n"
+        "Create with a ZDD, weights vector, and WeightMode.")
+        .def(py::init([](const ZDD& f, const std::vector<double>& weights,
+                         WeightMode mode) {
+            return WeightedSampleMemo(f, weights, mode);
+        }), py::arg("zdd"), py::arg("weights"), py::arg("mode"),
+           "Create a weighted sample memo.\n\n"
+           "Args:\n"
+           "    zdd: The ZDD to sample from.\n"
+           "    weights: Weight vector indexed by variable number.\n"
+           "    mode: Weight aggregation mode (Sum or Product).\n")
+        .def_property_readonly("stored", &WeightedSampleMemo::stored,
+             "Whether the memo has been populated.");
+
     // BDD class
     py::class_<BDD>(m, "BDD",
         "A Binary Decision Diagram representing a Boolean function.\n\n"
@@ -1424,6 +1449,63 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A ZDD containing the sampled k sets.\n")
+        .def("weighted_sample", [](ZDD& z, const std::vector<double>& weights,
+                                   WeightMode mode, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            WeightedSampleMemo memo(z, weights, mode);
+            return z.weighted_sample(weights, mode, rng, memo);
+        }, py::arg("weights"), py::arg("mode"), py::arg("seed") = 0,
+           "Sample a set proportional to its weight.\n\n"
+           "Args:\n"
+           "    weights: Weight vector indexed by variable number (index 0 unused).\n"
+           "    mode: WeightMode.Sum or WeightMode.Product.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
+        .def("weighted_sample_with_memo", [](ZDD& z, const std::vector<double>& weights,
+                                              WeightMode mode, WeightedSampleMemo& memo,
+                                              uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            return z.weighted_sample(weights, mode, rng, memo);
+        }, py::arg("weights"), py::arg("mode"), py::arg("memo"), py::arg("seed") = 0,
+           "Sample a set proportional to its weight, using a memo.\n\n"
+           "Args:\n"
+           "    weights: Weight vector indexed by variable number.\n"
+           "    mode: WeightMode.Sum or WeightMode.Product.\n"
+           "    memo: A WeightedSampleMemo for caching.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
+        .def("boltzmann_sample", [](ZDD& z, const std::vector<double>& weights,
+                                    double beta, uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            auto tw = ZDD::boltzmann_weights(weights, beta);
+            WeightedSampleMemo memo(z, tw, WeightMode::Product);
+            return z.weighted_sample(tw, WeightMode::Product, rng, memo);
+        }, py::arg("weights"), py::arg("beta"), py::arg("seed") = 0,
+           "Sample a set from the Boltzmann distribution.\n\n"
+           "P(S) proportional to exp(-beta * sum(weights[v] for v in S)).\n\n"
+           "Args:\n"
+           "    weights: Weight vector indexed by variable number.\n"
+           "    beta: Inverse temperature parameter.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
+        .def("boltzmann_sample_with_memo", [](ZDD& z, const std::vector<double>& weights,
+                                               double beta, WeightedSampleMemo& memo,
+                                               uint64_t seed) -> std::vector<bddvar> {
+            std::mt19937_64 rng(seed);
+            return z.boltzmann_sample(weights, beta, rng, memo);
+        }, py::arg("weights"), py::arg("beta"), py::arg("memo"), py::arg("seed") = 0,
+           "Sample from the Boltzmann distribution using a memo.\n\n"
+           "The memo must be created with boltzmann_weights() and Product mode.\n\n"
+           "Args:\n"
+           "    weights: Weight vector indexed by variable number.\n"
+           "    beta: Inverse temperature parameter.\n"
+           "    memo: A WeightedSampleMemo (Product mode, transformed weights).\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in the sampled set.\n")
 
         // Enumeration
         .def("enumerate", &ZDD::enumerate,

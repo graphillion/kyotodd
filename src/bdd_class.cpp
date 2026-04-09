@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <climits>
+#include <cmath>
 
 const BDD BDD::False(0);
 const BDD BDD::True(1);
@@ -572,6 +573,277 @@ void CostBoundMemo::bind_weights(const std::vector<int>& weights) {
         throw std::invalid_argument(
             "CostBoundMemo: called with different weights vector");
     }
+}
+
+// --- WeightedSampleMemo ---
+
+WeightedSampleMemo::WeightedSampleMemo(
+    const ZDD& f, const std::vector<double>& weights, WeightMode mode)
+    : f_(f.get_id()), stored_(false), mode_(mode), weights_(weights) {}
+
+// --- Weighted sampling precomputation ---
+
+// Count sets reachable from f (as double). Memoizes on f_raw.
+// Complement adjustment applied when f has complement flag.
+static double ws_count_rec(bddp f, std::unordered_map<bddp, double>& memo) {
+    if (f == bddempty) return 0.0;
+    if (f == bddsingle) return 1.0;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = memo.find(f_raw);
+    double c;
+    if (it != memo.end()) {
+        c = it->second;
+    } else {
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+        c = ws_count_rec(lo, memo) + ws_count_rec(hi, memo);
+        memo[f_raw] = c;
+    }
+
+    if (comp) {
+        c += bddhasempty(f_raw) ? -1.0 : 1.0;
+    }
+    return c;
+}
+
+// Sum of (sum-of-weights) over all sets in F(f). Complement-invariant.
+static double ws_total_sum_rec(
+    bddp f,
+    const std::vector<double>& weights,
+    WeightMemoMap& sum_memo,
+    std::unordered_map<bddp, double>& count_memo)
+{
+    if (f == bddempty || f == bddsingle) return 0.0;
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    auto it = sum_memo.find(f_raw);
+    if (it != sum_memo.end()) return it->second;
+
+    bddvar var = node_var(f_raw);
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
+
+    double s_lo = ws_total_sum_rec(lo, weights, sum_memo, count_memo);
+    double s_hi = ws_total_sum_rec(hi, weights, sum_memo, count_memo);
+    double c_hi = ws_count_rec(hi, count_memo);
+
+    double result = s_lo + s_hi + c_hi * weights[var];
+    sum_memo[f_raw] = result;
+    return result;
+}
+
+// Sum of (product-of-weights) over all sets in F(f). NOT complement-invariant.
+static double ws_total_prod_rec(
+    bddp f,
+    const std::vector<double>& weights,
+    WeightMemoMap& prod_memo)
+{
+    if (f == bddempty) return 0.0;
+    if (f == bddsingle) return 1.0;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+
+    auto it = prod_memo.find(f_raw);
+    double val;
+    if (it != prod_memo.end()) {
+        val = it->second;
+    } else {
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        double p_lo = ws_total_prod_rec(lo, weights, prod_memo);
+        double p_hi = ws_total_prod_rec(hi, weights, prod_memo);
+
+        val = p_lo + weights[var] * p_hi;
+        prod_memo[f_raw] = val;
+    }
+
+    if (comp) {
+        val += bddhasempty(f_raw) ? -1.0 : 1.0;
+    }
+    return val;
+}
+
+// --- ZDD::boltzmann_weights ---
+
+std::vector<double> ZDD::boltzmann_weights(
+    const std::vector<double>& weights, double beta)
+{
+    std::vector<double> tw(weights.size());
+    if (!tw.empty()) tw[0] = 0.0;
+    for (size_t i = 1; i < weights.size(); ++i) {
+        tw[i] = std::exp(-beta * weights[i]);
+    }
+    return tw;
+}
+
+// --- ZDD::weighted_sample_impl ---
+
+std::vector<bddvar> ZDD::weighted_sample_impl(
+    const std::vector<double>& weights, WeightMode mode,
+    std::function<double(double)> rand_func,
+    WeightedSampleMemo& memo)
+{
+    if (root == bddnull) {
+        throw std::invalid_argument("weighted_sample: null ZDD");
+    }
+    if (root == bddempty) {
+        throw std::invalid_argument(
+            "weighted_sample: cannot sample from empty family");
+    }
+    if (memo.f() != root) {
+        throw std::invalid_argument(
+            "weighted_sample: memo was created for a different ZDD");
+    }
+    if (memo.mode() != mode) {
+        throw std::invalid_argument(
+            "weighted_sample: memo mode mismatch");
+    }
+
+    // Validate weights size
+    bddvar top_v = bddtop(root);
+    if (top_v > 0 && weights.size() <= static_cast<size_t>(top_v)) {
+        throw std::invalid_argument(
+            "weighted_sample: weights.size() must be > top variable");
+    }
+
+    // Validate non-negative weights
+    for (size_t i = 1; i < weights.size(); ++i) {
+        if (weights[i] < 0.0) {
+            throw std::invalid_argument(
+                "weighted_sample: negative weight at index "
+                + std::to_string(i));
+        }
+    }
+
+    // Populate memo if needed
+    if (!memo.stored()) {
+        if (mode == WeightMode::Sum) {
+            ws_total_sum_rec(root, weights,
+                             memo.weight_map(), memo.count_map());
+        } else {
+            ws_total_prod_rec(root, weights, memo.weight_map());
+        }
+        memo.mark_stored();
+    }
+
+    // Special case: family is exactly {∅}
+    if (root == bddsingle) {
+        if (mode == WeightMode::Sum) {
+            // w(∅) = 0 → total = 0; but only 1 set, return it
+            return std::vector<bddvar>();
+        } else {
+            // w(∅) = 1 → OK
+            return std::vector<bddvar>();
+        }
+    }
+
+    bddp f = root;
+    bool f_has_empty = bddhasempty(f);
+    std::vector<bddvar> result;
+
+    if (mode == WeightMode::Sum) {
+        // Sum mode: w(∅) = 0, so ∅ can never be sampled (P=0)
+        if (f_has_empty) {
+            f = bddnot(f);  // remove ∅
+        }
+
+        // Compute total weight for validation
+        double total = ws_total_sum_rec(f, weights,
+                                        memo.weight_map(), memo.count_map());
+        if (total <= 0.0) {
+            throw std::invalid_argument(
+                "weighted_sample: total weight is zero (Sum mode)");
+        }
+
+        double bias = 0.0;
+        while (f != bddsingle && f != bddempty) {
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp f_raw = f & ~BDD_COMP_FLAG;
+
+            bddvar var = node_var(f_raw);
+            bddp lo = node_lo(f_raw);
+            bddp hi = node_hi(f_raw);
+            if (comp) lo = bddnot(lo);
+
+            double c_lo = ws_count_rec(lo, memo.count_map());
+            double c_hi = ws_count_rec(hi, memo.count_map());
+            double s_lo = ws_total_sum_rec(lo, weights,
+                                           memo.weight_map(), memo.count_map());
+            double s_hi = ws_total_sum_rec(hi, weights,
+                                           memo.weight_map(), memo.count_map());
+
+            double W_lo = c_lo * bias + s_lo;
+            double W_hi = c_hi * (bias + weights[var]) + s_hi;
+            double W_total = W_lo + W_hi;
+
+            double r = rand_func(W_total);
+            if (r < W_hi) {
+                result.push_back(var);
+                bias += weights[var];
+                f = hi;
+            } else {
+                f = lo;
+            }
+        }
+
+    } else {
+        // Product mode: w(∅) = 1
+        if (f_has_empty) {
+            bddp f_no_empty = bddnot(f);
+            double total_no_empty = ws_total_prod_rec(
+                f_no_empty, weights, memo.weight_map());
+            double total_with_empty = total_no_empty + 1.0;
+
+            if (total_with_empty <= 0.0) {
+                throw std::invalid_argument(
+                    "weighted_sample: total weight is zero (Product mode)");
+            }
+
+            double r = rand_func(total_with_empty);
+            if (r < 1.0) {
+                return result;  // sampled ∅
+            }
+            f = f_no_empty;
+        }
+
+        double total = ws_total_prod_rec(f, weights, memo.weight_map());
+        if (total <= 0.0) {
+            throw std::invalid_argument(
+                "weighted_sample: total weight is zero (Product mode)");
+        }
+
+        while (f != bddsingle && f != bddempty) {
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp f_raw = f & ~BDD_COMP_FLAG;
+
+            bddvar var = node_var(f_raw);
+            bddp lo = node_lo(f_raw);
+            bddp hi = node_hi(f_raw);
+            if (comp) lo = bddnot(lo);
+
+            double W_lo = ws_total_prod_rec(lo, weights, memo.weight_map());
+            double W_hi = weights[var] *
+                          ws_total_prod_rec(hi, weights, memo.weight_map());
+            double W_total = W_lo + W_hi;
+
+            double r = rand_func(W_total);
+            if (r < W_hi) {
+                result.push_back(var);
+                f = hi;
+            } else {
+                f = lo;
+            }
+        }
+    }
+
+    std::sort(result.begin(), result.end());
+    return result;
 }
 
 // --- ZDD::cost_bound_le ---

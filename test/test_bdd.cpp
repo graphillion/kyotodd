@@ -14386,3 +14386,286 @@ TEST_F(BDDTest, ZDD_SampleK_LargerFamily) {
     EXPECT_TRUE(result.is_subset_family(f));
 }
 
+// --- ZDD::weighted_sample ---
+
+TEST_F(BDDTest, ZDD_WeightedSample_Product_Singleton) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);  // {{1}}
+    std::vector<double> w = {0.0, 3.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    auto s = f.weighted_sample(w, WeightMode::Product, rng, memo);
+    ASSERT_EQ(s.size(), 1u);
+    EXPECT_EQ(s[0], 1u);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Product_TwoSets) {
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}}, w[1]=1, w[2]=3 → P({1})=1/4, P({2})=3/4
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 1.0, 3.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(123);
+
+    int count1 = 0, count2 = 0;
+    const int trials = 4000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Product, rng, memo);
+        ASSERT_EQ(s.size(), 1u);
+        if (s[0] == 1) count1++;
+        else count2++;
+    }
+    // P({1}) ≈ 25% → expect ~1000
+    EXPECT_GT(count1, 700);
+    EXPECT_LT(count1, 1400);
+    // P({2}) ≈ 75% → expect ~3000
+    EXPECT_GT(count2, 2600);
+    EXPECT_LT(count2, 3300);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Sum_TwoSets) {
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}}, w[1]=2, w[2]=6 → P({1})=2/8=25%, P({2})=6/8=75%
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 2.0, 6.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(456);
+
+    int count1 = 0, count2 = 0;
+    const int trials = 4000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Sum, rng, memo);
+        ASSERT_EQ(s.size(), 1u);
+        if (s[0] == 1) count1++;
+        else count2++;
+    }
+    EXPECT_GT(count1, 700);
+    EXPECT_LT(count1, 1400);
+    EXPECT_GT(count2, 2600);
+    EXPECT_LT(count2, 3300);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Sum_MultiElementSets) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // F = {{1,2}, {3}}, w[1]=1, w[2]=2, w[3]=4
+    // w_sum({1,2}) = 3, w_sum({3}) = 4 → P({1,2})=3/7≈43%, P({3})=4/7≈57%
+    ZDD s12 = ZDD::single_set({1, 2});
+    ZDD s3 = ZDD::singleton(3);
+    ZDD f = s12 + s3;
+    std::vector<double> w = {0.0, 1.0, 2.0, 4.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(789);
+
+    int count_12 = 0, count_3 = 0;
+    const int trials = 4000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Sum, rng, memo);
+        if (s.size() == 2) count_12++;
+        else count_3++;
+    }
+    // P({1,2}) ≈ 43% → ~1714
+    EXPECT_GT(count_12, 1300);
+    EXPECT_LT(count_12, 2200);
+    // P({3}) ≈ 57% → ~2286
+    EXPECT_GT(count_3, 1800);
+    EXPECT_LT(count_3, 2700);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Product_WithEmptySet) {
+    bddnewvar();
+    // F = {∅, {1}}, w[1]=2
+    // Product: w(∅)=1, w({1})=2 → P(∅)=1/3≈33%, P({1})=2/3≈67%
+    ZDD f = ZDD::Single + ZDD::singleton(1);
+    std::vector<double> w = {0.0, 2.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+
+    int count_empty = 0, count_1 = 0;
+    const int trials = 3000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Product, rng, memo);
+        if (s.empty()) count_empty++;
+        else count_1++;
+    }
+    // P(∅) ≈ 33% → ~1000
+    EXPECT_GT(count_empty, 700);
+    EXPECT_LT(count_empty, 1400);
+    EXPECT_GT(count_1, 1600);
+    EXPECT_LT(count_1, 2300);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Sum_WithEmptySet) {
+    bddnewvar();
+    // F = {∅, {1}}, w[1]=2
+    // Sum: w(∅)=0, w({1})=2 → P(∅)=0, P({1})=1
+    ZDD f = ZDD::Single + ZDD::singleton(1);
+    std::vector<double> w = {0.0, 2.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+
+    for (int i = 0; i < 100; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Sum, rng, memo);
+        ASSERT_EQ(s.size(), 1u);
+        EXPECT_EQ(s[0], 1u);
+    }
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_EmptyFamily_Throws) {
+    ZDD f(0);  // empty family
+    std::vector<double> w = {0.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Product, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_NullZDD_Throws) {
+    ZDD f = ZDD::Null;
+    std::vector<double> w = {0.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Product, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_NegativeWeight_Throws) {
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<double> w = {0.0, -1.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Product, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_ZeroTotal_Throws) {
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}}, all weights 0 → Sum mode total = 0
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 0.0, 0.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+    EXPECT_THROW(
+        f.weighted_sample(w, WeightMode::Sum, rng, memo),
+        std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_MemoReuse) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    std::vector<double> w = {0.0, 1.0, 2.0, 3.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+
+    for (int i = 0; i < 100; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Product, rng, memo);
+        // Result should be a valid set (each var in {1,2,3})
+        for (bddvar v : s) {
+            EXPECT_GE(v, 1u);
+            EXPECT_LE(v, 3u);
+        }
+    }
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_Basic) {
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}}, w[1]=1, w[2]=2, beta=1
+    // P({1}) ∝ exp(-1) ≈ 0.368, P({2}) ∝ exp(-2) ≈ 0.135
+    // P({1}) ≈ 73%, P({2}) ≈ 27%
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> orig_w = {0.0, 1.0, 2.0};
+    double beta = 1.0;
+    auto tw = ZDD::boltzmann_weights(orig_w, beta);
+    WeightedSampleMemo memo(f, tw, WeightMode::Product);
+    std::mt19937_64 rng(42);
+
+    int count1 = 0, count2 = 0;
+    const int trials = 3000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.boltzmann_sample(orig_w, beta, rng, memo);
+        ASSERT_EQ(s.size(), 1u);
+        if (s[0] == 1) count1++;
+        else count2++;
+    }
+    // P({1}) ≈ 73% → ~2190
+    EXPECT_GT(count1, 1800);
+    EXPECT_LT(count1, 2600);
+    // P({2}) ≈ 27% → ~810
+    EXPECT_GT(count2, 400);
+    EXPECT_LT(count2, 1200);
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_ZeroBeta) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // F = {{1}, {2}, {3}}, beta=0 → exp(0)=1 for all → uniform
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2) + ZDD::singleton(3);
+    std::vector<double> orig_w = {0.0, 5.0, 10.0, 15.0};
+    double beta = 0.0;
+    auto tw = ZDD::boltzmann_weights(orig_w, beta);
+    WeightedSampleMemo memo(f, tw, WeightMode::Product);
+    std::mt19937_64 rng(42);
+
+    int counts[4] = {};
+    const int trials = 3000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.boltzmann_sample(orig_w, beta, rng, memo);
+        ASSERT_EQ(s.size(), 1u);
+        counts[s[0]]++;
+    }
+    // Each ≈ 1000
+    for (int v = 1; v <= 3; ++v) {
+        EXPECT_GT(counts[v], 700);
+        EXPECT_LT(counts[v], 1300);
+    }
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Product_LargerFamily) {
+    for (int i = 0; i < 3; ++i) bddnewvar();
+    // Power set of {1,2,3} = 8 sets, w = [0, 1, 2, 3]
+    // Product mode: w({}) = 1, w({1}) = 1, w({2}) = 2, w({3}) = 3,
+    //               w({1,2}) = 2, w({1,3}) = 3, w({2,3}) = 6, w({1,2,3}) = 6
+    // Total = 1+1+2+3+2+3+6+6 = 24
+    ZDD f = ZDD::power_set(3);
+    std::vector<double> w = {0.0, 1.0, 2.0, 3.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Product);
+    std::mt19937_64 rng(42);
+
+    std::map<std::vector<bddvar>, int> freq;
+    const int trials = 6000;
+    for (int i = 0; i < trials; ++i) {
+        auto s = f.weighted_sample(w, WeightMode::Product, rng, memo);
+        freq[s]++;
+    }
+    // All 8 sets should be reachable
+    EXPECT_EQ(freq.size(), 8u);
+
+    // w({1,2,3})=6 → P=6/24=25%, expect ~1500
+    std::vector<bddvar> set123 = {1, 2, 3};
+    EXPECT_GT(freq[set123], 1100);
+    EXPECT_LT(freq[set123], 1900);
+}
+
+TEST_F(BDDTest, ZDD_WeightedSample_Sum_OnlyEmptySet) {
+    // F = {∅}, Sum mode: w(∅)=0, but only 1 set → should return ∅
+    ZDD f = ZDD::Single;
+    std::vector<double> w = {0.0};
+    WeightedSampleMemo memo(f, w, WeightMode::Sum);
+    std::mt19937_64 rng(42);
+    auto s = f.weighted_sample(w, WeightMode::Sum, rng, memo);
+    EXPECT_TRUE(s.empty());
+}
+
+

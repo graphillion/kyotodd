@@ -159,6 +159,12 @@ enum class DrawMode {
     Raw       ///< Physical DAG with complement edge markers (open circle).
 };
 
+/** @brief Weight aggregation mode for weighted_sample(). */
+enum class WeightMode {
+    Sum,     ///< w(S) = sum of weights[v] for v in S. Empty set weight = 0.
+    Product  ///< w(S) = product of weights[v] for v in S. Empty set weight = 1.
+};
+
 /**
  * @brief Memo for ZDD exact counting, associated with a specific ZDD root.
  *
@@ -270,6 +276,42 @@ private:
     uint64_t gc_generation_;
     std::vector<int> weights_;
     bool weights_bound_;
+};
+
+/** @brief Memo map type for weighted sampling (maps node ID to double). */
+typedef std::unordered_map<bddp, double> WeightMemoMap;
+
+/**
+ * @brief Memo for weighted sampling, associated with a specific ZDD root.
+ *
+ * Caches precomputed weight aggregation values (total_sum or total_prod)
+ * and set counts for the ZDD's DAG. Can be reused across multiple
+ * weighted_sample calls with the same ZDD, weights, and mode.
+ */
+class WeightedSampleMemo {
+public:
+    WeightedSampleMemo(const ZDD& f, const std::vector<double>& weights,
+                       WeightMode mode);
+
+    bddp f() const { return f_; }
+    bool stored() const { return stored_; }
+    void mark_stored() { stored_ = true; }
+    WeightMode mode() const { return mode_; }
+    const std::vector<double>& weights() const { return weights_; }
+
+    WeightMemoMap& weight_map() { return weight_map_; }
+    const WeightMemoMap& weight_map() const { return weight_map_; }
+
+    std::unordered_map<bddp, double>& count_map() { return count_map_; }
+    const std::unordered_map<bddp, double>& count_map() const { return count_map_; }
+
+private:
+    bddp f_;
+    bool stored_;
+    WeightMode mode_;
+    std::vector<double> weights_;
+    WeightMemoMap weight_map_;
+    std::unordered_map<bddp, double> count_map_;
 };
 
 /**
@@ -851,6 +893,66 @@ public:
      */
     template<typename RNG>
     ZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo);
+
+    /**
+     * @brief Sample a set proportional to its aggregated weight.
+     *
+     * P(S) = w(S) / sum(w(S') for all S' in F).
+     * For Sum mode: w(S) = sum(weights[v] for v in S). w(empty) = 0.
+     * For Product mode: w(S) = product(weights[v] for v in S). w(empty) = 1.
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param weights Weight vector indexed by variable number (index 0 unused).
+     *                All values must be non-negative.
+     * @param mode Weight aggregation mode (Sum or Product).
+     * @param rng The random number generator.
+     * @param memo A WeightedSampleMemo created for this ZDD, weights, and mode.
+     * @return The sampled set as a sorted vector of variable numbers.
+     */
+    template<typename RNG>
+    std::vector<bddvar> weighted_sample(
+        const std::vector<double>& weights, WeightMode mode,
+        RNG& rng, WeightedSampleMemo& memo);
+
+    /**
+     * @brief Sample a set from the Boltzmann distribution.
+     *
+     * P(S) proportional to exp(-beta * sum(weights[v] for v in S)).
+     * Internally transforms to product mode with exp(-beta*weights[v]).
+     *
+     * @tparam RNG A uniform random bit generator (e.g. std::mt19937_64).
+     * @param weights Weight vector indexed by variable number (index 0 unused).
+     * @param beta Inverse temperature parameter.
+     * @param rng The random number generator.
+     * @param memo A WeightedSampleMemo created with boltzmann_weights()
+     *             and Product mode.
+     * @return The sampled set as a sorted vector of variable numbers.
+     */
+    template<typename RNG>
+    std::vector<bddvar> boltzmann_sample(
+        const std::vector<double>& weights, double beta,
+        RNG& rng, WeightedSampleMemo& memo);
+
+    /**
+     * @brief Compute Boltzmann-transformed weights.
+     *
+     * Returns a weight vector where weights[v] = exp(-beta * weights[v]).
+     * Use the result to construct a WeightedSampleMemo with Product mode
+     * for boltzmann_sample.
+     *
+     * @param weights Original weight vector.
+     * @param beta Inverse temperature parameter.
+     * @return Transformed weight vector.
+     */
+    static std::vector<double> boltzmann_weights(
+        const std::vector<double>& weights, double beta);
+
+    /// @cond INTERNAL
+    std::vector<bddvar> weighted_sample_impl(
+        const std::vector<double>& weights, WeightMode mode,
+        std::function<double(double)> rand_func,
+        WeightedSampleMemo& memo);
+    /// @endcond
 
     /**
      * @brief Enumerate all sets in the ZDD family.
