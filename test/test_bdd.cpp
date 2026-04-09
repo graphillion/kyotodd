@@ -15065,3 +15065,45 @@ TEST_F(BDDTest, RandomSubset_DifferentSeeds) {
     EXPECT_TRUE(found_different);
 }
 
+TEST_F(BDDTest, ZDD_SampleK_DeepZDD) {
+    // Create a deep ZDD with 200 variables to exercise BDD_RecurGuard
+    const int n = 200;
+    for (int i = 0; i < n; ++i) bddnewvar();
+    // Build a chain: {{1,2,...,n}} - a single large set
+    ZDD f = ZDD::single_set({});
+    std::vector<bddvar> vars;
+    for (int i = 1; i <= n; ++i) vars.push_back(i);
+    f = ZDD::single_set(vars);
+    // Add a few smaller sets
+    f = f + ZDD::single_set({1, 2, 3});
+    f = f + ZDD::single_set({100, 150, 200});
+    f = f + ZDD(1);  // add empty set
+
+    ZddCountMemo memo(f);
+    std::mt19937_64 rng(42);
+
+    ZDD result = f.sample_k(2, rng, memo);
+    EXPECT_EQ(result.exact_count(), bigint::BigInt(2));
+    EXPECT_TRUE(result.is_subset_family(f));
+}
+
+TEST_F(BDDTest, RandomSubset_DeepZDD) {
+    // Create a deep ZDD with 200 variables to exercise BDD_RecurGuard
+    const int n = 200;
+    for (int i = 0; i < n; ++i) bddnewvar();
+    ZDD f = ZDD::single_set({});
+    std::vector<bddvar> vars;
+    for (int i = 1; i <= n; ++i) vars.push_back(i);
+    f = ZDD::single_set(vars);
+    f = f + ZDD::single_set({1, 2, 3});
+    f = f + ZDD::single_set({50, 100, 150});
+    f = f + ZDD(1);  // add empty set
+
+    std::mt19937_64 rng(42);
+
+    ZDD result = f.random_subset(0.5, rng);
+    EXPECT_TRUE(result.is_subset_family(f));
+    // With p=0.5 and 4 sets, expected ~2 sets
+    EXPECT_LE(result.count(), 4.0);
+}
+
