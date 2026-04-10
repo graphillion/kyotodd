@@ -965,6 +965,9 @@ PYBIND11_MODULE(_core, m) {
              "Subtraction (set difference): self - other.")
         .def("__and__",      [](const ZDD& a, const ZDD& b) { return a & b; },
              "Intersection: self & other.")
+        .def("intersec",     &ZDD::Intersec, py::arg("other"),
+             "Intersection with another family.\n\n"
+             "Equivalent to ``self & other``.")
         .def("__xor__",      [](const ZDD& a, const ZDD& b) { return a ^ b; },
              "Symmetric difference: self ^ other.")
         .def("__mul__",      [](const ZDD& a, const ZDD& b) { return a * b; },
