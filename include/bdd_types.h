@@ -1179,6 +1179,18 @@ public:
      */
     std::string to_str() const;
 
+    /** @brief Return a CNF string. Each set is a clause (OR of variables),
+     *  clauses are joined by AND. Empty family → "T". */
+    std::string to_cnf() const;
+    /** @brief Return a CNF string with custom variable names. */
+    std::string to_cnf(const std::vector<std::string>& var_name_map) const;
+
+    /** @brief Return a DNF string. Each set is a term (AND of variables),
+     *  terms are joined by OR. Empty family → "F". */
+    std::string to_dnf() const;
+    /** @brief Return a DNF string with custom variable names. */
+    std::string to_dnf(const std::vector<std::string>& var_name_map) const;
+
     /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
      *  @note C++ only. Not available in the Python binding. */
     void XPrint() const;

@@ -481,6 +481,58 @@ std::string ZDD::to_str() const {
     return oss.str();
 }
 
+std::string ZDD::to_cnf() const {
+    if (root == bddnull) return "N";
+    if (root == bddempty) return "T";
+    std::ostringstream oss;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    oss << "(";
+    print_sets_rec(oss, root, current, first_set, ") & (", " | ", nullptr);
+    oss << ")";
+    return oss.str();
+}
+
+std::string ZDD::to_cnf(
+    const std::vector<std::string>& var_name_map) const {
+    if (root == bddnull) return "N";
+    if (root == bddempty) return "T";
+    std::ostringstream oss;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    oss << "(";
+    print_sets_rec(oss, root, current, first_set,
+                   ") & (", " | ", &var_name_map);
+    oss << ")";
+    return oss.str();
+}
+
+std::string ZDD::to_dnf() const {
+    if (root == bddnull) return "N";
+    if (root == bddempty) return "F";
+    std::ostringstream oss;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    oss << "(";
+    print_sets_rec(oss, root, current, first_set, ") | (", " & ", nullptr);
+    oss << ")";
+    return oss.str();
+}
+
+std::string ZDD::to_dnf(
+    const std::vector<std::string>& var_name_map) const {
+    if (root == bddnull) return "N";
+    if (root == bddempty) return "F";
+    std::ostringstream oss;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    oss << "(";
+    print_sets_rec(oss, root, current, first_set,
+                   ") | (", " & ", &var_name_map);
+    oss << ")";
+    return oss.str();
+}
+
 void ZDD::Print() const {
     bddvar v = Top();
     std::cout << "[ " << GetID()

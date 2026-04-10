@@ -1348,6 +1348,32 @@ PYBIND11_MODULE(_core, m) {
            "    - empty ZDD: returns 'E'\n\n"
            "Returns:\n"
            "    The formatted string.\n")
+        .def("to_cnf", [](const ZDD& z,
+                          const std::vector<std::string>& var_name_map)
+                          -> std::string {
+            if (var_name_map.empty()) return z.to_cnf();
+            return z.to_cnf(var_name_map);
+        }, py::arg("var_name_map") = std::vector<std::string>(),
+             "Return a CNF string.\n\n"
+             "Each set is a clause (OR of variables), clauses joined by AND.\n"
+             "Example: '(1 | 3) & (2)'\n\n"
+             "Args:\n"
+             "    var_name_map: Optional list mapping variable numbers to names.\n\n"
+             "Returns:\n"
+             "    The CNF string. 'T' for empty family, 'N' for null.\n")
+        .def("to_dnf", [](const ZDD& z,
+                          const std::vector<std::string>& var_name_map)
+                          -> std::string {
+            if (var_name_map.empty()) return z.to_dnf();
+            return z.to_dnf(var_name_map);
+        }, py::arg("var_name_map") = std::vector<std::string>(),
+             "Return a DNF string.\n\n"
+             "Each set is a term (AND of variables), terms joined by OR.\n"
+             "Example: '(1 & 3) | (2)'\n\n"
+             "Args:\n"
+             "    var_name_map: Optional list mapping variable numbers to names.\n\n"
+             "Returns:\n"
+             "    The DNF string. 'F' for empty family, 'N' for null.\n")
 
         .def_property_readonly("exact_count", [](const ZDD& z) -> py::int_ {
             bigint::BigInt bi = z.exact_count();

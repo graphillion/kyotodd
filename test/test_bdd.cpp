@@ -15193,6 +15193,149 @@ TEST_F(BDDTest, JaccardIndex_UnitFamilies) {
 }
 
 // ============================================================
+// to_cnf tests
+// ============================================================
+
+TEST_F(BDDTest, ToCnf_SingleClause) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1, v2}} → one clause: (v2 | v1) — higher level first
+    ZDD f = ZDD::single_set({v1, v2});
+    EXPECT_EQ(f.to_cnf(), "(" + std::to_string(v2) + " | " +
+                           std::to_string(v1) + ")");
+}
+
+TEST_F(BDDTest, ToCnf_MultipleClauses) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // {{v1, v3}, {v2}} → (v1 | v3) & (v2)
+    ZDD f = ZDD::single_set({v1, v3}) + ZDD::singleton(v2);
+    std::string result = f.to_cnf();
+    // Both clauses must appear, connected by &
+    EXPECT_NE(result.find(" & "), std::string::npos);
+    EXPECT_NE(result.find("|"), std::string::npos);
+}
+
+TEST_F(BDDTest, ToCnf_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.to_cnf(), "T");
+}
+
+TEST_F(BDDTest, ToCnf_Null) {
+    EXPECT_EQ(ZDD::Null.to_cnf(), "N");
+}
+
+TEST_F(BDDTest, ToCnf_EmptySetClause) {
+    bddvar v1 = bddnewvar();
+    // {∅, {v1}} → two clauses: () & (v1)
+    ZDD f = ZDD::Single + ZDD::singleton(v1);
+    std::string result = f.to_cnf();
+    EXPECT_NE(result.find("()"), std::string::npos);
+}
+
+TEST_F(BDDTest, ToCnf_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    // {{v1}} → (v1)
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.to_cnf(), "(" + std::to_string(v1) + ")");
+}
+
+TEST_F(BDDTest, ToCnf_UnitFamily) {
+    bddnewvar();
+    // {∅} → empty clause
+    EXPECT_EQ(ZDD::Single.to_cnf(), "()");
+}
+
+TEST_F(BDDTest, ToCnf_VarNameMap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2});
+    std::vector<std::string> names(v2 + 1);
+    names[v1] = "a";
+    names[v2] = "b";
+    // Higher level (v2) appears first in ZDD traversal
+    EXPECT_EQ(f.to_cnf(names), "(b | a)");
+}
+
+// ============================================================
+// to_dnf tests
+// ============================================================
+
+TEST_F(BDDTest, ToDnf_SingleTerm) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1, v2}} → one term: (v2 & v1) — higher level first
+    ZDD f = ZDD::single_set({v1, v2});
+    EXPECT_EQ(f.to_dnf(), "(" + std::to_string(v2) + " & " +
+                           std::to_string(v1) + ")");
+}
+
+TEST_F(BDDTest, ToDnf_MultipleTerms) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // {{v1, v3}, {v2}} → (v1 & v3) | (v2)
+    ZDD f = ZDD::single_set({v1, v3}) + ZDD::singleton(v2);
+    std::string result = f.to_dnf();
+    EXPECT_NE(result.find(" | "), std::string::npos);
+    EXPECT_NE(result.find("&"), std::string::npos);
+}
+
+TEST_F(BDDTest, ToDnf_EmptyFamily) {
+    bddnewvar();
+    ZDD empty(0);
+    EXPECT_EQ(empty.to_dnf(), "F");
+}
+
+TEST_F(BDDTest, ToDnf_Null) {
+    EXPECT_EQ(ZDD::Null.to_dnf(), "N");
+}
+
+TEST_F(BDDTest, ToDnf_EmptySetTerm) {
+    bddvar v1 = bddnewvar();
+    // {∅, {v1}} → two terms: () | (v1)
+    ZDD f = ZDD::Single + ZDD::singleton(v1);
+    std::string result = f.to_dnf();
+    EXPECT_NE(result.find("()"), std::string::npos);
+}
+
+TEST_F(BDDTest, ToDnf_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_EQ(f.to_dnf(), "(" + std::to_string(v1) + ")");
+}
+
+TEST_F(BDDTest, ToDnf_UnitFamily) {
+    bddnewvar();
+    EXPECT_EQ(ZDD::Single.to_dnf(), "()");
+}
+
+TEST_F(BDDTest, ToDnf_VarNameMap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::single_set({v1, v2});
+    std::vector<std::string> names(v2 + 1);
+    names[v1] = "x";
+    names[v2] = "y";
+    // Higher level (v2) appears first
+    EXPECT_EQ(f.to_dnf(names), "(y & x)");
+}
+
+TEST_F(BDDTest, ToCnfDnf_DifferentOutput) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // {{v1}, {v2}} → CNF: (v1) & (v2), DNF: (v1) | (v2)
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
+    std::string cnf = f.to_cnf();
+    std::string dnf = f.to_dnf();
+    EXPECT_NE(cnf, dnf);
+    EXPECT_NE(cnf.find(" & "), std::string::npos);
+    EXPECT_NE(dnf.find(" | "), std::string::npos);
+}
+
+// ============================================================
 // random_subset tests
 // ============================================================
 
