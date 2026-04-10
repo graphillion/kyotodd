@@ -1067,57 +1067,101 @@ public:
      * @brief Return the cardinality as a hexadecimal string.
      * @deprecated Use count() or exact_count() instead.
      * @note C++ only. Not available in the Python binding.
+     * @param s Output buffer for hexadecimal string.
      */
     char* CardMP16(char* s) const;
-    /** @brief Export to a FILE stream. */
+    /** @brief Export to a FILE stream.
+     *  @param strm Output FILE stream. */
     void Export(FILE* strm) const;
-    /** @brief Export to an output stream. */
+    /** @brief Export to an output stream.
+     *  @param strm Output stream. */
     void Export(std::ostream& strm) const;
-    /** @brief Export this ZDD in BDD binary format to a FILE stream. */
+    /** @brief Export this ZDD in BDD binary format to a FILE stream.
+     *  @param strm Output FILE stream. */
     void export_binary(FILE* strm) const;
-    /** @brief Export this ZDD in BDD binary format to an output stream. */
+    /** @brief Export this ZDD in BDD binary format to an output stream.
+     *  @param strm Output stream. */
     void export_binary(std::ostream& strm) const;
     /** @brief Import a ZDD from BDD binary format from a FILE stream.
      *  @param strm Input FILE stream.
      *  @param ignore_type If true, skip dd_type validation (default: false). */
     static ZDD import_binary(FILE* strm, bool ignore_type = false);
-    /** @brief Import a ZDD from BDD binary format from an input stream. */
+    /** @brief Import a ZDD from BDD binary format from an input stream.
+     *  @param strm Input stream.
+     *  @param ignore_type If true, skip DD type checking during import. */
     static ZDD import_binary(std::istream& strm, bool ignore_type = false);
-    /** @brief Export multiple ZDDs in binary format to a FILE stream. */
+    /** @brief Export multiple ZDDs in binary format to a FILE stream.
+     *  @param strm Output FILE stream.
+     *  @param zdds ZDDs to export. */
     static void export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds);
-    /** @brief Export multiple ZDDs in binary format to an output stream. */
+    /** @brief Export multiple ZDDs in binary format to an output stream.
+     *  @param strm Output stream.
+     *  @param zdds ZDDs to export. */
     static void export_binary_multi(std::ostream& strm, const std::vector<ZDD>& zdds);
-    /** @brief Import multiple ZDDs from binary format from a FILE stream. */
+    /** @brief Import multiple ZDDs from binary format from a FILE stream.
+     *  @param strm Input FILE stream.
+     *  @param ignore_type If true, skip DD type checking. */
     static std::vector<ZDD> import_binary_multi(FILE* strm, bool ignore_type = false);
-    /** @brief Import multiple ZDDs from binary format from an input stream. */
+    /** @brief Import multiple ZDDs from binary format from an input stream.
+     *  @param strm Input stream.
+     *  @param ignore_type If true, skip DD type checking. */
     static std::vector<ZDD> import_binary_multi(std::istream& strm, bool ignore_type = false);
-    /** @deprecated Use export_sapporo() or export_binary() instead. */
+    /** @deprecated Use export_sapporo() or export_binary() instead.
+     *  @param strm Output FILE stream.
+     *  @param is_hex If true, use hexadecimal node IDs.
+     *  @param offset Variable number offset. */
     void export_knuth(FILE* strm, bool is_hex = false, int offset = 0) const;
-    /** @deprecated Use export_sapporo() or export_binary() instead. */
+    /** @deprecated Use export_sapporo() or export_binary() instead.
+     *  @param strm Output stream.
+     *  @param is_hex If true, use hexadecimal node IDs.
+     *  @param offset Variable number offset. */
     void export_knuth(std::ostream& strm, bool is_hex = false, int offset = 0) const;
-    /** @deprecated Use import_sapporo() or import_binary() instead. */
+    /** @deprecated Use import_sapporo() or import_binary() instead.
+     *  @param strm Input FILE stream.
+     *  @param is_hex If true, use hexadecimal node IDs.
+     *  @param offset Variable number offset. */
     static ZDD import_knuth(FILE* strm, bool is_hex = false, int offset = 0);
-    /** @deprecated Use import_sapporo() or import_binary() instead. */
+    /** @deprecated Use import_sapporo() or import_binary() instead.
+     *  @param strm Input stream.
+     *  @param is_hex If true, use hexadecimal node IDs.
+     *  @param offset Variable number offset. */
     static ZDD import_knuth(std::istream& strm, bool is_hex = false, int offset = 0);
-    /** @brief Export this ZDD in Sapporo format to a FILE stream. */
+    /** @brief Export this ZDD in Sapporo format to a FILE stream.
+     *  @param strm Output FILE stream. */
     void export_sapporo(FILE* strm) const;
-    /** @brief Export this ZDD in Sapporo format to an output stream. */
+    /** @brief Export this ZDD in Sapporo format to an output stream.
+     *  @param strm Output stream. */
     void export_sapporo(std::ostream& strm) const;
-    /** @brief Import a ZDD from Sapporo format from a FILE stream. */
+    /** @brief Import a ZDD from Sapporo format from a FILE stream.
+     *  @param strm Input FILE stream. */
     static ZDD import_sapporo(FILE* strm);
-    /** @brief Import a ZDD from Sapporo format from an input stream. */
+    /** @brief Import a ZDD from Sapporo format from an input stream.
+     *  @param strm Input stream. */
     static ZDD import_sapporo(std::istream& strm);
-    /** @brief Save Graphviz DOT representation to a FILE stream. */
+    /** @brief Save Graphviz DOT representation to a FILE stream.
+     *  @param strm Output FILE stream.
+     *  @param mode Draw mode (Expanded or Raw). */
     void save_graphviz(FILE* strm, DrawMode mode = DrawMode::Expanded) const;
-    /** @brief Save Graphviz DOT representation to an output stream. */
+    /** @brief Save Graphviz DOT representation to an output stream.
+     *  @param strm Output stream.
+     *  @param mode Draw mode (Expanded or Raw). */
     void save_graphviz(std::ostream& strm, DrawMode mode = DrawMode::Expanded) const;
-    /** @brief Save ZDD as SVG to a file. */
+    /** @brief Save ZDD as SVG to a file.
+     *  @param filename Output file path.
+     *  @param params SVG rendering parameters. */
     void save_svg(const char* filename, const SvgParams& params) const;
+    /** @brief Save ZDD as SVG to a file (default parameters).
+     *  @param filename Output file path. */
     void save_svg(const char* filename) const;
-    /** @brief Save ZDD as SVG to an output stream. */
+    /** @brief Save ZDD as SVG to an output stream.
+     *  @param strm Output stream.
+     *  @param params SVG rendering parameters. */
     void save_svg(std::ostream& strm, const SvgParams& params) const;
+    /** @brief Save ZDD as SVG to an output stream (default parameters).
+     *  @param strm Output stream. */
     void save_svg(std::ostream& strm) const;
-    /** @brief Export ZDD as SVG and return the SVG string. */
+    /** @brief Export ZDD as SVG and return the SVG string.
+     *  @param params SVG rendering parameters. */
     std::string save_svg(const SvgParams& params) const;
     std::string save_svg() const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
@@ -1196,7 +1240,9 @@ public:
     void XPrint() const;
     /** @brief Print in PLA format. */
     void PrintPla() const;
-    /** @brief Adjust ZDD to a given number of levels. */
+    /** @brief Adjust ZDD to a given number of levels.
+     *  @param lev Target number of levels.
+     *  @param last Last level. */
     ZDD ZLev(int lev, int last) const;
     /** @brief Set ZDD skip flags. */
     void SetZSkip() const;
@@ -1209,7 +1255,8 @@ public:
     int ImplyChk(bddvar v1, bddvar v2) const;
     /** @brief Check co-implication between v1 and v2. */
     int CoImplyChk(bddvar v1, bddvar v2) const;
-    /** @brief Keep sets with at most n elements. */
+    /** @brief Keep sets with at most n elements.
+     *  @param n Maximum number of elements per set. */
     ZDD PermitSym(int n) const;
     /** @brief Find elements common to all sets in the family. */
     ZDD Always() const;
@@ -1228,13 +1275,21 @@ public:
     /** @brief Find a non-trivial divisor of the family. */
     ZDD Divisor() const;
 
-    /** @brief Export this ZDD in Graphillion format to a FILE stream. */
+    /** @brief Export this ZDD in Graphillion format to a FILE stream.
+     *  @param strm Output FILE stream.
+     *  @param offset Variable number offset. */
     void export_graphillion(FILE* strm, int offset = 0) const;
-    /** @brief Export this ZDD in Graphillion format to an output stream. */
+    /** @brief Export this ZDD in Graphillion format to an output stream.
+     *  @param strm Output stream.
+     *  @param offset Variable number offset. */
     void export_graphillion(std::ostream& strm, int offset = 0) const;
-    /** @brief Import a ZDD from Graphillion format from a FILE stream. */
+    /** @brief Import a ZDD from Graphillion format from a FILE stream.
+     *  @param strm Input FILE stream.
+     *  @param offset Variable number offset. */
     static ZDD import_graphillion(FILE* strm, int offset = 0);
-    /** @brief Import a ZDD from Graphillion format from an input stream. */
+    /** @brief Import a ZDD from Graphillion format from an input stream.
+     *  @param strm Input stream.
+     *  @param offset Variable number offset. */
     static ZDD import_graphillion(std::istream& strm, int offset = 0);
 
     using DDBase::raw_child0;
@@ -1244,20 +1299,24 @@ public:
     static bddp child0(bddp f);
     /** @brief Get the 1-child (hi) node ID with complement edge resolution (ZDD semantics). */
     static bddp child1(bddp f);
-    /** @brief Get the child node ID by index (0 or 1) with complement edge resolution (ZDD semantics). */
+    /** @brief Get the child node ID by index (0 or 1) with complement edge resolution (ZDD semantics).
+     *  @param f Node ID.
+     *  @param child Child index (0 or 1). */
     static bddp child(bddp f, int child);
 
     /** @brief Get the raw 0-child (lo) as a ZDD without complement resolution. */
     ZDD raw_child0() const;
     /** @brief Get the raw 1-child (hi) as a ZDD without complement resolution. */
     ZDD raw_child1() const;
-    /** @brief Get the raw child by index (0 or 1) as a ZDD without complement resolution. */
+    /** @brief Get the raw child by index (0 or 1) as a ZDD without complement resolution.
+     *  @param child Child index (0 or 1). */
     ZDD raw_child(int child) const;
     /** @brief Get the 0-child (lo) as a ZDD with complement edge resolution (ZDD semantics). */
     ZDD child0() const;
     /** @brief Get the 1-child (hi) as a ZDD with complement edge resolution (ZDD semantics). */
     ZDD child1() const;
-    /** @brief Get the child by index (0 or 1) as a ZDD with complement edge resolution (ZDD semantics). */
+    /** @brief Get the child by index (0 or 1) as a ZDD with complement edge resolution (ZDD semantics).
+     *  @param child Child index (0 or 1). */
     ZDD child(int child) const;
 
     /** @brief Check if the empty set (∅) is a member of the family. */
@@ -1294,7 +1353,8 @@ public:
      *  For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}. */
     ZDD flatten() const;
 
-    /** @brief Filter to sets of exactly k elements. */
+    /** @brief Filter to sets of exactly k elements.
+     *  @param k Exact number of elements per set. */
     ZDD choose(int k) const;
 
     /** @brief Return all variable numbers appearing in the ZDD. */
@@ -1359,9 +1419,16 @@ public:
     template<typename RNG>
     static ZDD random_family(bddvar n, RNG& rng);
 
-    /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss.
+     *  @param op Operation code.
+     *  @param f First operand.
+     *  @param g Second operand. */
     static ZDD cache_get(uint8_t op, const ZDD& f, const ZDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     *  @param op Operation code.
+     *  @param f First operand.
+     *  @param g Second operand.
+     *  @param result The result to cache. */
     static void cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result);
 
     // --- Node creation ---

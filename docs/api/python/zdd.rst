@@ -53,6 +53,16 @@ ZDD Class
       :param ZDD other: Right operand.
       :rtype: ZDD
 
+   .. py:method:: intersec(other)
+
+      Intersection with another family.
+
+      Equivalent to ``self & other``.
+
+      :param ZDD other: The other family.
+      :return: The intersection of this family and *other*.
+      :rtype: ZDD
+
    .. py:method:: __xor__(other)
 
       Symmetric difference: ``self ^ other``.
@@ -227,6 +237,17 @@ ZDD Class
       :return: The resulting ZDD.
       :rtype: ZDD
 
+   .. py:method:: product(g)
+
+      Cross product for disjoint variable sets.
+
+      Like join (``*``), but more efficient when the two families operate on
+      completely disjoint variable sets. Each pair (A, B) produces A ∪ B.
+
+      :param ZDD g: The other family (must use disjoint variables).
+      :return: The resulting ZDD.
+      :rtype: ZDD
+
    Filtering Operations
    --------------------
 
@@ -260,6 +281,76 @@ ZDD Class
 
       :param ZDD g: The constraining family.
       :return: The resulting ZDD.
+      :rtype: ZDD
+
+   .. py:method:: choose(k)
+
+      Filter to sets of exactly *k* elements.
+
+      :param int k: Exact number of elements per set.
+      :return: A ZDD containing only sets of size *k*.
+      :rtype: ZDD
+
+   .. py:method:: size_le(k)
+
+      Filter to sets with at most *k* elements.
+
+      :param int k: Maximum number of elements.
+      :return: A ZDD containing only sets of size ≤ *k*.
+      :rtype: ZDD
+
+   .. py:method:: size_ge(k)
+
+      Filter to sets with at least *k* elements.
+
+      :param int k: Minimum number of elements.
+      :return: A ZDD containing only sets of size ≥ *k*.
+      :rtype: ZDD
+
+   .. py:method:: supersets_of(s)
+
+      Extract all sets that are supersets of *s*.
+
+      :param list[int] s: A list of variable numbers.
+      :return: A ZDD containing all sets S in the family such that s ⊆ S.
+      :rtype: ZDD
+
+   .. py:method:: subsets_of(s)
+
+      Extract all sets that are subsets of *s*.
+
+      :param list[int] s: A list of variable numbers.
+      :return: A ZDD containing all sets S in the family such that S ⊆ s.
+      :rtype: ZDD
+
+   .. py:method:: project(vars)
+
+      Remove specified variables from all sets (existential projection).
+
+      :param list[int] vars: Variables to remove.
+      :return: A ZDD with the specified variables projected out.
+      :rtype: ZDD
+
+   .. py:method:: coalesce(v1, v2)
+
+      Merge variable *v2* into *v1*.
+
+      Every set containing *v2* will have *v2* replaced by *v1*.
+      Variable *v1* survives, *v2* is eliminated.
+
+      :param int v1: The surviving variable number.
+      :param int v2: The variable to merge into *v1*.
+      :return: A ZDD with *v2* merged into *v1*.
+      :rtype: ZDD
+
+   .. py:method:: flatten()
+
+      Union of all sets as a single-set ZDD.
+
+      Collects all elements that appear in any set and returns
+      a family containing only their union.
+
+      :return: A ZDD containing a single set (the union of all sets).
       :rtype: ZDD
 
    Unary Operations
@@ -398,6 +489,13 @@ ZDD Class
       :return: A ZDD representing a divisor.
       :rtype: ZDD
 
+   .. py:method:: support_vars()
+
+      Return all variable numbers that appear in the ZDD, sorted by level.
+
+      :return: A list of variable numbers.
+      :rtype: list[int]
+
    Counting
    --------
 
@@ -419,6 +517,77 @@ ZDD Class
 
       :return: True if the family contains the empty set.
       :rtype: bool
+
+   Membership Queries
+   ------------------
+
+   .. py:method:: contains(s)
+
+      Check if a set is a member of the family.
+
+      :param list[int] s: A list of variable numbers representing the set.
+      :return: True if *s* is in the family.
+      :rtype: bool
+
+   .. py:method:: is_subset_family(g)
+
+      Check if this family is a subset of another family (F ⊆ G).
+
+      Uses early termination for efficiency.
+
+      :param ZDD g: The other family.
+      :return: True if every set in this family is also in *g*.
+      :rtype: bool
+
+   .. py:method:: is_disjoint(g)
+
+      Check if this family and another family are disjoint (F ∩ G = ∅).
+
+      Uses early termination for efficiency.
+
+      :param ZDD g: The other family.
+      :return: True if the families share no common sets.
+      :rtype: bool
+
+   .. py:method:: count_intersec(g)
+
+      Count the sets in the intersection without building it.
+
+      Computes \|F ∩ G\| without materializing the intersection ZDD.
+
+      :param ZDD g: The other family.
+      :return: The number of sets in the intersection.
+      :rtype: int
+
+   .. py:method:: jaccard_index(g)
+
+      Compute the Jaccard similarity index.
+
+      J(F, G) = \|F ∩ G\| / \|F ∪ G\|. Returns 1.0 when both families are empty.
+
+      :param ZDD g: The other family.
+      :return: The Jaccard index (0.0 to 1.0).
+      :rtype: float
+
+   .. py:method:: hamming_distance(g)
+
+      Compute the Hamming distance (symmetric difference size).
+
+      \|F △ G\| = \|F\| + \|G\| - 2\|F ∩ G\|.
+
+      :param ZDD g: The other family.
+      :return: The number of sets in the symmetric difference.
+      :rtype: int
+
+   .. py:method:: overlap_coefficient(g)
+
+      Compute the overlap coefficient.
+
+      O(F, G) = \|F ∩ G\| / min(\|F\|, \|G\|). Returns 1.0 when both families are empty.
+
+      :param ZDD g: The other family.
+      :return: The overlap coefficient (0.0 to 1.0).
+      :rtype: float
 
    Enumeration and Sampling
    ------------------------
@@ -453,6 +622,92 @@ ZDD Class
       :param int seed: Random seed (default: 0).
       :return: A list of variable numbers in the sampled set.
       :rtype: list[int]
+
+   .. py:method:: sample_k(k, seed=0)
+
+      Sample *k* sets uniformly at random from the family.
+
+      Uses hypergeometric distribution at each node for exact uniformity.
+
+      :param int k: Number of sets to sample.
+      :param int seed: Random seed (default: 0).
+      :return: A ZDD containing the sampled sets.
+      :rtype: ZDD
+
+   .. py:method:: sample_k_with_memo(k, memo, seed=0)
+
+      Sample *k* sets using a memo for caching counts.
+
+      :param int k: Number of sets to sample.
+      :param ZddCountMemo memo: A ZddCountMemo object for caching.
+      :param int seed: Random seed (default: 0).
+      :return: A ZDD containing the sampled sets.
+      :rtype: ZDD
+
+   .. py:method:: random_subset(p, seed=0)
+
+      Include each set independently with probability *p*.
+
+      :param float p: Inclusion probability (0.0 to 1.0).
+      :param int seed: Random seed (default: 0).
+      :return: A ZDD containing the randomly selected sets.
+      :rtype: ZDD
+
+   .. py:method:: weighted_sample(weights, mode, seed=0)
+
+      Sample one set proportional to aggregated weight.
+
+      The weight of each set is computed by aggregating element weights
+      according to *mode* (Sum or Product).
+
+      :param list[float] weights: Weight vector indexed by variable number.
+      :param WeightMode mode: Aggregation mode (``WeightMode.Sum`` or ``WeightMode.Product``).
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
+   .. py:method:: weighted_sample_with_memo(weights, mode, memo, seed=0)
+
+      Weighted sample using a memo for caching precomputed values.
+
+      :param list[float] weights: Weight vector indexed by variable number.
+      :param WeightMode mode: Aggregation mode.
+      :param WeightedSampleMemo memo: A memo object for caching.
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
+   .. py:method:: boltzmann_sample(weights, beta, seed=0)
+
+      Sample from a Boltzmann distribution P(S) ∝ exp(-β · Σ w[v]).
+
+      :param list[float] weights: Weight vector indexed by variable number.
+      :param float beta: Inverse temperature parameter.
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
+   .. py:method:: boltzmann_sample_with_memo(weights, beta, memo, seed=0)
+
+      Boltzmann sample using a memo for caching.
+
+      :param list[float] weights: Weight vector indexed by variable number.
+      :param float beta: Inverse temperature parameter.
+      :param WeightedSampleMemo memo: A memo object for caching.
+      :param int seed: Random seed (default: 0).
+      :return: A list of variable numbers in the sampled set.
+      :rtype: list[int]
+
+   .. py:staticmethod:: boltzmann_weights(weights, beta)
+
+      Transform weights for Boltzmann sampling.
+
+      Computes ``exp(-beta * w)`` for each weight.
+
+      :param list[float] weights: Original weight vector.
+      :param float beta: Inverse temperature parameter.
+      :return: Transformed weight vector.
+      :rtype: list[float]
 
    Constructors
    ------------
@@ -617,6 +872,13 @@ ZDD Class
 
       :rtype: QDD
 
+   .. py:method:: to_bdd(n=0)
+
+      Convert this ZDD (family) to a BDD (characteristic function).
+
+      :param int n: Number of variables (default: 0, uses ``var_count()``).
+      :rtype: BDD
+
    String Formatting
    -----------------
 
@@ -639,6 +901,28 @@ ZDD Class
       Example: ``'{},{1},{2},{2,1}'``.
       Special cases: null ZDD returns ``'N'``, empty ZDD returns ``'E'``.
 
+      :rtype: str
+
+   .. py:method:: to_cnf(var_name_map=[])
+
+      Convert to a CNF (Conjunctive Normal Form) string.
+
+      Each set becomes an OR-clause, and clauses are joined by AND.
+      Example: ``'(1 | 2) & (2 | 3)'``.
+
+      :param list[str] var_name_map: Optional variable name mapping.
+      :return: CNF string representation.
+      :rtype: str
+
+   .. py:method:: to_dnf(var_name_map=[])
+
+      Convert to a DNF (Disjunctive Normal Form) string.
+
+      Each set becomes an AND-term, and terms are joined by OR.
+      Example: ``'(1 & 2) | (2 & 3)'``.
+
+      :param list[str] var_name_map: Optional variable name mapping.
+      :return: DNF string representation.
       :rtype: str
 
    I/O
@@ -857,6 +1141,28 @@ ZDD Class
       :param bool raw: If True, show physical DAG with complement markers.
                        If False (default), expand complement edges.
 
+   SVG
+   ^^^
+
+   .. py:method:: save_svg_str(raw=False, draw_zero=True)
+
+      Export this ZDD as an SVG string.
+
+      :param bool raw: If True, show physical DAG with complement markers (Knuth-style).
+                       If False (default), expand complement edges.
+      :param bool draw_zero: If True (default), draw the 0-terminal node.
+      :return: SVG image as a string.
+      :rtype: str
+
+   .. py:method:: save_svg_file(path, raw=False, draw_zero=True)
+
+      Export this ZDD as an SVG file.
+
+      :param str path: File path to write to.
+      :param bool raw: If True, show physical DAG with complement markers (Knuth-style).
+                       If False (default), expand complement edges.
+      :param bool draw_zero: If True (default), draw the 0-terminal node.
+
    Properties
    ----------
 
@@ -890,6 +1196,11 @@ ZDD Class
 
       The maximum set size in the family.
 
+   .. py:property:: min_set_size
+      :type: int
+
+      The minimum set size in the family.
+
    .. py:property:: is_poly
       :type: int
 
@@ -915,6 +1226,76 @@ ZDD Class
 
       True if this is the 0-terminal (empty family).
 
+   Statistics
+   ----------
+
+   .. py:method:: max_size()
+
+      Return the maximum set size in the family.
+
+      Equivalent to the ``max_set_size`` property.
+
+      :rtype: int
+
+   .. py:method:: profile()
+
+      Compute the set size distribution (arbitrary precision).
+
+      Returns a list where ``result[k]`` is the number of sets of size *k*.
+
+      :return: Set size distribution.
+      :rtype: list[int]
+
+   .. py:method:: profile_double()
+
+      Compute the set size distribution (floating-point).
+
+      Returns a list where ``result[k]`` is the number of sets of size *k*.
+
+      :return: Set size distribution.
+      :rtype: list[float]
+
+   .. py:method:: element_frequency()
+
+      Compute the frequency of each variable across all sets.
+
+      Returns a list where ``result[v]`` is the number of sets containing
+      variable *v*.
+
+      :return: Per-variable frequency counts (arbitrary precision).
+      :rtype: list[int]
+
+   .. py:method:: average_size()
+
+      Compute the average number of elements per set.
+
+      :return: The mean set size.
+      :rtype: float
+
+   .. py:method:: variance_size()
+
+      Compute the variance of set sizes.
+
+      :return: The variance of the set size distribution.
+      :rtype: float
+
+   .. py:method:: median_size()
+
+      Compute the median set size.
+
+      :return: The median set size.
+      :rtype: float
+
+   .. py:method:: entropy()
+
+      Compute the Shannon entropy based on element frequencies.
+
+      :return: The entropy value.
+      :rtype: float
+
+   Weight Operations
+   -----------------
+
    .. py:method:: get_sum(weights)
 
       Compute the total weight sum over all sets in the family.
@@ -925,6 +1306,50 @@ ZDD Class
       :param list[int] weights: List of integer weights indexed by variable number.
                                  Size must be > top variable number of the ZDD.
       :rtype: int
+
+   .. py:method:: min_weight(weights)
+
+      Find the minimum total weight among all sets.
+
+      :param list[int] weights: Weight vector indexed by variable number.
+      :return: The minimum weight.
+      :rtype: int
+
+   .. py:method:: max_weight(weights)
+
+      Find the maximum total weight among all sets.
+
+      :param list[int] weights: Weight vector indexed by variable number.
+      :return: The maximum weight.
+      :rtype: int
+
+   .. py:method:: min_weight_set(weights)
+
+      Find a set with the minimum total weight.
+
+      :param list[int] weights: Weight vector indexed by variable number.
+      :return: A list of variable numbers in the lightest set.
+      :rtype: list[int]
+
+   .. py:method:: max_weight_set(weights)
+
+      Find a set with the maximum total weight.
+
+      :param list[int] weights: Weight vector indexed by variable number.
+      :return: A list of variable numbers in the heaviest set.
+      :rtype: list[int]
+
+   Iteration
+   ---------
+
+   .. py:method:: iter_min_weight(weights)
+
+      Iterate over sets in ascending weight order.
+
+      :param list[int] weights: List of integer weights indexed by variable number.
+                                 Size must be > top variable number of the ZDD.
+      :return: An iterator yielding (weight, set) pairs.
+      :rtype: Iterator[Tuple[int, List[int]]]
 
    .. py:method:: iter_max_weight(weights)
 
@@ -955,6 +1380,9 @@ ZDD Class
       :param int seed: Random seed (default: 0).
       :return: An iterator yielding sorted lists of variable numbers.
       :rtype: Iterator[List[int]]
+
+   Ranking and Unranking
+   ---------------------
 
    .. py:method:: rank(s)
 
@@ -1018,6 +1446,9 @@ ZDD Class
       :rtype: list[int]
       :raises ValueError: If the memo was created for a different ZDD.
       :raises IndexError: If order is out of range.
+
+   Cost-Bounded Filtering
+   ----------------------
 
    .. py:method:: cost_bound_le(weights, b)
 
@@ -1105,6 +1536,37 @@ ZDD Class
       :rtype: ZDD
       :raises ValueError: If the ZDD is null, weights is too small,
                           or a different weights vector was used with this memo.
+
+   .. py:method:: cost_bound_range(weights, lo, hi)
+
+      Extract all sets whose total cost is in the range [*lo*, *hi*].
+
+      Returns a ZDD representing {X ∈ F | lo ≤ Cost(X) ≤ hi}.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int lo: Lower cost bound (inclusive).
+      :param int hi: Upper cost bound (inclusive).
+      :return: A ZDD containing all sets with cost in [lo, hi].
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null or weights is too small.
+
+   .. py:method:: cost_bound_range_with_memo(weights, lo, hi, memo)
+
+      Extract sets with cost in [lo, hi], reusing a memo for efficiency.
+
+      :param list[int] weights: Cost vector indexed by variable number.
+                                 Size must be > ``var_used()``.
+      :param int lo: Lower cost bound (inclusive).
+      :param int hi: Upper cost bound (inclusive).
+      :param CostBoundMemo memo: Memo object for caching across calls.
+      :return: A ZDD containing all sets with cost in [lo, hi].
+      :rtype: ZDD
+      :raises ValueError: If the ZDD is null, weights is too small,
+                          or a different weights vector was used with this memo.
+
+   First-k and K-lightest/heaviest Extraction
+   -------------------------------------------
 
    .. py:method:: get_k_sets(k)
 

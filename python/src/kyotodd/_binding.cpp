@@ -908,13 +908,13 @@ PYBIND11_MODULE(_core, m) {
 
         .def_property_readonly_static("empty", [](py::object) -> ZDD {
             return ZDD::Empty;
-        })
+        }, "Empty family (no sets). The 0-terminal ZDD.")
         .def_property_readonly_static("single", [](py::object) -> ZDD {
             return ZDD::Single;
-        })
+        }, "Unit family containing only the empty set. The 1-terminal ZDD.")
         .def_property_readonly_static("null", [](py::object) -> ZDD {
             return ZDD::Null;
-        })
+        }, "Null (error) ZDD. Indicates an invalid or uninitialized state.")
 
         .def("__eq__", [](const ZDD& a, const ZDD& b) { return a == b; },
              "Equality comparison by node ID.")
