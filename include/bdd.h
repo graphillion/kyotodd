@@ -1226,17 +1226,8 @@ std::vector<bddvar> ZDD::boltzmann_sample(
         throw std::invalid_argument(
             "boltzmann_sample: memo must use Product mode");
     }
-    // On first call, validate weights/beta by computing transformed weights.
-    // On subsequent calls (memo already stored), skip redundant exp() calls
-    // and use the memo's stored weights directly.
-    if (memo.stored()) {
-        return weighted_sample_impl(
-            memo.weights(), WeightMode::Product,
-            [&rng](double upper) -> double {
-                std::uniform_real_distribution<double> dist(0.0, upper);
-                return dist(rng);
-            }, memo);
-    }
+    // Always compute transformed weights so that weighted_sample_impl
+    // can validate them against memo.weights() when memo is already stored.
     std::vector<double> tw = boltzmann_weights(weights, beta);
     return weighted_sample_impl(
         tw, WeightMode::Product,

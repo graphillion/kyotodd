@@ -705,7 +705,7 @@ std::vector<double> bddprofile_double(bddp f) {
     std::vector<double> result;
     result.reserve(bigint_result.size());
     for (auto& v : bigint_result) {
-        result.push_back(std::stod(v.to_string()));
+        result.push_back(bigint_to_double(v));
     }
     return result;
 }
@@ -1292,8 +1292,7 @@ double bddjaccardindex(bddp f, bddp g) {
     bigint::BigInt count_union = count_f + count_g - count_fg;
     if (count_union == bigint::BigInt(0)) return 1.0;
 
-    return std::stod(count_fg.to_string())
-         / std::stod(count_union.to_string());
+    return bigint_ratio_to_double(count_fg, count_union);
 }
 
 bigint::BigInt bddhammingdist(bddp f, bddp g) {
@@ -1335,8 +1334,7 @@ double bddoverlapcoeff(bddp f, bddp g) {
     bigint::BigInt count_fg = bddcountintersec_rec(
         f, g, pair_memo, count_memo);
 
-    return std::stod(count_fg.to_string())
-         / std::stod(min_count.to_string());
+    return bigint_ratio_to_double(count_fg, min_count);
 }
 
 // Legacy compatibility wrapper: returns cardinality as uppercase hex string.

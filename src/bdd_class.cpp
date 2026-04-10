@@ -307,19 +307,22 @@ double ZDD::average_size() const {
 }
 
 double ZDD::variance_size() const {
-    auto prof = profile_double();
-    double total_sets = 0.0;
-    double sum = 0.0;
-    double sum_sq = 0.0;
+    auto prof = profile();
+    bigint::BigInt total_sets(0);
+    bigint::BigInt sum(0);
+    bigint::BigInt sum_sq(0);
     for (size_t i = 0; i < prof.size(); i++) {
-        double di = static_cast<double>(i);
+        bigint::BigInt bi(static_cast<long long>(i));
         total_sets += prof[i];
-        sum += di * prof[i];
-        sum_sq += di * di * prof[i];
+        sum += bi * prof[i];
+        sum_sq += bi * bi * prof[i];
     }
-    if (total_sets == 0.0) return 0.0;
-    double mean = sum / total_sets;
-    return sum_sq / total_sets - mean * mean;
+    if (total_sets == bigint::BigInt(0)) return 0.0;
+    // variance = E[X^2] - (E[X])^2
+    //          = (sum_sq * total_sets - sum * sum) / (total_sets * total_sets)
+    bigint::BigInt numer = sum_sq * total_sets - sum * sum;
+    bigint::BigInt denom = total_sets * total_sets;
+    return bigint_ratio_to_double(numer, denom);
 }
 
 double ZDD::median_size() const {
@@ -356,18 +359,19 @@ double ZDD::median_size() const {
 
 double ZDD::entropy() const {
     auto freq = element_frequency();
-    double total_lit = 0.0;
+    bigint::BigInt total_lit(0);
     for (auto& v : freq) {
-        total_lit += std::stod(v.to_string());
+        total_lit += v;
     }
-    if (total_lit == 0.0) return 0.0;
+    if (total_lit == bigint::BigInt(0)) return 0.0;
 
     double h = 0.0;
     for (auto& v : freq) {
-        double f = std::stod(v.to_string());
-        if (f > 0.0) {
-            double p = f / total_lit;
-            h -= p * std::log2(p);
+        if (v > bigint::BigInt(0)) {
+            double p = bigint_ratio_to_double(v, total_lit);
+            if (p > 0.0) {
+                h -= p * std::log2(p);
+            }
         }
     }
     return h;
@@ -716,6 +720,8 @@ static double ws_count_rec(bddp f, std::unordered_map<bddp, double>& memo) {
     if (f == bddempty) return 0.0;
     if (f == bddsingle) return 1.0;
 
+    BDD_RecurGuard guard;
+
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
 
@@ -745,6 +751,8 @@ static double ws_total_sum_rec(
 {
     if (f == bddempty || f == bddsingle) return 0.0;
 
+    BDD_RecurGuard guard;
+
     bddp f_raw = f & ~BDD_COMP_FLAG;
     auto it = sum_memo.find(f_raw);
     if (it != sum_memo.end()) return it->second;
@@ -770,6 +778,8 @@ static double ws_total_prod_rec(
 {
     if (f == bddempty) return 0.0;
     if (f == bddsingle) return 1.0;
+
+    BDD_RecurGuard guard;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;

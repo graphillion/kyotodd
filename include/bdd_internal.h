@@ -4,6 +4,7 @@
 #include "bdd_types.h"
 #include <stdexcept>
 #include <functional>
+#include <cmath>
 
 /**
  * @brief Debug assertion macro.
@@ -313,6 +314,74 @@ bddp bdd_rshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
 
     bddwcache(op, fn, static_cast<bddp>(shift), result);
     return comp ? bddnot(result) : result;
+}
+
+/**
+ * @brief Safely convert a non-negative BigInt to double without throwing.
+ *
+ * For values that fit in double range, returns an accurate conversion.
+ * For very large values, returns the best double approximation (may be inf).
+ */
+inline double bigint_to_double(const bigint::BigInt& v) {
+    std::string s = v.to_string();
+    if (s.empty() || s == "0") return 0.0;
+    if (s.size() <= 15) {
+        return std::stod(s);
+    }
+    // Extract leading 18 digits and scale by 10^(len - 18)
+    double d = std::stod(s.substr(0, 18));
+    int exp = static_cast<int>(s.size()) - 18;
+    return d * std::pow(10.0, static_cast<double>(exp));
+}
+
+/**
+ * @brief Compute num / den as a double using BigInt string representations.
+ *
+ * Avoids std::stod overflow when numerator or denominator individually
+ * exceed double range, while the ratio itself is representable.
+ */
+inline double bigint_ratio_to_double(
+    const bigint::BigInt& num, const bigint::BigInt& den)
+{
+    if (den == bigint::BigInt(0)) return 0.0;
+    if (num == bigint::BigInt(0)) return 0.0;
+
+    std::string num_str = num.to_string();
+    std::string den_str = den.to_string();
+
+    if (num_str.size() <= 15 && den_str.size() <= 15) {
+        return std::stod(num_str) / std::stod(den_str);
+    }
+
+    // Extract up to 18 leading digits from each with exponent tracking
+    const int PREC = 18;
+    double num_d;
+    int num_exp;
+    if (static_cast<int>(num_str.size()) <= PREC) {
+        num_d = std::stod(num_str);
+        num_exp = 0;
+    } else {
+        num_d = std::stod(num_str.substr(0, PREC));
+        num_exp = static_cast<int>(num_str.size()) - PREC;
+    }
+
+    double den_d;
+    int den_exp;
+    if (static_cast<int>(den_str.size()) <= PREC) {
+        den_d = std::stod(den_str);
+        den_exp = 0;
+    } else {
+        den_d = std::stod(den_str.substr(0, PREC));
+        den_exp = static_cast<int>(den_str.size()) - PREC;
+    }
+
+    // ratio = (num_d / den_d) * 10^(num_exp - den_exp)
+    double ratio = num_d / den_d;
+    int exp_diff = num_exp - den_exp;
+    if (exp_diff != 0) {
+        ratio *= std::pow(10.0, static_cast<double>(exp_diff));
+    }
+    return ratio;
 }
 
 #endif

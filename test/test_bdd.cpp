@@ -15928,3 +15928,110 @@ TEST_F(BDDTest, CostBoundRange_EquivalentToEq) {
     }
 }
 
+// --- Review fixes: RecurGuard for weighted sampling ---
+
+TEST_F(BDDTest, ZDD_WeightedSample_RecurGuard_DeepZDD) {
+    // Build a deep chain ZDD that exceeds BDD_RecurLimit (8192)
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    // Build single-chain ZDD: {1,2,...,depth}
+    ZDD f = ZDD::Single;
+    for (int v = depth; v >= 1; --v) {
+        f = ZDD_ID(ZDD::getnode_raw(v, bddempty, f.GetID()));
+    }
+    std::vector<double> w(depth + 1, 1.0);
+    w[0] = 0.0;
+    std::mt19937_64 rng(42);
+    WeightedSampleMemo memo_prod(f, w, WeightMode::Product);
+    EXPECT_THROW(f.weighted_sample(w, WeightMode::Product, rng, memo_prod),
+                 std::overflow_error);
+    WeightedSampleMemo memo_sum(f, w, WeightMode::Sum);
+    EXPECT_THROW(f.weighted_sample(w, WeightMode::Sum, rng, memo_sum),
+                 std::overflow_error);
+}
+
+// --- Review fixes: boltzmann_sample mismatch after memo stored ---
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_WeightsMismatch_AfterStore) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w1 = {0.0, 1.0, 2.0};
+    std::vector<double> w2 = {0.0, 5.0, 10.0};
+    double beta = 1.0;
+    auto tw1 = ZDD::boltzmann_weights(w1, beta);
+    WeightedSampleMemo memo(f, tw1, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    // First call succeeds and populates memo
+    EXPECT_NO_THROW(f.boltzmann_sample(w1, beta, rng, memo));
+    EXPECT_TRUE(memo.stored());
+    // Second call with different weights must throw
+    EXPECT_THROW(f.boltzmann_sample(w2, beta, rng, memo),
+                 std::invalid_argument);
+}
+
+TEST_F(BDDTest, ZDD_BoltzmannSample_BetaMismatch_AfterStore) {
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1) + ZDD::singleton(2);
+    std::vector<double> w = {0.0, 1.0, 2.0};
+    auto tw = ZDD::boltzmann_weights(w, 1.0);
+    WeightedSampleMemo memo(f, tw, WeightMode::Product);
+    std::mt19937_64 rng(42);
+    // First call succeeds and populates memo
+    EXPECT_NO_THROW(f.boltzmann_sample(w, 1.0, rng, memo));
+    EXPECT_TRUE(memo.stored());
+    // Second call with different beta must throw
+    EXPECT_THROW(f.boltzmann_sample(w, 2.0, rng, memo),
+                 std::invalid_argument);
+}
+
+// --- Review fixes: BigInt overflow in statistics/similarity APIs ---
+
+TEST_F(BDDTest, ZDD_JaccardIndex_LargeBigInt) {
+    // power_set(1100) has 2^1100 sets — far beyond double range
+    const int n = 1100;
+    for (int i = bdd_varcount; i < n; ++i) bddnewvar();
+    ZDD f = ZDD::power_set(n);
+    // jaccard(f, f) = 1.0 always
+    EXPECT_DOUBLE_EQ(f.jaccard_index(f), 1.0);
+    // jaccard with a subset
+    ZDD g = ZDD::singleton(1) + ZDD::singleton(2);
+    double j = f.jaccard_index(g);
+    EXPECT_GE(j, 0.0);
+    EXPECT_LE(j, 1.0);
+}
+
+TEST_F(BDDTest, ZDD_OverlapCoeff_LargeBigInt) {
+    const int n = 1100;
+    for (int i = bdd_varcount; i < n; ++i) bddnewvar();
+    ZDD f = ZDD::power_set(n);
+    EXPECT_DOUBLE_EQ(f.overlap_coefficient(f), 1.0);
+    ZDD g = ZDD::singleton(1) + ZDD::singleton(2);
+    double o = f.overlap_coefficient(g);
+    // g is subset of f, so overlap = |g ∩ f| / min(|g|, |f|) = |g| / |g| = 1.0
+    EXPECT_DOUBLE_EQ(o, 1.0);
+}
+
+TEST_F(BDDTest, ZDD_Entropy_LargeBigInt) {
+    const int n = 1100;
+    for (int i = bdd_varcount; i < n; ++i) bddnewvar();
+    ZDD f = ZDD::power_set(n);
+    double h = f.entropy();
+    // For power_set, all variables have equal frequency → max entropy
+    EXPECT_GT(h, 0.0);
+    EXPECT_TRUE(std::isfinite(h));
+}
+
+TEST_F(BDDTest, ZDD_VarianceSize_LargeBigInt) {
+    const int n = 1100;
+    for (int i = bdd_varcount; i < n; ++i) bddnewvar();
+    ZDD f = ZDD::power_set(n);
+    double v = f.variance_size();
+    // power_set(n) has binomial(n,k) sets of size k.
+    // Mean = n/2, Variance = n/4
+    EXPECT_GT(v, 0.0);
+    EXPECT_TRUE(std::isfinite(v));
+    EXPECT_NEAR(v, n / 4.0, 1.0);
+}
+
