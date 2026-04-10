@@ -1261,6 +1261,14 @@ public:
      *  Early termination: returns as soon as a common set is found. */
     bool is_disjoint(const ZDD& g) const;
 
+    /** @brief Count the sets in the intersection without building it.
+     *  Computes |F ∩ G| via recursive pair traversal, no node allocation. */
+    bigint::BigInt count_intersec(const ZDD& g) const;
+
+    /** @brief Compute the Jaccard similarity index with another family.
+     *  J(F, G) = |F ∩ G| / |F ∪ G|. Returns 1.0 when both are empty. */
+    double jaccard_index(const ZDD& g) const;
+
     /** @brief Return the union of all sets in the family as a single-set ZDD.
      *  For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}. */
     ZDD flatten() const;

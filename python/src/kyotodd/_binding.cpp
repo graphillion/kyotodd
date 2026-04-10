@@ -1561,6 +1561,25 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    True if the families have no common set.\n")
+        .def("count_intersec", [](const ZDD& z, const ZDD& g) -> py::int_ {
+            bigint::BigInt bi = z.count_intersec(g);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("g"),
+             "Count the sets in the intersection without building it.\n\n"
+             "Computes |F ∩ G| without materializing the intersection ZDD.\n"
+             "More memory-efficient than ``(self & g).exact_count``.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The number of common sets as a Python int.\n")
+        .def("jaccard_index", &ZDD::jaccard_index, py::arg("g"),
+             "Compute the Jaccard similarity index.\n\n"
+             "J(F, G) = |F ∩ G| / |F ∪ G|. Returns 1.0 when both\n"
+             "families are empty.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The Jaccard index as a float in [0, 1].\n")
         .def("max_size", &ZDD::max_size,
              "Return the maximum set size in the family.\n\n"
              "Equivalent to the max_set_size property.\n\n"

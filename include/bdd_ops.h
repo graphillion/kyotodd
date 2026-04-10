@@ -595,6 +595,31 @@ uint64_t bddmaxsize(bddp f);
 bool bddisdisjoint(bddp f, bddp g);
 
 /**
+ * @brief Count the number of sets in the intersection of two ZDD families.
+ *
+ * Computes |F ∩ G| without materializing the intersection ZDD.
+ * More memory-efficient than bddintersec followed by bddexactcount.
+ *
+ * @param f A ZDD node ID.
+ * @param g A ZDD node ID.
+ * @return |F ∩ G| as a BigInt.
+ */
+bigint::BigInt bddcountintersec(bddp f, bddp g);
+
+/**
+ * @brief Compute the Jaccard index of two ZDD families.
+ *
+ * J(F, G) = |F ∩ G| / |F ∪ G|.
+ * Uses count_intersec internally; does not build intermediate ZDDs.
+ * Returns 1.0 when both families are empty (by convention).
+ *
+ * @param f A ZDD node ID.
+ * @param g A ZDD node ID.
+ * @return The Jaccard index in [0, 1], or 0.0 if either is null.
+ */
+double bddjaccardindex(bddp f, bddp g);
+
+/**
  * @brief Extract supersets of a given set from a ZDD family.
  * Returns all sets A in f where s ⊆ A.
  */

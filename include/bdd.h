@@ -710,6 +710,14 @@ inline bool ZDD::is_disjoint(const ZDD& g) const {
     return bddisdisjoint(root, g.root);
 }
 
+inline bigint::BigInt ZDD::count_intersec(const ZDD& g) const {
+    return bddcountintersec(root, g.root);
+}
+
+inline double ZDD::jaccard_index(const ZDD& g) const {
+    return bddjaccardindex(root, g.root);
+}
+
 inline char* ZDD::CardMP16(char* s) const {
     return bddcardmp16(root, s);
 }

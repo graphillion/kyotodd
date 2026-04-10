@@ -15005,6 +15005,194 @@ TEST_F(BDDTest, IsDisjoint_Null) {
 }
 
 // ============================================================
+// count_intersec tests
+// ============================================================
+
+TEST_F(BDDTest, CountIntersec_BothEmpty) {
+    bddnewvar();
+    ZDD a(0), b(0);
+    EXPECT_EQ(a.count_intersec(b), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, CountIntersec_OneEmpty) {
+    bddvar v1 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b(0);
+    EXPECT_EQ(a.count_intersec(b), bigint::BigInt(0));
+    EXPECT_EQ(b.count_intersec(a), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, CountIntersec_Identical) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_EQ(ps.count_intersec(ps), ps.exact_count());
+}
+
+TEST_F(BDDTest, CountIntersec_Disjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    EXPECT_EQ(a.count_intersec(b), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, CountIntersec_PartialOverlap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v2}}, b = {{v2}, {v1,v2}}
+    ZDD a = ZDD::singleton(v1) + ZDD::singleton(v2);
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v2});
+    EXPECT_EQ(a.count_intersec(b), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, CountIntersec_EmptySetOverlap) {
+    bddvar v1 = bddnewvar();
+    // a = {∅, {v1}}, b = {∅}
+    ZDD a = ZDD::Single + ZDD::singleton(v1);
+    ZDD b = ZDD::Single;
+    EXPECT_EQ(a.count_intersec(b), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, CountIntersec_ConsistentWithIntersection) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    ZDD c32 = ZDD::combination(3, 2);
+    EXPECT_EQ(ps.count_intersec(c32), (ps & c32).exact_count());
+}
+
+TEST_F(BDDTest, CountIntersec_Symmetric) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v3});
+    EXPECT_EQ(a.count_intersec(b), b.count_intersec(a));
+}
+
+TEST_F(BDDTest, CountIntersec_Complement) {
+    bddvar v1 = bddnewvar();
+    ZDD s1 = ZDD::singleton(v1);
+    ZDD comp = ~s1;  // ~{{v1}} = {∅, {v1}}
+    EXPECT_EQ(comp.count_intersec(s1), bigint::BigInt(1));
+}
+
+TEST_F(BDDTest, CountIntersec_Null) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_EQ(ZDD::Null.count_intersec(ps), bigint::BigInt(0));
+    EXPECT_EQ(ps.count_intersec(ZDD::Null), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, CountIntersec_FreeFunction) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddp ps = ZDD::power_set(3).GetID();
+    bddp c32 = ZDD::combination(3, 2).GetID();
+    EXPECT_EQ(bddcountintersec(ps, c32),
+              bddexactcount(bddintersec(ps, c32)));
+}
+
+TEST_F(BDDTest, CountIntersec_LargeExample) {
+    for (int i = 0; i < 10; ++i) bddnewvar();
+    ZDD ps = ZDD::power_set(10);
+    ZDD c105 = ZDD::combination(10, 5);
+    EXPECT_EQ(ps.count_intersec(c105), bigint::BigInt(252));
+}
+
+// ============================================================
+// jaccard_index tests
+// ============================================================
+
+TEST_F(BDDTest, JaccardIndex_BothEmpty) {
+    bddnewvar();
+    ZDD a(0), b(0);
+    EXPECT_DOUBLE_EQ(a.jaccard_index(b), 1.0);
+}
+
+TEST_F(BDDTest, JaccardIndex_OneEmpty) {
+    bddvar v1 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b(0);
+    EXPECT_DOUBLE_EQ(a.jaccard_index(b), 0.0);
+    EXPECT_DOUBLE_EQ(b.jaccard_index(a), 0.0);
+}
+
+TEST_F(BDDTest, JaccardIndex_Identical) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_DOUBLE_EQ(ps.jaccard_index(ps), 1.0);
+}
+
+TEST_F(BDDTest, JaccardIndex_Disjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    EXPECT_DOUBLE_EQ(a.jaccard_index(b), 0.0);
+}
+
+TEST_F(BDDTest, JaccardIndex_PartialOverlap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v2}}, b = {{v2}, {v1,v2}}
+    // |a ∩ b| = 1, |a ∪ b| = 3 → J = 1/3
+    ZDD a = ZDD::singleton(v1) + ZDD::singleton(v2);
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v2});
+    EXPECT_NEAR(a.jaccard_index(b), 1.0 / 3.0, 1e-15);
+}
+
+TEST_F(BDDTest, JaccardIndex_Symmetric) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v3});
+    EXPECT_DOUBLE_EQ(a.jaccard_index(b), b.jaccard_index(a));
+}
+
+TEST_F(BDDTest, JaccardIndex_SubsetCase) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // a ⊆ b → J = |a| / |b|
+    ZDD a = ZDD::combination(3, 2);  // 3 sets
+    ZDD b = ZDD::power_set(3);       // 8 sets
+    EXPECT_NEAR(a.jaccard_index(b), 3.0 / 8.0, 1e-15);
+}
+
+TEST_F(BDDTest, JaccardIndex_Null) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_DOUBLE_EQ(ZDD::Null.jaccard_index(ps), 0.0);
+    EXPECT_DOUBLE_EQ(ps.jaccard_index(ZDD::Null), 0.0);
+}
+
+TEST_F(BDDTest, JaccardIndex_FreeFunction) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddp ps = ZDD::power_set(3).GetID();
+    bddp c32 = ZDD::combination(3, 2).GetID();
+    EXPECT_NEAR(bddjaccardindex(ps, c32), 3.0 / 8.0, 1e-15);
+}
+
+TEST_F(BDDTest, JaccardIndex_UnitFamilies) {
+    bddnewvar();
+    EXPECT_DOUBLE_EQ(ZDD::Single.jaccard_index(ZDD::Single), 1.0);
+}
+
+// ============================================================
 // random_subset tests
 // ============================================================
 

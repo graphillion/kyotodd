@@ -1196,6 +1196,106 @@ bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo) {
     return bddexactcount_rec(f, memo);
 }
 
+// ---------------------------------------------------------------------------
+// count_intersec: count |F ∩ G| without building the intersection ZDD
+// ---------------------------------------------------------------------------
+
+typedef std::unordered_map<bddp,
+    std::unordered_map<bddp, bigint::BigInt>> PairCountMemoMap;
+
+static bigint::BigInt bddcountintersec_rec(
+    bddp f, bddp g,
+    PairCountMemoMap& pair_memo, CountMemoMap& count_memo) {
+    // Terminal cases
+    if (f == bddempty || g == bddempty) return bigint::BigInt(0);
+    if (f == bddsingle && g == bddsingle) return bigint::BigInt(1);
+    if (f == bddsingle) return bddhasempty(g) ? bigint::BigInt(1)
+                                              : bigint::BigInt(0);
+    if (g == bddsingle) return bddhasempty(f) ? bigint::BigInt(1)
+                                              : bigint::BigInt(0);
+    if (f == g) return bddexactcount_rec(f, count_memo);
+
+    // Canonical order (intersection is commutative)
+    if (f > g) { bddp t = f; f = g; g = t; }
+
+    BDD_RecurGuard guard;
+
+    // Pair memo lookup
+    auto it_f = pair_memo.find(f);
+    if (it_f != pair_memo.end()) {
+        auto it_g = it_f->second.find(g);
+        if (it_g != it_f->second.end()) return it_g->second;
+    }
+
+    bool f_const = (f & BDD_CONST_FLAG) != 0;
+    bool g_const = (g & BDD_CONST_FLAG) != 0;
+    bool f_comp = (f & BDD_COMP_FLAG) != 0;
+    bool g_comp = (g & BDD_COMP_FLAG) != 0;
+
+    bddvar f_var = f_const ? 0 : node_var(f);
+    bddvar g_var = g_const ? 0 : node_var(g);
+    bddvar f_level = f_const ? 0 : var2level[f_var];
+    bddvar g_level = g_const ? 0 : var2level[g_var];
+
+    bigint::BigInt result;
+
+    if (f_level > g_level) {
+        // g has no sets containing f_var; only f's lo branch can match
+        bddp f_lo = node_lo(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        result = bddcountintersec_rec(f_lo, g, pair_memo, count_memo);
+    } else if (g_level > f_level) {
+        bddp g_lo = node_lo(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddcountintersec_rec(f, g_lo, pair_memo, count_memo);
+    } else {
+        // Same top variable
+        bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
+        if (f_comp) { f_lo = bddnot(f_lo); }
+        bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
+        if (g_comp) { g_lo = bddnot(g_lo); }
+        result = bddcountintersec_rec(f_lo, g_lo, pair_memo, count_memo)
+               + bddcountintersec_rec(f_hi, g_hi, pair_memo, count_memo);
+    }
+
+    pair_memo[f][g] = result;
+    return result;
+}
+
+bigint::BigInt bddcountintersec(bddp f, bddp g) {
+    bddp_validate(f, "bddcountintersec");
+    bddp_validate(g, "bddcountintersec");
+    if (f == bddnull || g == bddnull) return bigint::BigInt(0);
+    if (f == bddempty || g == bddempty) return bigint::BigInt(0);
+    if (f == g) return bddexactcount(f);
+    PairCountMemoMap pair_memo;
+    CountMemoMap count_memo;
+    return bddcountintersec_rec(f, g, pair_memo, count_memo);
+}
+
+double bddjaccardindex(bddp f, bddp g) {
+    bddp_validate(f, "bddjaccardindex");
+    bddp_validate(g, "bddjaccardindex");
+    if (f == bddnull || g == bddnull) return 0.0;
+    if (f == bddempty && g == bddempty) return 1.0;
+    if (f == bddempty || g == bddempty) return 0.0;
+    if (f == g) return 1.0;
+
+    CountMemoMap count_memo;
+    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
+    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
+
+    PairCountMemoMap pair_memo;
+    bigint::BigInt count_fg = bddcountintersec_rec(
+        f, g, pair_memo, count_memo);
+
+    bigint::BigInt count_union = count_f + count_g - count_fg;
+    if (count_union == bigint::BigInt(0)) return 1.0;
+
+    return std::stod(count_fg.to_string())
+         / std::stod(count_union.to_string());
+}
+
 // Legacy compatibility wrapper: returns cardinality as uppercase hex string.
 char *bddcardmp16(bddp f, char *s) {
     std::string hex = bddexactcount(f).to_hex_upper();
