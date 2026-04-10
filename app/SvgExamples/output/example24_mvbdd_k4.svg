@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="245" height="163" viewBox="90.5 -21.5 245 163">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="208" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="208" y="27" font-size="24" text-anchor="middle" fill="black">dir</text>
+    <path d="M 198.559,37.6315 L 127,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="174.556" y="37.8978" font-size="16" text-anchor="middle" fill="#1b3966">0</text>
+    <path d="M 195.244,35.4044 L 127,80" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="171.619" y="36.5079" font-size="16" text-anchor="middle" fill="#c0392b">1</text>
+    <path d="M 192.438,32.5632 L 127,80" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="169.036" y="34.7067" font-size="16" text-anchor="middle" fill="#27ae60">2</text>
+    <path d="M 218.448,37.0543 L 299,80" fill="none" stroke="#8e44ad" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="232.94" y="58.3798" font-size="16" text-anchor="middle" fill="#8e44ad">3</text>
+    <rect x="112" y="80" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="127" y="107" font-size="24" text-anchor="middle" fill="black">0</text>
+    <rect x="284" y="80" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="299" y="107" font-size="24" text-anchor="middle" fill="black">1</text>
+</svg>

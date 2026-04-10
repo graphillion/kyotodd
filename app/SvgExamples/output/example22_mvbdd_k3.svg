@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="187" height="243" viewBox="32.5 -21.5 187 243">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="122" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="122" y="27" font-size="24" text-anchor="middle" fill="black">shape</text>
+    <path d="M 127.91,39.1067 L 122,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="114.556" y="47.6135" font-size="16" text-anchor="middle" fill="#1b3966">0</text>
+    <path d="M 122,40 L 122,80" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="110" y="50" font-size="16" text-anchor="middle" fill="#c0392b">1</text>
+    <path d="M 123.284,39.9587 L 183,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="127.469" y="75.3138" font-size="16" text-anchor="middle" fill="#27ae60">2</text>
+    <circle cx="122" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="122" y="107" font-size="24" text-anchor="middle" fill="black">color</text>
+    <path d="M 116.375,119.193 L 69,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="96.6994" y="120.302" font-size="16" text-anchor="middle" fill="#1b3966">0</text>
+    <path d="M 134.127,115.904 L 183,160" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="138.306" y="135.838" font-size="16" text-anchor="middle" fill="#c0392b">1</text>
+    <path d="M 106.52,112.664 L 69,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="87.7361" y="117.044" font-size="16" text-anchor="middle" fill="#27ae60">2</text>
+    <rect x="54" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="69" y="187" font-size="24" text-anchor="middle" fill="black">0</text>
+    <rect x="168" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="183" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
+</svg>

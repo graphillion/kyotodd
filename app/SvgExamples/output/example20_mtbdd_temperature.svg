@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="193" height="243" viewBox="-21.5 -21.5 193 243">
+<defs>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+    <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
+        <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
+    </marker>
+</defs>
+    <circle cx="71" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="71" y="107" font-size="24" text-anchor="middle" fill="black">rain</text>
+    <path d="M 59.5308,116.385 L 15,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 71.9988,119.975 L 75,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="71" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="71" y="27" font-size="24" text-anchor="middle" fill="black">sun</text>
+    <path d="M 71,40 L 71,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 78.4278,38.5695 L 135,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="0" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="15" y="187" font-size="24" text-anchor="middle" fill="black">10</text>
+    <rect x="60" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="75" y="187" font-size="24" text-anchor="middle" fill="black">25</text>
+    <rect x="120" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="135" y="187" font-size="24" text-anchor="middle" fill="black">40</text>
+</svg>
