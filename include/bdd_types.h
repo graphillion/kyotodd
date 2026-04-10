@@ -1281,6 +1281,15 @@ public:
      *  J(F, G) = |F ∩ G| / |F ∪ G|. Returns 1.0 when both are empty. */
     double jaccard_index(const ZDD& g) const;
 
+    /** @brief Compute the Hamming distance (symmetric difference size).
+     *  |F △ G| = |F| + |G| - 2|F ∩ G|. Returns BigInt. */
+    bigint::BigInt hamming_distance(const ZDD& g) const;
+
+    /** @brief Compute the overlap coefficient with another family.
+     *  O(F, G) = |F ∩ G| / min(|F|, |G|). Returns 1.0 when both are empty.
+     *  Returns 0.0 if either is null. */
+    double overlap_coefficient(const ZDD& g) const;
+
     /** @brief Return the union of all sets in the family as a single-set ZDD.
      *  For F = {S1, S2, ...}, returns {{S1 ∪ S2 ∪ ...}}. */
     ZDD flatten() const;
@@ -1303,6 +1312,20 @@ public:
 
     /** @brief Return the average set size in the family (double). */
     double average_size() const;
+
+    /** @brief Return the variance of set sizes in the family (double).
+     *  Var(|S|) = E[|S|^2] - (E[|S|])^2. Returns 0.0 for empty families. */
+    double variance_size() const;
+
+    /** @brief Return the median set size in the family (double).
+     *  When the family has an even number of sets, returns the average of
+     *  the two middle values. Returns 0.0 for empty families. */
+    double median_size() const;
+
+    /** @brief Return the Shannon entropy based on element frequencies (double).
+     *  H = -sum_v p(v) * log2(p(v)), where p(v) = freq(v) / total_lit.
+     *  Returns 0.0 for empty families or families with no elements. */
+    double entropy() const;
 
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
@@ -1443,6 +1466,27 @@ public:
 
     /** @brief Convenience overload without memo (creates a temporary one). */
     ZDD cost_bound_eq(const std::vector<int>& weights, long long b) const;
+
+    /**
+     * @brief Extract all solutions with cost in [lo, hi].
+     *
+     * Returns a ZDD representing {X ∈ S_f | lo ≤ Cost(X) ≤ hi}.
+     * Computed as cost_bound_le(hi) - cost_bound_le(lo - 1), sharing
+     * the same memo for efficiency.
+     *
+     * @param weights Cost vector indexed by variable number (1-based).
+     *                Size must be > var_used().
+     * @param lo Lower cost bound (inclusive).
+     * @param hi Upper cost bound (inclusive).
+     * @param memo Interval-memoization table.
+     * @return ZDD representing all solutions with lo ≤ cost ≤ hi.
+     */
+    ZDD cost_bound_range(const std::vector<int>& weights, long long lo,
+                         long long hi, CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo (creates a temporary one). */
+    ZDD cost_bound_range(const std::vector<int>& weights, long long lo,
+                         long long hi) const;
 
     /**
      * @brief Extract all sets with at most k elements.

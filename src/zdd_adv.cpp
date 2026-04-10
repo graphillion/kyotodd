@@ -1296,6 +1296,49 @@ double bddjaccardindex(bddp f, bddp g) {
          / std::stod(count_union.to_string());
 }
 
+bigint::BigInt bddhammingdist(bddp f, bddp g) {
+    bddp_validate(f, "bddhammingdist");
+    bddp_validate(g, "bddhammingdist");
+    if (f == bddnull || g == bddnull) return bigint::BigInt(0);
+    if (f == g) return bigint::BigInt(0);
+    if (f == bddempty) return bddexactcount(g);
+    if (g == bddempty) return bddexactcount(f);
+
+    CountMemoMap count_memo;
+    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
+    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
+
+    PairCountMemoMap pair_memo;
+    bigint::BigInt count_fg = bddcountintersec_rec(
+        f, g, pair_memo, count_memo);
+
+    // |F △ G| = |F| + |G| - 2|F ∩ G|
+    return count_f + count_g - count_fg - count_fg;
+}
+
+double bddoverlapcoeff(bddp f, bddp g) {
+    bddp_validate(f, "bddoverlapcoeff");
+    bddp_validate(g, "bddoverlapcoeff");
+    if (f == bddnull || g == bddnull) return 0.0;
+    if (f == bddempty && g == bddempty) return 1.0;
+    if (f == bddempty || g == bddempty) return 0.0;
+    if (f == g) return 1.0;
+
+    CountMemoMap count_memo;
+    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
+    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
+
+    bigint::BigInt min_count = (count_f < count_g) ? count_f : count_g;
+    if (min_count == bigint::BigInt(0)) return 0.0;
+
+    PairCountMemoMap pair_memo;
+    bigint::BigInt count_fg = bddcountintersec_rec(
+        f, g, pair_memo, count_memo);
+
+    return std::stod(count_fg.to_string())
+         / std::stod(min_count.to_string());
+}
+
 // Legacy compatibility wrapper: returns cardinality as uppercase hex string.
 char *bddcardmp16(bddp f, char *s) {
     std::string hex = bddexactcount(f).to_hex_upper();

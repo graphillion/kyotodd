@@ -306,6 +306,81 @@ double ZDD::average_size() const {
     return total_elements / total_sets;
 }
 
+double ZDD::variance_size() const {
+    auto prof = profile_double();
+    double total_sets = 0.0;
+    double sum = 0.0;
+    double sum_sq = 0.0;
+    for (size_t i = 0; i < prof.size(); i++) {
+        double di = static_cast<double>(i);
+        total_sets += prof[i];
+        sum += di * prof[i];
+        sum_sq += di * di * prof[i];
+    }
+    if (total_sets == 0.0) return 0.0;
+    double mean = sum / total_sets;
+    return sum_sq / total_sets - mean * mean;
+}
+
+double ZDD::median_size() const {
+    auto prof = profile();
+    bigint::BigInt total(0);
+    for (auto& v : prof) total += v;
+    if (total == bigint::BigInt(0)) return 0.0;
+
+    // Find median via cumulative sum
+    bigint::BigInt two(2);
+    bigint::BigInt total_x2 = total * two;
+    bigint::BigInt cumul(0);
+    for (size_t i = 0; i < prof.size(); i++) {
+        bigint::BigInt prev_cumul = cumul;
+        cumul += prof[i];
+        bigint::BigInt cumul_x2 = cumul * two;
+        if (cumul_x2 > total) {
+            // All of total/2 is within bin i
+            return static_cast<double>(i);
+        }
+        if (cumul_x2 == total) {
+            // Median is between bin i and the next non-empty bin
+            for (size_t j = i + 1; j < prof.size(); j++) {
+                if (prof[j] > bigint::BigInt(0)) {
+                    return (static_cast<double>(i) + static_cast<double>(j)) / 2.0;
+                }
+            }
+            // All sets have size i
+            return static_cast<double>(i);
+        }
+    }
+    return 0.0;
+}
+
+double ZDD::entropy() const {
+    auto freq = element_frequency();
+    double total_lit = 0.0;
+    for (auto& v : freq) {
+        total_lit += std::stod(v.to_string());
+    }
+    if (total_lit == 0.0) return 0.0;
+
+    double h = 0.0;
+    for (auto& v : freq) {
+        double f = std::stod(v.to_string());
+        if (f > 0.0) {
+            double p = f / total_lit;
+            h -= p * std::log2(p);
+        }
+    }
+    return h;
+}
+
+bigint::BigInt ZDD::hamming_distance(const ZDD& g) const {
+    return bddhammingdist(root, g.root);
+}
+
+double ZDD::overlap_coefficient(const ZDD& g) const {
+    return bddoverlapcoeff(root, g.root);
+}
+
 ZDD ZDD::singleton(bddvar v) {
     return ZDD_ID(bddchange(bddsingle, v));
 }
@@ -955,6 +1030,22 @@ ZDD ZDD::cost_bound_eq(const std::vector<int>& weights, long long b,
 ZDD ZDD::cost_bound_eq(const std::vector<int>& weights, long long b) const {
     CostBoundMemo memo;
     return cost_bound_eq(weights, b, memo);
+}
+
+// --- ZDD::cost_bound_range ---
+
+ZDD ZDD::cost_bound_range(const std::vector<int>& weights, long long lo,
+                           long long hi, CostBoundMemo& memo) const {
+    ZDD le_hi = cost_bound_le(weights, hi, memo);
+    if (lo == LLONG_MIN) return le_hi;  // no sum < LLONG_MIN, so le(lo-1) is empty
+    ZDD le_lo1 = cost_bound_le(weights, lo - 1, memo);
+    return le_hi - le_lo1;
+}
+
+ZDD ZDD::cost_bound_range(const std::vector<int>& weights, long long lo,
+                           long long hi) const {
+    CostBoundMemo memo;
+    return cost_bound_range(weights, lo, hi, memo);
 }
 
 // --- ZDD::size_le / size_ge ---

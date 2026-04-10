@@ -1606,6 +1606,24 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    The Jaccard index as a float in [0, 1].\n")
+        .def("hamming_distance", [](const ZDD& z, const ZDD& g) -> py::int_ {
+            bigint::BigInt bi = z.hamming_distance(g);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("g"),
+             "Compute the Hamming distance (symmetric difference size).\n\n"
+             "|F triangle G| = |F| + |G| - 2|F intersect G|.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The size of the symmetric difference as a Python int.\n")
+        .def("overlap_coefficient", &ZDD::overlap_coefficient, py::arg("g"),
+             "Compute the overlap coefficient.\n\n"
+             "O(F, G) = |F intersect G| / min(|F|, |G|).\n"
+             "Returns 1.0 when both are empty, 0.0 if either is null.\n\n"
+             "Args:\n"
+             "    g: The other family.\n\n"
+             "Returns:\n"
+             "    The overlap coefficient as a float in [0, 1].\n")
         .def("max_size", &ZDD::max_size,
              "Return the maximum set size in the family.\n\n"
              "Equivalent to the max_set_size property.\n\n"
@@ -1646,6 +1664,23 @@ PYBIND11_MODULE(_core, m) {
              "Returns:\n"
              "    The average number of elements per set (float).\n"
              "    Returns 0.0 for empty families.\n")
+        .def("variance_size", &ZDD::variance_size,
+             "Return the variance of set sizes in the family.\n\n"
+             "Var(|S|) = E[|S|^2] - (E[|S|])^2.\n\n"
+             "Returns:\n"
+             "    The variance as a float. Returns 0.0 for empty families.\n")
+        .def("median_size", &ZDD::median_size,
+             "Return the median set size in the family.\n\n"
+             "When the family has an even number of sets, returns the\n"
+             "average of the two middle values.\n\n"
+             "Returns:\n"
+             "    The median set size as a float. Returns 0.0 for empty families.\n")
+        .def("entropy", &ZDD::entropy,
+             "Return the Shannon entropy based on element frequencies.\n\n"
+             "H = -sum_v p(v) * log2(p(v)), where p(v) = freq(v) / total_lit.\n\n"
+             "Returns:\n"
+             "    The entropy as a float in bits.\n"
+             "    Returns 0.0 for empty families or families with no elements.\n")
         .def("element_frequency", [](const ZDD& z) -> std::vector<py::int_> {
             auto v = z.element_frequency();
             std::vector<py::int_> result;
@@ -2040,6 +2075,38 @@ PYBIND11_MODULE(_core, m) {
            "    memo: A CostBoundMemo object for caching across calls.\n\n"
            "Returns:\n"
            "    A ZDD containing all sets with cost == b.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null, weights is too small,\n"
+           "                or a different weights vector was used with this memo.\n")
+        .def("cost_bound_range", [](const ZDD& z, const std::vector<int>& weights,
+                                     long long lo, long long hi) -> ZDD {
+            return z.cost_bound_range(weights, lo, hi);
+        }, py::arg("weights"), py::arg("lo"), py::arg("hi"),
+           "Extract all sets whose total cost is in [lo, hi].\n\n"
+           "Returns a ZDD representing {X in F | lo <= Cost(X) <= hi}.\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    lo: Lower cost bound (inclusive).\n"
+           "    hi: Upper cost bound (inclusive).\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with lo <= cost <= hi.\n\n"
+           "Raises:\n"
+           "    ValueError: If the ZDD is null or weights is too small.\n")
+        .def("cost_bound_range_with_memo", [](const ZDD& z, const std::vector<int>& weights,
+                                               long long lo, long long hi,
+                                               CostBoundMemo& memo) -> ZDD {
+            return z.cost_bound_range(weights, lo, hi, memo);
+        }, py::arg("weights"), py::arg("lo"), py::arg("hi"), py::arg("memo"),
+           "Extract sets with cost in [lo, hi], reusing a memo.\n\n"
+           "Args:\n"
+           "    weights: A list of integer costs indexed by variable number.\n"
+           "             Size must be > the number of variables (var_used()).\n"
+           "    lo: Lower cost bound (inclusive).\n"
+           "    hi: Upper cost bound (inclusive).\n"
+           "    memo: A CostBoundMemo object for caching across calls.\n\n"
+           "Returns:\n"
+           "    A ZDD containing all sets with lo <= cost <= hi.\n\n"
            "Raises:\n"
            "    ValueError: If the ZDD is null, weights is too small,\n"
            "                or a different weights vector was used with this memo.\n")

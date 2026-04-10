@@ -620,6 +620,29 @@ bigint::BigInt bddcountintersec(bddp f, bddp g);
 double bddjaccardindex(bddp f, bddp g);
 
 /**
+ * @brief Compute the Hamming distance (symmetric difference size) of two ZDD families.
+ *
+ * |F △ G| = |F| + |G| - 2|F ∩ G|.
+ *
+ * @param f A ZDD node ID.
+ * @param g A ZDD node ID.
+ * @return |F △ G| as a BigInt, or 0 if either is null.
+ */
+bigint::BigInt bddhammingdist(bddp f, bddp g);
+
+/**
+ * @brief Compute the overlap coefficient of two ZDD families.
+ *
+ * O(F, G) = |F ∩ G| / min(|F|, |G|).
+ * Returns 1.0 when both are empty, 0.0 if either is null.
+ *
+ * @param f A ZDD node ID.
+ * @param g A ZDD node ID.
+ * @return The overlap coefficient in [0, 1].
+ */
+double bddoverlapcoeff(bddp f, bddp g);
+
+/**
  * @brief Extract supersets of a given set from a ZDD family.
  * Returns all sets A in f where s ⊆ A.
  */

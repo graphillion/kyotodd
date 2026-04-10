@@ -15509,3 +15509,422 @@ TEST_F(BDDTest, RandomSubset_DeepZDD) {
     EXPECT_LE(result.count(), 4.0);
 }
 
+// ============================================================
+// hamming_distance tests
+// ============================================================
+
+TEST_F(BDDTest, HammingDistance_BothEmpty) {
+    ZDD a(0), b(0);
+    EXPECT_EQ(a.hamming_distance(b), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, HammingDistance_Identical) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_EQ(ps.hamming_distance(ps), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, HammingDistance_Disjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);  // {{v1}}
+    ZDD b = ZDD::singleton(v2);  // {{v2}}
+    // |a △ b| = |a| + |b| - 2*0 = 2
+    EXPECT_EQ(a.hamming_distance(b), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, HammingDistance_PartialOverlap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v2}}, b = {{v2}, {v1,v2}}
+    // |a ∩ b| = 1 ({{v2}}), |a △ b| = 2 + 2 - 2*1 = 2
+    ZDD a = ZDD::singleton(v1) + ZDD::singleton(v2);
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v2});
+    EXPECT_EQ(a.hamming_distance(b), bigint::BigInt(2));
+}
+
+TEST_F(BDDTest, HammingDistance_Symmetric) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    EXPECT_EQ(a.hamming_distance(b), b.hamming_distance(a));
+}
+
+TEST_F(BDDTest, HammingDistance_SubsetCase) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD a = ZDD::combination(3, 2);  // 3 sets
+    ZDD b = ZDD::power_set(3);       // 8 sets
+    // a ⊆ b → |a △ b| = |b| - |a| = 5
+    EXPECT_EQ(a.hamming_distance(b), bigint::BigInt(5));
+}
+
+TEST_F(BDDTest, HammingDistance_ConsistentWithSymDiff) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD a = ZDD::combination(3, 1);
+    ZDD b = ZDD::combination(3, 2);
+    EXPECT_EQ(a.hamming_distance(b), (a ^ b).exact_count());
+}
+
+TEST_F(BDDTest, HammingDistance_OneEmpty) {
+    bddnewvar();
+    bddnewvar();
+    ZDD a = ZDD::power_set(2);  // 4 sets
+    ZDD b(0);                    // empty
+    EXPECT_EQ(a.hamming_distance(b), bigint::BigInt(4));
+}
+
+TEST_F(BDDTest, HammingDistance_Null) {
+    bddnewvar();
+    ZDD ps = ZDD::power_set(1);
+    EXPECT_EQ(ZDD::Null.hamming_distance(ps), bigint::BigInt(0));
+    EXPECT_EQ(ps.hamming_distance(ZDD::Null), bigint::BigInt(0));
+}
+
+TEST_F(BDDTest, HammingDistance_FreeFunction) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddp ps = ZDD::power_set(3).GetID();
+    bddp c32 = ZDD::combination(3, 2).GetID();
+    EXPECT_EQ(bddhammingdist(ps, c32), bigint::BigInt(5));
+}
+
+// ============================================================
+// overlap_coefficient tests
+// ============================================================
+
+TEST_F(BDDTest, OverlapCoefficient_BothEmpty) {
+    ZDD a(0), b(0);
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), 1.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_Identical) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_DOUBLE_EQ(ps.overlap_coefficient(ps), 1.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_Disjoint) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD a = ZDD::singleton(v1);
+    ZDD b = ZDD::singleton(v2);
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), 0.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_SubsetCase) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // a ⊆ b → O(a,b) = |a| / min(|a|,|b|) = |a|/|a| = 1.0
+    ZDD a = ZDD::combination(3, 2);  // 3 sets
+    ZDD b = ZDD::power_set(3);       // 8 sets
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), 1.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_PartialOverlap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // a = {{v1}, {v2}}, b = {{v2}, {v1,v2}}
+    // |a ∩ b| = 1, min(|a|,|b|) = 2 → O = 0.5
+    ZDD a = ZDD::singleton(v1) + ZDD::singleton(v2);
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v2});
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), 0.5);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_Symmetric) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD a = ZDD::singleton(v1) + ZDD::single_set({v2, v3});
+    ZDD b = ZDD::singleton(v2) + ZDD::single_set({v1, v3});
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), b.overlap_coefficient(a));
+}
+
+TEST_F(BDDTest, OverlapCoefficient_OneEmpty) {
+    bddnewvar();
+    ZDD a = ZDD::power_set(1);
+    ZDD b(0);
+    EXPECT_DOUBLE_EQ(a.overlap_coefficient(b), 0.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_Null) {
+    bddnewvar();
+    ZDD ps = ZDD::power_set(1);
+    EXPECT_DOUBLE_EQ(ZDD::Null.overlap_coefficient(ps), 0.0);
+    EXPECT_DOUBLE_EQ(ps.overlap_coefficient(ZDD::Null), 0.0);
+}
+
+TEST_F(BDDTest, OverlapCoefficient_FreeFunction) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddp ps = ZDD::power_set(3).GetID();
+    bddp c32 = ZDD::combination(3, 2).GetID();
+    // a ⊆ b → O = 1.0
+    EXPECT_DOUBLE_EQ(bddoverlapcoeff(c32, ps), 1.0);
+}
+
+// ============================================================
+// entropy tests
+// ============================================================
+
+TEST_F(BDDTest, Entropy_EmptyFamily) {
+    ZDD e(0);
+    EXPECT_DOUBLE_EQ(e.entropy(), 0.0);
+}
+
+TEST_F(BDDTest, Entropy_UnitFamily) {
+    // {∅} — no elements at all
+    ZDD u(1);
+    EXPECT_DOUBLE_EQ(u.entropy(), 0.0);
+}
+
+TEST_F(BDDTest, Entropy_SingletonSet) {
+    // {{v1}} — only one element, entropy = 0
+    ZDD s = ZDD::singleton(bddnewvar());
+    EXPECT_DOUBLE_EQ(s.entropy(), 0.0);
+}
+
+TEST_F(BDDTest, Entropy_UniformFrequency) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of 3 vars: each var appears in 4 of 8 sets
+    // All frequencies equal → H = log2(3) ≈ 1.585
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_NEAR(ps.entropy(), std::log2(3.0), 1e-10);
+}
+
+TEST_F(BDDTest, Entropy_TwoVarsUniform) {
+    bddnewvar();
+    bddnewvar();
+    // Power set of 2 vars: each var appears in 2 of 4 sets
+    // H = log2(2) = 1.0
+    ZDD ps = ZDD::power_set(2);
+    EXPECT_NEAR(ps.entropy(), 1.0, 1e-10);
+}
+
+TEST_F(BDDTest, Entropy_NonUniform) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {{v1}, {v1, v2}} — freq(v1)=2, freq(v2)=1
+    // total_lit = 3, p(v1)=2/3, p(v2)=1/3
+    // H = -(2/3)log2(2/3) - (1/3)log2(1/3)
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    double p1 = 2.0 / 3.0, p2 = 1.0 / 3.0;
+    double expected = -(p1 * std::log2(p1) + p2 * std::log2(p2));
+    EXPECT_NEAR(f.entropy(), expected, 1e-10);
+}
+
+// ============================================================
+// variance_size tests
+// ============================================================
+
+TEST_F(BDDTest, VarianceSize_EmptyFamily) {
+    ZDD e(0);
+    EXPECT_DOUBLE_EQ(e.variance_size(), 0.0);
+}
+
+TEST_F(BDDTest, VarianceSize_UnitFamily) {
+    ZDD u(1);  // {∅}, all sets have size 0
+    EXPECT_DOUBLE_EQ(u.variance_size(), 0.0);
+}
+
+TEST_F(BDDTest, VarianceSize_SingletonSet) {
+    ZDD s = ZDD::singleton(bddnewvar());  // {{v1}}, all sets have size 1
+    EXPECT_DOUBLE_EQ(s.variance_size(), 0.0);
+}
+
+TEST_F(BDDTest, VarianceSize_UniformSizes) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::combination(3, 2);  // all 3 sets have size 2
+    EXPECT_DOUBLE_EQ(f.variance_size(), 0.0);
+}
+
+TEST_F(BDDTest, VarianceSize_MixedSizes) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {{v1}, {v1,v2}, {v1,v2,v3}}, sizes = {1, 2, 3}, mean = 2
+    // variance = ((1-2)^2 + (2-2)^2 + (3-2)^2) / 3 = 2/3
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2}) +
+            ZDD::single_set({v1, v2, v3});
+    EXPECT_NEAR(f.variance_size(), 2.0 / 3.0, 1e-10);
+}
+
+TEST_F(BDDTest, VarianceSize_PowerSet) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of {1,2,3}: 8 sets with sizes 0,1,1,1,2,2,2,3
+    // Profile: {1, 3, 3, 1}, mean = 12/8 = 1.5
+    // E[X^2] = (0*1 + 1*3 + 4*3 + 9*1)/8 = 24/8 = 3.0
+    // Var = 3.0 - 1.5^2 = 0.75
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_NEAR(ps.variance_size(), 0.75, 1e-10);
+}
+
+TEST_F(BDDTest, VarianceSize_WithEmptySet) {
+    bddvar v1 = bddnewvar();
+    // F = {∅, {v1}}, sizes = {0, 1}, mean = 0.5
+    // Var = (0.25 + 0.25) / 2 = 0.25
+    ZDD f = ZDD(1) + ZDD::singleton(v1);
+    EXPECT_NEAR(f.variance_size(), 0.25, 1e-10);
+}
+
+// ============================================================
+// median_size tests
+// ============================================================
+
+TEST_F(BDDTest, MedianSize_EmptyFamily) {
+    ZDD e(0);
+    EXPECT_DOUBLE_EQ(e.median_size(), 0.0);
+}
+
+TEST_F(BDDTest, MedianSize_UnitFamily) {
+    ZDD u(1);  // {∅}
+    EXPECT_DOUBLE_EQ(u.median_size(), 0.0);
+}
+
+TEST_F(BDDTest, MedianSize_SingletonSet) {
+    ZDD s = ZDD::singleton(bddnewvar());  // {{v1}}
+    EXPECT_DOUBLE_EQ(s.median_size(), 1.0);
+}
+
+TEST_F(BDDTest, MedianSize_OddCount) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {{v1}, {v1,v2}, {v1,v2,v3}}, sizes = {1,2,3}, median = 2
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2}) +
+            ZDD::single_set({v1, v2, v3});
+    EXPECT_DOUBLE_EQ(f.median_size(), 2.0);
+}
+
+TEST_F(BDDTest, MedianSize_EvenCount) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {∅, {v1}, {v2}, {v1,v2}}, sizes = {0,1,1,2}
+    // sorted: {0,1,1,2}, median = (1+1)/2 = 1.0
+    ZDD f = ZDD::power_set(2);
+    EXPECT_DOUBLE_EQ(f.median_size(), 1.0);
+}
+
+TEST_F(BDDTest, MedianSize_EvenCountAveraging) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {∅, {v1,v2,v3}}, sizes = {0, 3}, median = (0+3)/2 = 1.5
+    ZDD f = ZDD(1) + ZDD::single_set({v1, v2, v3});
+    EXPECT_DOUBLE_EQ(f.median_size(), 1.5);
+}
+
+TEST_F(BDDTest, MedianSize_PowerSet3) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    // Power set of {1,2,3}: 8 sets, profile {1,3,3,1}
+    // sorted sizes: {0,1,1,1,2,2,2,3}, median = (1+2)/2 = 1.5
+    ZDD ps = ZDD::power_set(3);
+    EXPECT_DOUBLE_EQ(ps.median_size(), 1.5);
+}
+
+TEST_F(BDDTest, MedianSize_AllSameSize) {
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::combination(3, 2);  // all sets have size 2
+    EXPECT_DOUBLE_EQ(f.median_size(), 2.0);
+}
+
+// ============================================================
+// cost_bound_range tests
+// ============================================================
+
+TEST_F(BDDTest, CostBoundRange_EmptyFamily) {
+    std::vector<int> w = {0, 5, 10};
+    bddnewvar();
+    bddnewvar();
+    ZDD f(0);
+    EXPECT_EQ(f.cost_bound_range(w, 0, 100), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundRange_UnitFamily) {
+    std::vector<int> w = {0, 5, 10};
+    bddnewvar();
+    bddnewvar();
+    ZDD f(1);  // {∅}, cost = 0
+    EXPECT_EQ(f.cost_bound_range(w, 0, 100), ZDD::Single);
+    EXPECT_EQ(f.cost_bound_range(w, 1, 100), ZDD::Empty);
+    EXPECT_EQ(f.cost_bound_range(w, -5, -1), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundRange_SingleVariable) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    std::vector<int> w = {0, 5, 10};
+    ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);  // {{v1}, {v2}}
+    // cost(v1) = 5, cost(v2) = 10
+    EXPECT_EQ(f.cost_bound_range(w, 5, 5), ZDD::singleton(v1));
+    EXPECT_EQ(f.cost_bound_range(w, 10, 10), ZDD::singleton(v2));
+    EXPECT_EQ(f.cost_bound_range(w, 5, 10), f);
+    EXPECT_EQ(f.cost_bound_range(w, 6, 9), ZDD::Empty);
+}
+
+TEST_F(BDDTest, CostBoundRange_CrossValidateWithLeGe) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 3, -2, 7};
+    ZDD f = ZDD::power_set(3);
+    for (long long lo = -5; lo <= 10; lo += 3) {
+        for (long long hi = lo; hi <= 12; hi += 3) {
+            ZDD range = f.cost_bound_range(w, lo, hi);
+            ZDD expected = f.cost_bound_le(w, hi) & f.cost_bound_ge(w, lo);
+            EXPECT_EQ(range, expected)
+                << "lo=" << lo << " hi=" << hi;
+        }
+    }
+}
+
+TEST_F(BDDTest, CostBoundRange_WithMemo) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 3, -2, 7};
+    ZDD f = ZDD::power_set(3);
+    CostBoundMemo memo;
+    ZDD r1 = f.cost_bound_range(w, 0, 5, memo);
+    ZDD r2 = f.cost_bound_range(w, 3, 10, memo);
+    ZDD r3 = f.cost_bound_range(w, -2, 0, memo);
+    // Verify results match non-memo versions
+    EXPECT_EQ(r1, f.cost_bound_range(w, 0, 5));
+    EXPECT_EQ(r2, f.cost_bound_range(w, 3, 10));
+    EXPECT_EQ(r3, f.cost_bound_range(w, -2, 0));
+}
+
+TEST_F(BDDTest, CostBoundRange_EquivalentToEq) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    std::vector<int> w = {0, 3, -2, 7};
+    ZDD f = ZDD::power_set(3);
+    // range(b, b) should equal eq(b)
+    for (long long b = -5; b <= 12; ++b) {
+        EXPECT_EQ(f.cost_bound_range(w, b, b), f.cost_bound_eq(w, b))
+            << "b=" << b;
+    }
+}
+
