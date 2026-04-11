@@ -702,7 +702,9 @@ class ZDD : public DDBase {
 
 public:
     /** @brief Get the raw node ID. */
-    bddp GetID() const { return get_id(); }
+    bddp id() const { return get_id(); }
+    /** @deprecated Use id() instead. */
+    bddp GetID() const { return id(); }
 
     /** @brief Default constructor: empty family. */
     ZDD() : DDBase() {}
@@ -720,7 +722,9 @@ public:
      * @param var Variable number.
      * @return The resulting ZDD.
      */
-    ZDD Change(bddvar var) const;
+    ZDD change(bddvar var) const;
+    /** @deprecated Use change() instead. */
+    ZDD Change(bddvar var) const { return change(var); }
     /**
      * @brief Remove variable @p var from all sets (0-edge selection).
      *
@@ -729,16 +733,20 @@ public:
      * @param var Variable number.
      * @return The resulting ZDD.
      */
-    ZDD OffSet(bddvar var) const;
+    ZDD offset(bddvar var) const;
+    /** @deprecated Use offset() instead. */
+    ZDD OffSet(bddvar var) const { return offset(var); }
     /**
      * @brief Select sets containing variable @p var, keeping @p var in the result.
      *
      * Returns the subfamily of sets that contain @p var.
-     * Unlike OnSet0, the variable @p var is retained in each set.
+     * Unlike onset0, the variable @p var is retained in each set.
      * @param var Variable number.
      * @return The resulting ZDD.
      */
-    ZDD OnSet(bddvar var) const;
+    ZDD onset(bddvar var) const;
+    /** @deprecated Use onset() instead. */
+    ZDD OnSet(bddvar var) const { return onset(var); }
     /**
      * @brief Select sets containing variable @p var and remove @p var from them (1-cofactor).
      *
@@ -747,7 +755,9 @@ public:
      * @param var Variable number.
      * @return The resulting ZDD.
      */
-    ZDD OnSet0(bddvar var) const;
+    ZDD onset0(bddvar var) const;
+    /** @deprecated Use onset0() instead. */
+    ZDD OnSet0(bddvar var) const { return onset0(var); }
 
     /** @brief Union of two families (set-theoretic union). */
     ZDD operator+(const ZDD& other) const;
@@ -762,7 +772,9 @@ public:
     /** @brief In-place intersection. */
     ZDD& operator&=(const ZDD& other);
     /** @brief Intersection with another family. */
-    ZDD Intersec(const ZDD& other) const;
+    ZDD intersec(const ZDD& other) const;
+    /** @deprecated Use intersec() instead. */
+    ZDD Intersec(const ZDD& other) const { return intersec(other); }
     /** @brief Division (quotient). */
     ZDD operator/(const ZDD& other) const;
     /** @brief In-place division. */
@@ -802,7 +814,9 @@ public:
      * @param other Another ZDD family.
      * @return The resulting ZDD.
      */
-    ZDD Meet(const ZDD& other) const;
+    ZDD meet(const ZDD& other) const;
+    /** @deprecated Use meet() instead. */
+    ZDD Meet(const ZDD& other) const { return meet(other); }
 
     /**
      * @brief Extract maximal sets (no proper superset in the family).
@@ -830,12 +844,15 @@ public:
      */
     ZDD closure() const;
     /**
-     * @brief Count the number of sets in the family.
-     * @deprecated Use count() or exact_count() instead.
-     * @note Not available in the Python API. Use exact_count or count() instead.
+     * @brief Count the number of sets in the family (uint64_t).
      * @return The cardinality of the family.
      */
-    uint64_t Card() const;
+    uint64_t card() const;
+    /**
+     * @deprecated Use count() or exact_count() instead.
+     * @note Not available in the Python API. Use exact_count or count() instead.
+     */
+    uint64_t Card() const { return card(); }
     /**
      * @brief Count the number of sets in the family (double approximation).
      * @return The cardinality of the family as a double.
@@ -982,25 +999,33 @@ public:
      * @param g The constraining family.
      * @return The restricted ZDD.
      */
-    ZDD Restrict(const ZDD& g) const;
+    ZDD restrict_op(const ZDD& g) const;
+    /** @deprecated Use restrict_op() instead. */
+    ZDD Restrict(const ZDD& g) const { return restrict_op(g); }
     /**
      * @brief Keep sets whose elements are all permitted by @p g.
      * @param g The permitting family.
      * @return The resulting ZDD.
      */
-    ZDD Permit(const ZDD& g) const;
+    ZDD permit(const ZDD& g) const;
+    /** @deprecated Use permit() instead. */
+    ZDD Permit(const ZDD& g) const { return permit(g); }
     /**
      * @brief Remove sets that are supersets of some set in @p g.
      * @param g The constraining family.
      * @return The resulting ZDD.
      */
-    ZDD Nonsup(const ZDD& g) const;
+    ZDD nonsup(const ZDD& g) const;
+    /** @deprecated Use nonsup() instead. */
+    ZDD Nonsup(const ZDD& g) const { return nonsup(g); }
     /**
      * @brief Remove sets that are subsets of some set in @p g.
      * @param g The constraining family.
      * @return The resulting ZDD.
      */
-    ZDD Nonsub(const ZDD& g) const;
+    ZDD nonsub(const ZDD& g) const;
+    /** @deprecated Use nonsub() instead. */
+    ZDD Nonsub(const ZDD& g) const { return nonsub(g); }
     /**
      * @brief Cross product of two families over disjoint variable sets.
      *
@@ -1039,7 +1064,9 @@ public:
     ZDD delta(const ZDD& g) const;
 
     /** @brief Compute the support set (bddsupport wrapper). */
-    ZDD Support() const;
+    ZDD support() const;
+    /** @deprecated Use support() instead. */
+    ZDD Support() const { return support(); }
     /** @brief Get the top variable number. */
     bddvar Top() const { return top(); }
     /**
@@ -1055,9 +1082,13 @@ public:
     /** @brief Return the shared node count across multiple ZDDs (without complement edge sharing). */
     static uint64_t plain_size(const std::vector<ZDD>& v);
     /** @brief Count the total number of literals across all sets. */
-    uint64_t Lit() const;
+    uint64_t lit() const;
+    /** @deprecated Use lit() instead. */
+    uint64_t Lit() const { return lit(); }
     /** @brief Return the maximum set size in the family. */
-    uint64_t Len() const;
+    uint64_t len() const;
+    /** @deprecated Use len() instead. */
+    uint64_t Len() const { return len(); }
     /** @brief Return the minimum set size in the family. */
     uint64_t min_size() const;
     /** @brief Return the maximum set size in the family.
@@ -1165,7 +1196,9 @@ public:
     std::string save_svg(const SvgParams& params) const;
     std::string save_svg() const;
     /** @brief Print ZDD statistics (ID, Var, Size, Card, Lit, Len). */
-    void Print() const;
+    void print() const;
+    /** @deprecated Use print() instead. */
+    void Print() const { print(); }
 
     /**
      * @brief Print the family of sets to an output stream.
@@ -1239,41 +1272,73 @@ public:
      *  @note C++ only. Not available in the Python binding. */
     void XPrint() const;
     /** @brief Print in PLA format. */
-    void PrintPla() const;
+    void print_pla() const;
+    /** @deprecated Use print_pla() instead. */
+    void PrintPla() const { print_pla(); }
     /** @brief Adjust ZDD to a given number of levels.
      *  @param lev Target number of levels.
      *  @param last Last level. */
-    ZDD ZLev(int lev, int last) const;
+    ZDD zlev(int lev, int last) const;
+    /** @deprecated Use zlev() instead. */
+    ZDD ZLev(int lev, int last) const { return zlev(lev, last); }
     /** @brief Set ZDD skip flags. */
-    void SetZSkip() const;
+    void set_zskip() const;
+    /** @deprecated Use set_zskip() instead. */
+    void SetZSkip() const { set_zskip(); }
 
     /** @brief Check if the family is a polynomial (has ≥ 2 sets). */
-    int IsPoly() const;
+    int is_poly() const;
+    /** @deprecated Use is_poly() instead. */
+    int IsPoly() const { return is_poly(); }
     /** @brief Swap two variables in the family. */
-    ZDD Swap(bddvar v1, bddvar v2) const;
+    ZDD swap(bddvar v1, bddvar v2) const;
+    /** @deprecated Use swap() instead. */
+    ZDD Swap(bddvar v1, bddvar v2) const { return swap(v1, v2); }
     /** @brief Check if v1 implies v2 (all sets with v1 also have v2). */
-    int ImplyChk(bddvar v1, bddvar v2) const;
+    int imply_chk(bddvar v1, bddvar v2) const;
+    /** @deprecated Use imply_chk() instead. */
+    int ImplyChk(bddvar v1, bddvar v2) const { return imply_chk(v1, v2); }
     /** @brief Check co-implication between v1 and v2. */
-    int CoImplyChk(bddvar v1, bddvar v2) const;
+    int co_imply_chk(bddvar v1, bddvar v2) const;
+    /** @deprecated Use co_imply_chk() instead. */
+    int CoImplyChk(bddvar v1, bddvar v2) const { return co_imply_chk(v1, v2); }
     /** @brief Keep sets with at most n elements.
      *  @param n Maximum number of elements per set. */
-    ZDD PermitSym(int n) const;
+    ZDD permit_sym(int n) const;
+    /** @deprecated Use permit_sym() instead. */
+    ZDD PermitSym(int n) const { return permit_sym(n); }
     /** @brief Find elements common to all sets in the family. */
-    ZDD Always() const;
+    ZDD always() const;
+    /** @deprecated Use always() instead. */
+    ZDD Always() const { return always(); }
     /** @brief Check if v1 and v2 are symmetric in the family. */
-    int SymChk(bddvar v1, bddvar v2) const;
+    int sym_chk(bddvar v1, bddvar v2) const;
+    /** @deprecated Use sym_chk() instead. */
+    int SymChk(bddvar v1, bddvar v2) const { return sym_chk(v1, v2); }
     /** @brief Find all variables implied by v. */
-    ZDD ImplySet(bddvar v) const;
+    ZDD imply_set(bddvar v) const;
+    /** @deprecated Use imply_set() instead. */
+    ZDD ImplySet(bddvar v) const { return imply_set(v); }
     /** @brief Find symmetry groups (size ≥ 2). */
-    ZDD SymGrp() const;
+    ZDD sym_grp() const;
+    /** @deprecated Use sym_grp() instead. */
+    ZDD SymGrp() const { return sym_grp(); }
     /** @brief Find symmetry groups (naive, includes size 1). */
-    ZDD SymGrpNaive() const;
+    ZDD sym_grp_naive() const;
+    /** @deprecated Use sym_grp_naive() instead. */
+    ZDD SymGrpNaive() const { return sym_grp_naive(); }
     /** @brief Find all variables symmetric with v. */
-    ZDD SymSet(bddvar v) const;
+    ZDD sym_set(bddvar v) const;
+    /** @deprecated Use sym_set() instead. */
+    ZDD SymSet(bddvar v) const { return sym_set(v); }
     /** @brief Find all variables in co-implication with v. */
-    ZDD CoImplySet(bddvar v) const;
+    ZDD co_imply_set(bddvar v) const;
+    /** @deprecated Use co_imply_set() instead. */
+    ZDD CoImplySet(bddvar v) const { return co_imply_set(v); }
     /** @brief Find a non-trivial divisor of the family. */
-    ZDD Divisor() const;
+    ZDD divisor() const;
+    /** @deprecated Use divisor() instead. */
+    ZDD Divisor() const { return divisor(); }
 
     /** @brief Export this ZDD in Graphillion format to a FILE stream.
      *  @param strm Output FILE stream.

@@ -612,7 +612,7 @@ std::string ZDD::to_dnf(
     return oss.str();
 }
 
-void ZDD::Print() const {
+void ZDD::print() const {
     bddvar v = Top();
     std::cout << "[ " << GetID()
               << " Var:" << v << "(" << bddlevofvar(v) << ")"
@@ -624,16 +624,16 @@ void ZDD::Print() const {
     std::cout.flush();
 }
 
-void ZDD::PrintPla() const {
-    throw std::logic_error("ZDD::PrintPla: not implemented");
+void ZDD::print_pla() const {
+    throw std::logic_error("ZDD::print_pla: not implemented");
 }
 
-ZDD ZDD::ZLev(int /*lev*/, int /*last*/) const {
-    throw std::logic_error("ZDD::ZLev: not implemented");
+ZDD ZDD::zlev(int /*lev*/, int /*last*/) const {
+    throw std::logic_error("ZDD::zlev: not implemented");
 }
 
-void ZDD::SetZSkip() const {
-    throw std::logic_error("ZDD::SetZSkip: not implemented");
+void ZDD::set_zskip() const {
+    throw std::logic_error("ZDD::set_zskip: not implemented");
 }
 
 bigint::BigInt ZDD::get_sum(const std::vector<int>& weights) const {

@@ -445,25 +445,25 @@ inline ZDD ZDD::operator~() const {
     return z;
 }
 
-inline ZDD ZDD::Change(bddvar var) const {
+inline ZDD ZDD::change(bddvar var) const {
     ZDD z(0);
     z.root = bddchange(root, var);
     return z;
 }
 
-inline ZDD ZDD::OffSet(bddvar var) const {
+inline ZDD ZDD::offset(bddvar var) const {
     ZDD z(0);
     z.root = bddoffset(root, var);
     return z;
 }
 
-inline ZDD ZDD::OnSet(bddvar var) const {
+inline ZDD ZDD::onset(bddvar var) const {
     ZDD z(0);
     z.root = bddonset(root, var);
     return z;
 }
 
-inline ZDD ZDD::OnSet0(bddvar var) const {
+inline ZDD ZDD::onset0(bddvar var) const {
     ZDD z(0);
     z.root = bddonset0(root, var);
     return z;
@@ -502,7 +502,7 @@ inline ZDD& ZDD::operator&=(const ZDD& other) {
     return *this;
 }
 
-inline ZDD ZDD::Intersec(const ZDD& other) const {
+inline ZDD ZDD::intersec(const ZDD& other) const {
     ZDD z(0);
     z.root = bddintersec(root, other.root);
     return z;
@@ -582,7 +582,7 @@ inline ZDD& ZDD::operator>>=(bddvar s) {
 
 // ZDD high-level member functions
 
-inline ZDD ZDD::Meet(const ZDD& other) const {
+inline ZDD ZDD::meet(const ZDD& other) const {
     ZDD z(0);
     z.root = bddmeet(root, other.root);
     return z;
@@ -612,7 +612,7 @@ inline ZDD ZDD::closure() const {
     return z;
 }
 
-inline uint64_t ZDD::Card() const {
+inline uint64_t ZDD::card() const {
     return bddcard(root);
 }
 
@@ -620,25 +620,25 @@ inline double ZDD::count() const {
     return bddcount(root);
 }
 
-inline ZDD ZDD::Restrict(const ZDD& g) const {
+inline ZDD ZDD::restrict_op(const ZDD& g) const {
     ZDD z(0);
     z.root = bddrestrict(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::Permit(const ZDD& g) const {
+inline ZDD ZDD::permit(const ZDD& g) const {
     ZDD z(0);
     z.root = bddpermit(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::Nonsup(const ZDD& g) const {
+inline ZDD ZDD::nonsup(const ZDD& g) const {
     ZDD z(0);
     z.root = bddnonsup(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::Nonsub(const ZDD& g) const {
+inline ZDD ZDD::nonsub(const ZDD& g) const {
     ZDD z(0);
     z.root = bddnonsub(root, g.root);
     return z;
@@ -662,7 +662,7 @@ inline ZDD ZDD::delta(const ZDD& g) const {
     return z;
 }
 
-inline ZDD ZDD::Support() const {
+inline ZDD ZDD::support() const {
     ZDD z(0);
     z.root = bddsupport(root);
     return z;
@@ -690,11 +690,11 @@ inline uint64_t ZDD::plain_size(const std::vector<ZDD>& v) {
     return bddplainsize(roots, true);
 }
 
-inline uint64_t ZDD::Lit() const {
+inline uint64_t ZDD::lit() const {
     return bddlit(root);
 }
 
-inline uint64_t ZDD::Len() const {
+inline uint64_t ZDD::len() const {
     return bddlen(root);
 }
 
@@ -838,71 +838,71 @@ inline void ZDD::XPrint() const {
     bddgraph(root);
 }
 
-inline int ZDD::IsPoly() const {
+inline int ZDD::is_poly() const {
     return bddispoly(root);
 }
 
-inline ZDD ZDD::Swap(bddvar v1, bddvar v2) const {
+inline ZDD ZDD::swap(bddvar v1, bddvar v2) const {
     ZDD z(0);
     z.root = bddswapz(root, v1, v2);
     return z;
 }
 
-inline int ZDD::ImplyChk(bddvar v1, bddvar v2) const {
+inline int ZDD::imply_chk(bddvar v1, bddvar v2) const {
     return bddimplychk(root, v1, v2);
 }
 
-inline int ZDD::CoImplyChk(bddvar v1, bddvar v2) const {
+inline int ZDD::co_imply_chk(bddvar v1, bddvar v2) const {
     return bddcoimplychk(root, v1, v2);
 }
 
-inline ZDD ZDD::PermitSym(int n) const {
+inline ZDD ZDD::permit_sym(int n) const {
     ZDD z(0);
     z.root = bddpermitsym(root, n);
     return z;
 }
 
-inline ZDD ZDD::Always() const {
+inline ZDD ZDD::always() const {
     ZDD z(0);
     z.root = bddalways(root);
     return z;
 }
 
-inline int ZDD::SymChk(bddvar v1, bddvar v2) const {
+inline int ZDD::sym_chk(bddvar v1, bddvar v2) const {
     return bddsymchk(root, v1, v2);
 }
 
-inline ZDD ZDD::ImplySet(bddvar v) const {
+inline ZDD ZDD::imply_set(bddvar v) const {
     ZDD z(0);
     z.root = bddimplyset(root, v);
     return z;
 }
 
-inline ZDD ZDD::SymGrp() const {
+inline ZDD ZDD::sym_grp() const {
     ZDD z(0);
     z.root = bddsymgrp(root);
     return z;
 }
 
-inline ZDD ZDD::SymGrpNaive() const {
+inline ZDD ZDD::sym_grp_naive() const {
     ZDD z(0);
     z.root = bddsymgrpnaive(root);
     return z;
 }
 
-inline ZDD ZDD::SymSet(bddvar v) const {
+inline ZDD ZDD::sym_set(bddvar v) const {
     ZDD z(0);
     z.root = bddsymset(root, v);
     return z;
 }
 
-inline ZDD ZDD::CoImplySet(bddvar v) const {
+inline ZDD ZDD::co_imply_set(bddvar v) const {
     ZDD z(0);
     z.root = bddcoimplyset(root, v);
     return z;
 }
 
-inline ZDD ZDD::Divisor() const {
+inline ZDD ZDD::divisor() const {
     ZDD z(0);
     z.root = bdddivisor(root);
     return z;
