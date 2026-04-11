@@ -16035,3 +16035,272 @@ TEST_F(BDDTest, ZDD_VarianceSize_LargeBigInt) {
     EXPECT_NEAR(v, n / 4.0, 1.0);
 }
 
+// --- ZDD lowercase snake_case method tests ---
+
+TEST_F(BDDTest, ZDD_LowercaseId) {
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    EXPECT_EQ(z_v1.id(), z_v1.GetID());
+    EXPECT_EQ(z_v1.id(), z_v1.get_id());
+    EXPECT_EQ(ZDD(0).id(), bddempty);
+    EXPECT_EQ(ZDD(1).id(), bddsingle);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseChange) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    EXPECT_EQ(z_v1.change(v2), z_v1.Change(v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseOffset) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.offset(v2), F.OffSet(v2));
+    EXPECT_EQ(F.offset(v2), z_v1);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseOnset) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.onset(v2), F.OnSet(v2));
+    EXPECT_EQ(F.onset(v2), z_v1v2);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseOnset0) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.onset0(v2), F.OnSet0(v2));
+    EXPECT_EQ(F.onset0(v2), z_v1);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseIntersec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.intersec(z_v1), F.Intersec(z_v1));
+    EXPECT_EQ(F.intersec(z_v1), z_v1);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseMeet) {
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD s = ZDD(1);  // {∅}
+    EXPECT_EQ(z_v1.meet(s), z_v1.Meet(s));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseCard) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2 + ZDD(1);
+    EXPECT_EQ(F.card(), F.Card());
+    EXPECT_EQ(F.card(), 3u);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseRestrictOp) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    ZDD G = z_v1;  // filter: subsets of {v1}
+    EXPECT_EQ(F.restrict_op(G), F.Restrict(G));
+}
+
+TEST_F(BDDTest, ZDD_LowercasePermit) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    ZDD G = z_v1;  // permit: only v1 allowed
+    EXPECT_EQ(F.permit(G), F.Permit(G));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseNonsup) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.nonsup(z_v1), F.Nonsup(z_v1));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseNonsub) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.nonsub(z_v1v2), F.Nonsub(z_v1v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSupport) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z_v1v2.support(), z_v1v2.Support());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseLit) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.lit(), F.Lit());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseLen) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z_v1v2.len(), z_v1v2.Len());
+    EXPECT_EQ(z_v1v2.len(), 2u);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseIsPoly) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.is_poly(), F.IsPoly());
+    EXPECT_TRUE(F.is_poly());
+    EXPECT_FALSE(z_v1.is_poly());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSwap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    EXPECT_EQ(z_v1.swap(v1, v2), z_v1.Swap(v1, v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseImplyChk) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {{v1, v2}} → v1 implies v2
+    ZDD F = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(F.imply_chk(v1, v2), F.ImplyChk(v1, v2));
+    EXPECT_TRUE(F.imply_chk(v1, v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseCoImplyChk) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z_v1v2.co_imply_chk(v1, v2), z_v1v2.CoImplyChk(v1, v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercasePermitSym) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2 + ZDD(1);
+    EXPECT_EQ(F.permit_sym(1), F.PermitSym(1));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseAlways) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {{v1, v2}, {v1}} → v1 is always present
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    ZDD F = z_v1 + z_v1v2;
+    EXPECT_EQ(F.always(), F.Always());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSymChk) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // F = {{v1}, {v2}} → v1 and v2 are symmetric
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.sym_chk(v1, v2), F.SymChk(v1, v2));
+    EXPECT_TRUE(F.sym_chk(v1, v2));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseImplySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z_v1v2.imply_set(v1), z_v1v2.ImplySet(v1));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSymGrp) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.sym_grp(), F.SymGrp());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSymGrpNaive) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.sym_grp_naive(), F.SymGrpNaive());
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSymSet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.sym_set(v1), F.SymSet(v1));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseCoImplySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    EXPECT_EQ(z_v1v2.co_imply_set(v1), z_v1v2.CoImplySet(v1));
+}
+
+TEST_F(BDDTest, ZDD_LowercaseDivisor) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD F = z_v1 + z_v2;
+    EXPECT_EQ(F.divisor(), F.Divisor());
+}
+
+TEST_F(BDDTest, ZDD_LowercasePrintPla) {
+    // print_pla is not implemented — just verify it throws
+    ZDD e(0);
+    EXPECT_THROW(e.print_pla(), std::logic_error);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseZlev) {
+    // zlev is not implemented — just verify it throws
+    ZDD e(0);
+    EXPECT_THROW(e.zlev(0, 0), std::logic_error);
+}
+
+TEST_F(BDDTest, ZDD_LowercaseSetZskip) {
+    // set_zskip is not implemented — just verify it throws
+    ZDD e(0);
+    EXPECT_THROW(e.set_zskip(), std::logic_error);
+}
+
