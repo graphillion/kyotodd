@@ -96,8 +96,8 @@ SOP SOP::Factor0(int v) const
 SOP SOP::FactorD(int v) const
 {
     check_even(v, "SOP::FactorD");
-    return SOP(_zbdd.Offset(static_cast<bddvar>(v))
-                   .Offset(static_cast<bddvar>(v - 1)));
+    return SOP(_zbdd.OffSet(static_cast<bddvar>(v))
+                   .OffSet(static_cast<bddvar>(v - 1)));
 }
 
 /* ================================================================ */
@@ -110,9 +110,9 @@ SOP SOP::And1(int v) const
     bddvar vv = static_cast<bddvar>(v);
     bddvar vm = static_cast<bddvar>(v - 1);
     // 1. Remove cubes containing negative literal (v-1)
-    ZDD z = _zbdd.Offset(vm);
+    ZDD z = _zbdd.OffSet(vm);
     // 2. Remove variable v from all cubes: OnSet0(v) + Offset(v)
-    z = z.OnSet0(vv) + z.Offset(vv);
+    z = z.OnSet0(vv) + z.OffSet(vv);
     // 3. Add variable v to all cubes
     z = z.Change(vv);
     return SOP(z);
@@ -124,9 +124,9 @@ SOP SOP::And0(int v) const
     bddvar vv = static_cast<bddvar>(v);
     bddvar vm = static_cast<bddvar>(v - 1);
     // 1. Remove cubes containing positive literal (v)
-    ZDD z = _zbdd.Offset(vv);
+    ZDD z = _zbdd.OffSet(vv);
     // 2. Remove variable v-1 from all cubes: OnSet0(v-1) + Offset(v-1)
-    z = z.OnSet0(vm) + z.Offset(vm);
+    z = z.OnSet0(vm) + z.OffSet(vm);
     // 3. Add variable v-1 to all cubes
     z = z.Change(vm);
     return SOP(z);

@@ -1007,7 +1007,7 @@ PYBIND11_MODULE(_core, m) {
              "    v: Variable number.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("offset", &ZDD::Offset, py::arg("v"),
+        .def("offset", &ZDD::OffSet, py::arg("v"),
              "Select sets NOT containing variable v.\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"

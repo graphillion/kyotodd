@@ -66,17 +66,17 @@ int main(int argc, char *argv[])
           int dj;
 
           /* Column constraint: remove solutions with queen at (i2, j) */
-          H = H.Offset(X[i2][j]);
+          H = H.OffSet(X[i2][j]);
 
           /* Upward diagonal: row i2, column j-(i-i2) */
           dj = j - (i - i2);
           if(dj >= 0 && dj < q)
-            H = H.Offset(X[i2][dj]);
+            H = H.OffSet(X[i2][dj]);
 
           /* Downward diagonal: row i2, column j+(i-i2) */
           dj = j + (i - i2);
           if(dj >= 0 && dj < q)
-            H = H.Offset(X[i2][dj]);
+            H = H.OffSet(X[i2][dj]);
         }
 
         /* Add queen at (i, j) to each surviving partial solution */

@@ -16,7 +16,7 @@ SeqBDD SeqBDD::on_set0(int v) const
     ZDD f = zdd_;
     bddvar ftop = f.Top();
     while (ftop != 0 && bddlevofvar(ftop) > vlev) {
-        f = f.Offset(ftop);
+        f = f.OffSet(ftop);
         ftop = f.Top();
     }
     return SeqBDD(f.OnSet0(static_cast<bddvar>(v)));
@@ -29,7 +29,7 @@ SeqBDD SeqBDD::on_set0(int v) const
 SeqBDD SeqBDD::off_set(int v) const
 {
     if (static_cast<int>(zdd_.Top()) == v) {
-        return SeqBDD(zdd_.Offset(static_cast<bddvar>(v)));
+        return SeqBDD(zdd_.OffSet(static_cast<bddvar>(v)));
     }
     return *this - on_set0(v).push(v);
 }
@@ -74,7 +74,7 @@ SeqBDD operator*(const SeqBDD& f, const SeqBDD& g)
     /* Decompose on f's top variable */
     int ftop = f.top();
     SeqBDD f1 = f.on_set0(ftop);
-    SeqBDD f0(f.zdd_.Offset(static_cast<bddvar>(ftop)));
+    SeqBDD f0(f.zdd_.OffSet(static_cast<bddvar>(ftop)));
 
     /* result = (f1 * g).push(ftop) + (f0 * g) */
     SeqBDD r = (f1 * g).push(ftop) + (f0 * g);

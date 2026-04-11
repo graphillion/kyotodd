@@ -729,7 +729,7 @@ public:
      * @param var Variable number.
      * @return The resulting ZDD.
      */
-    ZDD Offset(bddvar var) const;
+    ZDD OffSet(bddvar var) const;
     /**
      * @brief Select sets containing variable @p var, keeping @p var in the result.
      *

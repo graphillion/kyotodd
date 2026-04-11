@@ -451,7 +451,7 @@ inline ZDD ZDD::Change(bddvar var) const {
     return z;
 }
 
-inline ZDD ZDD::Offset(bddvar var) const {
+inline ZDD ZDD::OffSet(bddvar var) const {
     ZDD z(0);
     z.root = bddoffset(root, var);
     return z;

@@ -99,7 +99,7 @@ RotPiDD RotPiDD::LeftRot(int u, int v) const
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
     int y = TopY();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* Recursive computation based on relationship between [v..u] and [y..x] */
@@ -222,7 +222,7 @@ RotPiDD RotPiDD::Cofact(int u, int v) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     if (x == u) {
@@ -275,7 +275,7 @@ RotPiDD operator*(const RotPiDD& p, const RotPiDD& q)
     int qx = q.TopX();
     int qy = q.TopY();
     bddvar top = q.zdd_.Top();
-    RotPiDD q0(q.zdd_.Offset(top));
+    RotPiDD q0(q.zdd_.OffSet(top));
     RotPiDD q1(q.zdd_.OnSet0(top));
 
     /* Recursive computation */
@@ -304,7 +304,7 @@ RotPiDD RotPiDD::Odd() const
     bddvar top = zdd_.Top();
     int x = TopX();
     int y = TopY();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* LeftRot(x, y) is (x - y) transpositions, so parity = (x - y) mod 2 */
@@ -361,7 +361,7 @@ RotPiDD RotPiDD::Order(int a, int b) const
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
     int y = TopY();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     RotPiDD r = p0.Order(a, b);
@@ -398,7 +398,7 @@ RotPiDD RotPiDD::Inverse() const
     bddvar top = zdd_.Top();
     int x = TopX();
     int y = TopY();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* Build inverse of LeftRot(x, y): right rotation = LeftRot(y,y+1) o ... o LeftRot(x-1,x) */
@@ -439,7 +439,7 @@ RotPiDD RotPiDD::Insert(int p, int v) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     int nx = x + (p <= x ? 1 : 0);
@@ -475,7 +475,7 @@ RotPiDD RotPiDD::RemoveMax(int k) const
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
     int y = TopY();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     RotPiDD r = p0.RemoveMax(k) + p1.RemoveMax(k - 1).LeftRot(x - 1, y);
@@ -502,7 +502,7 @@ RotPiDD RotPiDD::normalizeRotPiDD(int k) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    RotPiDD p0(zdd_.Offset(top));
+    RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     RotPiDD r = p0.normalizeRotPiDD(k) + p1.normalizeRotPiDD(k);
@@ -813,7 +813,7 @@ long long int RotPiDD::contradictionMaximization(
     }
 
     /* 0-branch (no rotation) */
-    RotPiDD rp0(zdd_.Offset(top));
+    RotPiDD rp0(zdd_.OffSet(top));
     long long int left_val = rp0.contradictionMaximization(used_set, unused_list, x, hash, w);
 
     /* 1-branch (with rotation) */

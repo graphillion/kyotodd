@@ -4070,7 +4070,7 @@ TEST_F(BDDTest, ZDDChangeMethod) {
     EXPECT_EQ(result.GetID(), bddchange(z_v1.GetID(), v2));
 }
 
-// --- ZDD::Offset ---
+// --- ZDD::OffSet ---
 
 TEST_F(BDDTest, ZDDOffsetMethod) {
     bddvar v1 = bddnewvar();
@@ -4078,7 +4078,7 @@ TEST_F(BDDTest, ZDDOffsetMethod) {
     ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
     ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD F = ZDD_ID(bddunion(z_v1.GetID(), z_v1v2.GetID()));
-    ZDD result = F.Offset(v2);
+    ZDD result = F.OffSet(v2);
     EXPECT_EQ(result, z_v1);
 }
 
@@ -14104,7 +14104,7 @@ TEST_F(BDDTest, Project_SingleVar) {
     ZDD f = ZDD::single_set({v1, v2, v3}) + ZDD::single_set({v1, v3});
     ZDD result = f.project({v2});
     // Remove v2: {{v1,v3}} (duplicates merge)
-    ZDD expected_manual = f.Offset(v2) + f.OnSet0(v2);
+    ZDD expected_manual = f.OffSet(v2) + f.OnSet0(v2);
     EXPECT_EQ(result, expected_manual);
 }
 

@@ -154,7 +154,7 @@ ZBDDV ZBDDV::OffSet(int v) const {
         throw std::invalid_argument("ZBDDV::OffSet: variable is a system variable");
     }
     ZBDDV result;
-    result._zbdd = _zbdd.Offset(static_cast<bddvar>(v));
+    result._zbdd = _zbdd.OffSet(static_cast<bddvar>(v));
     return result;
 }
 
@@ -234,7 +234,7 @@ int ZBDDV::Last() const {
             last += (1 << (v - 1));
             f = f.OnSet0(static_cast<bddvar>(v));
         } else {
-            f = f.Offset(static_cast<bddvar>(v));
+            f = f.OffSet(static_cast<bddvar>(v));
         }
     }
     return last;
@@ -272,7 +272,7 @@ ZDD ZBDDV::GetZBDD(int index) const {
 
     // Strip system variables above the needed level
     for (int v = BDDV_SysVarTop; v > level; v--) {
-        f = f.Offset(static_cast<bddvar>(v));
+        f = f.OffSet(static_cast<bddvar>(v));
     }
 
     // Traverse system variables from level down to 1
@@ -281,7 +281,7 @@ ZDD ZBDDV::GetZBDD(int index) const {
         if (index & (1 << (l - 1))) {
             f = f.OnSet0(static_cast<bddvar>(l));
         } else {
-            f = f.Offset(static_cast<bddvar>(l));
+            f = f.OffSet(static_cast<bddvar>(l));
         }
     }
     return f;

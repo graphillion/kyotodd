@@ -60,7 +60,7 @@ CtoI& CtoI::operator=(const CtoI& a)
 
 CtoI CtoI::Factor0(int v) const
 {
-    return CtoI(_zbdd.Offset(static_cast<bddvar>(v)));
+    return CtoI(_zbdd.OffSet(static_cast<bddvar>(v)));
 }
 
 CtoI CtoI::Factor1(int v) const
@@ -70,7 +70,7 @@ CtoI CtoI::Factor1(int v) const
 
 CtoI CtoI::AffixVar(int v) const
 {
-    ZDD merged = _zbdd.Offset(static_cast<bddvar>(v))
+    ZDD merged = _zbdd.OffSet(static_cast<bddvar>(v))
                + _zbdd.OnSet0(static_cast<bddvar>(v));
     return CtoI(merged.Change(static_cast<bddvar>(v)));
 }

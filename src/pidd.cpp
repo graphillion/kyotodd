@@ -98,7 +98,7 @@ PiDD PiDD::Swap(int u, int v) const
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
     int y = TopY();
-    PiDD p0(zdd_.Offset(top));
+    PiDD p0(zdd_.OffSet(top));
     PiDD p1(zdd_.OnSet0(top));
 
     /* Recursive computation */
@@ -133,7 +133,7 @@ PiDD PiDD::Cofact(int u, int v) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    PiDD p0(zdd_.Offset(top));
+    PiDD p0(zdd_.OffSet(top));
     PiDD p1(zdd_.OnSet0(top));
 
     if (x == u) {
@@ -186,7 +186,7 @@ PiDD operator*(const PiDD& p, const PiDD& q)
     int qx = q.TopX();
     int qy = q.TopY();
     bddvar top = q.zdd_.Top();
-    PiDD q0(q.zdd_.Offset(top));
+    PiDD q0(q.zdd_.OffSet(top));
     PiDD q1(q.zdd_.OnSet0(top));
 
     /* Recursive computation */
@@ -227,7 +227,7 @@ PiDD operator/(const PiDD& f, const PiDD& p)
     PiDD q = (f.Cofact(px, py) / p1).Cofact(py, py);
 
     if (q.zdd_.GetID() != bddempty) {
-        PiDD p0(p.zdd_.Offset(top));
+        PiDD p0(p.zdd_.OffSet(top));
         if (p0.zdd_.GetID() != bddempty) {
             q = q & (f / p0);
         }
@@ -256,7 +256,7 @@ PiDD PiDD::Odd() const
     bddvar top = zdd_.Top();
     int x = TopX();
     int y = TopY();
-    PiDD p0(zdd_.Offset(top));
+    PiDD p0(zdd_.OffSet(top));
     PiDD p1(zdd_.OnSet0(top));
 
     /* Odd of p0; Even of p1 swapped back (parity flips) */
