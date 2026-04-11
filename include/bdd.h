@@ -588,25 +588,25 @@ inline ZDD ZDD::Meet(const ZDD& other) const {
     return z;
 }
 
-inline ZDD ZDD::Maximal() const {
+inline ZDD ZDD::maximal() const {
     ZDD z(0);
     z.root = bddmaximal(root);
     return z;
 }
 
-inline ZDD ZDD::Minimal() const {
+inline ZDD ZDD::minimal() const {
     ZDD z(0);
     z.root = bddminimal(root);
     return z;
 }
 
-inline ZDD ZDD::Minhit() const {
+inline ZDD ZDD::minhit() const {
     ZDD z(0);
     z.root = bddminhit(root);
     return z;
 }
 
-inline ZDD ZDD::Closure() const {
+inline ZDD ZDD::closure() const {
     ZDD z(0);
     z.root = bddclosure(root);
     return z;
@@ -644,19 +644,19 @@ inline ZDD ZDD::Nonsub(const ZDD& g) const {
     return z;
 }
 
-inline ZDD ZDD::Disjoin(const ZDD& g) const {
+inline ZDD ZDD::disjoin(const ZDD& g) const {
     ZDD z(0);
     z.root = bdddisjoin(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::Jointjoin(const ZDD& g) const {
+inline ZDD ZDD::joint_join(const ZDD& g) const {
     ZDD z(0);
     z.root = bddjointjoin(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::Delta(const ZDD& g) const {
+inline ZDD ZDD::delta(const ZDD& g) const {
     ZDD z(0);
     z.root = bdddelta(root, g.root);
     return z;

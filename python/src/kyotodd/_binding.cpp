@@ -1033,20 +1033,20 @@ PYBIND11_MODULE(_core, m) {
              "    other: Another ZDD family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("maximal", &ZDD::Maximal,
+        .def("maximal", &ZDD::maximal,
              "Extract maximal sets (no proper superset in the family).\n\n"
              "Returns:\n"
              "    A ZDD containing only the maximal sets.\n")
-        .def("minimal", &ZDD::Minimal,
+        .def("minimal", &ZDD::minimal,
              "Extract minimal sets (no proper subset in the family).\n\n"
              "Returns:\n"
              "    A ZDD containing only the minimal sets.\n")
-        .def("minhit", &ZDD::Minhit,
+        .def("minhit", &ZDD::minhit,
              "Compute minimum hitting sets.\n\n"
              "A hitting set intersects every set in the family.\n\n"
              "Returns:\n"
              "    A ZDD of minimal hitting sets.\n")
-        .def("closure", &ZDD::Closure,
+        .def("closure", &ZDD::closure,
              "Compute the downward closure.\n\n"
              "Returns all subsets of sets in the family.\n\n"
              "Returns:\n"
@@ -1085,7 +1085,7 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("disjoin", &ZDD::Disjoin, py::arg("g"),
+        .def("disjoin", &ZDD::disjoin, py::arg("g"),
              "Disjoint product of two families.\n\n"
              "For each pair (A, B) where A is in this family and B is in g,\n"
              "if A and B are disjoint, include A | B in the result.\n\n"
@@ -1093,7 +1093,7 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("jointjoin", &ZDD::Jointjoin, py::arg("g"),
+        .def("joint_join", &ZDD::joint_join, py::arg("g"),
              "Joint join of two families.\n\n"
              "For each pair (A, B) with A & B non-empty,\n"
              "include A | B in the result.\n"
@@ -1102,7 +1102,7 @@ PYBIND11_MODULE(_core, m) {
              "    g: The other family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("delta", &ZDD::Delta, py::arg("g"),
+        .def("delta", &ZDD::delta, py::arg("g"),
              "Delta operation (symmetric difference of elements within pairs).\n\n"
              "Args:\n"
              "    g: The other family.\n\n"

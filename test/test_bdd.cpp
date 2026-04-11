@@ -5841,8 +5841,8 @@ TEST_F(BDDTest, ZDDClassMaximalMinimal) {
     bddp all = bddunion(bddunion(bddunion(bddsingle, z1), z2), z12);
 
     ZDD zall = ZDD_ID(all);
-    EXPECT_EQ(zall.Maximal().GetID(), z12);
-    EXPECT_EQ(zall.Minimal().GetID(), bddsingle);
+    EXPECT_EQ(zall.maximal().GetID(), z12);
+    EXPECT_EQ(zall.minimal().GetID(), bddsingle);
 }
 
 TEST_F(BDDTest, ZDDClassMinhitClosure) {
@@ -5854,13 +5854,13 @@ TEST_F(BDDTest, ZDDClassMinhitClosure) {
     bddp f = bddunion(z1, z2);
 
     ZDD zf = ZDD_ID(f);
-    ZDD mh = zf.Minhit();
+    ZDD mh = zf.minhit();
     bddp z12 = bddchange(z1, v2);
     EXPECT_EQ(mh.GetID(), z12);
 
     // closure of {{1}} = {∅, {1}}
     ZDD z1w = ZDD_ID(z1);
-    ZDD cl = z1w.Closure();
+    ZDD cl = z1w.closure();
     EXPECT_EQ(cl.GetID(), bddclosure(z1));
 }
 
@@ -5919,8 +5919,8 @@ TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {
     ZDD za = ZDD_ID(z1);
     ZDD zb = ZDD_ID(z2);
 
-    EXPECT_EQ(za.Disjoin(zb).GetID(), bdddisjoin(z1, z2));
-    EXPECT_EQ(za.Jointjoin(zb).GetID(), bddjointjoin(z1, z2));
+    EXPECT_EQ(za.disjoin(zb).GetID(), bdddisjoin(z1, z2));
+    EXPECT_EQ(za.joint_join(zb).GetID(), bddjointjoin(z1, z2));
 }
 
 TEST_F(BDDTest, ZDDClassDelta) {
@@ -5934,7 +5934,7 @@ TEST_F(BDDTest, ZDDClassDelta) {
     ZDD zf = ZDD_ID(f);
     ZDD zg = ZDD_ID(z2);
 
-    EXPECT_EQ(zf.Delta(zg).GetID(), bdddelta(f, z2));
+    EXPECT_EQ(zf.delta(zg).GetID(), bdddelta(f, z2));
 }
 
 // --- Garbage collection tests ---

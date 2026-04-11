@@ -808,12 +808,12 @@ public:
      * @brief Extract maximal sets (no proper superset in the family).
      * @return A ZDD containing only the maximal sets.
      */
-    ZDD Maximal() const;
+    ZDD maximal() const;
     /**
      * @brief Extract minimal sets (no proper subset in the family).
      * @return A ZDD containing only the minimal sets.
      */
-    ZDD Minimal() const;
+    ZDD minimal() const;
     /**
      * @brief Compute minimum hitting sets.
      *
@@ -821,14 +821,14 @@ public:
      * family of all inclusion-minimal hitting sets.
      * @return A ZDD of minimal hitting sets.
      */
-    ZDD Minhit() const;
+    ZDD minhit() const;
     /**
      * @brief Compute the downward closure.
      *
      * Returns all subsets of sets in the family.
      * @return A ZDD representing the downward closure.
      */
-    ZDD Closure() const;
+    ZDD closure() const;
     /**
      * @brief Count the number of sets in the family.
      * @deprecated Use count() or exact_count() instead.
@@ -1020,7 +1020,7 @@ public:
      * @param g The other family.
      * @return The resulting ZDD.
      */
-    ZDD Disjoin(const ZDD& g) const;
+    ZDD disjoin(const ZDD& g) const;
     /**
      * @brief Joint join of two families.
      *
@@ -1030,13 +1030,13 @@ public:
      * @param g The other family.
      * @return The resulting ZDD.
      */
-    ZDD Jointjoin(const ZDD& g) const;
+    ZDD joint_join(const ZDD& g) const;
     /**
      * @brief Delta operation (symmetric difference of elements within pairs).
      * @param g The other family.
      * @return The resulting ZDD.
      */
-    ZDD Delta(const ZDD& g) const;
+    ZDD delta(const ZDD& g) const;
 
     /** @brief Compute the support set (bddsupport wrapper). */
     ZDD Support() const;

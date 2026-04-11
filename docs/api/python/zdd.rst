@@ -203,7 +203,7 @@ ZDD Class
       :return: The resulting ZDD.
       :rtype: ZDD
 
-   .. py:method:: jointjoin(g)
+   .. py:method:: joint_join(g)
 
       Joint join.
 

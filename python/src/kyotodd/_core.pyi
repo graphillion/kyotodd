@@ -1083,7 +1083,7 @@ class ZDD:
         """
         ...
 
-    def jointjoin(self, g: ZDD) -> ZDD:
+    def joint_join(self, g: ZDD) -> ZDD:
         """Joint join of two families.
 
         For each pair (A, B) with A & B non-empty,
