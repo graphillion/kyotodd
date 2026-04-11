@@ -2042,3 +2042,197 @@ TEST_F(MVDDTest, MVZDDFromSetsBinaryK2) {
         EXPECT_TRUE(f.contains(s));
     }
 }
+
+// ============================================================
+//  MVZDD::is_subset_family / is_disjoint tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDIsSubsetFamily) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    MVZDD g = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}});
+    MVZDD h = MVZDD::from_sets(base, {{0, 0}, {2, 1}});
+
+    EXPECT_TRUE(f.is_subset_family(g));
+    EXPECT_FALSE(g.is_subset_family(f));
+    EXPECT_TRUE(f.is_subset_family(f));
+
+    // Empty family is subset of anything
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_TRUE(empty.is_subset_family(f));
+    EXPECT_TRUE(empty.is_subset_family(empty));
+}
+
+TEST_F(MVDDTest, MVZDDIsDisjoint) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    MVZDD g = MVZDD::from_sets(base, {{2, 1}, {0, 1}});
+    MVZDD h = MVZDD::from_sets(base, {{1, 2}, {2, 0}});
+
+    EXPECT_TRUE(f.is_disjoint(g));
+    EXPECT_FALSE(f.is_disjoint(h));  // {1,2} in common
+
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_TRUE(f.is_disjoint(empty));
+    EXPECT_TRUE(empty.is_disjoint(empty));
+}
+
+// ============================================================
+//  MVZDD::count_intersec / jaccard_index / hamming_distance
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCountIntersec) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}});
+    MVZDD g = MVZDD::from_sets(base, {{1, 2}, {2, 1}, {0, 1}});
+
+    bigint::BigInt ci = f.count_intersec(g);
+    EXPECT_EQ(ci.to_string(), "2");  // {1,2} and {2,1}
+
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_EQ(f.count_intersec(empty).to_string(), "0");
+    EXPECT_EQ(f.count_intersec(f).to_string(), "3");
+}
+
+TEST_F(MVDDTest, MVZDDJaccardIndex) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    MVZDD g = MVZDD::from_sets(base, {{1, 2}, {2, 1}});
+
+    // |F ∩ G| = 1 ({1,2}), |F ∪ G| = 3
+    EXPECT_NEAR(f.jaccard_index(g), 1.0 / 3.0, 1e-10);
+    EXPECT_NEAR(f.jaccard_index(f), 1.0, 1e-10);
+
+    // Both empty → 1.0
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_NEAR(empty.jaccard_index(empty), 1.0, 1e-10);
+}
+
+TEST_F(MVDDTest, MVZDDHammingDistance) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    MVZDD g = MVZDD::from_sets(base, {{1, 2}, {2, 1}});
+
+    // F △ G = {{0,0}, {2,1}} → size 2
+    bigint::BigInt hd = f.hamming_distance(g);
+    EXPECT_EQ(hd.to_string(), "2");
+    EXPECT_EQ(f.hamming_distance(f).to_string(), "0");
+}
+
+// ============================================================
+//  MVZDD::cost_bound_range tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDCostBoundRange) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // 3 assignments: (0,0) cost=0, (1,2) cost=5, (2,1) cost=3
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}});
+    std::vector<std::vector<int>> weights = {{0, 1, 2}, {0, 1, 2}};
+    // costs: (0,0)→0, (1,2)→1+2=3, (2,1)→2+1=3
+
+    // range [0, 0]: only (0,0)
+    MVZDD r1 = f.cost_bound_range(weights, 0, 0);
+    EXPECT_EQ(r1.count(), 1.0);
+    EXPECT_TRUE(r1.contains({0, 0}));
+
+    // range [1, 3]: (1,2) and (2,1) with cost 3
+    MVZDD r2 = f.cost_bound_range(weights, 1, 3);
+    EXPECT_EQ(r2.count(), 2.0);
+    EXPECT_TRUE(r2.contains({1, 2}));
+    EXPECT_TRUE(r2.contains({2, 1}));
+
+    // range [0, 10]: everything
+    MVZDD r3 = f.cost_bound_range(weights, 0, 10);
+    EXPECT_EQ(r3.count(), 3.0);
+
+    // range [4, 10]: nothing
+    MVZDD r4 = f.cost_bound_range(weights, 4, 10);
+    EXPECT_EQ(r4.count(), 0.0);
+}
+
+TEST_F(MVDDTest, MVZDDCostBoundRangeWithMemo) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}});
+    std::vector<std::vector<int>> weights = {{0, 1, 2}, {0, 1, 2}};
+
+    CostBoundMemo memo;
+    MVZDD r1 = f.cost_bound_range(weights, 0, 0, memo);
+    EXPECT_EQ(r1.count(), 1.0);
+
+    MVZDD r2 = f.cost_bound_range(weights, 1, 3, memo);
+    EXPECT_EQ(r2.count(), 2.0);
+}
+
+// ============================================================
+//  MVZDD::sample_k / random_subset tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDSampleK) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}, {0, 1}});
+    ZDD z = f.to_zdd();
+    ZddCountMemo memo(z);
+
+    std::mt19937_64 rng(42);
+    MVZDD sampled = f.sample_k(2, rng, memo);
+    EXPECT_EQ(sampled.count(), 2.0);
+    EXPECT_TRUE(sampled.is_subset_family(f));
+
+    // k=0 → empty
+    std::mt19937_64 rng2(42);
+    MVZDD empty = f.sample_k(0, rng2, memo);
+    EXPECT_TRUE(empty.is_zero());
+
+    // k >= total → all
+    std::mt19937_64 rng3(42);
+    MVZDD all = f.sample_k(10, rng3, memo);
+    EXPECT_EQ(all, f);
+}
+
+TEST_F(MVDDTest, MVZDDRandomSubset) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}, {0, 1}});
+
+    // p=0 → empty
+    std::mt19937_64 rng1(42);
+    MVZDD empty = f.random_subset(0.0, rng1);
+    EXPECT_TRUE(empty.is_zero());
+
+    // p=1 → all
+    std::mt19937_64 rng2(42);
+    MVZDD all = f.random_subset(1.0, rng2);
+    EXPECT_EQ(all, f);
+
+    // p=0.5 → subset
+    std::mt19937_64 rng3(42);
+    MVZDD sub = f.random_subset(0.5, rng3);
+    EXPECT_TRUE(sub.is_subset_family(f));
+    EXPECT_LE(sub.count(), 4.0);
+}

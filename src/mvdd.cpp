@@ -888,6 +888,31 @@ bool MVZDD::contains(const std::vector<int>& s) const {
     return bddcontains(root, dd_set);
 }
 
+bool MVZDD::is_subset_family(const MVZDD& g) const {
+    check_compatible(g);
+    return bddissubset(root, g.root);
+}
+
+bool MVZDD::is_disjoint(const MVZDD& g) const {
+    check_compatible(g);
+    return bddisdisjoint(root, g.root);
+}
+
+bigint::BigInt MVZDD::count_intersec(const MVZDD& g) const {
+    check_compatible(g);
+    return bddcountintersec(root, g.root);
+}
+
+double MVZDD::jaccard_index(const MVZDD& g) const {
+    check_compatible(g);
+    return bddjaccardindex(root, g.root);
+}
+
+bigint::BigInt MVZDD::hamming_distance(const MVZDD& g) const {
+    check_compatible(g);
+    return bddhammingdist(root, g.root);
+}
+
 // --- Support ---
 
 std::vector<bddvar> MVZDD::support_vars() const {
@@ -1075,6 +1100,21 @@ MVZDD MVZDD::cost_bound_eq(const std::vector<std::vector<int>>& weights,
                              long long b) const {
     CostBoundMemo memo;
     return cost_bound_eq(weights, b, memo);
+}
+
+MVZDD MVZDD::cost_bound_range(const std::vector<std::vector<int>>& weights,
+                               long long lo, long long hi,
+                               CostBoundMemo& memo) const {
+    MVZDD le_hi = cost_bound_le(weights, hi, memo);
+    if (lo == LLONG_MIN) return le_hi;
+    MVZDD le_lo1 = cost_bound_le(weights, lo - 1, memo);
+    return le_hi - le_lo1;
+}
+
+MVZDD MVZDD::cost_bound_range(const std::vector<std::vector<int>>& weights,
+                               long long lo, long long hi) const {
+    CostBoundMemo memo;
+    return cost_bound_range(weights, lo, hi, memo);
 }
 
 // --- Evaluation ---

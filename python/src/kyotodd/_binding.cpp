@@ -4076,6 +4076,37 @@ PYBIND11_MODULE(_core, m) {
             "Args:\n"
             "    s: List of values (0-indexed: s[i] is the value of MVDD variable i+1).\n"
             "       Size must equal the number of MVDD variables.")
+        .def("is_subset_family", &MVZDD::is_subset_family, py::arg("g"),
+            "Check if this family is a subset of g (F <= G).\n\n"
+            "Args:\n"
+            "    g: Another MVZDD with the same variable table.")
+        .def("is_disjoint", &MVZDD::is_disjoint, py::arg("g"),
+            "Check if this family and g are disjoint (F & G == empty).\n\n"
+            "Args:\n"
+            "    g: Another MVZDD with the same variable table.")
+        .def("count_intersec", [](const MVZDD& f, const MVZDD& g) -> py::int_ {
+            bigint::BigInt bi = f.count_intersec(g);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("g"),
+           "Count the intersection size |F & G| without building it.\n\n"
+           "Args:\n"
+           "    g: Another MVZDD with the same variable table.\n\n"
+           "Returns:\n"
+           "    The intersection count as a Python int.")
+        .def("jaccard_index", &MVZDD::jaccard_index, py::arg("g"),
+            "Jaccard index |F & G| / |F | G|.\n\n"
+            "Returns 1.0 when both families are empty.\n\n"
+            "Args:\n"
+            "    g: Another MVZDD with the same variable table.")
+        .def("hamming_distance", [](const MVZDD& f, const MVZDD& g) -> py::int_ {
+            bigint::BigInt bi = f.hamming_distance(g);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("g"),
+           "Symmetric difference size |F ^ G|.\n\n"
+           "Args:\n"
+           "    g: Another MVZDD with the same variable table.\n\n"
+           "Returns:\n"
+           "    The symmetric difference count as a Python int.")
         // Support
         .def("support_vars", &MVZDD::support_vars,
             "Return all MVDD variable numbers appearing in the family.\n\n"
@@ -4120,6 +4151,38 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of values (0-indexed: result[i] is the value of MVDD variable i+1).")
+        .def("sample_k", [](MVZDD& z, int64_t k, uint64_t seed) -> MVZDD {
+            std::mt19937_64 rng(seed);
+            ZddCountMemo memo(z.to_zdd());
+            return z.sample_k(k, rng, memo);
+        }, py::arg("k"), py::arg("seed") = 0,
+           "Sample k assignments uniformly at random and return as an MVZDD.\n\n"
+           "Args:\n"
+           "    k: Number of assignments to sample.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    An MVZDD containing the sampled k assignments.")
+        .def("sample_k_with_memo", [](MVZDD& z, int64_t k, ZddCountMemo& memo, uint64_t seed) -> MVZDD {
+            std::mt19937_64 rng(seed);
+            return z.sample_k(k, rng, memo);
+        }, py::arg("k"), py::arg("memo"), py::arg("seed") = 0,
+           "Sample k assignments using a memo for caching.\n\n"
+           "Args:\n"
+           "    k: Number of assignments to sample.\n"
+           "    memo: A ZddCountMemo object for caching.\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    An MVZDD containing the sampled k assignments.")
+        .def("random_subset", [](MVZDD& z, double p, uint64_t seed) -> MVZDD {
+            std::mt19937_64 rng(seed);
+            return z.random_subset(p, rng);
+        }, py::arg("p"), py::arg("seed") = 0,
+           "Include each assignment independently with probability p.\n\n"
+           "Args:\n"
+           "    p: Inclusion probability (0.0 to 1.0).\n"
+           "    seed: Random seed (default: 0).\n\n"
+           "Returns:\n"
+           "    An MVZDD containing the randomly selected assignments.")
         // Weight operations
         .def("min_weight", &MVZDD::min_weight, py::arg("weights"),
             "Find the minimum weight sum among all assignments.\n\n"
@@ -4204,6 +4267,24 @@ PYBIND11_MODULE(_core, m) {
             return z.cost_bound_eq(weights, b, memo);
         }, py::arg("weights"), py::arg("b"), py::arg("memo"),
            "Extract assignments with cost == b, reusing a memo.")
+        .def("cost_bound_range", [](const MVZDD& z,
+                const std::vector<std::vector<int>>& weights,
+                long long lo, long long hi) -> MVZDD {
+            return z.cost_bound_range(weights, lo, hi);
+        }, py::arg("weights"), py::arg("lo"), py::arg("hi"),
+           "Extract assignments with total cost in [lo, hi].\n\n"
+           "Args:\n"
+           "    weights: 2D weight table.\n"
+           "    lo: Lower cost bound (inclusive).\n"
+           "    hi: Upper cost bound (inclusive).\n\n"
+           "Returns:\n"
+           "    An MVZDD containing assignments with lo <= cost <= hi.")
+        .def("cost_bound_range_with_memo", [](const MVZDD& z,
+                const std::vector<std::vector<int>>& weights,
+                long long lo, long long hi, CostBoundMemo& memo) -> MVZDD {
+            return z.cost_bound_range(weights, lo, hi, memo);
+        }, py::arg("weights"), py::arg("lo"), py::arg("hi"), py::arg("memo"),
+           "Extract assignments with cost in [lo, hi], reusing a memo.")
         // Properties
         .def_property_readonly("k", &MVZDD::k,
             "Value domain size.")

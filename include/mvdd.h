@@ -432,6 +432,39 @@ public:
      */
     bool contains(const std::vector<int>& s) const;
 
+    /**
+     * @brief Check if this family is a subset of g (F ⊆ G).
+     * @param g Another MVZDD with the same variable table.
+     * @return true if every assignment in this family is also in g.
+     */
+    bool is_subset_family(const MVZDD& g) const;
+
+    /**
+     * @brief Check if this family and g are disjoint (F ∩ G = ∅).
+     * @param g Another MVZDD with the same variable table.
+     * @return true if the two families share no assignment.
+     */
+    bool is_disjoint(const MVZDD& g) const;
+
+    /**
+     * @brief Count the intersection size |F ∩ G| without building it.
+     * @param g Another MVZDD with the same variable table.
+     */
+    bigint::BigInt count_intersec(const MVZDD& g) const;
+
+    /**
+     * @brief Jaccard index |F ∩ G| / |F ∪ G|.
+     * @param g Another MVZDD with the same variable table.
+     * @return 1.0 when both families are empty.
+     */
+    double jaccard_index(const MVZDD& g) const;
+
+    /**
+     * @brief Symmetric difference size |F △ G|.
+     * @param g Another MVZDD with the same variable table.
+     */
+    bigint::BigInt hamming_distance(const MVZDD& g) const;
+
     // --- Support ---
 
     /**
@@ -470,6 +503,33 @@ public:
      */
     template<typename RNG>
     std::vector<int> uniform_sample(RNG& rng, ZddCountMemo& memo);
+
+    /**
+     * @brief Uniformly sample k assignments and return as a new MVZDD.
+     *
+     * Uses hypergeometric distribution at each node.
+     *
+     * @tparam RNG A uniform random bit generator.
+     * @param k Number of assignments to sample.
+     * @param rng The random number generator.
+     * @param memo A ZddCountMemo created for the internal ZDD.
+     * @return An MVZDD containing the sampled k assignments.
+     * @throws std::invalid_argument if k < 0 or memo mismatch.
+     */
+    template<typename RNG>
+    MVZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo);
+
+    /**
+     * @brief Include each assignment independently with probability p.
+     *
+     * @tparam RNG A uniform random bit generator.
+     * @param p Inclusion probability (0.0 to 1.0).
+     * @param rng The random number generator.
+     * @return An MVZDD containing the randomly selected assignments.
+     * @throws std::invalid_argument if p is not in [0.0, 1.0].
+     */
+    template<typename RNG>
+    MVZDD random_subset(double p, RNG& rng);
 
     // --- Weight operations ---
 
@@ -562,6 +622,23 @@ public:
     /** @brief Convenience overload without memo. */
     MVZDD cost_bound_eq(const std::vector<std::vector<int>>& weights,
                          long long b) const;
+
+    /**
+     * @brief Extract all assignments with total cost in [lo, hi].
+     *
+     * @param weights 2D weight table (same format as min_weight).
+     * @param lo Lower cost bound (inclusive).
+     * @param hi Upper cost bound (inclusive).
+     * @param memo CostBoundMemo for caching.
+     * @return An MVZDD containing assignments with lo <= cost <= hi.
+     */
+    MVZDD cost_bound_range(const std::vector<std::vector<int>>& weights,
+                            long long lo, long long hi,
+                            CostBoundMemo& memo) const;
+
+    /** @brief Convenience overload without memo. */
+    MVZDD cost_bound_range(const std::vector<std::vector<int>>& weights,
+                            long long lo, long long hi) const;
 
     // --- Evaluation ---
 
@@ -752,6 +829,26 @@ std::vector<int> MVZDD::uniform_sample(RNG& rng, ZddCountMemo& memo) {
         assign[mv - 1] = idx + 1;
     }
     return assign;
+}
+
+template<typename RNG>
+MVZDD MVZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::sample_k: no var table");
+    }
+    ZDD z = to_zdd();
+    ZDD sampled = z.sample_k(k, rng, memo);
+    return make_result(sampled.get_id());
+}
+
+template<typename RNG>
+MVZDD MVZDD::random_subset(double p, RNG& rng) {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::random_subset: no var table");
+    }
+    ZDD z = to_zdd();
+    ZDD sampled = z.random_subset(p, rng);
+    return make_result(sampled.get_id());
 }
 
 #endif
