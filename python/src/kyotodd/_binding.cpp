@@ -4145,6 +4145,24 @@ PYBIND11_MODULE(_core, m) {
            "    A list of Python ints.")
         .def("profile_double", &MVZDD::profile_double,
             "Same as profile() but returns floats.")
+        .def("element_frequency", [](const MVZDD& z) -> std::vector<std::vector<py::int_>> {
+            auto freq = z.element_frequency();
+            std::vector<std::vector<py::int_>> result;
+            result.reserve(freq.size());
+            for (auto& row : freq) {
+                std::vector<py::int_> py_row;
+                py_row.reserve(row.size());
+                for (auto& v : row) {
+                    py_row.push_back(py::int_(py::str(v.to_string())));
+                }
+                result.push_back(std::move(py_row));
+            }
+            return result;
+        }, "Per-variable value frequency.\n\n"
+           "result[i][v] = number of assignments where MVDD variable i+1\n"
+           "takes value v.\n\n"
+           "Returns:\n"
+           "    A 2D list of Python ints (size mvdd_var_count x k).")
         // Sampling
         .def("uniform_sample", [](MVZDD& z, uint64_t seed) -> std::vector<int> {
             std::mt19937_64 rng(seed);

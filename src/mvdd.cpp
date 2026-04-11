@@ -960,6 +960,39 @@ std::vector<double> MVZDD::profile_double() const {
     return bddprofile_double(root);
 }
 
+std::vector<std::vector<bigint::BigInt>> MVZDD::element_frequency() const {
+    if (!var_table_) return {};
+
+    bddvar n = var_table_->mvdd_var_count();
+    int kv = var_table_->k();
+
+    // Get DD-level element frequency
+    std::vector<bigint::BigInt> dd_freq = bddelmfreq(root);
+
+    // Get total count for computing value-0 frequency
+    bigint::BigInt total = bddexactcount(root);
+
+    // Build 2D result: result[mv-1][value]
+    std::vector<std::vector<bigint::BigInt>> result(
+        n, std::vector<bigint::BigInt>(kv));
+
+    for (bddvar mv = 1; mv <= n; ++mv) {
+        const std::vector<bddvar>& dvars = var_table_->dd_vars_of(mv);
+        bigint::BigInt nonzero_sum;
+        for (int idx = 0; idx < kv - 1; ++idx) {
+            bddvar dv = dvars[idx];
+            if (dv < dd_freq.size()) {
+                result[mv - 1][idx + 1] = dd_freq[dv];
+                nonzero_sum += dd_freq[dv];
+            }
+        }
+        // value 0 frequency = total - sum of non-zero value frequencies
+        result[mv - 1][0] = total - nonzero_sum;
+    }
+
+    return result;
+}
+
 // --- Weight operations (private helpers) ---
 
 void MVZDD::convert_weights(const std::vector<std::vector<int>>& weights,

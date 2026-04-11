@@ -2309,3 +2309,85 @@ TEST_F(MVDDTest, MVZDDProfileDouble) {
     EXPECT_DOUBLE_EQ(prof[1], 1.0);
     EXPECT_DOUBLE_EQ(prof[2], 1.0);
 }
+
+// ============================================================
+//  MVZDD::element_frequency tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDElementFrequencyBasic) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // {(0,0), (1,2), (1,0)}
+    // var1: val0→1, val1→2, val2→0
+    // var2: val0→2, val1→0, val2→1
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {1, 0}});
+    auto freq = f.element_frequency();
+
+    ASSERT_EQ(freq.size(), 2u);
+    ASSERT_EQ(freq[0].size(), 3u);
+    ASSERT_EQ(freq[1].size(), 3u);
+
+    EXPECT_EQ(freq[0][0].to_string(), "1");
+    EXPECT_EQ(freq[0][1].to_string(), "2");
+    EXPECT_EQ(freq[0][2].to_string(), "0");
+
+    EXPECT_EQ(freq[1][0].to_string(), "2");
+    EXPECT_EQ(freq[1][1].to_string(), "0");
+    EXPECT_EQ(freq[1][2].to_string(), "1");
+}
+
+TEST_F(MVDDTest, MVZDDElementFrequencyAllZero) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Only {(0,0)}: each variable has value 0 once
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}});
+    auto freq = f.element_frequency();
+
+    ASSERT_EQ(freq.size(), 2u);
+    EXPECT_EQ(freq[0][0].to_string(), "1");
+    EXPECT_EQ(freq[0][1].to_string(), "0");
+    EXPECT_EQ(freq[0][2].to_string(), "0");
+    EXPECT_EQ(freq[1][0].to_string(), "1");
+    EXPECT_EQ(freq[1][1].to_string(), "0");
+    EXPECT_EQ(freq[1][2].to_string(), "0");
+}
+
+TEST_F(MVDDTest, MVZDDElementFrequencyEmpty) {
+    MVZDD base(3);
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {});
+    auto freq = f.element_frequency();
+
+    ASSERT_EQ(freq.size(), 1u);
+    EXPECT_EQ(freq[0][0].to_string(), "0");
+    EXPECT_EQ(freq[0][1].to_string(), "0");
+    EXPECT_EQ(freq[0][2].to_string(), "0");
+}
+
+TEST_F(MVDDTest, MVZDDElementFrequencySumEqualsTotal) {
+    // For each variable, sum of all value frequencies == |F|
+    MVZDD base(4);
+    base.new_var();
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {
+        {0, 0, 0}, {1, 2, 3}, {3, 1, 0}, {0, 3, 2}, {2, 0, 1}
+    });
+    auto freq = f.element_frequency();
+    bigint::BigInt total = f.exact_count();
+
+    ASSERT_EQ(freq.size(), 3u);
+    for (size_t mv = 0; mv < freq.size(); ++mv) {
+        bigint::BigInt sum;
+        for (int v = 0; v < 4; ++v) {
+            sum += freq[mv][v];
+        }
+        EXPECT_EQ(sum, total);
+    }
+}

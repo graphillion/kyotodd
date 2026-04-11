@@ -502,6 +502,16 @@ public:
      */
     std::vector<double> profile_double() const;
 
+    /**
+     * @brief Per-variable value frequency.
+     *
+     * result[i][v] = number of assignments where MVDD variable i+1
+     * takes value v.
+     *
+     * @return 2D vector of size mvdd_var_count x k.
+     */
+    std::vector<std::vector<bigint::BigInt>> element_frequency() const;
+
     // --- Sampling ---
 
     /**
