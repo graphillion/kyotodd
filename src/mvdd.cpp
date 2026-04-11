@@ -627,6 +627,45 @@ MVZDD MVZDD::singleton(const MVZDD& base, bddvar mv, int value) {
     return base.make_result(result);
 }
 
+MVZDD MVZDD::from_sets(const MVZDD& base,
+                       const std::vector<std::vector<int>>& sets) {
+    if (!base.var_table_) {
+        throw std::invalid_argument("MVZDD::from_sets: base has no var table");
+    }
+    bddvar n = base.var_table_->mvdd_var_count();
+    int k = base.var_table_->k();
+
+    bddp f = bddempty;
+    for (size_t i = 0; i < sets.size(); ++i) {
+        if (sets[i].size() != static_cast<size_t>(n)) {
+            throw std::invalid_argument(
+                "MVZDD::from_sets: assignment " + std::to_string(i) +
+                " has size " + std::to_string(sets[i].size()) +
+                ", expected " + std::to_string(n));
+        }
+
+        // Build a DD-level set for this assignment
+        bddp t = bddsingle;
+        for (bddvar mv = 1; mv <= n; ++mv) {
+            int val = sets[i][mv - 1];
+            if (val < 0 || val >= k) {
+                throw std::invalid_argument(
+                    "MVZDD::from_sets: assignment " + std::to_string(i) +
+                    ", variable " + std::to_string(mv) +
+                    " has value " + std::to_string(val) +
+                    " out of range [0, " + std::to_string(k - 1) + "]");
+            }
+            if (val > 0) {
+                const std::vector<bddvar>& dvars =
+                    base.var_table_->dd_vars_of(mv);
+                t = bddchange(t, dvars[val - 1]);
+            }
+        }
+        f = bddunion(f, t);
+    }
+    return base.make_result(f);
+}
+
 // --- Variable management ---
 
 bddvar MVZDD::new_var() {

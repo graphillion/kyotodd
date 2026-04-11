@@ -1917,3 +1917,128 @@ TEST_F(MVDDTest, MVZDDCostBoundNegativeWeights) {
     EXPECT_EQ(eq_m10.count(), 1.0);
     EXPECT_TRUE(eq_m10.contains({2}));
 }
+
+// ============================================================
+//  MVZDD::from_sets tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDFromSetsEmpty) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Empty input → empty family
+    MVZDD f = MVZDD::from_sets(base, {});
+    EXPECT_TRUE(f.is_zero());
+    EXPECT_EQ(f.count(), 0.0);
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsSingleAllZero) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Single assignment: all zeros → family {(0,0)}
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}});
+    EXPECT_EQ(f.count(), 1.0);
+    EXPECT_TRUE(f.contains({0, 0}));
+    EXPECT_TRUE(f.has_empty());
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsSingleNonZero) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Single assignment: (1, 2)
+    MVZDD f = MVZDD::from_sets(base, {{1, 2}});
+    EXPECT_EQ(f.count(), 1.0);
+    EXPECT_TRUE(f.contains({1, 2}));
+    EXPECT_FALSE(f.contains({0, 0}));
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsMultiple) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    std::vector<std::vector<int>> sets = {{0, 0}, {1, 2}, {2, 1}};
+    MVZDD f = MVZDD::from_sets(base, sets);
+    EXPECT_EQ(f.count(), 3.0);
+    EXPECT_TRUE(f.contains({0, 0}));
+    EXPECT_TRUE(f.contains({1, 2}));
+    EXPECT_TRUE(f.contains({2, 1}));
+    EXPECT_FALSE(f.contains({0, 1}));
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsDuplicates) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Duplicate assignments should be unified
+    std::vector<std::vector<int>> sets = {{1, 0}, {1, 0}, {0, 2}};
+    MVZDD f = MVZDD::from_sets(base, sets);
+    EXPECT_EQ(f.count(), 2.0);
+    EXPECT_TRUE(f.contains({1, 0}));
+    EXPECT_TRUE(f.contains({0, 2}));
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsRoundTrip) {
+    // from_sets(enumerate()) should produce the same MVZDD
+    MVZDD base(4);
+    base.new_var();
+    base.new_var();
+    base.new_var();
+
+    std::vector<std::vector<int>> sets = {
+        {0, 0, 0}, {1, 2, 3}, {3, 1, 0}, {0, 3, 2}
+    };
+    MVZDD f = MVZDD::from_sets(base, sets);
+
+    std::vector<std::vector<int>> enumerated = f.enumerate();
+    MVZDD g = MVZDD::from_sets(base, enumerated);
+    EXPECT_EQ(f, g);
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsInvalidNoVarTable) {
+    MVZDD base;
+    EXPECT_THROW(MVZDD::from_sets(base, {{0}}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsInvalidWrongSize) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Assignment has wrong number of elements
+    EXPECT_THROW(MVZDD::from_sets(base, {{1}}), std::invalid_argument);
+    EXPECT_THROW(MVZDD::from_sets(base, {{1, 2, 0}}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsInvalidValueOutOfRange) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // k=3, so values must be in [0, 2]
+    EXPECT_THROW(MVZDD::from_sets(base, {{3, 0}}), std::invalid_argument);
+    EXPECT_THROW(MVZDD::from_sets(base, {{0, -1}}), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDFromSetsBinaryK2) {
+    // k=2 case (binary variables)
+    MVZDD base(2);
+    base.new_var();
+    base.new_var();
+    base.new_var();
+
+    std::vector<std::vector<int>> sets = {
+        {0, 0, 0}, {1, 0, 1}, {0, 1, 0}, {1, 1, 1}
+    };
+    MVZDD f = MVZDD::from_sets(base, sets);
+    EXPECT_EQ(f.count(), 4.0);
+    for (const auto& s : sets) {
+        EXPECT_TRUE(f.contains(s));
+    }
+}

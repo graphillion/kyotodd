@@ -3995,6 +3995,19 @@ PYBIND11_MODULE(_core, m) {
             "    base: An MVZDD providing the variable table.\n"
             "    mv: MVDD variable number (1-indexed).\n"
             "    value: The value (0 to k-1).")
+        .def_static("from_sets", &MVZDD::from_sets,
+            py::arg("base"), py::arg("sets"),
+            "Construct an MVZDD from a list of assignments.\n\n"
+            "This is the inverse of enumerate(). Each inner list represents\n"
+            "one multi-valued assignment, where element j is the value of\n"
+            "MVDD variable j+1 (0 to k-1). Duplicate assignments are unified.\n\n"
+            "Args:\n"
+            "    base: An MVZDD providing the variable table.\n"
+            "    sets: List of assignments (list of list of int).\n\n"
+            "Returns:\n"
+            "    An MVZDD containing exactly those assignments.\n\n"
+            "Raises:\n"
+            "    ValueError: If base has no var table, wrong size, or value out of range.")
         .def_static("ite", [](const MVZDD& base, bddvar mv,
                               const std::vector<MVZDD>& children) {
             return MVZDD::ite(base, mv, children);

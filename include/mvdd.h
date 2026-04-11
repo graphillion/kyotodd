@@ -344,6 +344,24 @@ public:
      */
     static MVZDD singleton(const MVZDD& base, bddvar mv, int value);
 
+    /**
+     * @brief Construct an MVZDD from a list of assignments.
+     *
+     * This is the inverse of enumerate(). Each inner vector represents
+     * one multi-valued assignment, where element j is the value of MVDD
+     * variable j+1 (0 to k-1). Duplicate assignments are accepted
+     * (they are unified).
+     *
+     * @param base An MVZDD providing the variable table.
+     * @param sets Vector of assignments. Each inner vector must have size
+     *             equal to the number of registered MVDD variables.
+     * @return An MVZDD containing exactly those assignments.
+     * @throws std::invalid_argument if base has no var table, or any
+     *         inner vector has wrong size, or any value is out of range.
+     */
+    static MVZDD from_sets(const MVZDD& base,
+                           const std::vector<std::vector<int>>& sets);
+
     // --- Variable management ---
 
     /** @brief Create a new MVDD variable (same as MVBDD::new_var()). */
