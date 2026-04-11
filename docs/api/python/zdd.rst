@@ -267,7 +267,7 @@ ZDD Class
       :return: The resulting ZDD.
       :rtype: ZDD
 
-   .. py:method:: nonsup(g)
+   .. py:method:: remove_supersets(g)
 
       Remove sets that are supersets of some set in *g*.
 
@@ -275,7 +275,7 @@ ZDD Class
       :return: The resulting ZDD.
       :rtype: ZDD
 
-   .. py:method:: nonsub(g)
+   .. py:method:: remove_subsets(g)
 
       Remove sets that are subsets of some set in *g*.
 

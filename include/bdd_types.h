@@ -1015,17 +1015,13 @@ public:
      * @param g The constraining family.
      * @return The resulting ZDD.
      */
-    ZDD nonsup(const ZDD& g) const;
-    /** @deprecated Use nonsup() instead. */
-    ZDD Nonsup(const ZDD& g) const { return nonsup(g); }
+    ZDD remove_supersets(const ZDD& g) const;
     /**
      * @brief Remove sets that are subsets of some set in @p g.
      * @param g The constraining family.
      * @return The resulting ZDD.
      */
-    ZDD nonsub(const ZDD& g) const;
-    /** @deprecated Use nonsub() instead. */
-    ZDD Nonsub(const ZDD& g) const { return nonsub(g); }
+    ZDD remove_subsets(const ZDD& g) const;
     /**
      * @brief Cross product of two families over disjoint variable sets.
      *

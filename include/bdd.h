@@ -632,13 +632,13 @@ inline ZDD ZDD::permit(const ZDD& g) const {
     return z;
 }
 
-inline ZDD ZDD::nonsup(const ZDD& g) const {
+inline ZDD ZDD::remove_supersets(const ZDD& g) const {
     ZDD z(0);
     z.root = bddnonsup(root, g.root);
     return z;
 }
 
-inline ZDD ZDD::nonsub(const ZDD& g) const {
+inline ZDD ZDD::remove_subsets(const ZDD& g) const {
     ZDD z(0);
     z.root = bddnonsub(root, g.root);
     return z;

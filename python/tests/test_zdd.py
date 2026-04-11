@@ -328,19 +328,19 @@ class TestZDDMethods:
         abc = a * b * c
         assert abc.permit(ab) == ZDD.empty
 
-    def test_nonsup(self):
+    def test_remove_supersets(self):
         a, b, _ = self._setup()
         ab = a * b  # {{1,2}}
         u = ab + a  # {{1,2}, {1}}
-        # nonsup(a): remove supersets of {1} → {} (both are supersets of {1})
-        assert u.nonsup(a) == ZDD.empty
+        # remove_supersets(a): remove supersets of {1} → {} (both are supersets of {1})
+        assert u.remove_supersets(a) == ZDD.empty
 
-    def test_nonsub(self):
+    def test_remove_subsets(self):
         a, b, _ = self._setup()
         ab = a * b  # {{1,2}}
         u = ab + a  # {{1,2}, {1}}
-        # nonsub(ab): remove subsets of {1,2} → {} (both are subsets of {1,2})
-        assert u.nonsub(ab) == ZDD.empty
+        # remove_subsets(ab): remove subsets of {1,2} → {} (both are subsets of {1,2})
+        assert u.remove_subsets(ab) == ZDD.empty
 
     def test_disjoin(self):
         a, b, _ = self._setup()

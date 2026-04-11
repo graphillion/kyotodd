@@ -130,11 +130,11 @@ Filter families based on subset/superset relationships:
    # Permit: keep sets whose elements are all in some set in G
    p = F.permit(G)
 
-   # Nonsup: remove sets that are supersets of some set in G
-   ns = F.nonsup(G)
+   # remove_supersets: remove sets that are supersets of some set in G
+   ns = F.remove_supersets(G)
 
-   # Nonsub: remove sets that are subsets of some set in G
-   nb = F.nonsub(G)
+   # remove_subsets: remove sets that are subsets of some set in G
+   nb = F.remove_subsets(G)
 
 Unary Operations
 ----------------

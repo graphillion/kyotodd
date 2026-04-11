@@ -1063,13 +1063,13 @@ PYBIND11_MODULE(_core, m) {
              "    g: The permitting family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("nonsup", &ZDD::Nonsup, py::arg("g"),
+        .def("remove_supersets", &ZDD::remove_supersets, py::arg("g"),
              "Remove sets that are supersets of some set in g.\n\n"
              "Args:\n"
              "    g: The constraining family.\n\n"
              "Returns:\n"
              "    The resulting ZDD.\n")
-        .def("nonsub", &ZDD::Nonsub, py::arg("g"),
+        .def("remove_subsets", &ZDD::remove_subsets, py::arg("g"),
              "Remove sets that are subsets of some set in g.\n\n"
              "Args:\n"
              "    g: The constraining family.\n\n"

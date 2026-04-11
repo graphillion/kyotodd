@@ -5906,8 +5906,8 @@ TEST_F(BDDTest, ZDDClassNonsupNonsub) {
     ZDD zf = ZDD_ID(f);
     ZDD zg = ZDD_ID(z12);
 
-    EXPECT_EQ(zf.Nonsup(zg).GetID(), bddnonsup(f, z12));
-    EXPECT_EQ(zf.Nonsub(zg).GetID(), bddnonsub(f, z12));
+    EXPECT_EQ(zf.remove_supersets(zg).GetID(), bddnonsup(f, z12));
+    EXPECT_EQ(zf.remove_subsets(zg).GetID(), bddnonsub(f, z12));
 }
 
 TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {
@@ -16130,22 +16130,26 @@ TEST_F(BDDTest, ZDD_LowercasePermit) {
     EXPECT_EQ(F.permit(G), F.Permit(G));
 }
 
-TEST_F(BDDTest, ZDD_LowercaseNonsup) {
+TEST_F(BDDTest, ZDD_RemoveSupersets) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    // F = {{v1}, {v1,v2}}, remove supersets of {v1} → removes {v1,v2}
     ZDD F = z_v1 + z_v1v2;
-    EXPECT_EQ(F.nonsup(z_v1), F.Nonsup(z_v1));
+    ZDD result = F.remove_supersets(z_v1);
+    EXPECT_EQ(result.id(), bddnonsup(F.id(), z_v1.id()));
 }
 
-TEST_F(BDDTest, ZDD_LowercaseNonsub) {
+TEST_F(BDDTest, ZDD_RemoveSubsets) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     ZDD z_v1v2 = ZDD_ID(ZDD::getnode(v2, bddempty, ZDD::getnode(v1, bddempty, bddsingle)));
+    // F = {{v1}, {v1,v2}}, remove subsets of {v1,v2} → removes {v1}
     ZDD F = z_v1 + z_v1v2;
-    EXPECT_EQ(F.nonsub(z_v1v2), F.Nonsub(z_v1v2));
+    ZDD result = F.remove_subsets(z_v1v2);
+    EXPECT_EQ(result.id(), bddnonsub(F.id(), z_v1v2.id()));
 }
 
 TEST_F(BDDTest, ZDD_LowercaseSupport) {
