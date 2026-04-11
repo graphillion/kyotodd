@@ -952,6 +952,14 @@ bigint::BigInt MVZDD::exact_count(ZddCountMemo& memo) const {
     return z.exact_count(memo);
 }
 
+std::vector<bigint::BigInt> MVZDD::profile() const {
+    return bddprofile(root);
+}
+
+std::vector<double> MVZDD::profile_double() const {
+    return bddprofile_double(root);
+}
+
 // --- Weight operations (private helpers) ---
 
 void MVZDD::convert_weights(const std::vector<std::vector<int>>& weights,

@@ -473,7 +473,7 @@ public:
      */
     std::vector<bddvar> support_vars() const;
 
-    // --- Counting ---
+    // --- Counting / statistics ---
 
     /** @brief Count the number of MVDD assignments (double). */
     double count() const;
@@ -486,6 +486,21 @@ public:
      * @param memo A ZddCountMemo created for the internal ZDD.
      */
     bigint::BigInt exact_count(ZddCountMemo& memo) const;
+
+    /**
+     * @brief Distribution of the number of non-zero values per assignment.
+     *
+     * result[k] = number of assignments where exactly k MVDD variables
+     * have a non-zero value.
+     *
+     * @return Vector of BigInt. Length is at most mvdd_var_count + 1.
+     */
+    std::vector<bigint::BigInt> profile() const;
+
+    /**
+     * @brief Same as profile() but returns doubles.
+     */
+    std::vector<double> profile_double() const;
 
     // --- Sampling ---
 

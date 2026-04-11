@@ -4130,6 +4130,21 @@ PYBIND11_MODULE(_core, m) {
            "    memo: A ZddCountMemo object for caching.\n\n"
            "Returns:\n"
            "    The number of assignments as a Python int.")
+        .def("profile", [](const MVZDD& z) -> std::vector<py::int_> {
+            auto prof = z.profile();
+            std::vector<py::int_> result;
+            result.reserve(prof.size());
+            for (auto& v : prof) {
+                result.push_back(py::int_(py::str(v.to_string())));
+            }
+            return result;
+        }, "Distribution of the number of non-zero values per assignment.\n\n"
+           "result[k] = number of assignments where exactly k MVDD variables\n"
+           "have a non-zero value.\n\n"
+           "Returns:\n"
+           "    A list of Python ints.")
+        .def("profile_double", &MVZDD::profile_double,
+            "Same as profile() but returns floats.")
         // Sampling
         .def("uniform_sample", [](MVZDD& z, uint64_t seed) -> std::vector<int> {
             std::mt19937_64 rng(seed);

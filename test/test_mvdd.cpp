@@ -2236,3 +2236,76 @@ TEST_F(MVDDTest, MVZDDRandomSubset) {
     EXPECT_TRUE(sub.is_subset_family(f));
     EXPECT_LE(sub.count(), 4.0);
 }
+
+// ============================================================
+//  MVZDD::profile / profile_double tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDProfileBasic) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // {(0,0), (1,2), (0,1)}
+    // (0,0) → 0 non-zero vars
+    // (1,2) → 2 non-zero vars
+    // (0,1) → 1 non-zero var
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {0, 1}});
+    auto prof = f.profile();
+
+    ASSERT_EQ(prof.size(), 3u);
+    EXPECT_EQ(prof[0].to_string(), "1");  // (0,0)
+    EXPECT_EQ(prof[1].to_string(), "1");  // (0,1)
+    EXPECT_EQ(prof[2].to_string(), "1");  // (1,2)
+}
+
+TEST_F(MVDDTest, MVZDDProfileAllZero) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // Only the all-zero assignment
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}});
+    auto prof = f.profile();
+
+    ASSERT_EQ(prof.size(), 1u);
+    EXPECT_EQ(prof[0].to_string(), "1");
+}
+
+TEST_F(MVDDTest, MVZDDProfileAllNonZero) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // All vars non-zero
+    MVZDD f = MVZDD::from_sets(base, {{1, 1}, {2, 2}, {1, 2}});
+    auto prof = f.profile();
+
+    ASSERT_EQ(prof.size(), 3u);
+    EXPECT_EQ(prof[0].to_string(), "0");
+    EXPECT_EQ(prof[1].to_string(), "0");
+    EXPECT_EQ(prof[2].to_string(), "3");
+}
+
+TEST_F(MVDDTest, MVZDDProfileEmpty) {
+    MVZDD base(3);
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {});
+    auto prof = f.profile();
+    EXPECT_TRUE(prof.empty());
+}
+
+TEST_F(MVDDTest, MVZDDProfileDouble) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {0, 1}});
+    auto prof = f.profile_double();
+
+    ASSERT_EQ(prof.size(), 3u);
+    EXPECT_DOUBLE_EQ(prof[0], 1.0);
+    EXPECT_DOUBLE_EQ(prof[1], 1.0);
+    EXPECT_DOUBLE_EQ(prof[2], 1.0);
+}
