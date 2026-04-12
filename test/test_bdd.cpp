@@ -16386,16 +16386,119 @@ TEST_F(BDDTest, ZDD_PrintPla_AllCombinations) {
     EXPECT_EQ(oss.str(), ".i 2\n.o 1\n11 1\n01 1\n10 1\n00 1\n.e\n");
 }
 
-TEST_F(BDDTest, ZDD_LowercaseZlev) {
-    // zlev is not implemented — just verify it throws
+TEST_F(BDDTest, ZDD_Zlev_Empty) {
     ZDD e(0);
-    EXPECT_THROW(e.zlev(0, 0), std::logic_error);
+    // zlev on empty family: always returns empty
+    EXPECT_EQ(e.zlev(0, 0), ZDD(0));
+    EXPECT_EQ(e.zlev(5, 0), ZDD(0));
 }
 
-TEST_F(BDDTest, ZDD_LowercaseSetZskip) {
-    // set_zskip is not implemented — just verify it throws
+TEST_F(BDDTest, ZDD_Zlev_Single) {
+    ZDD s(1);
+    // zlev on {∅}: lev <= 0 returns {∅} (contains empty set)
+    EXPECT_EQ(s.zlev(0, 0), ZDD(1));
+    EXPECT_EQ(s.zlev(5, 0), ZDD(1));
+}
+
+TEST_F(BDDTest, ZDD_Zlev_BasicDescent) {
+    // Create variables at levels 1, 2, 3
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // F = {{v1}, {v2}, {v3}} - top level is 3
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD z3 = ZDD_ID(ZDD::getnode(v3, bddempty, bddsingle));
+    ZDD F = z1 + z2 + z3;
+
+    // zlev(3, 0): top level is already 3, no descent needed
+    EXPECT_EQ(F.zlev(3, 0), F);
+
+    // zlev(2, 0): remove v3 via OffSet, result should be {{v1}, {v2}}
+    ZDD result2 = F.zlev(2, 0);
+    EXPECT_EQ(result2, z1 + z2);
+
+    // zlev(1, 0): remove v3 and v2, result should be {{v1}}
+    ZDD result1 = F.zlev(1, 0);
+    EXPECT_EQ(result1, z1);
+
+    // zlev(0, 0): returns {∅} if empty set is in F, else empty
+    // F = {{v1},{v2},{v3}} does not contain ∅
+    EXPECT_EQ(F.zlev(0, 0), ZDD(0));
+}
+
+TEST_F(BDDTest, ZDD_Zlev_WithEmptySet) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    // F = {{v1}, {v2}, {}} - contains empty set
+    ZDD F = z1 + z2 + ZDD(1);
+
+    // zlev(0, 0): F contains ∅, so returns {∅}
+    EXPECT_EQ(F.zlev(0, 0), ZDD(1));
+
+    // zlev(1, 0): should include {v1} and {∅}
+    ZDD result1 = F.zlev(1, 0);
+    EXPECT_EQ(result1, z1 + ZDD(1));
+}
+
+TEST_F(BDDTest, ZDD_Zlev_LastParameter) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // F = {{v3}} - top at level 3
+    ZDD z3 = ZDD_ID(ZDD::getnode(v3, bddempty, bddsingle));
+
+    // zlev(2, 1): last=1, target level=2
+    // After OffSet(v3), result is empty (level 0), which is < 2
+    // So return the backup (before the OffSet), which is z3 itself
+    ZDD result = z3.zlev(2, 1);
+    EXPECT_EQ(result, z3);
+
+    // zlev(3, 1): already at level 3, so return as-is
+    EXPECT_EQ(z3.zlev(3, 1), z3);
+}
+
+TEST_F(BDDTest, ZDD_Zlev_DeprecatedWrapper) {
     ZDD e(0);
-    EXPECT_THROW(e.set_zskip(), std::logic_error);
+    EXPECT_EQ(e.ZLev(0, 0), e.zlev(0, 0));
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_Empty) {
+    // set_zskip on empty/single should not throw
+    ZDD e(0);
+    e.set_zskip();  // no-op (level 0)
+    ZDD s(1);
+    s.set_zskip();  // no-op (level 0)
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_DeprecatedWrapper) {
+    ZDD e(0);
+    e.SetZSkip();  // should call set_zskip(), no throw
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_AcceleratesZlev) {
+    // Create a ZDD with many levels and verify that
+    // set_zskip + zlev produces the same result as zlev alone
+    const int N = 20;
+    std::vector<bddvar> vars(N);
+    for (int i = 0; i < N; ++i) {
+        vars[i] = bddnewvar();
+    }
+    // Build a singleton set containing the top variable
+    ZDD F = ZDD_ID(ZDD::getnode(vars[N-1], bddempty, bddsingle));
+
+    // Without skip: zlev should work correctly
+    ZDD r1 = F.zlev(5, 0);
+
+    // With skip: set_zskip then zlev should give same result
+    F.set_zskip();
+    ZDD r2 = F.zlev(5, 0);
+
+    EXPECT_EQ(r1, r2);
 }
 
 TEST_F(BDDTest, ZDD_Join) {

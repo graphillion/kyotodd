@@ -675,12 +675,156 @@ void ZDD::print_pla() const {
     std::cout.flush();
 }
 
-ZDD ZDD::zlev(int /*lev*/, int /*last*/) const {
-    throw std::logic_error("ZDD::zlev: not implemented");
+// Operation code for ZSkip cache (BC_ZBDD_ZSkip = 65)
+static const uint8_t BDD_OP_ZSKIP = 65;
+
+// ZLevNum: compute the skip-target level for a given level n.
+// Returns n - (skip width), i.e. the level to skip to.
+static int zlevnum(int n) {
+    int skip;
+    switch (n & 3) {
+    case 3: // bit1=1, bit0=1: largest skip
+        if      (n < 16)    skip = 4;
+        else if (n < 64)    skip = 8;
+        else if (n < 128)   skip = 32;
+        else if (n < 256)   skip = 64;
+        else if (n < 512)   skip = 128;
+        else if (n < 1024)  skip = 256;
+        else if (n < 2048)  skip = 512;
+        else if (n < 4096)  skip = 1024;
+        else if (n < 8192)  skip = 2048;
+        else if (n < 32768) skip = 4096;
+        else                skip = 8192;
+        break;
+    case 2: // bit1=1, bit0=0
+        if      (n < 64)    skip = 4;
+        else if (n < 256)   skip = 16;
+        else if (n < 512)   skip = 32;
+        else if (n < 1024)  skip = 64;
+        else if (n < 4096)  skip = 128;
+        else if (n < 32768) skip = 512;
+        else                skip = 1024;
+        break;
+    case 1: // bit1=0, bit0=1
+        if      (n < 16)    skip = 4;
+        else if (n < 512)   skip = 8;
+        else if (n < 1024)  skip = 16;
+        else if (n < 2048)  skip = 32;
+        else if (n < 32768) skip = 64;
+        else                skip = 128;
+        break;
+    default: // case 0: bit1=0, bit0=0: smallest skip
+        if      (n < 1024)  skip = 4;
+        else if (n < 32768) skip = 8;
+        else                skip = 16;
+        break;
+    }
+    return n - skip;
+}
+
+ZDD ZDD::zlev(int lev, int last) const {
+    // Base case: lev <= 0
+    if (lev <= 0) {
+        // Return intersection with constant 1 (single).
+        // This yields {∅} if ∅ ∈ F, else ∅.
+        if (bddhasempty(root))
+            return ZDD(1);
+        else
+            return ZDD(0);
+    }
+
+    ZDD f = *this;
+    // Backup: intersection with constant 1
+    ZDD u = bddhasempty(f.root) ? ZDD(1) : ZDD(0);
+    bddvar ftop = f.top();
+    int flev = static_cast<int>(bddlevofvar(ftop));
+
+    while (flev > lev) {
+        // 3a. Skip acceleration (when level gap >= 5)
+        if (flev - lev >= 5) {
+            int n = zlevnum(flev);
+
+            // Safety check (overshoot prevention)
+            if (flev >= 66) {
+                if (n < lev || ((flev & 3) < 3 && zlevnum(flev - 3) >= lev)) {
+                    n = flev - 1;
+                }
+            } else if (flev >= 18) {
+                if (n < lev || ((flev & 1) < 1 && zlevnum(flev - 1) >= lev)) {
+                    n = flev - 1;
+                }
+            } else {
+                if (n < lev) {
+                    n = flev - 1;
+                }
+            }
+
+            // If skip covers 2+ levels, try cache
+            if (n < flev - 1) {
+                bddp fn = f.root & ~static_cast<bddp>(BDD_COMP_FLAG);
+                bddp cached = bddrcache(BDD_OP_ZSKIP, fn, fn);
+                if (cached != bddnull) {
+                    ZDD g = ZDD_ID(cached);
+                    bddvar gtop = g.top();
+                    int glev = static_cast<int>(bddlevofvar(gtop));
+                    if (glev >= lev) {
+                        f = g;
+                        ftop = f.top();
+                        flev = static_cast<int>(bddlevofvar(ftop));
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // 3b. Normal 1-level descent
+        u = f;
+        f = f.offset(ftop);
+        ftop = f.top();
+        flev = static_cast<int>(bddlevofvar(ftop));
+    }
+
+    // Return value
+    if (last == 0) {
+        return f;
+    } else {
+        if (flev == lev)
+            return f;
+        else
+            return u;
+    }
 }
 
 void ZDD::set_zskip() const {
-    throw std::logic_error("ZDD::set_zskip: not implemented");
+    // Early exit: level <= 4
+    bddvar tv = top();
+    int tlev = static_cast<int>(bddlevofvar(tv));
+    if (tlev <= 4) return;
+
+    // Already cached?
+    bddp fn = root & ~static_cast<bddp>(BDD_COMP_FLAG);
+    bddp cached = bddrcache(BDD_OP_ZSKIP, fn, fn);
+    if (cached != bddnull) return;
+
+    // Recurse on 0-branch (OffSet) first
+    ZDD f0 = offset(tv);
+    f0.set_zskip();
+
+    // Compute skip target
+    int n = zlevnum(tlev);
+    ZDD skip_target = zlev(n, 1);
+
+    // Avoid self-loop
+    if (skip_target.root == root) {
+        skip_target = f0;
+    }
+
+    // Write to cache
+    bddwcache(BDD_OP_ZSKIP, fn, fn, skip_target.root);
+
+    // Recurse on 1-branch (OnSet0)
+    ZDD f1 = onset0(tv);
+    f1.set_zskip();
 }
 
 bigint::BigInt ZDD::get_sum(const std::vector<int>& weights) const {
