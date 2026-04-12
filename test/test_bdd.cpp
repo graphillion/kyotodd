@@ -16501,6 +16501,106 @@ TEST_F(BDDTest, ZDD_SetZskip_AcceleratesZlev) {
     EXPECT_EQ(r1, r2);
 }
 
+TEST_F(BDDTest, ZDD_Zlev_Null) {
+    // bddnull should propagate as bddnull
+    ZDD n(-1);
+    EXPECT_EQ(n.zlev(0, 0), ZDD(-1));
+    EXPECT_EQ(n.zlev(5, 0), ZDD(-1));
+    EXPECT_EQ(n.zlev(5, 1), ZDD(-1));
+}
+
+TEST_F(BDDTest, ZDD_Zlev_Complement) {
+    // Complement edge should be handled correctly in zlev
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD z3 = ZDD_ID(ZDD::getnode(v3, bddempty, bddsingle));
+    ZDD F = z1 + z2 + z3;  // {{v1},{v2},{v3}}
+    ZDD Fc = ~F;            // complement: ∅ membership toggled
+
+    // F does not contain ∅, so ~F does contain ∅
+    EXPECT_FALSE(F.has_empty());
+    EXPECT_TRUE(Fc.has_empty());
+
+    // zlev on complement should equal complement of zlev
+    EXPECT_EQ(Fc.zlev(2, 0), ~(F.zlev(2, 0)));
+    EXPECT_EQ(Fc.zlev(1, 0), ~(F.zlev(1, 0)));
+    EXPECT_EQ(Fc.zlev(0, 0), ~(F.zlev(0, 0)));
+}
+
+TEST_F(BDDTest, ZDD_Zlev_LastNoLoop) {
+    // When target level > current top, last=1 should return self
+    bddvar v1 = bddnewvar();
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+
+    // z1 has top at level 1, zlev(5, 1) should return z1 (not empty)
+    EXPECT_EQ(z1.zlev(5, 1), z1);
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_Null) {
+    // set_zskip on bddnull should be a no-op
+    ZDD n(-1);
+    n.set_zskip();  // should not throw
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_Complement) {
+    // set_zskip on complement should work correctly
+    const int N = 20;
+    std::vector<bddvar> vars(N);
+    for (int i = 0; i < N; ++i) {
+        vars[i] = bddnewvar();
+    }
+    ZDD F = ZDD_ID(ZDD::getnode(vars[N-1], bddempty, bddsingle));
+    ZDD Fc = ~F;
+
+    // Reference: zlev without skip
+    ZDD ref_f = F.zlev(5, 0);
+    ZDD ref_fc = Fc.zlev(5, 0);
+
+    // After set_zskip on F, zlev on both F and ~F should still be correct
+    F.set_zskip();
+    EXPECT_EQ(F.zlev(5, 0), ref_f);
+    EXPECT_EQ(Fc.zlev(5, 0), ref_fc);
+
+    // After set_zskip on ~F, results should still be correct
+    Fc.set_zskip();
+    EXPECT_EQ(F.zlev(5, 0), ref_f);
+    EXPECT_EQ(Fc.zlev(5, 0), ref_fc);
+}
+
+TEST_F(BDDTest, ZDD_SetZskip_ComplementCacheIsolation) {
+    // Verify that set_zskip on ~f does not corrupt f's cache
+    const int N = 12;
+    std::vector<bddvar> vars(N);
+    for (int i = 0; i < N; ++i) {
+        vars[i] = bddnewvar();
+    }
+    // F = power_set - {∅}: does NOT contain ∅
+    ZDD F = ZDD::power_set(N) - ZDD(1);
+    ZDD Fc = ~F;  // contains ∅
+
+    // Reference values before any skip caching
+    ZDD ref_f = F.zlev(5, 0);
+    ZDD ref_fc = Fc.zlev(5, 0);
+
+    // F does not contain ∅, Fc does
+    EXPECT_FALSE(ref_f.has_empty());
+    EXPECT_TRUE(ref_fc.has_empty());
+
+    // set_zskip on ~F, then check F
+    Fc.set_zskip();
+    EXPECT_EQ(F.zlev(5, 0), ref_f);
+    EXPECT_FALSE(F.zlev(5, 0).has_empty());
+
+    // set_zskip on F, then check ~F
+    F.set_zskip();
+    EXPECT_EQ(Fc.zlev(5, 0), ref_fc);
+    EXPECT_TRUE(Fc.zlev(5, 0).has_empty());
+}
+
 TEST_F(BDDTest, ZDD_Join) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();

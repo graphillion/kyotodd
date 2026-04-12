@@ -723,6 +723,15 @@ static int zlevnum(int n) {
 }
 
 ZDD ZDD::zlev(int lev, int last) const {
+    // Propagate bddnull
+    if (root == bddnull) return ZDD(-1);
+
+    // Handle complement: strip it, work on raw node, re-apply at end.
+    // In ZDD, complement toggles ∅ membership. OffSet commutes with
+    // complement: (~f).offset(v) == ~(f.offset(v)), so the skip
+    // structure is identical and only ∅ membership differs.
+    bool comp = (root & BDD_COMP_FLAG) != 0;
+
     // Base case: lev <= 0
     if (lev <= 0) {
         // Return intersection with constant 1 (single).
@@ -733,9 +742,9 @@ ZDD ZDD::zlev(int lev, int last) const {
             return ZDD(0);
     }
 
-    ZDD f = *this;
-    // Backup: intersection with constant 1
-    ZDD u = bddhasempty(f.root) ? ZDD(1) : ZDD(0);
+    // Work on raw (non-complemented) node
+    ZDD f = comp ? ZDD_ID(root & ~static_cast<bddp>(BDD_COMP_FLAG)) : *this;
+    ZDD u = f;
     bddvar ftop = f.top();
     int flev = static_cast<int>(bddlevofvar(ftop));
 
@@ -761,7 +770,7 @@ ZDD ZDD::zlev(int lev, int last) const {
 
             // If skip covers 2+ levels, try cache
             if (n < flev - 1) {
-                bddp fn = f.root & ~static_cast<bddp>(BDD_COMP_FLAG);
+                bddp fn = f.root;  // already raw (no complement)
                 bddp cached = bddrcache(BDD_OP_ZSKIP, fn, fn);
                 if (cached != bddnull) {
                     ZDD g = ZDD_ID(cached);
@@ -784,27 +793,44 @@ ZDD ZDD::zlev(int lev, int last) const {
         flev = static_cast<int>(bddlevofvar(ftop));
     }
 
-    // Return value
+    // Select result
+    ZDD result;
     if (last == 0) {
-        return f;
+        result = f;
     } else {
         if (flev == lev)
-            return f;
+            result = f;
         else
-            return u;
+            result = u;
     }
+
+    // Restore complement if original was complemented
+    if (comp) result = ~result;
+    return result;
 }
 
 void ZDD::set_zskip() const {
+    // Propagate bddnull: nothing to do
+    if (root == bddnull) return;
+
+    // If complemented, work on the raw node instead.
+    // The skip structure is the same regardless of complement.
+    if (root & BDD_COMP_FLAG) {
+        ZDD raw = ZDD_ID(root & ~static_cast<bddp>(BDD_COMP_FLAG));
+        raw.set_zskip();
+        return;
+    }
+
     // Early exit: level <= 4
     bddvar tv = top();
     int tlev = static_cast<int>(bddlevofvar(tv));
     if (tlev <= 4) return;
 
     // Already cached?
-    bddp fn = root & ~static_cast<bddp>(BDD_COMP_FLAG);
-    bddp cached = bddrcache(BDD_OP_ZSKIP, fn, fn);
+    bddp cached = bddrcache(BDD_OP_ZSKIP, root, root);
     if (cached != bddnull) return;
+
+    BDD_RecurGuard guard;
 
     // Recurse on 0-branch (OffSet) first
     ZDD f0 = offset(tv);
@@ -819,8 +845,8 @@ void ZDD::set_zskip() const {
         skip_target = f0;
     }
 
-    // Write to cache
-    bddwcache(BDD_OP_ZSKIP, fn, fn, skip_target.root);
+    // Write to cache (root is already raw, skip_target is also raw)
+    bddwcache(BDD_OP_ZSKIP, root, root, skip_target.root);
 
     // Recurse on 1-branch (OnSet0)
     ZDD f1 = onset0(tv);
