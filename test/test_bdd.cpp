@@ -16308,3 +16308,16 @@ TEST_F(BDDTest, ZDD_LowercaseSetZskip) {
     EXPECT_THROW(e.set_zskip(), std::logic_error);
 }
 
+TEST_F(BDDTest, ZDD_Join) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    // join == operator*
+    EXPECT_EQ(z_v1.join(z_v2), z_v1 * z_v2);
+    // join with empty
+    EXPECT_EQ(z_v1.join(ZDD(0)), ZDD(0));
+    // join with single (unit family {∅})
+    EXPECT_EQ(z_v1.join(ZDD(1)), z_v1);
+}
+

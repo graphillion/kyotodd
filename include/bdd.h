@@ -530,7 +530,7 @@ inline ZDD& ZDD::operator^=(const ZDD& other) {
     return *this;
 }
 
-inline ZDD ZDD::operator*(const ZDD& other) const {
+inline ZDD ZDD::join(const ZDD& other) const {
     ZDD z(0);
     z.root = bddjoin(root, other.root);
     return z;

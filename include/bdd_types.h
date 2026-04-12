@@ -783,8 +783,17 @@ public:
     ZDD operator^(const ZDD& other) const;
     /** @brief In-place symmetric difference. */
     ZDD& operator^=(const ZDD& other);
+    /**
+     * @brief Join (cross product with union of elements).
+     *
+     * For each pair (A, B) where A is in this family and B is in @p other,
+     * include A ∪ B in the result.
+     * @param other Another ZDD family.
+     * @return The resulting ZDD.
+     */
+    ZDD join(const ZDD& other) const;
     /** @brief Join (cross product with union of elements). */
-    ZDD operator*(const ZDD& other) const;
+    ZDD operator*(const ZDD& other) const { return join(other); }
     /** @brief In-place join. */
     ZDD& operator*=(const ZDD& other);
     /** @brief Remainder (modulo). */
