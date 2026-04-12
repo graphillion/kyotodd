@@ -628,7 +628,7 @@ void ZDD::print_pla() const {
     if (root == bddnull) return;
 
     bddvar tv = top();
-    int tlev = bddlevofvar(tv);
+    bddvar tlev = bddlevofvar(tv);
 
     std::cout << ".i " << tlev << "\n";
     std::cout << ".o 1" << "\n";
@@ -644,7 +644,8 @@ void ZDD::print_pla() const {
         // Recursive enumeration of product terms
         std::string cube(tlev, '0');
         // Lambda for recursive traversal
-        std::function<bool(ZDD, int)> rec = [&](ZDD f, int lev) -> bool {
+        std::function<bool(ZDD, bddvar)> rec = [&](ZDD f, bddvar lev) -> bool {
+            BDD_RecurGuard guard;
             if (f.root == bddnull) return false; // error: abort
             if (f.root == bddempty) return true;  // empty: prune
             if (lev == 0) {
