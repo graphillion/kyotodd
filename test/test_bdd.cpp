@@ -16291,9 +16291,99 @@ TEST_F(BDDTest, ZDD_LowercaseDivisor) {
 }
 
 TEST_F(BDDTest, ZDD_LowercasePrintPla) {
-    // print_pla is not implemented — just verify it throws
+    // Test print_pla with deprecated PrintPla wrapper
+    {
+        ZDD e(0);
+        std::ostringstream oss;
+        std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+        e.PrintPla();
+        std::cout.rdbuf(old);
+        EXPECT_EQ(oss.str(), ".i 0\n.o 1\n0\n.e\n");
+    }
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_Null) {
+    // bddnull: no output
+    ZDD n(-1);
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    n.print_pla();
+    std::cout.rdbuf(old);
+    EXPECT_EQ(oss.str(), "");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_Empty) {
+    // Empty family: tlev==0, output "0"
     ZDD e(0);
-    EXPECT_THROW(e.print_pla(), std::logic_error);
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    e.print_pla();
+    std::cout.rdbuf(old);
+    EXPECT_EQ(oss.str(), ".i 0\n.o 1\n0\n.e\n");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_Single) {
+    // Single (unit family containing empty set): tlev==0, output "1"
+    ZDD s(1);
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    s.print_pla();
+    std::cout.rdbuf(old);
+    EXPECT_EQ(oss.str(), ".i 0\n.o 1\n1\n.e\n");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_Example1) {
+    // Example from spec: {{x1, x3}, {x2}} with 3 variables
+    // x1=var at level 1, x2=var at level 2, x3=var at level 3
+    bddvar v1 = bddnewvar();  // level 1
+    bddvar v2 = bddnewvar();  // level 2
+    bddvar v3 = bddnewvar();  // level 3
+
+    // {x1, x3}
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v3 = ZDD_ID(ZDD::getnode(v3, bddempty, bddsingle));
+    ZDD set_x1_x3 = z_v1 * z_v3;  // join = {x1, x3}
+
+    // {x2}
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+
+    ZDD F = set_x1_x3 + z_v2;  // {{x1, x3}, {x2}}
+
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    F.print_pla();
+    std::cout.rdbuf(old);
+    EXPECT_EQ(oss.str(), ".i 3\n.o 1\n101 1\n010 1\n.e\n");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_SingleVar) {
+    // Single variable: {{x1}}
+    bddvar v1 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    z_v1.print_pla();
+    std::cout.rdbuf(old);
+    EXPECT_EQ(oss.str(), ".i 1\n.o 1\n1 1\n.e\n");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_AllCombinations) {
+    // {{x1, x2}, {x1}, {x2}, {}} with 2 variables
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z_v2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD all = (z_v1 + ZDD(1)) * (z_v2 + ZDD(1));  // power set of {v1, v2}
+
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    all.print_pla();
+    std::cout.rdbuf(old);
+    // OnSet0 first (1), then OffSet (0) at each level
+    // Level 2=1: Level 1=1 -> "11 1", Level 1=0 -> "01 1"
+    // Level 2=0: Level 1=1 -> "10 1", Level 1=0 -> "00 1"
+    EXPECT_EQ(oss.str(), ".i 2\n.o 1\n11 1\n01 1\n10 1\n00 1\n.e\n");
 }
 
 TEST_F(BDDTest, ZDD_LowercaseZlev) {

@@ -625,7 +625,53 @@ void ZDD::print() const {
 }
 
 void ZDD::print_pla() const {
-    throw std::logic_error("ZDD::print_pla: not implemented");
+    if (root == bddnull) return;
+
+    bddvar tv = top();
+    int tlev = bddlevofvar(tv);
+
+    std::cout << ".i " << tlev << "\n";
+    std::cout << ".o 1" << "\n";
+
+    if (tlev == 0) {
+        // No input variables
+        if (root != bddempty) {
+            std::cout << "1" << "\n";
+        } else {
+            std::cout << "0" << "\n";
+        }
+    } else {
+        // Recursive enumeration of product terms
+        std::string cube(tlev, '0');
+        // Lambda for recursive traversal
+        std::function<bool(ZDD, int)> rec = [&](ZDD f, int lev) -> bool {
+            if (f.root == bddnull) return false; // error: abort
+            if (f.root == bddempty) return true;  // empty: prune
+            if (lev == 0) {
+                char out_ch = (f.root != bddempty) ? '1' : '~';
+                std::cout << cube << " " << out_ch << "\n";
+                std::cout.flush();
+                return true;
+            }
+            bddvar var = bddvaroflev(lev);
+            // OnSet0 side (variable included, cube char = '1')
+            cube[lev - 1] = '1';
+            if (!rec(f.onset0(var), lev - 1)) return false;
+            // OffSet side (variable not included, cube char = '0')
+            cube[lev - 1] = '0';
+            if (!rec(f.offset(var), lev - 1)) return false;
+            return true;
+        };
+
+        bool ok = rec(*this, tlev);
+        if (!ok) {
+            // Error during traversal: do not output footer
+            return;
+        }
+    }
+
+    std::cout << ".e" << "\n";
+    std::cout.flush();
 }
 
 ZDD ZDD::zlev(int /*lev*/, int /*last*/) const {
