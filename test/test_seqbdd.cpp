@@ -96,15 +96,15 @@ TEST_F(SeqBDDTest, PushOnEmpty) {
     EXPECT_EQ(s, SeqBDD(0));
 }
 
-/* ---- on_set0 ---- */
+/* ---- onset0 ---- */
 TEST_F(SeqBDDTest, OnSet0MatchingTop) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();
     /* Sequence v1 v2 */
     SeqBDD s = SeqBDD(1).push(static_cast<int>(v2))
                         .push(static_cast<int>(v1));
-    /* on_set0(v1) should give {v2} */
-    SeqBDD r = s.on_set0(static_cast<int>(v1));
+    /* onset0(v1) should give {v2} */
+    SeqBDD r = s.onset0(static_cast<int>(v1));
     SeqBDD expected = SeqBDD(1).push(static_cast<int>(v2));
     EXPECT_EQ(r, expected);
 }
@@ -115,8 +115,8 @@ TEST_F(SeqBDDTest, OnSet0NonMatchingTop) {
     /* Sequence v1 v2 */
     SeqBDD s = SeqBDD(1).push(static_cast<int>(v2))
                         .push(static_cast<int>(v1));
-    /* on_set0(v2) should give empty (v2 is not the first element) */
-    SeqBDD r = s.on_set0(static_cast<int>(v2));
+    /* onset0(v2) should give empty (v2 is not the first element) */
+    SeqBDD r = s.onset0(static_cast<int>(v2));
     EXPECT_EQ(r, SeqBDD(0));
 }
 
@@ -128,15 +128,15 @@ TEST_F(SeqBDDTest, OnSet0MixedSet) {
     SeqBDD s2 = SeqBDD(1).push(static_cast<int>(v2));
     SeqBDD s = s1 + s2;
     EXPECT_EQ(s.card(), 2u);
-    /* on_set0(v1) should give {epsilon} */
-    SeqBDD r1 = s.on_set0(static_cast<int>(v1));
+    /* onset0(v1) should give {epsilon} */
+    SeqBDD r1 = s.onset0(static_cast<int>(v1));
     EXPECT_EQ(r1, SeqBDD(1));
-    /* on_set0(v2) should give {epsilon} */
-    SeqBDD r2 = s.on_set0(static_cast<int>(v2));
+    /* onset0(v2) should give {epsilon} */
+    SeqBDD r2 = s.onset0(static_cast<int>(v2));
     EXPECT_EQ(r2, SeqBDD(1));
 }
 
-/* ---- off_set ---- */
+/* ---- offset ---- */
 TEST_F(SeqBDDTest, OffSetMatchingTop) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();
@@ -144,8 +144,8 @@ TEST_F(SeqBDDTest, OffSetMatchingTop) {
     SeqBDD s1 = SeqBDD(1).push(static_cast<int>(v1));
     SeqBDD s2 = SeqBDD(1).push(static_cast<int>(v2));
     SeqBDD s = s1 + s2;
-    /* off_set(v2) removes sequences starting with v2 */
-    SeqBDD r = s.off_set(static_cast<int>(v2));
+    /* offset(v2) removes sequences starting with v2 */
+    SeqBDD r = s.offset(static_cast<int>(v2));
     EXPECT_EQ(r, s1);
 }
 
@@ -159,12 +159,12 @@ TEST_F(SeqBDDTest, OffSetNonMatchingTop) {
     SeqBDD sb = SeqBDD(1).push(static_cast<int>(v3))
                          .push(static_cast<int>(v1));
     SeqBDD s = sa + sb;
-    /* off_set(v1) should give empty (all sequences start with v1) */
-    SeqBDD r = s.off_set(static_cast<int>(v1));
+    /* offset(v1) should give empty (all sequences start with v1) */
+    SeqBDD r = s.offset(static_cast<int>(v1));
     EXPECT_EQ(r, SeqBDD(0));
 }
 
-/* ---- on_set ---- */
+/* ---- onset ---- */
 TEST_F(SeqBDDTest, OnSetBasic) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();
@@ -172,8 +172,8 @@ TEST_F(SeqBDDTest, OnSetBasic) {
     SeqBDD s1 = SeqBDD(1).push(static_cast<int>(v1));
     SeqBDD s2 = SeqBDD(1).push(static_cast<int>(v2));
     SeqBDD s = s1 + s2;
-    /* on_set(v1) returns {v1} */
-    SeqBDD r = s.on_set(static_cast<int>(v1));
+    /* onset(v1) returns {v1} */
+    SeqBDD r = s.onset(static_cast<int>(v1));
     EXPECT_EQ(r, s1);
 }
 

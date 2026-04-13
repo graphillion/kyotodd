@@ -7,10 +7,10 @@
 #include <vector>
 
 /* ================================================================ */
-/*  on_set0                                                          */
+/*  onset0                                                          */
 /* ================================================================ */
 
-SeqBDD SeqBDD::on_set0(int v) const
+SeqBDD SeqBDD::onset0(int v) const
 {
     bddvar vlev = bddlevofvar(static_cast<bddvar>(v));
     ZDD f = zdd_;
@@ -23,24 +23,24 @@ SeqBDD SeqBDD::on_set0(int v) const
 }
 
 /* ================================================================ */
-/*  off_set                                                          */
+/*  offset                                                          */
 /* ================================================================ */
 
-SeqBDD SeqBDD::off_set(int v) const
+SeqBDD SeqBDD::offset(int v) const
 {
     if (static_cast<int>(zdd_.Top()) == v) {
         return SeqBDD(zdd_.OffSet(static_cast<bddvar>(v)));
     }
-    return *this - on_set0(v).push(v);
+    return *this - onset0(v).push(v);
 }
 
 /* ================================================================ */
-/*  on_set                                                           */
+/*  onset                                                           */
 /* ================================================================ */
 
-SeqBDD SeqBDD::on_set(int v) const
+SeqBDD SeqBDD::onset(int v) const
 {
-    return on_set0(v).push(v);
+    return onset0(v).push(v);
 }
 
 /* ================================================================ */
@@ -73,7 +73,7 @@ SeqBDD operator*(const SeqBDD& f, const SeqBDD& g)
 
     /* Decompose on f's top variable */
     int ftop = f.top();
-    SeqBDD f1 = f.on_set0(ftop);
+    SeqBDD f1 = f.onset0(ftop);
     SeqBDD f0(f.zdd_.OffSet(static_cast<bddvar>(ftop)));
 
     /* result = (f1 * g).push(ftop) + (f0 * g) */
@@ -114,12 +114,12 @@ SeqBDD operator/(const SeqBDD& f, const SeqBDD& p)
 
     /* Decompose on p's top variable */
     int ptop = p.top();
-    SeqBDD q = f.on_set0(ptop) / p.on_set0(ptop);
+    SeqBDD q = f.onset0(ptop) / p.onset0(ptop);
 
     if (q != SeqBDD(0)) {
-        SeqBDD p0 = p.off_set(ptop);
+        SeqBDD p0 = p.offset(ptop);
         if (p0 != SeqBDD(0)) {
-            q &= f.off_set(ptop) / p0;
+            q &= f.offset(ptop) / p0;
         }
     }
 
@@ -174,7 +174,7 @@ static void print_seq_rec(std::ostream& os, SeqBDD f,
     int ftop = f.top();
 
     /* Recurse on sequences starting with ftop */
-    SeqBDD f1 = f.on_set0(ftop);
+    SeqBDD f1 = f.onset0(ftop);
     if (idx >= static_cast<int>(arr.size())) {
         throw std::overflow_error("print_seq_rec: sequence depth exceeds expected maximum length");
     }
@@ -184,7 +184,7 @@ static void print_seq_rec(std::ostream& os, SeqBDD f,
     idx--;
 
     /* Recurse on sequences NOT starting with ftop */
-    SeqBDD f0 = f.off_set(ftop);
+    SeqBDD f0 = f.offset(ftop);
     print_seq_rec(os, f0, arr, idx, flag);
 }
 

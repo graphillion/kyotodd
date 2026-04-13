@@ -92,7 +92,7 @@ SeqBDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``SeqBDD(node_id=...)``.
+      Return string representation: ``SeqBDD: id=...``.
 
    .. py:method:: __bool__()
 
@@ -111,7 +111,7 @@ SeqBDD Class
    Node Operations
    ~~~~~~~~~~~~~~~
 
-   .. py:method:: off_set(v)
+   .. py:method:: offset(v)
 
       Remove all sequences whose first element is *v*.
 
@@ -119,7 +119,7 @@ SeqBDD Class
       :return: A SeqBDD without sequences starting with *v*.
       :rtype: SeqBDD
 
-   .. py:method:: on_set0(v)
+   .. py:method:: onset0(v)
 
       Extract sequences starting with *v* and strip the leading *v*.
 
@@ -127,7 +127,7 @@ SeqBDD Class
       :return: A SeqBDD of suffixes after removing the leading *v*.
       :rtype: SeqBDD
 
-   .. py:method:: on_set(v)
+   .. py:method:: onset(v)
 
       Extract sequences starting with *v*, keeping *v*.
 

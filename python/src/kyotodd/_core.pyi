@@ -1,3 +1,4 @@
+import enum
 from typing import IO, Iterator, List, Tuple, Union, overload
 
 
@@ -61,6 +62,38 @@ class CostBoundMemo:
 
     def clear(self) -> None:
         """Clear all cached entries. The weights binding is preserved."""
+        ...
+
+
+class WeightMode(enum.Enum):
+    """Weight aggregation mode for weighted sampling."""
+
+    Sum = ...
+    """w(S) = sum of weights. Empty set weight = 0."""
+    Product = ...
+    """w(S) = product of weights. Empty set weight = 1."""
+
+
+class WeightedSampleMemo:
+    """Memo for weighted sampling.
+
+    Caches precomputed weight values for weighted_sample calls.
+    Create with a ZDD, weights vector, and WeightMode.
+    """
+
+    def __init__(self, zdd: "ZDD", weights: List[float], mode: WeightMode) -> None:
+        """Create a weighted sample memo.
+
+        Args:
+            zdd: The ZDD to sample from.
+            weights: Weight vector indexed by variable number.
+            mode: Weight aggregation mode (Sum or Product).
+        """
+        ...
+
+    @property
+    def stored(self) -> bool:
+        """Whether the memo has been populated."""
         ...
 
 
@@ -1047,7 +1080,7 @@ class ZDD:
         """
         ...
 
-    def nonsup(self, g: ZDD) -> ZDD:
+    def remove_supersets(self, g: "ZDD") -> "ZDD":
         """Remove sets that are supersets of some set in g.
 
         Args:
@@ -1058,7 +1091,7 @@ class ZDD:
         """
         ...
 
-    def nonsub(self, g: ZDD) -> ZDD:
+    def remove_subsets(self, g: "ZDD") -> "ZDD":
         """Remove sets that are subsets of some set in g.
 
         Args:
@@ -1426,6 +1459,112 @@ class ZDD:
 
         Returns:
             A list of variable numbers in the sampled set.
+        """
+        ...
+
+    def sample_k(self, k: int, seed: int = 0) -> "ZDD":
+        """Sample k sets uniformly at random from the family.
+
+        Args:
+            k: Number of sets to sample.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A ZDD containing the sampled sets.
+        """
+        ...
+
+    def sample_k_with_memo(self, k: int, memo: ZddCountMemo, seed: int = 0) -> "ZDD":
+        """Sample k sets using a memo for caching counts.
+
+        Args:
+            k: Number of sets to sample.
+            memo: A ZddCountMemo object for caching.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A ZDD containing the sampled sets.
+        """
+        ...
+
+    def random_subset(self, p: float, seed: int = 0) -> "ZDD":
+        """Include each set independently with probability p.
+
+        Args:
+            p: Inclusion probability (0.0 to 1.0).
+            seed: Random seed (default: 0).
+
+        Returns:
+            A ZDD containing the randomly selected sets.
+        """
+        ...
+
+    def weighted_sample(self, weights: List[float], mode: WeightMode, seed: int = 0) -> List[int]:
+        """Sample a set proportional to its weight.
+
+        Args:
+            weights: Weight vector indexed by variable number (index 0 unused).
+            mode: WeightMode.Sum or WeightMode.Product.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
+    def weighted_sample_with_memo(self, weights: List[float], mode: WeightMode, memo: WeightedSampleMemo, seed: int = 0) -> List[int]:
+        """Sample a set proportional to its weight, using a memo.
+
+        Args:
+            weights: Weight vector indexed by variable number.
+            mode: WeightMode.Sum or WeightMode.Product.
+            memo: A WeightedSampleMemo for caching.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
+    def boltzmann_sample(self, weights: List[float], beta: float, seed: int = 0) -> List[int]:
+        """Sample from a Boltzmann distribution P(S) proportional to exp(-beta * sum(weights)).
+
+        Args:
+            weights: Weight vector indexed by variable number.
+            beta: Inverse temperature parameter.
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
+    def boltzmann_sample_with_memo(self, weights: List[float], beta: float, memo: WeightedSampleMemo, seed: int = 0) -> List[int]:
+        """Sample from Boltzmann distribution using a memo.
+
+        Args:
+            weights: Weight vector indexed by variable number.
+            beta: Inverse temperature parameter.
+            memo: A WeightedSampleMemo (Product mode, transformed weights).
+            seed: Random seed (default: 0).
+
+        Returns:
+            A list of variable numbers in the sampled set.
+        """
+        ...
+
+    @staticmethod
+    def boltzmann_weights(weights: List[float], beta: float) -> List[float]:
+        """Transform weights for Boltzmann sampling.
+
+        Computes exp(-beta * w) for each weight.
+
+        Args:
+            weights: Original weight vector.
+            beta: Inverse temperature parameter.
+
+        Returns:
+            Transformed weight vector for use with WeightedSampleMemo(Product mode).
         """
         ...
 
@@ -3295,7 +3434,7 @@ class SeqBDD:
         """In-place left remainder."""
         ...
 
-    def off_set(self, v: int) -> SeqBDD:
+    def offset(self, v: int) -> SeqBDD:
         """Remove sequences starting with variable v.
 
         Args:
@@ -3306,7 +3445,7 @@ class SeqBDD:
         """
         ...
 
-    def on_set0(self, v: int) -> SeqBDD:
+    def onset0(self, v: int) -> SeqBDD:
         """Extract suffixes of sequences starting with v.
 
         Selects sequences whose first symbol is v, then removes the leading v.
@@ -3319,7 +3458,7 @@ class SeqBDD:
         """
         ...
 
-    def on_set(self, v: int) -> SeqBDD:
+    def onset(self, v: int) -> SeqBDD:
         """Extract sequences starting with variable v.
 
         Args:

@@ -3502,19 +3502,19 @@ PYBIND11_MODULE(_core, m) {
              py::return_value_policy::reference_internal)
 
         // Node operations
-        .def("off_set", &SeqBDD::off_set, py::arg("v"),
+        .def("offset", &SeqBDD::offset, py::arg("v"),
              "Remove sequences starting with variable v.\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"
              "Returns:\n"
              "    A SeqBDD without sequences starting with v.\n")
-        .def("on_set0", &SeqBDD::on_set0, py::arg("v"),
+        .def("onset0", &SeqBDD::onset0, py::arg("v"),
              "Extract sequences starting with v, removing the leading v.\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"
              "Returns:\n"
              "    A SeqBDD of suffixes after stripping the leading v.\n")
-        .def("on_set", &SeqBDD::on_set, py::arg("v"),
+        .def("onset", &SeqBDD::onset, py::arg("v"),
              "Extract sequences starting with v, keeping v.\n\n"
              "Args:\n"
              "    v: Variable number.\n\n"

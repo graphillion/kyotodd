@@ -115,9 +115,9 @@ public:
      * @param v Variable number.
      * @return A SeqBDD without sequences starting with v.
      */
-    SeqBDD off_set(int v) const;
-    /** @deprecated Use off_set() instead. */
-    SeqBDD OffSet(int v) const { return off_set(v); }
+    SeqBDD offset(int v) const;
+    /** @deprecated Use offset() instead. */
+    SeqBDD OffSet(int v) const { return offset(v); }
     /**
      * @brief Extract suffixes of sequences starting with v (onset with strip).
      *
@@ -126,17 +126,17 @@ public:
      * @param v Variable number.
      * @return A SeqBDD of suffixes after stripping the leading v.
      */
-    SeqBDD on_set0(int v) const;
-    /** @deprecated Use on_set0() instead. */
-    SeqBDD OnSet0(int v) const { return on_set0(v); }
+    SeqBDD onset0(int v) const;
+    /** @deprecated Use onset0() instead. */
+    SeqBDD OnSet0(int v) const { return onset0(v); }
     /**
      * @brief Extract sequences starting with variable v (onset).
      * @param v Variable number.
      * @return A SeqBDD of sequences that start with v.
      */
-    SeqBDD on_set(int v) const;
-    /** @deprecated Use on_set() instead. */
-    SeqBDD OnSet(int v) const { return on_set(v); }
+    SeqBDD onset(int v) const;
+    /** @deprecated Use onset() instead. */
+    SeqBDD OnSet(int v) const { return onset(v); }
     /**
      * @brief Prepend variable v to all sequences.
      * @param v Variable number to prepend.

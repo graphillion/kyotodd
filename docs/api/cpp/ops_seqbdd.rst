@@ -100,14 +100,14 @@ SeqBDD Class
 
    **Node Operations**
 
-   .. cpp:function:: SeqBDD off_set(int v) const
+   .. cpp:function:: SeqBDD offset(int v) const
 
       Remove all sequences whose first element is *v*.
 
       :param v: Variable number.
       :return: A SeqBDD without sequences starting with *v*.
 
-   .. cpp:function:: SeqBDD on_set0(int v) const
+   .. cpp:function:: SeqBDD onset0(int v) const
 
       Extract sequences starting with *v* and strip the leading *v*.
 
@@ -117,10 +117,10 @@ SeqBDD Class
       :param v: Variable number.
       :return: A SeqBDD of suffixes after removing the leading *v*.
 
-   .. cpp:function:: SeqBDD on_set(int v) const
+   .. cpp:function:: SeqBDD onset(int v) const
 
       Extract sequences starting with *v*, keeping *v*.
-      Equivalent to ``on_set0(v).push(v)``.
+      Equivalent to ``onset0(v).push(v)``.
 
       :param v: Variable number.
       :return: A SeqBDD of sequences that start with *v*.
