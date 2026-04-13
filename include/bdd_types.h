@@ -474,7 +474,7 @@ public:
     int imply(const BDD& g) const;
     /** @deprecated Use imply() instead. */
     int Imply(const BDD& g) const { return imply(g); }
-    /** @brief Get the top variable number. */
+    /** @deprecated Use top() instead. */
     bddvar Top() const { return top(); }
     using DDBase::raw_size;
     /**
@@ -488,9 +488,11 @@ public:
     static uint64_t raw_size(const std::vector<BDD>& v);
     /** @brief Return the shared node count across multiple BDDs (without complement edge sharing). */
     static uint64_t plain_size(const std::vector<BDD>& v);
-    /** @brief Export to a FILE stream. */
+    /** @brief Export to a FILE stream.
+     *  @deprecated Use export_sapporo() instead. */
     void Export(FILE* strm) const;
-    /** @brief Export to an output stream. */
+    /** @brief Export to an output stream.
+     *  @deprecated Use export_sapporo() instead. */
     void Export(std::ostream& strm) const;
     /** @brief Export this BDD in BDD binary format to a FILE stream. */
     void export_binary(FILE* strm) const;
@@ -1105,7 +1107,7 @@ public:
     ZDD support() const;
     /** @deprecated Use support() instead. */
     ZDD Support() const { return support(); }
-    /** @brief Get the top variable number. */
+    /** @deprecated Use top() instead. */
     bddvar Top() const { return top(); }
     /**
      * @brief Count the number of nodes (with complement edge sharing).
@@ -1140,10 +1142,12 @@ public:
      */
     char* CardMP16(char* s) const;
     /** @brief Export to a FILE stream.
-     *  @param strm Output FILE stream. */
+     *  @param strm Output FILE stream.
+     *  @deprecated Use export_sapporo() instead. */
     void Export(FILE* strm) const;
     /** @brief Export to an output stream.
-     *  @param strm Output stream. */
+     *  @param strm Output stream.
+     *  @deprecated Use export_sapporo() instead. */
     void Export(std::ostream& strm) const;
     /** @brief Export this ZDD in BDD binary format to a FILE stream.
      *  @param strm Output FILE stream. */
