@@ -111,14 +111,14 @@ bool ZddRandomIterator<RNG>::contains(
     const std::vector<bddvar>& s)
 {
     ZDD single = ZDD::single_set(s);
-    return (family & single).get_id() != bddempty;
+    return (family & single).id() != bddempty;
 }
 
 template<typename RNG>
 ZddRandomIterator<RNG>::ZddRandomIterator(const ZDD& zdd, RNG rng)
     : state_(std::make_shared<State>(zdd, rng)), exhausted_(false)
 {
-    bddp root = zdd.get_id();
+    bddp root = zdd.id();
 
     if (root == bddnull) {
         throw std::invalid_argument(

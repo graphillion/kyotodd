@@ -216,7 +216,7 @@ MVBDD::MVBDD(int k, bool value)
 MVBDD::MVBDD(std::shared_ptr<MVDDVarTable> table, const BDD& bdd)
     : DDBase(), var_table_(table)
 {
-    root = bdd.get_id();
+    root = bdd.id();
     if (table) {
         validate_dd_vars_registered(root, table.get(), "MVBDD(table, BDD)");
     }
@@ -347,7 +347,7 @@ MVBDD MVBDD::ite(const MVBDD& base, bddvar mv,
 
 // --- Node reference ---
 
-bddp MVBDD::get_id() const { return root; }
+bddp MVBDD::id() const { return root; }
 
 // --- Child node access ---
 
@@ -498,9 +498,9 @@ MVBDD MVBDD::from_bdd(const MVBDD& base, const BDD& bdd) {
     if (!base.var_table_) {
         throw std::invalid_argument("MVBDD::from_bdd: base has no var table");
     }
-    validate_dd_vars_registered(bdd.get_id(), base.var_table_.get(),
+    validate_dd_vars_registered(bdd.id(), base.var_table_.get(),
                                 "MVBDD::from_bdd");
-    return MVBDD(base.var_table_, bdd.get_id());
+    return MVBDD(base.var_table_, bdd.id());
 }
 
 // --- Terminal checks ---
@@ -568,7 +568,7 @@ MVZDD::MVZDD(int k, bool value)
 MVZDD::MVZDD(std::shared_ptr<MVDDVarTable> table, const ZDD& zdd)
     : DDBase(), var_table_(table)
 {
-    root = zdd.get_id();
+    root = zdd.id();
     if (table) {
         validate_dd_vars_registered(root, table.get(), "MVZDD(table, ZDD)");
     }
@@ -747,7 +747,7 @@ MVZDD MVZDD::ite(const MVZDD& base, bddvar mv,
 
 // --- Node reference ---
 
-bddp MVZDD::get_id() const { return root; }
+bddp MVZDD::id() const { return root; }
 
 // --- Child node access ---
 
@@ -1291,9 +1291,9 @@ MVZDD MVZDD::from_zdd(const MVZDD& base, const ZDD& zdd) {
     if (!base.var_table_) {
         throw std::invalid_argument("MVZDD::from_zdd: base has no var table");
     }
-    validate_dd_vars_registered(zdd.get_id(), base.var_table_.get(),
+    validate_dd_vars_registered(zdd.id(), base.var_table_.get(),
                                 "MVZDD::from_zdd");
-    return MVZDD(base.var_table_, zdd.get_id());
+    return MVZDD(base.var_table_, zdd.id());
 }
 
 // --- Terminal checks ---

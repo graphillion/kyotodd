@@ -8619,7 +8619,7 @@ TEST(ZDD_CoImplySetTest, ExhaustiveConsistencyWithChk) {
                 bool in_cset = ((cset & sw) != ZDD::Empty);
                 bool chk = (f.CoImplyChk(v, w) == 1);
                 EXPECT_EQ(in_cset, chk)
-                    << "family=" << f.get_id()
+                    << "family=" << f.id()
                     << " v=" << v << " w=" << w;
             }
         }
@@ -12014,7 +12014,7 @@ TEST_F(BDDTest, UniformSampleWithReorderedVariables) {
     BDD f = BDDvar(v2);  // x2, n=2
 
     std::mt19937_64 rng(42);
-    BddCountMemo memo(f.get_id(), 2);
+    BddCountMemo memo(f.id(), 2);
 
     for (int i = 0; i < 100; ++i) {
         auto sample = f.uniform_sample(rng, 2, memo);
@@ -12032,7 +12032,7 @@ TEST_F(BDDTest, BDD_UniformSample_NExceedsVarUsed) {
     (void)v1;
     BDD f = BDD::True;
     std::mt19937_64 rng(42);
-    BddCountMemo memo(f.get_id(), 5);
+    BddCountMemo memo(f.id(), 5);
     EXPECT_THROW(f.uniform_sample(rng, 5, memo), std::invalid_argument);
 }
 
@@ -13299,7 +13299,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_Roundtrip) {
     bddvar v2 = bddnewvar();
     bddvar v3 = bddnewvar();
     ZDD f = ZDD::power_set(3);
-    uint64_t count = bddcard(f.get_id());
+    uint64_t count = bddcard(f.id());
 
     for (uint64_t i = 0; i < count; ++i) {
         auto s = f.unrank(static_cast<int64_t>(i));
@@ -13316,7 +13316,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_RoundtripEnumerate) {
     bddvar v3 = bddnewvar();
     ZDD f = ZDD::power_set(3);
     auto enumerated = f.enumerate();
-    uint64_t count = bddcard(f.get_id());
+    uint64_t count = bddcard(f.id());
 
     // Collect all sets via unrank
     std::vector<std::vector<bddvar>> unranked;
@@ -13354,7 +13354,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_ComplementEdge) {
     bddvar v2 = bddnewvar();
     // ~singleton = all sets except {v1} → complement has complement edge
     ZDD f = ~ZDD::singleton(v1);
-    uint64_t count = bddcard(f.get_id());
+    uint64_t count = bddcard(f.id());
     EXPECT_GT(count, 0u);
 
     for (uint64_t i = 0; i < count; ++i) {
@@ -13371,7 +13371,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_Combination) {
     bddvar v3 = bddnewvar();
     bddvar v4 = bddnewvar();
     ZDD f = ZDD::combination(4, 2);
-    uint64_t count = bddcard(f.get_id());
+    uint64_t count = bddcard(f.id());
     EXPECT_EQ(count, 6u);
 
     for (uint64_t i = 0; i < count; ++i) {
@@ -13387,7 +13387,7 @@ TEST_F(BDDTest, ZDD_Rank_FreeFunctions) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     ZDD f = ZDD::power_set(2);
-    bddp fp = f.get_id();
+    bddp fp = f.id();
 
     // bddrank
     EXPECT_GE(bddrank(fp, {v1}), 0);
@@ -13565,7 +13565,7 @@ TEST_F(BDDTest, ZDD_GetKSets_FreeFunctions) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
     ZDD f = ZDD::power_set(2);
-    bddp fp = f.get_id();
+    bddp fp = f.id();
 
     bddp g = bddgetksets(fp, static_cast<int64_t>(2));
     EXPECT_EQ(bddcard(g), 2u);
@@ -13795,7 +13795,7 @@ TEST_F(BDDTest, ZDD_GetKLightest_FreeFunctions) {
     std::vector<int> w = {0, 3, 5};
 
     ZDD f = ZDD::singleton(v1) + ZDD::singleton(v2);
-    bddp fp = f.get_id();
+    bddp fp = f.id();
 
     bddp g = bddgetklightest(fp, static_cast<int64_t>(1), w, 0);
     EXPECT_EQ(bddcard(g), 1u);
@@ -16041,7 +16041,7 @@ TEST_F(BDDTest, ZDD_LowercaseId) {
     bddvar v1 = bddnewvar();
     ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
     EXPECT_EQ(z_v1.id(), z_v1.GetID());
-    EXPECT_EQ(z_v1.id(), z_v1.get_id());
+    EXPECT_EQ(z_v1.id(), z_v1.id());
     EXPECT_EQ(ZDD(0).id(), bddempty);
     EXPECT_EQ(ZDD(1).id(), bddsingle);
 }

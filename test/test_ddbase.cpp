@@ -93,28 +93,28 @@ TEST_F(DDBaseTest, IsZero_BDDNull) {
 
 TEST_F(DDBaseTest, GetId_MatchesGetID_BDD) {
     BDD b(1);
-    EXPECT_EQ(b.get_id(), b.GetID());
+    EXPECT_EQ(b.id(), b.GetID());
 }
 
 TEST_F(DDBaseTest, GetId_MatchesGetID_ZDD) {
     ZDD z(1);
-    EXPECT_EQ(z.get_id(), z.GetID());
+    EXPECT_EQ(z.id(), z.GetID());
 }
 
 TEST_F(DDBaseTest, GetId_BDDFalse) {
-    EXPECT_EQ(BDD::False.get_id(), bddfalse);
+    EXPECT_EQ(BDD::False.id(), bddfalse);
 }
 
 TEST_F(DDBaseTest, GetId_BDDTrue) {
-    EXPECT_EQ(BDD::True.get_id(), bddtrue);
+    EXPECT_EQ(BDD::True.id(), bddtrue);
 }
 
 TEST_F(DDBaseTest, GetId_ZDDEmpty) {
-    EXPECT_EQ(ZDD::Empty.get_id(), bddempty);
+    EXPECT_EQ(ZDD::Empty.id(), bddempty);
 }
 
 TEST_F(DDBaseTest, GetId_ZDDSingle) {
-    EXPECT_EQ(ZDD::Single.get_id(), bddsingle);
+    EXPECT_EQ(ZDD::Single.id(), bddsingle);
 }
 
 // --- top ---
@@ -172,16 +172,16 @@ TEST_F(DDBaseTest, GCProtection_CopyConstruct) {
     bddvar v = bddnewvar();
     BDD x = BDD_ID(bddprime(v));
     BDD y(x);
-    EXPECT_EQ(x.get_id(), y.get_id());
+    EXPECT_EQ(x.id(), y.id());
 }
 
 TEST_F(DDBaseTest, GCProtection_MoveConstruct) {
     bddvar v = bddnewvar();
     BDD x = BDD_ID(bddprime(v));
-    bddp id = x.get_id();
+    bddp id = x.id();
     BDD y(std::move(x));
-    EXPECT_EQ(y.get_id(), id);
-    EXPECT_EQ(x.get_id(), bddnull);
+    EXPECT_EQ(y.id(), id);
+    EXPECT_EQ(x.id(), bddnull);
 }
 
 TEST_F(DDBaseTest, GCProtection_CopyAssign) {
@@ -189,17 +189,17 @@ TEST_F(DDBaseTest, GCProtection_CopyAssign) {
     BDD x = BDD_ID(bddprime(v));
     BDD y;
     y = x;
-    EXPECT_EQ(x.get_id(), y.get_id());
+    EXPECT_EQ(x.id(), y.id());
 }
 
 TEST_F(DDBaseTest, GCProtection_MoveAssign) {
     bddvar v = bddnewvar();
     BDD x = BDD_ID(bddprime(v));
-    bddp id = x.get_id();
+    bddp id = x.id();
     BDD y;
     y = std::move(x);
-    EXPECT_EQ(y.get_id(), id);
-    EXPECT_EQ(x.get_id(), bddnull);
+    EXPECT_EQ(y.id(), id);
+    EXPECT_EQ(x.id(), bddnull);
 }
 
 // --- sizeof check ---

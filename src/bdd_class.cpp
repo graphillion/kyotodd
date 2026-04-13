@@ -58,12 +58,12 @@ const ZDD ZDD::Null(-1);
 // --- ZddCountMemo constructors ---
 
 ZddCountMemo::ZddCountMemo(bddp f) : f_(f), stored_(false), map_() {}
-ZddCountMemo::ZddCountMemo(const ZDD& f) : f_(f.get_id()), stored_(false), map_() {}
+ZddCountMemo::ZddCountMemo(const ZDD& f) : f_(f.id()), stored_(false), map_() {}
 
 // --- BddCountMemo constructors ---
 
 BddCountMemo::BddCountMemo(bddp f, bddvar n) : f_(f), n_(n), stored_(false), map_() {}
-BddCountMemo::BddCountMemo(const BDD& f, bddvar n) : f_(f.get_id()), n_(n), stored_(false), map_() {}
+BddCountMemo::BddCountMemo(const BDD& f, bddvar n) : f_(f.id()), n_(n), stored_(false), map_() {}
 
 bigint::BigInt ZDD::exact_count() const {
     return bddexactcount(root);
@@ -931,7 +931,7 @@ void CostBoundMemo::bind_weights(const std::vector<int>& weights) {
 
 WeightedSampleMemo::WeightedSampleMemo(
     const ZDD& f, const std::vector<double>& weights, WeightMode mode)
-    : f_(f.get_id()), stored_(false), mode_(mode), weights_(weights) {}
+    : f_(f.id()), stored_(false), mode_(mode), weights_(weights) {}
 
 // --- Weighted sampling precomputation ---
 

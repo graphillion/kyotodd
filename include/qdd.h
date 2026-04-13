@@ -178,7 +178,7 @@ public:
 namespace std {
     template<> struct hash<QDD> {
         size_t operator()(const QDD& q) const {
-            return std::hash<uint64_t>()(q.get_id());
+            return std::hash<uint64_t>()(q.id());
         }
     };
 }

@@ -327,8 +327,9 @@ class BDD : public DDBase {
     /// @endcond
 
 public:
-    /** @brief Get the raw node ID. */
-    bddp GetID() const { return get_id(); }
+    /** @brief Get the raw node ID.
+     *  @deprecated Use id() instead. */
+    bddp GetID() const { return id(); }
 
     /** @brief Default constructor. Constructs a false BDD. */
     BDD() : DDBase() {}
@@ -384,71 +385,95 @@ public:
      * @param v Variable number.
      * @return The resulting BDD.
      */
-    BDD At0(bddvar v) const;
+    BDD at0(bddvar v) const;
+    /** @deprecated Use at0() instead. */
+    BDD At0(bddvar v) const { return at0(v); }
     /**
      * @brief Cofactor: restrict variable @p v to 1.
      * @param v Variable number.
      * @return The resulting BDD.
      */
-    BDD At1(bddvar v) const;
+    BDD at1(bddvar v) const;
+    /** @deprecated Use at1() instead. */
+    BDD At1(bddvar v) const { return at1(v); }
     /**
      * @brief Existential quantification by a variable-set BDD.
-     * @param cube A BDD encoding the set of variables to quantify out (as returned by Support()).
+     * @param cube A BDD encoding the set of variables to quantify out (as returned by support()).
      * @return The resulting BDD.
      */
-    BDD Exist(const BDD& cube) const;
+    BDD exist(const BDD& cube) const;
+    /** @deprecated Use exist() instead. */
+    BDD Exist(const BDD& cube) const { return exist(cube); }
     /**
      * @brief Existential quantification by a list of variables.
      * @param vars Variable numbers to quantify out.
      * @return The resulting BDD.
      */
-    BDD Exist(const std::vector<bddvar>& vars) const;
+    BDD exist(const std::vector<bddvar>& vars) const;
+    /** @deprecated Use exist() instead. */
+    BDD Exist(const std::vector<bddvar>& vars) const { return exist(vars); }
     /**
      * @brief Existential quantification of a single variable.
      * @param v Variable number to quantify out.
      * @return The resulting BDD.
      */
-    BDD Exist(bddvar v) const;
+    BDD exist(bddvar v) const;
+    /** @deprecated Use exist() instead. */
+    BDD Exist(bddvar v) const { return exist(v); }
     /**
      * @brief Universal quantification by a variable-set BDD.
-     * @param cube A BDD encoding the set of variables to quantify (as returned by Support()).
+     * @param cube A BDD encoding the set of variables to quantify (as returned by support()).
      * @return The resulting BDD.
      */
-    BDD Univ(const BDD& cube) const;
+    BDD univ(const BDD& cube) const;
+    /** @deprecated Use univ() instead. */
+    BDD Univ(const BDD& cube) const { return univ(cube); }
     /**
      * @brief Universal quantification by a list of variables.
      * @param vars Variable numbers to quantify.
      * @return The resulting BDD.
      */
-    BDD Univ(const std::vector<bddvar>& vars) const;
+    BDD univ(const std::vector<bddvar>& vars) const;
+    /** @deprecated Use univ() instead. */
+    BDD Univ(const std::vector<bddvar>& vars) const { return univ(vars); }
     /**
      * @brief Universal quantification of a single variable.
      * @param v Variable number to quantify.
      * @return The resulting BDD.
      */
-    BDD Univ(bddvar v) const;
+    BDD univ(bddvar v) const;
+    /** @deprecated Use univ() instead. */
+    BDD Univ(bddvar v) const { return univ(v); }
     /**
      * @brief Generalized cofactor by BDD @p g.
      * @param g The constraining BDD (must not be false).
      * @return The generalized cofactor of this BDD with respect to @p g.
      */
-    BDD Cofactor(const BDD& g) const;
+    BDD cofactor(const BDD& g) const;
+    /** @deprecated Use cofactor() instead. */
+    BDD Cofactor(const BDD& g) const { return cofactor(g); }
     /**
      * @brief Compute the support set as a BDD (disjunction of variables).
      * @return A BDD representing the disjunction of all variables in the support.
      */
-    BDD Support() const;
+    BDD support() const;
+    /** @deprecated Use support() instead. */
+    BDD Support() const { return support(); }
     /**
      * @brief Compute the support set as a vector of variable numbers.
      * @return A vector of variable numbers that this BDD depends on.
      */
-    std::vector<bddvar> SupportVec() const;
+    std::vector<bddvar> support_vec() const;
+    /** @deprecated Use support_vec() instead. */
+    std::vector<bddvar> SupportVec() const { return support_vec(); }
     /**
      * @brief Check implication: whether this BDD implies @p g.
      * @param g The BDD to check implication against.
      * @return 1 if this BDD implies @p g, 0 otherwise.
      */
-    int Imply(const BDD& g) const;
+    int imply(const BDD& g) const;
+    /** @deprecated Use imply() instead. */
+    int Imply(const BDD& g) const { return imply(g); }
     /** @brief Get the top variable number. */
     bddvar Top() const { return top(); }
     using DDBase::raw_size;
@@ -516,7 +541,9 @@ public:
     std::string save_svg() const;
     /** @brief Print BDD summary (ID, Var, Level, Size) to stdout.
      *  @throws std::invalid_argument if this is BDD::Null. */
-    void Print() const;
+    void print() const;
+    /** @deprecated Use print() instead. */
+    void Print() const { print(); }
     /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
      *  @note C++ only. Not available in the Python binding. */
     void XPrint0() const;
@@ -529,19 +556,25 @@ public:
      * @param v2 Second variable number.
      * @return The BDD with v1 and v2 swapped.
      */
-    BDD Swap(bddvar v1, bddvar v2) const;
+    BDD swap(bddvar v1, bddvar v2) const;
+    /** @deprecated Use swap() instead. */
+    BDD Swap(bddvar v1, bddvar v2) const { return swap(v1, v2); }
     /**
      * @brief Smooth (existential quantification) of variable v.
      * @param v Variable number to quantify out.
      * @return The BDD with variable v existentially quantified.
      */
-    BDD Smooth(bddvar v) const;
+    BDD smooth(bddvar v) const;
+    /** @deprecated Use smooth() instead. */
+    BDD Smooth(bddvar v) const { return smooth(v); }
     /**
      * @brief Spread variable values to neighboring k levels.
      * @param k Number of levels to spread (must be >= 0).
      * @return The BDD with values spread by k levels.
      */
-    BDD Spread(int k) const;
+    BDD spread(int k) const;
+    /** @deprecated Use spread() instead. */
+    BDD Spread(int k) const { return spread(k); }
     /**
      * @brief Count the number of satisfying assignments (double approximation).
      *
@@ -604,7 +637,9 @@ public:
      * @param h Else-branch BDD.
      * @return The resulting BDD.
      */
-    static BDD Ite(const BDD& f, const BDD& g, const BDD& h);
+    static BDD ite(const BDD& f, const BDD& g, const BDD& h);
+    /** @deprecated Use ite() instead. */
+    static BDD Ite(const BDD& f, const BDD& g, const BDD& h) { return ite(f, g, h); }
 
     using DDBase::raw_child0;
     using DDBase::raw_child1;
@@ -701,8 +736,6 @@ class ZDD : public DDBase {
     /// @endcond
 
 public:
-    /** @brief Get the raw node ID. */
-    bddp id() const { return get_id(); }
     /** @deprecated Use id() instead. */
     bddp GetID() const { return id(); }
 
@@ -1692,7 +1725,7 @@ public:
      * @brief Rank a set in the family (arbitrary precision, with memo).
      *
      * @param s The set to rank (variable numbers). Duplicates and order are ignored.
-     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->get_id().
+     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->id().
      * @return The rank as a BigInt, or BigInt(-1) if @p s is not in the family.
      * @throws std::invalid_argument if this ZDD is null or memo was created for a different ZDD.
      */
@@ -1724,7 +1757,7 @@ public:
      * @brief Retrieve the set at a given index (arbitrary precision, with memo).
      *
      * @param order The 0-based index as a BigInt.
-     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->get_id().
+     * @param memo A ZddCountMemo created for this ZDD. Must satisfy memo.f() == this->id().
      * @return The set as a sorted vector of variable numbers.
      * @throws std::invalid_argument if this ZDD is null or memo was created for a different ZDD.
      * @throws std::out_of_range if @p order is out of range.

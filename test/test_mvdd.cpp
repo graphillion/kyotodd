@@ -113,7 +113,7 @@ TEST_F(MVDDTest, VarTableOutOfRange) {
 
 TEST_F(MVDDTest, MVBDDDefaultConstructor) {
     MVBDD m;
-    EXPECT_EQ(m.get_id(), bddnull);
+    EXPECT_EQ(m.id(), bddnull);
     EXPECT_EQ(m.k(), 0);
     EXPECT_EQ(m.var_table(), nullptr);
 }
@@ -551,7 +551,7 @@ TEST_F(MVDDTest, MVBDDIncompatibleOps) {
 
 TEST_F(MVDDTest, MVZDDDefaultConstructor) {
     MVZDD m;
-    EXPECT_EQ(m.get_id(), bddnull);
+    EXPECT_EQ(m.id(), bddnull);
     EXPECT_EQ(m.k(), 0);
 }
 

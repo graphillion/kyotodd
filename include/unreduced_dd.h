@@ -256,7 +256,7 @@ public:
 namespace std {
     template<> struct hash<UnreducedDD> {
         size_t operator()(const UnreducedDD& u) const {
-            return std::hash<uint64_t>()(u.get_id());
+            return std::hash<uint64_t>()(u.id());
         }
     };
 }

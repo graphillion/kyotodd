@@ -79,7 +79,7 @@ ZddRankIterator::ZddRankIterator(const ZDD& zdd)
 {
     state_->zdd = zdd;
 
-    bddp root = zdd.get_id();
+    bddp root = zdd.id();
 
     if (root == bddnull) {
         throw std::invalid_argument(

@@ -106,71 +106,71 @@ inline BDD& BDD::operator>>=(bddvar shift) {
 
 // BDD high-level member functions
 
-inline BDD BDD::At0(bddvar v) const {
+inline BDD BDD::at0(bddvar v) const {
     BDD b(0);
     b.root = bddat0(root, v);
     return b;
 }
 
-inline BDD BDD::At1(bddvar v) const {
+inline BDD BDD::at1(bddvar v) const {
     BDD b(0);
     b.root = bddat1(root, v);
     return b;
 }
 
-inline BDD BDD::Exist(const BDD& cube) const {
+inline BDD BDD::exist(const BDD& cube) const {
     BDD b(0);
     b.root = bddexist(root, cube.root);
     return b;
 }
 
-inline BDD BDD::Exist(const std::vector<bddvar>& vars) const {
+inline BDD BDD::exist(const std::vector<bddvar>& vars) const {
     BDD b(0);
     b.root = bddexist(root, vars);
     return b;
 }
 
-inline BDD BDD::Exist(bddvar v) const {
+inline BDD BDD::exist(bddvar v) const {
     BDD b(0);
     b.root = bddexistvar(root, v);
     return b;
 }
 
-inline BDD BDD::Univ(const BDD& cube) const {
+inline BDD BDD::univ(const BDD& cube) const {
     BDD b(0);
     b.root = bdduniv(root, cube.root);
     return b;
 }
 
-inline BDD BDD::Univ(const std::vector<bddvar>& vars) const {
+inline BDD BDD::univ(const std::vector<bddvar>& vars) const {
     BDD b(0);
     b.root = bdduniv(root, vars);
     return b;
 }
 
-inline BDD BDD::Univ(bddvar v) const {
+inline BDD BDD::univ(bddvar v) const {
     BDD b(0);
     b.root = bddunivvar(root, v);
     return b;
 }
 
-inline BDD BDD::Cofactor(const BDD& g) const {
+inline BDD BDD::cofactor(const BDD& g) const {
     BDD b(0);
     b.root = bddcofactor(root, g.root);
     return b;
 }
 
-inline BDD BDD::Support() const {
+inline BDD BDD::support() const {
     BDD b(0);
     b.root = bddsupport(root);
     return b;
 }
 
-inline std::vector<bddvar> BDD::SupportVec() const {
+inline std::vector<bddvar> BDD::support_vec() const {
     return bddsupport_vec(root);
 }
 
-inline int BDD::Imply(const BDD& g) const {
+inline int BDD::imply(const BDD& g) const {
     return bddimply(root, g.root);
 }
 
@@ -181,36 +181,36 @@ inline uint64_t BDD::plain_size() const {
 inline uint64_t BDD::raw_size(const std::vector<BDD>& v) {
     std::vector<bddp> roots;
     roots.reserve(v.size());
-    for (const auto& b : v) roots.push_back(b.GetID());
+    for (const auto& b : v) roots.push_back(b.id());
     return bddrawsize(roots);
 }
 
 inline uint64_t BDD::plain_size(const std::vector<BDD>& v) {
     std::vector<bddp> roots;
     roots.reserve(v.size());
-    for (const auto& b : v) roots.push_back(b.GetID());
+    for (const auto& b : v) roots.push_back(b.id());
     return bddplainsize(roots, false);
 }
 
-inline BDD BDD::Ite(const BDD& f, const BDD& g, const BDD& h) {
+inline BDD BDD::ite(const BDD& f, const BDD& g, const BDD& h) {
     BDD b(0);
     b.root = bddite(f.root, g.root, h.root);
     return b;
 }
 
-inline BDD BDD::Swap(bddvar v1, bddvar v2) const {
+inline BDD BDD::swap(bddvar v1, bddvar v2) const {
     BDD b(0);
     b.root = bddswap(root, v1, v2);
     return b;
 }
 
-inline BDD BDD::Smooth(bddvar v) const {
+inline BDD BDD::smooth(bddvar v) const {
     BDD b(0);
     b.root = bddsmooth(root, v);
     return b;
 }
 
-inline BDD BDD::Spread(int k) const {
+inline BDD BDD::spread(int k) const {
     BDD b(0);
     b.root = bddspread(root, k);
     return b;
@@ -283,14 +283,14 @@ inline BDD BDD::import_binary(std::istream& strm, bool ignore_type) {
 inline void BDD::export_binary_multi(FILE* strm, const std::vector<BDD>& bdds) {
     std::vector<bddp> roots;
     roots.reserve(bdds.size());
-    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].get_id());
+    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].id());
     bdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
 inline void BDD::export_binary_multi(std::ostream& strm, const std::vector<BDD>& bdds) {
     std::vector<bddp> roots;
     roots.reserve(bdds.size());
-    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].get_id());
+    for (size_t i = 0; i < bdds.size(); i++) roots.push_back(bdds[i].id());
     bdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
@@ -353,7 +353,7 @@ inline std::string BDD::save_svg() const {
     return bdd_save_svg(root);
 }
 
-inline void BDD::Print() const {
+inline void BDD::print() const {
     bddvar v = bddtop(root);
     bddvar lev = bddlevofvar(v);
     std::cout << "[ " << root
@@ -764,14 +764,14 @@ inline ZDD ZDD::import_binary(std::istream& strm, bool ignore_type) {
 inline void ZDD::export_binary_multi(FILE* strm, const std::vector<ZDD>& zdds) {
     std::vector<bddp> roots;
     roots.reserve(zdds.size());
-    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].get_id());
+    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].id());
     zdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
 inline void ZDD::export_binary_multi(std::ostream& strm, const std::vector<ZDD>& zdds) {
     std::vector<bddp> roots;
     roots.reserve(zdds.size());
-    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].get_id());
+    for (size_t i = 0; i < zdds.size(); i++) roots.push_back(zdds[i].id());
     zdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
@@ -1282,14 +1282,14 @@ inline QDD QDD::import_binary(std::istream& strm, bool ignore_type) {
 inline void QDD::export_binary_multi(FILE* strm, const std::vector<QDD>& qdds) {
     std::vector<bddp> roots;
     roots.reserve(qdds.size());
-    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].get_id());
+    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].id());
     qdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 
 inline void QDD::export_binary_multi(std::ostream& strm, const std::vector<QDD>& qdds) {
     std::vector<bddp> roots;
     roots.reserve(qdds.size());
-    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].get_id());
+    for (size_t i = 0; i < qdds.size(); i++) roots.push_back(qdds[i].id());
     qdd_export_binary_multi(strm, roots.data(), roots.size());
 }
 

@@ -114,7 +114,7 @@ public:
     static bddvar to_var(bddvar lev) { return bddvaroflev(lev); }
 
     /** @brief Get the raw node ID. */
-    bddp get_id() const { return root; }
+    bddp id() const { return root; }
 
     /** @brief Get the top variable number (0 for terminals). */
     bddvar top() const;  // defined in bdd.h

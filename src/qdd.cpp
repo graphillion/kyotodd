@@ -347,9 +347,9 @@ QDD QDD_ID(bddp p) {
 }
 
 QDD QDD::cache_get(uint8_t op, const QDD& f, const QDD& g) {
-    return QDD_ID(bddrcache(op, f.get_id(), g.get_id()));
+    return QDD_ID(bddrcache(op, f.id(), g.id()));
 }
 
 void QDD::cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result) {
-    bddwcache(op, f.get_id(), g.get_id(), result.get_id());
+    bddwcache(op, f.id(), g.id(), result.id());
 }

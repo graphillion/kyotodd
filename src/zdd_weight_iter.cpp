@@ -114,7 +114,7 @@ ZddMinWeightIterator::ZddMinWeightIterator(
     state_->zdd = zdd;
     state_->weights = weights;
 
-    bddp root = zdd.get_id();
+    bddp root = zdd.id();
 
     // Null ZDD is an error (consistent with min_weight/max_weight).
     if (root == bddnull) {

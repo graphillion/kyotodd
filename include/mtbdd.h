@@ -560,7 +560,7 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            return mtbdd_from_bdd_rec<T>(bdd.get_id(), zero_t, one_t, conv_op);
+            return mtbdd_from_bdd_rec<T>(bdd.id(), zero_t, one_t, conv_op);
         });
         return result;
     }
@@ -787,7 +787,7 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            return mtzdd_from_zdd_rec<T>(zdd.get_id(), zero_t, one_t, conv_op);
+            return mtzdd_from_zdd_rec<T>(zdd.id(), zero_t, one_t, conv_op);
         });
         return result;
     }

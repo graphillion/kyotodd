@@ -186,7 +186,7 @@ MVBDD Class
 
    **Node Access**
 
-   .. cpp:function:: bddp get_id() const
+   .. cpp:function:: bddp id() const
 
       Return the raw node ID.
 
@@ -328,7 +328,7 @@ MVZDD Class
 
    **Node Access**
 
-   .. cpp:function:: bddp get_id() const
+   .. cpp:function:: bddp id() const
 
       Return the raw node ID.
 

@@ -249,14 +249,14 @@ TEST_F(SvgExportTest, SvgParams_CustomRadius) {
 TEST_F(SvgExportTest, FreeFn_bdd_save_svg) {
     bddvar v1 = bddnewvar();
     BDD x1 = BDD::prime(v1);
-    std::string svg = bdd_save_svg(x1.get_id());
+    std::string svg = bdd_save_svg(x1.id());
     EXPECT_TRUE(contains(svg, "<svg xmlns="));
 }
 
 TEST_F(SvgExportTest, FreeFn_zdd_save_svg) {
     bddvar v1 = bddnewvar();
     ZDD z = ZDD::singleton(v1);
-    std::string svg = zdd_save_svg(z.get_id());
+    std::string svg = zdd_save_svg(z.id());
     EXPECT_TRUE(contains(svg, "<svg xmlns="));
 }
 

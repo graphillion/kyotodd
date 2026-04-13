@@ -238,9 +238,9 @@ TEST_F(MTBDDClassTest, CopySemantics) {
 
 TEST_F(MTBDDClassTest, MoveSemantics) {
     auto f = MTBDD<int>::terminal(42);
-    bddp original_id = f.get_id();
+    bddp original_id = f.id();
     MTBDD<int> g = std::move(f);
-    EXPECT_EQ(g.get_id(), original_id);
+    EXPECT_EQ(g.id(), original_id);
     EXPECT_EQ(g.terminal_value(), 42);
 }
 
@@ -257,7 +257,7 @@ TEST_F(MTBDDClassTest, NoComplementEdges) {
     auto hi = MTBDD<int>::terminal(20);
     auto f = MTBDD<int>::ite(1, hi, lo);
     // Node ID should not have complement flag
-    EXPECT_EQ(f.get_id() & BDD_COMP_FLAG, 0u);
+    EXPECT_EQ(f.id() & BDD_COMP_FLAG, 0u);
 }
 
 TEST_F(MTBDDClassTest, ADDAlias) {
@@ -305,7 +305,7 @@ TEST_F(MTBDDClassTest, MTZDDNoComplementEdges) {
     auto lo = MTZDD<int>::terminal(10);
     auto hi = MTZDD<int>::terminal(20);
     auto f = MTZDD<int>::ite(1, hi, lo);
-    EXPECT_EQ(f.get_id() & BDD_COMP_FLAG, 0u);
+    EXPECT_EQ(f.id() & BDD_COMP_FLAG, 0u);
 }
 
 TEST_F(MTBDDClassTest, MTBDDNoReductionWhenHiIsZero) {
@@ -682,11 +682,11 @@ TEST_F(MTBDDClassTest, GCProtection) {
     auto lo = MTBDD<int>::terminal(10);
     auto hi = MTBDD<int>::terminal(20);
     auto f = MTBDD<int>::ite(1, hi, lo);
-    bddp before = f.get_id();
+    bddp before = f.id();
 
     bddgc();
 
-    EXPECT_EQ(f.get_id(), before);
+    EXPECT_EQ(f.id(), before);
     EXPECT_EQ(f.top(), 1u);
 }
 

@@ -69,7 +69,7 @@ static bddp expand_zdd_impl(bddp f,
 // --- Complement expansion constructors ---
 
 UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
-    bddp id = bdd.get_id();
+    bddp id = bdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
         return;
@@ -81,7 +81,7 @@ UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
 }
 
 UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
-    bddp id = zdd.get_id();
+    bddp id = zdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
         return;
@@ -93,7 +93,7 @@ UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
 }
 
 UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
-    bddp id = qdd.get_id();
+    bddp id = qdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
         return;
@@ -109,19 +109,19 @@ UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
 
 UnreducedDD UnreducedDD::wrap_raw(const BDD& bdd) {
     UnreducedDD r(0);
-    r.root = bdd.get_id();
+    r.root = bdd.id();
     return r;
 }
 
 UnreducedDD UnreducedDD::wrap_raw(const ZDD& zdd) {
     UnreducedDD r(0);
-    r.root = zdd.get_id();
+    r.root = zdd.id();
     return r;
 }
 
 UnreducedDD UnreducedDD::wrap_raw(const QDD& qdd) {
     UnreducedDD r(0);
-    r.root = qdd.get_id();
+    r.root = qdd.id();
     return r;
 }
 

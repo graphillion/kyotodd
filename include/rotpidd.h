@@ -404,19 +404,19 @@ inline bool operator!=(const RotPiDD& p, const RotPiDD& q) { return !(p == q); }
 #include "svg_export.h"
 
 inline void RotPiDD::save_svg(const char* filename, const SvgParams& params) const {
-    zdd_save_svg(filename, zdd_.get_id(), params);
+    zdd_save_svg(filename, zdd_.id(), params);
 }
 inline void RotPiDD::save_svg(const char* filename) const {
     save_svg(filename, SvgParams());
 }
 inline void RotPiDD::save_svg(std::ostream& strm, const SvgParams& params) const {
-    zdd_save_svg(strm, zdd_.get_id(), params);
+    zdd_save_svg(strm, zdd_.id(), params);
 }
 inline void RotPiDD::save_svg(std::ostream& strm) const {
     save_svg(strm, SvgParams());
 }
 inline std::string RotPiDD::save_svg(const SvgParams& params) const {
-    return zdd_save_svg(zdd_.get_id(), params);
+    return zdd_save_svg(zdd_.id(), params);
 }
 inline std::string RotPiDD::save_svg() const {
     return save_svg(SvgParams());

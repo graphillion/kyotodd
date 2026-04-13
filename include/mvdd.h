@@ -202,8 +202,8 @@ public:
 
     // --- Node reference ---
 
-    /** @brief Return the raw node ID (same as DDBase::get_id()). */
-    bddp get_id() const;
+    /** @brief Return the raw node ID (same as DDBase::id()). */
+    bddp id() const;
 
     // --- Child node access ---
 
@@ -392,7 +392,7 @@ public:
     // --- Node reference ---
 
     /** @brief Return the raw node ID. */
-    bddp get_id() const;
+    bddp id() const;
 
     // --- Child node access ---
 
@@ -863,7 +863,7 @@ MVZDD MVZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
     }
     ZDD z = to_zdd();
     ZDD sampled = z.sample_k(k, rng, memo);
-    return make_result(sampled.get_id());
+    return make_result(sampled.id());
 }
 
 template<typename RNG>
@@ -873,7 +873,7 @@ MVZDD MVZDD::random_subset(double p, RNG& rng) {
     }
     ZDD z = to_zdd();
     ZDD sampled = z.random_subset(p, rng);
-    return make_result(sampled.get_id());
+    return make_result(sampled.id());
 }
 
 #endif

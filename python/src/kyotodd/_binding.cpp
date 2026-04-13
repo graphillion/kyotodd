@@ -359,35 +359,35 @@ PYBIND11_MODULE(_core, m) {
              "Logical XNOR: ~(self ^ other).")
 
         // Methods
-        .def("at0", &BDD::At0, py::arg("v"),
+        .def("at0", &BDD::at0, py::arg("v"),
              "Cofactor: restrict variable v to 0.")
-        .def("at1", &BDD::At1, py::arg("v"),
+        .def("at1", &BDD::at1, py::arg("v"),
              "Cofactor: restrict variable v to 1.")
-        .def("cofactor", &BDD::Cofactor, py::arg("g"),
+        .def("cofactor", &BDD::cofactor, py::arg("g"),
              "Generalized cofactor by BDD g.")
-        .def("support", &BDD::Support,
+        .def("support", &BDD::support,
              "Return the support set as a BDD (disjunction of variables).")
-        .def("support_vec", &BDD::SupportVec,
+        .def("support_vec", &BDD::support_vec,
              "Return the support set as a list of variable numbers.")
-        .def("imply", &BDD::Imply, py::arg("other"),
+        .def("imply", &BDD::imply, py::arg("other"),
              "Check implication: return 1 if self => other, 0 otherwise.")
 
         // Quantification (lambdas to avoid overload_cast requiring C++14)
-        .def("exist", [](const BDD& f, const BDD& cube) { return f.Exist(cube); },
+        .def("exist", [](const BDD& f, const BDD& cube) { return f.exist(cube); },
              py::arg("cube"), "Existential quantification by variable-set BDD (as returned by support()).")
-        .def("exist", [](const BDD& f, const std::vector<bddvar>& vars) { return f.Exist(vars); },
+        .def("exist", [](const BDD& f, const std::vector<bddvar>& vars) { return f.exist(vars); },
              py::arg("vars"), "Existential quantification by variable list.")
-        .def("exist", [](const BDD& f, bddvar var) { return f.Exist(var); },
+        .def("exist", [](const BDD& f, bddvar var) { return f.exist(var); },
              py::arg("var"), "Existential quantification of a single variable.")
-        .def("univ", [](const BDD& f, const BDD& cube) { return f.Univ(cube); },
+        .def("univ", [](const BDD& f, const BDD& cube) { return f.univ(cube); },
              py::arg("cube"), "Universal quantification by variable-set BDD (as returned by support()).")
-        .def("univ", [](const BDD& f, const std::vector<bddvar>& vars) { return f.Univ(vars); },
+        .def("univ", [](const BDD& f, const std::vector<bddvar>& vars) { return f.univ(vars); },
              py::arg("vars"), "Universal quantification by variable list.")
-        .def("univ", [](const BDD& f, bddvar var) { return f.Univ(var); },
+        .def("univ", [](const BDD& f, bddvar var) { return f.univ(var); },
              py::arg("var"), "Universal quantification of a single variable.")
 
         // Static methods
-        .def_static("ite", &BDD::Ite, py::arg("f"), py::arg("g"), py::arg("h"),
+        .def_static("ite", &BDD::ite, py::arg("f"), py::arg("g"), py::arg("h"),
              "If-then-else: returns (f & g) | (~f & h).")
 
         // I/O
@@ -500,20 +500,20 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    A list of BDD objects.\n")
 
-        .def("swap", &BDD::Swap, py::arg("v1"), py::arg("v2"),
+        .def("swap", &BDD::swap, py::arg("v1"), py::arg("v2"),
              "Swap variables v1 and v2 in the BDD.\n\n"
              "Args:\n"
              "    v1: First variable number.\n"
              "    v2: Second variable number.\n\n"
              "Returns:\n"
              "    The BDD with v1 and v2 swapped.\n")
-        .def("smooth", &BDD::Smooth, py::arg("v"),
+        .def("smooth", &BDD::smooth, py::arg("v"),
              "Smooth (existential quantification) of variable v.\n\n"
              "Args:\n"
              "    v: Variable number to quantify out.\n\n"
              "Returns:\n"
              "    The resulting BDD.\n")
-        .def("spread", &BDD::Spread, py::arg("k"),
+        .def("spread", &BDD::spread, py::arg("k"),
              "Spread variable values to neighboring k levels.\n\n"
              "Args:\n"
              "    k: Number of levels to spread (must be >= 0).\n\n"
@@ -888,7 +888,7 @@ PYBIND11_MODULE(_core, m) {
         .def("print", [](const BDD& b) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            b.Print();
+            b.print();
             return oss.str();
         }, "Print BDD summary (ID, Var, Level, Size) and return as string.")
     ;
@@ -3041,11 +3041,11 @@ PYBIND11_MODULE(_core, m) {
         .def("__ne__", [](const QDD& a, const QDD& b) { return a != b; },
              "Inequality comparison by node ID.")
         .def("__hash__", [](const QDD& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         }, "Hash based on node ID.")
         .def("__repr__", [](const QDD& a) {
             std::ostringstream oss;
-            oss << "QDD: id=" << a.get_id();
+            oss << "QDD: id=" << a.id();
             if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (false)";
                 else oss << " (true)";
@@ -3122,7 +3122,7 @@ PYBIND11_MODULE(_core, m) {
              "Convert to a canonical ZDD.")
 
         // Properties
-        .def_property_readonly("node_id", [](const QDD& q) { return q.get_id(); },
+        .def_property_readonly("node_id", [](const QDD& q) { return q.id(); },
              "The raw node ID of this QDD.")
         .def_property_readonly("is_terminal", &QDD::is_terminal,
              "True if this is a terminal node.")
@@ -3258,11 +3258,11 @@ PYBIND11_MODULE(_core, m) {
         .def("__lt__", [](const UnreducedDD& a, const UnreducedDD& b) { return a < b; },
              "Less-than by node ID (for ordered containers).")
         .def("__hash__", [](const UnreducedDD& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         }, "Hash based on node ID.")
         .def("__repr__", [](const UnreducedDD& a) {
             std::ostringstream oss;
-            oss << "UnreducedDD: id=" << a.get_id();
+            oss << "UnreducedDD: id=" << a.id();
             if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (false)";
                 else oss << " (true)";
@@ -3357,7 +3357,7 @@ PYBIND11_MODULE(_core, m) {
              "Equivalent to reduce_as_bdd().to_qdd().\n")
 
         // Properties
-        .def_property_readonly("node_id", [](const UnreducedDD& u) { return u.get_id(); },
+        .def_property_readonly("node_id", [](const UnreducedDD& u) { return u.id(); },
              "The raw node ID of this UnreducedDD.")
         .def_property_readonly("is_terminal", &UnreducedDD::is_terminal,
              "True if this is a terminal node.")
@@ -3870,7 +3870,7 @@ PYBIND11_MODULE(_core, m) {
             "Value domain size.")
         .def_property_readonly("var_table", &MVBDD::var_table,
             "Shared variable table.")
-        .def_property_readonly("node_id", &MVBDD::get_id,
+        .def_property_readonly("node_id", &MVBDD::id,
             "Raw node ID.")
         .def_property_readonly("top_var", &MVBDD::top_var,
             "Top MVDD variable number (0 for terminals).")
@@ -3903,11 +3903,11 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MVBDD& a, const MVBDD& b) { return a == b; })
         .def("__ne__", [](const MVBDD& a, const MVBDD& b) { return a != b; })
         .def("__hash__", [](const MVBDD& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         .def("__repr__", [](const MVBDD& a) {
             std::ostringstream oss;
-            oss << "MVBDD: id=" << a.get_id() << ", k=" << a.k();
+            oss << "MVBDD: id=" << a.id() << ", k=" << a.k();
             if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (false)";
                 else oss << " (true)";
@@ -4323,7 +4323,7 @@ PYBIND11_MODULE(_core, m) {
             "Value domain size.")
         .def_property_readonly("var_table", &MVZDD::var_table,
             "Shared variable table.")
-        .def_property_readonly("node_id", &MVZDD::get_id,
+        .def_property_readonly("node_id", &MVZDD::id,
             "Raw node ID.")
         .def_property_readonly("top_var", &MVZDD::top_var,
             "Top MVDD variable number (0 for terminals).")
@@ -4358,11 +4358,11 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MVZDD& a, const MVZDD& b) { return a == b; })
         .def("__ne__", [](const MVZDD& a, const MVZDD& b) { return a != b; })
         .def("__hash__", [](const MVZDD& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         .def("__repr__", [](const MVZDD& a) {
             std::ostringstream oss;
-            oss << "MVZDD: id=" << a.get_id() << ", k=" << a.k();
+            oss << "MVZDD: id=" << a.id() << ", k=" << a.k();
             if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (empty)";
                 else oss << " (unit)";
@@ -4497,10 +4497,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a == b; })
         .def("__ne__", [](const MTBDDFloat& a, const MTBDDFloat& b) { return a != b; })
         .def("__hash__", [](const MTBDDFloat& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         // Properties
-        .def_property_readonly("node_id", &MTBDDFloat::get_id, "Raw node ID.")
+        .def_property_readonly("node_id", &MTBDDFloat::id, "Raw node ID.")
         .def_property_readonly("is_terminal", &MTBDDFloat::is_terminal,
             "True if terminal node.")
         .def_property_readonly("is_zero", &MTBDDFloat::is_zero,
@@ -4513,7 +4513,7 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTBDDFloat& a) {
             std::ostringstream oss;
-            oss << "MTBDDFloat: id=" << a.get_id();
+            oss << "MTBDDFloat: id=" << a.id();
             if (a.is_terminal()) {
                 oss << " (value=" << a.terminal_value() << ")";
             } else {
@@ -4640,10 +4640,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MTBDDInt& a, const MTBDDInt& b) { return a == b; })
         .def("__ne__", [](const MTBDDInt& a, const MTBDDInt& b) { return a != b; })
         .def("__hash__", [](const MTBDDInt& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         // Properties
-        .def_property_readonly("node_id", &MTBDDInt::get_id, "Raw node ID.")
+        .def_property_readonly("node_id", &MTBDDInt::id, "Raw node ID.")
         .def_property_readonly("is_terminal", &MTBDDInt::is_terminal,
             "True if terminal node.")
         .def_property_readonly("is_zero", &MTBDDInt::is_zero,
@@ -4656,7 +4656,7 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTBDDInt& a) {
             std::ostringstream oss;
-            oss << "MTBDDInt: id=" << a.get_id();
+            oss << "MTBDDInt: id=" << a.id();
             if (a.is_terminal()) {
                 oss << " (value=" << a.terminal_value() << ")";
             } else {
@@ -4797,10 +4797,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a == b; })
         .def("__ne__", [](const MTZDDFloat& a, const MTZDDFloat& b) { return a != b; })
         .def("__hash__", [](const MTZDDFloat& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         // Properties
-        .def_property_readonly("node_id", &MTZDDFloat::get_id, "Raw node ID.")
+        .def_property_readonly("node_id", &MTZDDFloat::id, "Raw node ID.")
         .def_property_readonly("is_terminal", &MTZDDFloat::is_terminal,
             "True if terminal node.")
         .def_property_readonly("is_zero", &MTZDDFloat::is_zero,
@@ -4813,7 +4813,7 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTZDDFloat& a) {
             std::ostringstream oss;
-            oss << "MTZDDFloat: id=" << a.get_id();
+            oss << "MTZDDFloat: id=" << a.id();
             if (a.is_terminal()) {
                 oss << " (value=" << a.terminal_value() << ")";
             } else {
@@ -4968,10 +4968,10 @@ PYBIND11_MODULE(_core, m) {
         .def("__eq__", [](const MTZDDInt& a, const MTZDDInt& b) { return a == b; })
         .def("__ne__", [](const MTZDDInt& a, const MTZDDInt& b) { return a != b; })
         .def("__hash__", [](const MTZDDInt& a) {
-            return std::hash<uint64_t>()(a.get_id());
+            return std::hash<uint64_t>()(a.id());
         })
         // Properties
-        .def_property_readonly("node_id", &MTZDDInt::get_id, "Raw node ID.")
+        .def_property_readonly("node_id", &MTZDDInt::id, "Raw node ID.")
         .def_property_readonly("is_terminal", &MTZDDInt::is_terminal,
             "True if terminal node.")
         .def_property_readonly("is_zero", &MTZDDInt::is_zero,
@@ -4984,7 +4984,7 @@ PYBIND11_MODULE(_core, m) {
             "DAG node count.")
         .def("__repr__", [](const MTZDDInt& a) {
             std::ostringstream oss;
-            oss << "MTZDDInt: id=" << a.get_id();
+            oss << "MTZDDInt: id=" << a.id();
             if (a.is_terminal()) {
                 oss << " (value=" << a.terminal_value() << ")";
             } else {
