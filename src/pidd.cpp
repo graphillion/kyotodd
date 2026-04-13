@@ -72,17 +72,17 @@ int PiDD_VarUsed()
 /*  Swap                                                            */
 /* ================================================================ */
 
-PiDD PiDD::Swap(int u, int v) const
+PiDD PiDD::swap(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
-        throw std::invalid_argument("PiDD::Swap: variable out of range");
+        throw std::invalid_argument("PiDD::swap: variable out of range");
     }
     if (u == v) return *this;
-    if (u < v) return Swap(v, u);
+    if (u < v) return swap(v, u);
     /* Now u > v */
 
-    int x = TopX();
+    int x = top_x();
     if (x < u) {
         /* No transposition involves u; just toggle (u, v) */
         bddvar bv = bddvaroflev(static_cast<bddvar>(PiDD_Lev_XY(u, v)));
@@ -97,12 +97,12 @@ PiDD PiDD::Swap(int u, int v) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int y = TopY();
+    int y = top_y();
     PiDD p0(zdd_.OffSet(top));
     PiDD p1(zdd_.OnSet0(top));
 
     /* Recursive computation */
-    PiDD r = p0.Swap(u, v) + p1.Swap(PiDD_U_XYU(x, y, u), v).Swap(x, PiDD_Y_YUV(y, u, v));
+    PiDD r = p0.swap(u, v) + p1.swap(PiDD_U_XYU(x, y, u), v).swap(x, PiDD_Y_YUV(y, u, v));
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_SWAP, fx, gx, r.zdd_.GetID());
@@ -113,15 +113,15 @@ PiDD PiDD::Swap(int u, int v) const
 /*  Cofact                                                          */
 /* ================================================================ */
 
-PiDD PiDD::Cofact(int u, int v) const
+PiDD PiDD::cofact(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
-        throw std::invalid_argument("PiDD::Cofact: variable out of range");
+        throw std::invalid_argument("PiDD::cofact: variable out of range");
     }
 
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
 
     /* Terminal / early-exit cases */
     if (x < u && x < v) {
@@ -138,10 +138,10 @@ PiDD PiDD::Cofact(int u, int v) const
 
     if (x == u) {
         if (y == v) return p1;
-        return p0.Cofact(u, v);
+        return p0.cofact(u, v);
     }
     if (y == v) {
-        return p0.Cofact(u, v);
+        return p0.cofact(u, v);
     }
 
     /* Cache lookup */
@@ -151,11 +151,11 @@ PiDD PiDD::Cofact(int u, int v) const
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Recursive computation */
-    PiDD r = p0.Cofact(u, v);
+    PiDD r = p0.cofact(u, v);
     if (u >= v) {
-        r += p1.Cofact(u, v).Swap(x, PiDD_Y_YUV(y, u, v));
+        r += p1.cofact(u, v).swap(x, PiDD_Y_YUV(y, u, v));
     } else {
-        r += p1.Cofact(u, PiDD_U_XYU(x, y, v)).Swap(x, PiDD_Y_YUV(y, v, u));
+        r += p1.cofact(u, PiDD_U_XYU(x, y, v)).swap(x, PiDD_Y_YUV(y, v, u));
     }
 
     /* Cache store */
@@ -183,14 +183,14 @@ PiDD operator*(const PiDD& p, const PiDD& q)
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Decompose q */
-    int qx = q.TopX();
-    int qy = q.TopY();
+    int qx = q.top_x();
+    int qy = q.top_y();
     bddvar top = q.zdd_.Top();
     PiDD q0(q.zdd_.OffSet(top));
     PiDD q1(q.zdd_.OnSet0(top));
 
     /* Recursive computation */
-    PiDD r = (p * q0) + (p * q1).Swap(qx, qy);
+    PiDD r = (p * q0) + (p * q1).swap(qx, qy);
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_MULT, fx, gx, r.zdd_.GetID());
@@ -209,7 +209,7 @@ PiDD operator/(const PiDD& f, const PiDD& p)
     if (p.zdd_.GetID() == bddempty) {
         throw std::invalid_argument("PiDD: division by zero");
     }
-    if (f.TopX() < p.TopX()) return PiDD(0);
+    if (f.top_x() < p.top_x()) return PiDD(0);
 
     /* Cache lookup */
     bddp fx = f.zdd_.GetID();
@@ -218,13 +218,13 @@ PiDD operator/(const PiDD& f, const PiDD& p)
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Decompose p */
-    int px = p.TopX();
-    int py = p.TopY();
+    int px = p.top_x();
+    int py = p.top_y();
     bddvar top = p.zdd_.Top();
     PiDD p1(p.zdd_.OnSet0(top));
 
-    /* q = (f.Cofact(px, py) / p1).Cofact(py, py) */
-    PiDD q = (f.Cofact(px, py) / p1).Cofact(py, py);
+    /* q = (f.cofact(px, py) / p1).cofact(py, py) */
+    PiDD q = (f.cofact(px, py) / p1).cofact(py, py);
 
     if (q.zdd_.GetID() != bddempty) {
         PiDD p0(p.zdd_.OffSet(top));
@@ -242,10 +242,10 @@ PiDD operator/(const PiDD& f, const PiDD& p)
 /*  Odd / Even                                                      */
 /* ================================================================ */
 
-PiDD PiDD::Odd() const
+PiDD PiDD::odd() const
 {
     if (zdd_.GetID() == bddnull) return PiDD(-1);
-    if (TopX() == 0) return PiDD(0);  /* identity permutation is even */
+    if (top_x() == 0) return PiDD(0);  /* identity permutation is even */
 
     /* Cache lookup */
     bddp fx = zdd_.GetID();
@@ -254,29 +254,29 @@ PiDD PiDD::Odd() const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
     PiDD p0(zdd_.OffSet(top));
     PiDD p1(zdd_.OnSet0(top));
 
     /* Odd of p0; Even of p1 swapped back (parity flips) */
-    PiDD r = p0.Odd() + p1.Even().Swap(x, y);
+    PiDD r = p0.odd() + p1.even().swap(x, y);
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_ODD, fx, 0, r.zdd_.GetID());
     return r;
 }
 
-PiDD PiDD::Even() const
+PiDD PiDD::even() const
 {
-    return *this - this->Odd();
+    return *this - this->odd();
 }
 
 /* ================================================================ */
 /*  SwapBound                                                       */
 /* ================================================================ */
 
-PiDD PiDD::SwapBound(int n) const
+PiDD PiDD::swap_bound(int n) const
 {
     return PiDD(zdd_.PermitSym(n));
 }
@@ -285,7 +285,7 @@ PiDD PiDD::SwapBound(int n) const
 /*  Print                                                           */
 /* ================================================================ */
 
-void PiDD::Print() const
+void PiDD::print() const
 {
     zdd_.Print();
 }
@@ -326,12 +326,12 @@ static void PiDD_EnumRec(PiDD p, int dim)
         return;
     }
 
-    int x = p.TopX();
-    int y = p.TopY();
+    int x = p.top_x();
+    int y = p.top_y();
 
     /* p1 = part containing (x,y); p0 = part not containing (x,y) */
-    PiDD p1 = p.Cofact(x, y);
-    PiDD p0 = p - p1.Swap(x, y);
+    PiDD p1 = p.cofact(x, y);
+    PiDD p0 = p - p1.swap(x, y);
 
     /* Enumerate p0 first */
     PiDD_EnumRec(p0, dim);
@@ -349,13 +349,13 @@ static void PiDD_EnumRec(PiDD p, int dim)
     PiDD_Enum_VarMap[y - 1] = tmp;
 }
 
-void PiDD::Enum() const
+void PiDD::enumerate() const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)"; return; }
     if (*this == PiDD(0)) { std::cout << "0"; return; }
     if (*this == PiDD(1)) { std::cout << "1"; return; }
 
-    int dim = TopX();
+    int dim = top_x();
     std::vector<int> varmap(dim);
     for (int i = 0; i < dim; i++) varmap[i] = i + 1;
     PiDD_Enum_VarMap = varmap.data();
@@ -395,13 +395,13 @@ static void PiDD_Enum2Rec(PiDD p)
         return;
     }
 
-    int x = p.TopX();
-    int y = p.TopY();
-    int lev = p.TopLev();
+    int x = p.top_x();
+    int y = p.top_y();
+    int lev = p.top_lev();
 
     /* p1 = part containing (x,y); p0 = part not containing (x,y) */
-    PiDD p1 = p.Cofact(x, y);
-    PiDD p0 = p - p1.Swap(x, y);
+    PiDD p1 = p.cofact(x, y);
+    PiDD p0 = p - p1.swap(x, y);
 
     /* Enumerate p0 first */
     PiDD_Enum2Rec(p0);
@@ -415,7 +415,7 @@ static void PiDD_Enum2Rec(PiDD p)
     PiDD_Enum2_Depth--;
 }
 
-void PiDD::Enum2() const
+void PiDD::enumerate2() const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)"; return; }
     if (*this == PiDD(0)) { std::cout << "0"; return; }

@@ -2625,29 +2625,29 @@ PYBIND11_MODULE(_core, m) {
              "In-place composition.")
 
         // Core operations
-        .def("swap", &PiDD::Swap, py::arg("u"), py::arg("v"),
+        .def("swap", &PiDD::swap, py::arg("u"), py::arg("v"),
              "Apply transposition Swap(u, v) to all permutations in the set.\n\n"
              "Args:\n"
              "    u: First position.\n"
              "    v: Second position.\n\n"
              "Returns:\n"
              "    A new PiDD with the transposition applied.\n")
-        .def("cofact", &PiDD::Cofact, py::arg("u"), py::arg("v"),
+        .def("cofact", &PiDD::cofact, py::arg("u"), py::arg("v"),
              "Extract permutations where position u has value v, removing position u.\n\n"
              "Args:\n"
              "    u: Position to check.\n"
              "    v: Required value at position u.\n\n"
              "Returns:\n"
              "    A PiDD of sub-permutations satisfying the condition.\n")
-        .def("odd", &PiDD::Odd,
+        .def("odd", &PiDD::odd,
              "Extract odd permutations from the set.\n\n"
              "Returns:\n"
              "    A PiDD containing only odd permutations.\n")
-        .def("even", &PiDD::Even,
+        .def("even", &PiDD::even,
              "Extract even permutations from the set.\n\n"
              "Returns:\n"
              "    A PiDD containing only even permutations.\n")
-        .def("swap_bound", &PiDD::SwapBound, py::arg("n"),
+        .def("swap_bound", &PiDD::swap_bound, py::arg("n"),
              "Apply symmetric constraint (PermitSym) to the internal ZDD.\n\n"
              "Args:\n"
              "    n: Constraint parameter.\n\n"
@@ -2655,20 +2655,20 @@ PYBIND11_MODULE(_core, m) {
              "    A PiDD with the constraint applied.\n")
 
         // Properties
-        .def_property_readonly("top_x", &PiDD::TopX,
+        .def_property_readonly("top_x", &PiDD::top_x,
              "The x coordinate of the top variable.")
-        .def_property_readonly("top_y", &PiDD::TopY,
+        .def_property_readonly("top_y", &PiDD::top_y,
              "The y coordinate of the top variable.")
-        .def_property_readonly("top_lev", &PiDD::TopLev,
+        .def_property_readonly("top_lev", &PiDD::top_lev,
              "The BDD level of the top variable.")
-        .def_property_readonly("size", &PiDD::Size,
+        .def_property_readonly("size", &PiDD::size,
              "The number of nodes in the internal ZDD.")
         .def_property_readonly("exact_count", [](const PiDD& p) -> py::int_ {
-            bigint::BigInt bi = p.GetZDD().exact_count();
+            bigint::BigInt bi = p.get_zdd().exact_count();
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "The number of permutations in the set (arbitrary precision Python int).")
-        .def_property_readonly("zdd", &PiDD::GetZDD,
+        .def_property_readonly("zdd", &PiDD::get_zdd,
              "The internal ZDD representation.")
 
         .def("__itruediv__", [](PiDD& a, const PiDD& b) -> PiDD& { a /= b; return a; },
@@ -2681,19 +2681,19 @@ PYBIND11_MODULE(_core, m) {
         .def("print", [](const PiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Print();
+            p.print();
             return oss.str();
         }, "Print PiDD statistics and return as string.")
         .def("enum", [](const PiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Enum();
+            p.enumerate();
             return oss.str();
         }, "Enumerate all permutations and return as string.")
         .def("enum2", [](const PiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Enum2();
+            p.enumerate2();
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
 
@@ -2825,7 +2825,7 @@ PYBIND11_MODULE(_core, m) {
              "In-place composition.")
 
         // Core operations
-        .def("left_rot", &RotPiDD::LeftRot, py::arg("u"), py::arg("v"),
+        .def("left_rot", &RotPiDD::left_rot, py::arg("u"), py::arg("v"),
              "Apply left rotation LeftRot(u, v) to all permutations.\n\n"
              "Left-rotates positions v, v+1, ..., u cyclically.\n\n"
              "Args:\n"
@@ -2833,60 +2833,60 @@ PYBIND11_MODULE(_core, m) {
              "    v: Lower position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the rotation applied.\n")
-        .def("swap", &RotPiDD::Swap, py::arg("a"), py::arg("b"),
+        .def("swap", &RotPiDD::swap, py::arg("a"), py::arg("b"),
              "Swap positions a and b in all permutations.\n\n"
              "Args:\n"
              "    a: First position.\n"
              "    b: Second position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the swap applied.\n")
-        .def("reverse", &RotPiDD::Reverse, py::arg("l"), py::arg("r"),
+        .def("reverse", &RotPiDD::reverse, py::arg("l"), py::arg("r"),
              "Reverse positions l..r in all permutations.\n\n"
              "Args:\n"
              "    l: Left position.\n"
              "    r: Right position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the reversal applied.\n")
-        .def("cofact", &RotPiDD::Cofact, py::arg("u"), py::arg("v"),
+        .def("cofact", &RotPiDD::cofact, py::arg("u"), py::arg("v"),
              "Extract permutations where position u has value v.\n\n"
              "Args:\n"
              "    u: Position to check.\n"
              "    v: Required value at position u.\n\n"
              "Returns:\n"
              "    A RotPiDD of sub-permutations satisfying the condition.\n")
-        .def("odd", &RotPiDD::Odd,
+        .def("odd", &RotPiDD::odd,
              "Extract odd permutations from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only odd permutations.\n")
-        .def("even", &RotPiDD::Even,
+        .def("even", &RotPiDD::even,
              "Extract even permutations from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only even permutations.\n")
-        .def("rot_bound", &RotPiDD::RotBound, py::arg("n"),
+        .def("rot_bound", &RotPiDD::rot_bound, py::arg("n"),
              "Apply symmetric constraint (PermitSym) to the internal ZDD.\n\n"
              "Args:\n"
              "    n: Constraint parameter.\n\n"
              "Returns:\n"
              "    A RotPiDD with the constraint applied.\n")
-        .def("order", &RotPiDD::Order, py::arg("a"), py::arg("b"),
+        .def("order", &RotPiDD::order, py::arg("a"), py::arg("b"),
              "Extract permutations where pi(a) < pi(b).\n\n"
              "Args:\n"
              "    a: First position.\n"
              "    b: Second position.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only permutations satisfying the order.\n")
-        .def("inverse", &RotPiDD::Inverse,
+        .def("inverse", &RotPiDD::inverse,
              "Compute the inverse of each permutation in the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing the inverse permutations.\n")
-        .def("insert", &RotPiDD::Insert, py::arg("p"), py::arg("v"),
+        .def("insert", &RotPiDD::insert, py::arg("p"), py::arg("v"),
              "Insert value v at position p in each permutation.\n\n"
              "Args:\n"
              "    p: Insertion position.\n"
              "    v: Value to insert.\n\n"
              "Returns:\n"
              "    A RotPiDD with the element inserted.\n")
-        .def("remove_max", &RotPiDD::RemoveMax, py::arg("k"),
+        .def("remove_max", &RotPiDD::remove_max, py::arg("k"),
              "Remove variables with size >= k from each permutation.\n\n"
              "Args:\n"
              "    k: Threshold.\n\n"
@@ -2898,48 +2898,48 @@ PYBIND11_MODULE(_core, m) {
              "    k: Upper bound for retained variables.\n\n"
              "Returns:\n"
              "    A normalized RotPiDD.\n")
-        .def("extract_one", &RotPiDD::Extract_One,
+        .def("extract_one", &RotPiDD::extract_one,
              "Extract a single permutation from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing exactly one permutation.\n")
-        .def("to_perms", &RotPiDD::RotPiDDToVectorOfPerms,
+        .def("to_perms", &RotPiDD::to_vector_of_perms,
              "Convert to a list of permutation vectors.\n\n"
              "Returns:\n"
              "    A list of lists, each representing a permutation as [1..n].\n")
 
         // Properties
-        .def_property_readonly("top_x", &RotPiDD::TopX,
+        .def_property_readonly("top_x", &RotPiDD::top_x,
              "The x coordinate of the top variable.")
-        .def_property_readonly("top_y", &RotPiDD::TopY,
+        .def_property_readonly("top_y", &RotPiDD::top_y,
              "The y coordinate of the top variable.")
-        .def_property_readonly("top_lev", &RotPiDD::TopLev,
+        .def_property_readonly("top_lev", &RotPiDD::top_lev,
              "The BDD level of the top variable.")
-        .def_property_readonly("size", &RotPiDD::Size,
+        .def_property_readonly("size", &RotPiDD::size,
              "The number of nodes in the internal ZDD.")
         .def_property_readonly("exact_count", [](const RotPiDD& p) -> py::int_ {
-            bigint::BigInt bi = p.GetZDD().exact_count();
+            bigint::BigInt bi = p.get_zdd().exact_count();
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "The number of permutations in the set (arbitrary precision Python int).")
-        .def_property_readonly("zdd", &RotPiDD::GetZDD,
+        .def_property_readonly("zdd", &RotPiDD::get_zdd,
              "The internal ZDD representation.")
 
         .def("print", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Print();
+            p.print();
             return oss.str();
         }, "Print RotPiDD statistics and return as string.")
         .def("enum", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Enum();
+            p.enumerate();
             return oss.str();
         }, "Enumerate all permutations and return as string.")
         .def("enum2", [](const RotPiDD& p) -> std::string {
             std::ostringstream oss;
             CoutRedirectGuard guard(oss.rdbuf());
-            p.Enum2();
+            p.enumerate2();
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
         .def("contradiction_maximization",

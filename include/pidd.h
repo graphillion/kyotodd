@@ -139,38 +139,50 @@ public:
      * @brief Get the x coordinate of the top variable.
      * @return The x value of the highest-level transposition.
      */
-    int TopX() const {
+    int top_x() const {
         if (zdd_.is_terminal()) return 0;
-        return PiDD_X_Lev(TopLev());
+        return PiDD_X_Lev(top_lev());
     }
+    /** @deprecated Use top_x() instead. */
+    int TopX() const { return top_x(); }
     /**
      * @brief Get the y coordinate of the top variable.
      * @return The y value of the highest-level transposition.
      */
-    int TopY() const {
+    int top_y() const {
         if (zdd_.is_terminal()) return 0;
-        return PiDD_Y_Lev(TopLev());
+        return PiDD_Y_Lev(top_lev());
     }
+    /** @deprecated Use top_y() instead. */
+    int TopY() const { return top_y(); }
     /**
      * @brief Get the BDD level of the top variable.
      * @return The BDD level of the root node.
      */
-    int TopLev() const { return static_cast<int>(bddlevofvar(zdd_.Top())); }
+    int top_lev() const { return static_cast<int>(bddlevofvar(zdd_.Top())); }
+    /** @deprecated Use top_lev() instead. */
+    int TopLev() const { return top_lev(); }
     /**
      * @brief Get the number of nodes in the internal ZDD.
      * @return The node count.
      */
-    uint64_t Size() const { return zdd_.Size(); }
+    uint64_t size() const { return zdd_.Size(); }
+    /** @deprecated Use size() instead. */
+    uint64_t Size() const { return size(); }
     /**
      * @brief Get the number of permutations in the set.
      * @return The cardinality (number of permutations).
      */
-    uint64_t Card() const { return zdd_.Card(); }
+    uint64_t card() const { return zdd_.Card(); }
+    /** @deprecated Use card() instead. */
+    uint64_t Card() const { return card(); }
     /**
      * @brief Get the internal ZDD representation.
      * @return A copy of the internal ZDD.
      */
-    ZDD GetZDD() const { return zdd_; }
+    ZDD get_zdd() const { return zdd_; }
+    /** @deprecated Use get_zdd() instead. */
+    ZDD GetZDD() const { return get_zdd(); }
 
     /**
      * @brief Build a variable name map labeling each PiDD variable
@@ -192,7 +204,9 @@ public:
      * @param v Second position.
      * @return A new PiDD with the transposition applied.
      */
-    PiDD Swap(int u, int v) const;
+    PiDD swap(int u, int v) const;
+    /** @deprecated Use swap() instead. */
+    PiDD Swap(int u, int v) const { return swap(u, v); }
     /**
      * @brief Extract permutations where position u maps to value v.
      *
@@ -203,17 +217,23 @@ public:
      * @param v Required value at position u.
      * @return A PiDD of sub-permutations satisfying the condition.
      */
-    PiDD Cofact(int u, int v) const;
+    PiDD cofact(int u, int v) const;
+    /** @deprecated Use cofact() instead. */
+    PiDD Cofact(int u, int v) const { return cofact(u, v); }
     /**
      * @brief Extract odd permutations from the set.
      * @return A PiDD containing only the odd permutations.
      */
-    PiDD Odd() const;
+    PiDD odd() const;
+    /** @deprecated Use odd() instead. */
+    PiDD Odd() const { return odd(); }
     /**
      * @brief Extract even permutations from the set.
      * @return A PiDD containing only the even permutations.
      */
-    PiDD Even() const;
+    PiDD even() const;
+    /** @deprecated Use even() instead. */
+    PiDD Even() const { return even(); }
     /**
      * @brief Apply symmetric constraint (PermitSym) to the internal ZDD.
      *
@@ -222,14 +242,22 @@ public:
      * @param n Constraint parameter.
      * @return A PiDD with the constraint applied.
      */
-    PiDD SwapBound(int n) const;
+    PiDD swap_bound(int n) const;
+    /** @deprecated Use swap_bound() instead. */
+    PiDD SwapBound(int n) const { return swap_bound(n); }
 
     /** @brief Print all permutations to stdout. */
-    void Print() const;
+    void print() const;
+    /** @deprecated Use print() instead. */
+    void Print() const { print(); }
     /** @brief Enumerate all permutations in compact form. */
-    void Enum() const;
+    void enumerate() const;
+    /** @deprecated Use enumerate() instead. */
+    void Enum() const { enumerate(); }
     /** @brief Enumerate all permutations in expanded form. */
-    void Enum2() const;
+    void enumerate2() const;
+    /** @deprecated Use enumerate2() instead. */
+    void Enum2() const { enumerate2(); }
 
     /**
      * @brief Export the internal ZDD as SVG to a file.

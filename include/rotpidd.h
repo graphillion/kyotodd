@@ -150,38 +150,50 @@ public:
      * @brief Get the x coordinate of the top variable.
      * @return The x value of the highest-level rotation.
      */
-    int TopX() const {
+    int top_x() const {
         if (zdd_.is_terminal()) return 0;
-        return RotPiDD_X_Lev(TopLev());
+        return RotPiDD_X_Lev(top_lev());
     }
+    /** @deprecated Use top_x() instead. */
+    int TopX() const { return top_x(); }
     /**
      * @brief Get the y coordinate of the top variable.
      * @return The y value of the highest-level rotation.
      */
-    int TopY() const {
+    int top_y() const {
         if (zdd_.is_terminal()) return 0;
-        return RotPiDD_Y_Lev(TopLev());
+        return RotPiDD_Y_Lev(top_lev());
     }
+    /** @deprecated Use top_y() instead. */
+    int TopY() const { return top_y(); }
     /**
      * @brief Get the BDD level of the top variable.
      * @return The BDD level of the root node.
      */
-    int TopLev() const { return static_cast<int>(bddlevofvar(zdd_.Top())); }
+    int top_lev() const { return static_cast<int>(bddlevofvar(zdd_.Top())); }
+    /** @deprecated Use top_lev() instead. */
+    int TopLev() const { return top_lev(); }
     /**
      * @brief Get the number of nodes in the internal ZDD.
      * @return The node count.
      */
-    uint64_t Size() const { return zdd_.Size(); }
+    uint64_t size() const { return zdd_.Size(); }
+    /** @deprecated Use size() instead. */
+    uint64_t Size() const { return size(); }
     /**
      * @brief Get the number of permutations in the set.
      * @return The cardinality (number of permutations).
      */
-    uint64_t Card() const { return zdd_.Card(); }
+    uint64_t card() const { return zdd_.Card(); }
+    /** @deprecated Use card() instead. */
+    uint64_t Card() const { return card(); }
     /**
      * @brief Get the internal ZDD representation.
      * @return A copy of the internal ZDD.
      */
-    ZDD GetZDD() const { return zdd_; }
+    ZDD get_zdd() const { return zdd_; }
+    /** @deprecated Use get_zdd() instead. */
+    ZDD GetZDD() const { return get_zdd(); }
 
     /**
      * @brief Build a variable name map labeling each RotPiDD variable
@@ -204,21 +216,27 @@ public:
      * @param v Lower position (v <= u).
      * @return A new RotPiDD with the rotation applied.
      */
-    RotPiDD LeftRot(int u, int v) const;
+    RotPiDD left_rot(int u, int v) const;
+    /** @deprecated Use left_rot() instead. */
+    RotPiDD LeftRot(int u, int v) const { return left_rot(u, v); }
     /**
      * @brief Swap positions a and b in all permutations.
      * @param a First position.
      * @param b Second position.
      * @return A new RotPiDD with the swap applied.
      */
-    RotPiDD Swap(int a, int b) const;
+    RotPiDD swap(int a, int b) const;
+    /** @deprecated Use swap() instead. */
+    RotPiDD Swap(int a, int b) const { return swap(a, b); }
     /**
      * @brief Reverse positions l..r in all permutations.
      * @param l Left position.
      * @param r Right position.
      * @return A new RotPiDD with the reversal applied.
      */
-    RotPiDD Reverse(int l, int r) const;
+    RotPiDD reverse(int l, int r) const;
+    /** @deprecated Use reverse() instead. */
+    RotPiDD Reverse(int l, int r) const { return reverse(l, r); }
     /**
      * @brief Extract permutations where position u maps to value v.
      *
@@ -229,35 +247,47 @@ public:
      * @param v Required value at position u.
      * @return A RotPiDD of sub-permutations satisfying the condition.
      */
-    RotPiDD Cofact(int u, int v) const;
+    RotPiDD cofact(int u, int v) const;
+    /** @deprecated Use cofact() instead. */
+    RotPiDD Cofact(int u, int v) const { return cofact(u, v); }
     /**
      * @brief Extract odd permutations from the set.
      * @return A RotPiDD containing only the odd permutations.
      */
-    RotPiDD Odd() const;
+    RotPiDD odd() const;
+    /** @deprecated Use odd() instead. */
+    RotPiDD Odd() const { return odd(); }
     /**
      * @brief Extract even permutations from the set.
      * @return A RotPiDD containing only the even permutations.
      */
-    RotPiDD Even() const;
+    RotPiDD even() const;
+    /** @deprecated Use even() instead. */
+    RotPiDD Even() const { return even(); }
     /**
      * @brief Apply symmetric constraint (PermitSym) to the internal ZDD.
      * @param n Constraint parameter.
      * @return A RotPiDD with the constraint applied.
      */
-    RotPiDD RotBound(int n) const;
+    RotPiDD rot_bound(int n) const;
+    /** @deprecated Use rot_bound() instead. */
+    RotPiDD RotBound(int n) const { return rot_bound(n); }
     /**
      * @brief Extract permutations where pi(a) < pi(b).
      * @param a First position.
      * @param b Second position.
      * @return A RotPiDD containing only permutations satisfying the order.
      */
-    RotPiDD Order(int a, int b) const;
+    RotPiDD order(int a, int b) const;
+    /** @deprecated Use order() instead. */
+    RotPiDD Order(int a, int b) const { return order(a, b); }
     /**
      * @brief Compute the inverse of each permutation in the set.
      * @return A RotPiDD of inverse permutations.
      */
-    RotPiDD Inverse() const;
+    RotPiDD inverse() const;
+    /** @deprecated Use inverse() instead. */
+    RotPiDD Inverse() const { return inverse(); }
     /**
      * @brief Insert value v at position p in each permutation.
      *
@@ -267,13 +297,17 @@ public:
      * @param v Value to insert.
      * @return A RotPiDD with the element inserted.
      */
-    RotPiDD Insert(int p, int v) const;
+    RotPiDD insert(int p, int v) const;
+    /** @deprecated Use insert() instead. */
+    RotPiDD Insert(int p, int v) const { return insert(p, v); }
     /**
      * @brief Remove variables with size >= k from each permutation.
      * @param k Threshold value.
      * @return A RotPiDD with large variables removed.
      */
-    RotPiDD RemoveMax(int k) const;
+    RotPiDD remove_max(int k) const;
+    /** @deprecated Use remove_max() instead. */
+    RotPiDD RemoveMax(int k) const { return remove_max(k); }
     /**
      * @brief Normalize by removing variables with x > k.
      *
@@ -304,12 +338,16 @@ public:
      * @param v A vector of integers representing a permutation.
      * @return A RotPiDD containing the single permutation.
      */
-    static RotPiDD VECtoRotPiDD(std::vector<int> v);
+    static RotPiDD from_vector(std::vector<int> v);
+    /** @deprecated Use from_vector() instead. */
+    static RotPiDD VECtoRotPiDD(std::vector<int> v) { return from_vector(v); }
     /**
      * @brief Convert to a list of permutation vectors.
      * @return A vector of vectors, each representing a permutation as [1..n].
      */
-    std::vector< std::vector<int> > RotPiDDToVectorOfPerms() const;
+    std::vector< std::vector<int> > to_vector_of_perms() const;
+    /** @deprecated Use to_vector_of_perms() instead. */
+    std::vector< std::vector<int> > RotPiDDToVectorOfPerms() const { return to_vector_of_perms(); }
 
     /**
      * @brief Extract a single permutation from the set.
@@ -319,13 +357,21 @@ public:
      *
      * @return A RotPiDD containing exactly one permutation.
      */
-    RotPiDD Extract_One();
+    RotPiDD extract_one();
+    /** @deprecated Use extract_one() instead. */
+    RotPiDD Extract_One() { return extract_one(); }
     /** @brief Print all permutations to stdout. */
-    void Print() const;
+    void print() const;
+    /** @deprecated Use print() instead. */
+    void Print() const { print(); }
     /** @brief Enumerate all permutations in compact form. */
-    void Enum() const;
+    void enumerate() const;
+    /** @deprecated Use enumerate() instead. */
+    void Enum() const { enumerate(); }
     /** @brief Enumerate all permutations in expanded form. */
-    void Enum2() const;
+    void enumerate2() const;
+    /** @deprecated Use enumerate2() instead. */
+    void Enum2() const { enumerate2(); }
 
     /**
      * @brief Export the internal ZDD as SVG to a file.

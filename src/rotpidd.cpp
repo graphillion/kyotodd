@@ -70,20 +70,20 @@ int RotPiDD_VarUsed()
 }
 
 /* ================================================================ */
-/*  LeftRot                                                          */
+/*  left_rot                                                         */
 /* ================================================================ */
 
-RotPiDD RotPiDD::LeftRot(int u, int v) const
+RotPiDD RotPiDD::left_rot(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (u < 1 || u > RotPiDD_VarUsed() || v < 1 || v > RotPiDD_VarUsed()) {
-        throw std::invalid_argument("RotPiDD::LeftRot: variable out of range");
+        throw std::invalid_argument("RotPiDD::left_rot: variable out of range");
     }
     if (u == v) return *this;
-    if (u < v) return LeftRot(v, u);
+    if (u < v) return left_rot(v, u);
     /* Now u > v */
 
-    int x = TopX();
+    int x = top_x();
     if (x < u) {
         /* All variables are below u; just toggle (u, v) */
         bddvar bv = bddvaroflev(static_cast<bddvar>(RotPiDD_Lev_XY(u, v)));
@@ -98,18 +98,18 @@ RotPiDD RotPiDD::LeftRot(int u, int v) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int y = TopY();
+    int y = top_y();
     RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* Recursive computation based on relationship between [v..u] and [y..x] */
-    RotPiDD np0 = p0.LeftRot(u, v);
+    RotPiDD np0 = p0.left_rot(u, v);
     RotPiDD np1;
     int ny;
 
     if (u < y) {
         /* [v..u] is entirely below [y..x], commutative */
-        np1 = p1.LeftRot(u, v);
+        np1 = p1.left_rot(u, v);
         ny = y;
     } else if (u == y) {
         /* LeftRot(u, v) o LeftRot(x, u) = LeftRot(x, v) */
@@ -117,15 +117,15 @@ RotPiDD RotPiDD::LeftRot(int u, int v) const
         ny = v;
     } else if (v <= y) {
         /* Overlapping: LeftRot(u, v) o LeftRot(x, y) = LeftRot(x, y+1) o LeftRot(u-1, v) */
-        np1 = p1.LeftRot(u - 1, v);
+        np1 = p1.left_rot(u - 1, v);
         ny = y + 1;
     } else {
         /* [v..u] inside [y..x]: LeftRot(u, v) o LeftRot(x, y) = LeftRot(x, y) o LeftRot(u-1, v-1) */
-        np1 = p1.LeftRot(u - 1, v - 1);
+        np1 = p1.left_rot(u - 1, v - 1);
         ny = y;
     }
 
-    RotPiDD r = np0 + np1.LeftRot(x, ny);
+    RotPiDD r = np0 + np1.left_rot(x, ny);
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_LEFTROT, fx, gx, r.zdd_.GetID());
@@ -133,17 +133,17 @@ RotPiDD RotPiDD::LeftRot(int u, int v) const
 }
 
 /* ================================================================ */
-/*  Swap                                                             */
+/*  swap                                                             */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Swap(int a, int b) const
+RotPiDD RotPiDD::swap(int a, int b) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (a < 1 || a > RotPiDD_VarUsed() || b < 1 || b > RotPiDD_VarUsed()) {
-        throw std::invalid_argument("RotPiDD::Swap: variable out of range");
+        throw std::invalid_argument("RotPiDD::swap: variable out of range");
     }
     if (a == b) return *this;
-    if (a > b) return Swap(b, a);
+    if (a > b) return swap(b, a);
     /* Now a < b */
 
     /* Cache lookup */
@@ -153,9 +153,9 @@ RotPiDD RotPiDD::Swap(int a, int b) const
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
     /* Build swap permutation from left rotations */
-    RotPiDD swap_perm = RotPiDD(1).LeftRot(a, b);
+    RotPiDD swap_perm = RotPiDD(1).left_rot(a, b);
     for (int i = b - 1; i >= a + 1; i--) {
-        swap_perm = RotPiDD(1).LeftRot(i - 1, i) * swap_perm;
+        swap_perm = RotPiDD(1).left_rot(i - 1, i) * swap_perm;
     }
 
     RotPiDD r = swap_perm * *this;
@@ -166,17 +166,17 @@ RotPiDD RotPiDD::Swap(int a, int b) const
 }
 
 /* ================================================================ */
-/*  Reverse                                                          */
+/*  reverse                                                          */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Reverse(int l, int r) const
+RotPiDD RotPiDD::reverse(int l, int r) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (l < 1 || l > RotPiDD_VarUsed() || r < 1 || r > RotPiDD_VarUsed()) {
-        throw std::invalid_argument("RotPiDD::Reverse: variable out of range");
+        throw std::invalid_argument("RotPiDD::reverse: variable out of range");
     }
     if (l == r) return *this;
-    if (l > r) return Reverse(r, l);
+    if (l > r) return reverse(r, l);
     /* Now l < r */
 
     /* Cache lookup */
@@ -188,7 +188,7 @@ RotPiDD RotPiDD::Reverse(int l, int r) const
     /* Build reverse permutation from left rotations */
     RotPiDD reverse_perm = RotPiDD(1);
     for (int i = r; i >= l + 1; i--) {
-        reverse_perm = RotPiDD(1).LeftRot(l, i) * reverse_perm;
+        reverse_perm = RotPiDD(1).left_rot(l, i) * reverse_perm;
     }
 
     RotPiDD res = reverse_perm * *this;
@@ -199,18 +199,18 @@ RotPiDD RotPiDD::Reverse(int l, int r) const
 }
 
 /* ================================================================ */
-/*  Cofact                                                           */
+/*  cofact                                                           */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Cofact(int u, int v) const
+RotPiDD RotPiDD::cofact(int u, int v) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (u < 1 || u > RotPiDD_VarUsed() || v < 1 || v > RotPiDD_VarUsed()) {
-        throw std::invalid_argument("RotPiDD::Cofact: variable out of range");
+        throw std::invalid_argument("RotPiDD::cofact: variable out of range");
     }
 
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
 
     /* Terminal / early-exit cases */
     if (x < u || x < v) {
@@ -227,10 +227,10 @@ RotPiDD RotPiDD::Cofact(int u, int v) const
 
     if (x == u) {
         if (y == v) return p1;
-        return p0.Cofact(u, v);
+        return p0.cofact(u, v);
     }
     if (y == v) {
-        return p0.Cofact(u, v);
+        return p0.cofact(u, v);
     }
 
     /* Cache lookup */
@@ -240,11 +240,11 @@ RotPiDD RotPiDD::Cofact(int u, int v) const
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
     /* Recursive computation */
-    RotPiDD r = p0.Cofact(u, v);
+    RotPiDD r = p0.cofact(u, v);
     if (u >= v) {
-        r += p1.Cofact(u, v).LeftRot(x, RotPiDD_Y_YUV(y, u, v));
+        r += p1.cofact(u, v).left_rot(x, RotPiDD_Y_YUV(y, u, v));
     } else {
-        r += p1.Cofact(u, RotPiDD_U_XYU(x, y, v)).LeftRot(x, RotPiDD_Y_YUV(y, v, u));
+        r += p1.cofact(u, RotPiDD_U_XYU(x, y, v)).left_rot(x, RotPiDD_Y_YUV(y, v, u));
     }
 
     /* Cache store */
@@ -272,14 +272,14 @@ RotPiDD operator*(const RotPiDD& p, const RotPiDD& q)
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
     /* Decompose q */
-    int qx = q.TopX();
-    int qy = q.TopY();
+    int qx = q.top_x();
+    int qy = q.top_y();
     bddvar top = q.zdd_.Top();
     RotPiDD q0(q.zdd_.OffSet(top));
     RotPiDD q1(q.zdd_.OnSet0(top));
 
     /* Recursive computation */
-    RotPiDD r = (p * q0) + (p * q1).LeftRot(qx, qy);
+    RotPiDD r = (p * q0) + (p * q1).left_rot(qx, qy);
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_MULT, fx, gx, r.zdd_.GetID());
@@ -287,13 +287,13 @@ RotPiDD operator*(const RotPiDD& p, const RotPiDD& q)
 }
 
 /* ================================================================ */
-/*  Odd / Even                                                       */
+/*  odd / even                                                       */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Odd() const
+RotPiDD RotPiDD::odd() const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
-    if (TopX() == 0) return RotPiDD(0);  /* identity permutation is even */
+    if (top_x() == 0) return RotPiDD(0);  /* identity permutation is even */
 
     /* Cache lookup */
     bddp fx = zdd_.GetID();
@@ -302,8 +302,8 @@ RotPiDD RotPiDD::Odd() const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
     RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
@@ -311,10 +311,10 @@ RotPiDD RotPiDD::Odd() const
     RotPiDD r;
     if ((x - y) % 2 != 0) {
         /* Odd number of transpositions: parity flips */
-        r = p0.Odd() + p1.Even().LeftRot(x, y);
+        r = p0.odd() + p1.even().left_rot(x, y);
     } else {
         /* Even number of transpositions: parity preserved */
-        r = p0.Odd() + p1.Odd().LeftRot(x, y);
+        r = p0.odd() + p1.odd().left_rot(x, y);
     }
 
     /* Cache store */
@@ -322,25 +322,25 @@ RotPiDD RotPiDD::Odd() const
     return r;
 }
 
-RotPiDD RotPiDD::Even() const
+RotPiDD RotPiDD::even() const
 {
-    return *this - this->Odd();
+    return *this - this->odd();
 }
 
 /* ================================================================ */
-/*  RotBound                                                         */
+/*  rot_bound                                                        */
 /* ================================================================ */
 
-RotPiDD RotPiDD::RotBound(int n) const
+RotPiDD RotPiDD::rot_bound(int n) const
 {
     return RotPiDD(zdd_.PermitSym(n));
 }
 
 /* ================================================================ */
-/*  Order                                                            */
+/*  order                                                            */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Order(int a, int b) const
+RotPiDD RotPiDD::order(int a, int b) const
 {
     if (zdd_.GetID() == bddnull) return RotPiDD(-1);
     if (zdd_.GetID() == bddempty) return RotPiDD(0);
@@ -348,7 +348,7 @@ RotPiDD RotPiDD::Order(int a, int b) const
         return (a < b) ? RotPiDD(1) : RotPiDD(0);
     }
 
-    int x = TopX();
+    int x = top_x();
     if (x < a && b < a) return RotPiDD(0);
     if (x < b && a < b) return *this;
 
@@ -360,18 +360,18 @@ RotPiDD RotPiDD::Order(int a, int b) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int y = TopY();
+    int y = top_y();
     RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
-    RotPiDD r = p0.Order(a, b);
+    RotPiDD r = p0.order(a, b);
 
     if (y == b) {
-        r += p1.LeftRot(x, y);
+        r += p1.left_rot(x, y);
     } else if (y != a) {
         int na = (y < a) ? a - 1 : a;
         int nb = (y < b) ? b - 1 : b;
-        r += p1.Order(na, nb).LeftRot(x, y);
+        r += p1.order(na, nb).left_rot(x, y);
     }
     /* if y == a, nothing is added */
 
@@ -381,10 +381,10 @@ RotPiDD RotPiDD::Order(int a, int b) const
 }
 
 /* ================================================================ */
-/*  Inverse                                                          */
+/*  inverse                                                          */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Inverse() const
+RotPiDD RotPiDD::inverse() const
 {
     if (zdd_.GetID() == bddnull || zdd_.GetID() == bddempty || zdd_.GetID() == bddsingle)
         return *this;
@@ -396,18 +396,18 @@ RotPiDD RotPiDD::Inverse() const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
     RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
     /* Build inverse of LeftRot(x, y): right rotation = LeftRot(y,y+1) o ... o LeftRot(x-1,x) */
     RotPiDD invrot(1);
     for (int i = y; i <= x - 1; i++) {
-        invrot = invrot.LeftRot(i, i + 1);
+        invrot = invrot.left_rot(i, i + 1);
     }
 
-    RotPiDD r = p0.Inverse() + invrot * p1.Inverse();
+    RotPiDD r = p0.inverse() + invrot * p1.inverse();
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_INVERSE, fx, 0, r.zdd_.GetID());
@@ -415,10 +415,10 @@ RotPiDD RotPiDD::Inverse() const
 }
 
 /* ================================================================ */
-/*  Insert                                                           */
+/*  insert                                                           */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Insert(int p, int v) const
+RotPiDD RotPiDD::insert(int p, int v) const
 {
     if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull) return *this;
 
@@ -428,11 +428,11 @@ RotPiDD RotPiDD::Insert(int p, int v) const
     ZDD cache_result = BDD_CacheZDD(BDD_OP_ROTPIDD_INSERT, fx, gx);
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
 
     if (zdd_.GetID() == bddsingle || x + 1 < v || x < p) {
-        RotPiDD r = this->LeftRot(p, v);
+        RotPiDD r = this->left_rot(p, v);
         bddwcache(BDD_OP_ROTPIDD_INSERT, fx, gx, r.zdd_.GetID());
         return r;
     }
@@ -447,7 +447,7 @@ RotPiDD RotPiDD::Insert(int p, int v) const
     int np = p;
     int nv = v - (y < v ? 1 : 0);
 
-    RotPiDD r = p0.Insert(p, v) + p1.Insert(np, nv).LeftRot(nx, ny);
+    RotPiDD r = p0.insert(p, v) + p1.insert(np, nv).left_rot(nx, ny);
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_INSERT, fx, gx, r.zdd_.GetID());
@@ -455,15 +455,15 @@ RotPiDD RotPiDD::Insert(int p, int v) const
 }
 
 /* ================================================================ */
-/*  RemoveMax                                                        */
+/*  remove_max                                                       */
 /* ================================================================ */
 
-RotPiDD RotPiDD::RemoveMax(int k) const
+RotPiDD RotPiDD::remove_max(int k) const
 {
     if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull || zdd_.GetID() == bddsingle)
         return *this;
 
-    int x = TopX();
+    int x = top_x();
     if (x < k) return *this;
 
     /* Cache lookup */
@@ -474,11 +474,11 @@ RotPiDD RotPiDD::RemoveMax(int k) const
 
     /* Shannon decomposition */
     bddvar top = zdd_.Top();
-    int y = TopY();
+    int y = top_y();
     RotPiDD p0(zdd_.OffSet(top));
     RotPiDD p1(zdd_.OnSet0(top));
 
-    RotPiDD r = p0.RemoveMax(k) + p1.RemoveMax(k - 1).LeftRot(x - 1, y);
+    RotPiDD r = p0.remove_max(k) + p1.remove_max(k - 1).left_rot(x - 1, y);
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_REMOVEMAX, fx, gx, r.zdd_.GetID());
@@ -491,7 +491,7 @@ RotPiDD RotPiDD::RemoveMax(int k) const
 
 RotPiDD RotPiDD::normalizeRotPiDD(int k) const
 {
-    int x = TopX();
+    int x = top_x();
     if (x <= k) return *this;
 
     /* Cache lookup */
@@ -526,10 +526,10 @@ void RotPiDD::normalizePerm(std::vector<int>& v)
 }
 
 /* ================================================================ */
-/*  Conversion: VECtoRotPiDD                                         */
+/*  Conversion: from_vector                                          */
 /* ================================================================ */
 
-RotPiDD RotPiDD::VECtoRotPiDD(std::vector<int> v)
+RotPiDD RotPiDD::from_vector(std::vector<int> v)
 {
     normalizePerm(v);
     int n = static_cast<int>(v.size());
@@ -557,13 +557,13 @@ RotPiDD RotPiDD::VECtoRotPiDD(std::vector<int> v)
     /* Build RotPiDD from rotations (apply in reverse order) */
     RotPiDD res(1);
     for (int i = static_cast<int>(rots.size()) - 1; i >= 0; i--) {
-        res = res.LeftRot(rots[i].first, rots[i].second);
+        res = res.left_rot(rots[i].first, rots[i].second);
     }
     return res;
 }
 
 /* ================================================================ */
-/*  Conversion: RotPiDDToVectorOfPerms                               */
+/*  Conversion: to_vector_of_perms                                   */
 /* ================================================================ */
 
 static int* RotPiDD_ToVec_VarMap;
@@ -579,12 +579,12 @@ static void RotPiDD_ToVecOfPerms(RotPiDD p, int dim,
         return;
     }
 
-    int x = p.TopX();
-    int y = p.TopY();
+    int x = p.top_x();
+    int y = p.top_y();
 
     /* p1 = part with LeftRot(x, y); p0 = part without */
-    RotPiDD p1 = p.Cofact(x, y);
-    RotPiDD p0 = p - p1.LeftRot(x, y);
+    RotPiDD p1 = p.cofact(x, y);
+    RotPiDD p0 = p - p1.left_rot(x, y);
 
     /* Enumerate p0 (VarMap unchanged) */
     RotPiDD_ToVecOfPerms(p0, dim, result);
@@ -603,7 +603,7 @@ static void RotPiDD_ToVecOfPerms(RotPiDD p, int dim,
                 RotPiDD_ToVec_VarMap + x);
 }
 
-std::vector< std::vector<int> > RotPiDD::RotPiDDToVectorOfPerms() const
+std::vector< std::vector<int> > RotPiDD::to_vector_of_perms() const
 {
     std::vector< std::vector<int> > result;
     if (*this == RotPiDD(0)) return result;
@@ -619,24 +619,24 @@ std::vector< std::vector<int> > RotPiDD::RotPiDDToVectorOfPerms() const
 }
 
 /* ================================================================ */
-/*  Extract_One                                                      */
+/*  extract_one                                                      */
 /* ================================================================ */
 
-RotPiDD RotPiDD::Extract_One()
+RotPiDD RotPiDD::extract_one()
 {
     if (zdd_.GetID() == bddsingle || zdd_.GetID() == bddempty || zdd_.GetID() == bddnull)
         return *this;
 
     bddvar top = zdd_.Top();
     RotPiDD p1(zdd_.OnSet0(top));
-    return RotPiDD(p1).Extract_One().LeftRot(TopX(), TopY());
+    return RotPiDD(p1).extract_one().left_rot(top_x(), top_y());
 }
 
 /* ================================================================ */
-/*  Print                                                            */
+/*  print                                                            */
 /* ================================================================ */
 
-void RotPiDD::Print() const
+void RotPiDD::print() const
 {
     zdd_.Print();
 }
@@ -665,12 +665,12 @@ static void RotPiDD_EnumRec(RotPiDD p, int dim)
         return;
     }
 
-    int x = p.TopX();
-    int y = p.TopY();
+    int x = p.top_x();
+    int y = p.top_y();
 
     /* p1 = part with LeftRot(x, y); p0 = part without */
-    RotPiDD p1 = p.Cofact(x, y);
-    RotPiDD p0 = p - p1.LeftRot(x, y);
+    RotPiDD p1 = p.cofact(x, y);
+    RotPiDD p0 = p - p1.left_rot(x, y);
 
     /* Enumerate p0 first */
     RotPiDD_EnumRec(p0, dim);
@@ -688,7 +688,7 @@ static void RotPiDD_EnumRec(RotPiDD p, int dim)
                 RotPiDD_Enum_VarMap + x);
 }
 
-void RotPiDD::Enum() const
+void RotPiDD::enumerate() const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)"; return; }
     if (*this == RotPiDD(0)) { std::cout << "0"; return; }
@@ -734,13 +734,13 @@ static void RotPiDD_Enum2Rec(RotPiDD p)
         return;
     }
 
-    int x = p.TopX();
-    int y = p.TopY();
-    int lev = p.TopLev();
+    int x = p.top_x();
+    int y = p.top_y();
+    int lev = p.top_lev();
 
     /* p1 = part with LeftRot(x, y); p0 = part without */
-    RotPiDD p1 = p.Cofact(x, y);
-    RotPiDD p0 = p - p1.LeftRot(x, y);
+    RotPiDD p1 = p.cofact(x, y);
+    RotPiDD p0 = p - p1.left_rot(x, y);
 
     /* Enumerate p0 first */
     RotPiDD_Enum2Rec(p0);
@@ -754,7 +754,7 @@ static void RotPiDD_Enum2Rec(RotPiDD p)
     RotPiDD_Enum2_Depth--;
 }
 
-void RotPiDD::Enum2() const
+void RotPiDD::enumerate2() const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)" << std::endl; return; }
     if (*this == RotPiDD(0)) { std::cout << "0" << std::endl; return; }
@@ -802,8 +802,8 @@ long long int RotPiDD::contradictionMaximization(
         return 0;
     }
 
-    int x = TopX();
-    int y = TopY();
+    int x = top_x();
+    int y = top_y();
     bddvar top = zdd_.Top();
 
     /* Mark elements from x to n-1 as used */
