@@ -627,8 +627,10 @@ void ZDD::print() const {
 void ZDD::print_pla() const {
     if (root == bddnull) return;
 
-    bddvar tv = top();
-    bddvar tlev = bddlevofvar(tv);
+    // Use the total number of declared variables for .i, not just the
+    // ZDD's top level. This ensures all variables appear in the PLA
+    // output even if some are not in the ZDD's support.
+    bddvar tlev = bddvarused();
 
     std::cout << ".i " << tlev << "\n";
     std::cout << ".o 1" << "\n";
@@ -680,8 +682,8 @@ static const uint8_t BDD_OP_ZSKIP = 65;
 
 // ZLevNum: compute the skip-target level for a given level n.
 // Returns n - (skip width), i.e. the level to skip to.
-static int zlevnum(int n) {
-    int skip;
+static bddvar zlevnum(bddvar n) {
+    bddvar skip;
     switch (n & 3) {
     case 3: // bit1=1, bit0=1: largest skip
         if      (n < 16)    skip = 4;
@@ -722,7 +724,7 @@ static int zlevnum(int n) {
     return n - skip;
 }
 
-ZDD ZDD::zlev(int lev, int last) const {
+ZDD ZDD::zlev(bddvar lev, int last) const {
     // Propagate bddnull
     if (root == bddnull) return ZDD(-1);
 
@@ -732,8 +734,8 @@ ZDD ZDD::zlev(int lev, int last) const {
     // structure is identical and only ∅ membership differs.
     bool comp = (root & BDD_COMP_FLAG) != 0;
 
-    // Base case: lev <= 0
-    if (lev <= 0) {
+    // Base case: lev == 0
+    if (lev == 0) {
         // Return intersection with constant 1 (single).
         // This yields {∅} if ∅ ∈ F, else ∅.
         if (bddhasempty(root))
@@ -746,12 +748,12 @@ ZDD ZDD::zlev(int lev, int last) const {
     ZDD f = comp ? ZDD_ID(root & ~static_cast<bddp>(BDD_COMP_FLAG)) : *this;
     ZDD u = f;
     bddvar ftop = f.top();
-    int flev = static_cast<int>(bddlevofvar(ftop));
+    bddvar flev = bddlevofvar(ftop);
 
     while (flev > lev) {
         // 3a. Skip acceleration (when level gap >= 5)
         if (flev - lev >= 5) {
-            int n = zlevnum(flev);
+            bddvar n = zlevnum(flev);
 
             // Safety check (overshoot prevention)
             if (flev >= 66) {
@@ -775,11 +777,11 @@ ZDD ZDD::zlev(int lev, int last) const {
                 if (cached != bddnull) {
                     ZDD g = ZDD_ID(cached);
                     bddvar gtop = g.top();
-                    int glev = static_cast<int>(bddlevofvar(gtop));
+                    bddvar glev = bddlevofvar(gtop);
                     if (glev >= lev) {
                         f = g;
                         ftop = f.top();
-                        flev = static_cast<int>(bddlevofvar(ftop));
+                        flev = bddlevofvar(ftop);
                         continue;
                     }
                 }
@@ -790,7 +792,7 @@ ZDD ZDD::zlev(int lev, int last) const {
         u = f;
         f = f.offset(ftop);
         ftop = f.top();
-        flev = static_cast<int>(bddlevofvar(ftop));
+        flev = bddlevofvar(ftop);
     }
 
     // Select result
@@ -823,7 +825,7 @@ void ZDD::set_zskip() const {
 
     // Early exit: level <= 4
     bddvar tv = top();
-    int tlev = static_cast<int>(bddlevofvar(tv));
+    bddvar tlev = bddlevofvar(tv);
     if (tlev <= 4) return;
 
     // Already cached?
@@ -837,7 +839,7 @@ void ZDD::set_zskip() const {
     f0.set_zskip();
 
     // Compute skip target
-    int n = zlevnum(tlev);
+    bddvar n = zlevnum(tlev);
     ZDD skip_target = zlev(n, 1);
 
     // Avoid self-loop
@@ -845,12 +847,14 @@ void ZDD::set_zskip() const {
         skip_target = f0;
     }
 
-    // Write to cache (root is already raw, skip_target is also raw)
-    bddwcache(BDD_OP_ZSKIP, root, root, skip_target.root);
-
     // Recurse on 1-branch (OnSet0)
     ZDD f1 = onset0(tv);
     f1.set_zskip();
+
+    // Write to cache AFTER all recursion completes, so that if an
+    // exception occurs during subtree processing, the root entry
+    // is not left in a partially-constructed state.
+    bddwcache(BDD_OP_ZSKIP, root, root, skip_target.root);
 }
 
 bigint::BigInt ZDD::get_sum(const std::vector<int>& weights) const {

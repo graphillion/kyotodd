@@ -1283,9 +1283,9 @@ public:
     /** @brief Adjust ZDD to a given number of levels.
      *  @param lev Target number of levels.
      *  @param last Last level. */
-    ZDD zlev(int lev, int last) const;
+    ZDD zlev(bddvar lev, int last) const;
     /** @deprecated Use zlev() instead. */
-    ZDD ZLev(int lev, int last) const { return zlev(lev, last); }
+    ZDD ZLev(bddvar lev, int last) const { return zlev(lev, last); }
     /** @brief Set ZDD skip flags. */
     void set_zskip() const;
     /** @deprecated Use set_zskip() instead. */

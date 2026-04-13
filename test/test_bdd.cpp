@@ -16386,6 +16386,41 @@ TEST_F(BDDTest, ZDD_PrintPla_AllCombinations) {
     EXPECT_EQ(oss.str(), ".i 2\n.o 1\n11 1\n01 1\n10 1\n00 1\n.e\n");
 }
 
+TEST_F(BDDTest, ZDD_PrintPla_VarsAboveSupport) {
+    // When variables exist above the ZDD's support, .i should still
+    // reflect the total number of declared variables.
+    bddvar v1 = bddnewvar();  // level 1
+    bddvar v2 = bddnewvar();  // level 2 (not used in ZDD)
+    (void)v2;
+
+    ZDD z_v1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));  // {{v1}}
+
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    z_v1.print_pla();
+    std::cout.rdbuf(old);
+    // .i should be 2 (total declared vars), not 1 (top level of ZDD)
+    // cube "10" means v1=1, v2=0
+    EXPECT_EQ(oss.str(), ".i 2\n.o 1\n10 1\n.e\n");
+}
+
+TEST_F(BDDTest, ZDD_PrintPla_EmptySetWithExtraVars) {
+    // {∅} (single/unit family) with extra declared variables
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    (void)v1;
+    (void)v2;
+
+    ZDD s(1);  // {∅}
+
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    s.print_pla();
+    std::cout.rdbuf(old);
+    // ∅ = all variables absent → "00 1"
+    EXPECT_EQ(oss.str(), ".i 2\n.o 1\n00 1\n.e\n");
+}
+
 TEST_F(BDDTest, ZDD_Zlev_Empty) {
     ZDD e(0);
     // zlev on empty family: always returns empty
