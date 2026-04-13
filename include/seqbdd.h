@@ -72,31 +72,43 @@ public:
      * @return The variable number at the root of the internal ZDD.
      */
     int top() const { return static_cast<int>(zdd_.Top()); }
+    /** @deprecated Use top() instead. */
+    int Top() const { return top(); }
     /**
      * @brief Get the internal ZDD representation.
      * @return A copy of the internal ZDD.
      */
     ZDD get_zdd() const { return zdd_; }
+    /** @deprecated Use get_zdd() instead. */
+    ZDD GetZDD() const { return get_zdd(); }
     /**
      * @brief Get the number of nodes in the internal ZDD.
      * @return The node count.
      */
     uint64_t size() const { return zdd_.Size(); }
+    /** @deprecated Use size() instead. */
+    uint64_t Size() const { return size(); }
     /**
      * @brief Get the number of sequences in the set.
      * @return The cardinality (number of sequences).
      */
     uint64_t card() const { return zdd_.Card(); }
+    /** @deprecated Use card() instead. */
+    uint64_t Card() const { return card(); }
     /**
      * @brief Get the total symbol count across all sequences.
      * @return The sum of lengths of all sequences.
      */
     uint64_t lit() const { return zdd_.Lit(); }
+    /** @deprecated Use lit() instead. */
+    uint64_t Lit() const { return lit(); }
     /**
      * @brief Get the length of the longest sequence.
      * @return The maximum sequence length.
      */
     uint64_t len() const { return zdd_.Len(); }
+    /** @deprecated Use len() instead. */
+    uint64_t Len() const { return len(); }
 
     /**
      * @brief Remove sequences starting with variable v (offset).
@@ -104,6 +116,8 @@ public:
      * @return A SeqBDD without sequences starting with v.
      */
     SeqBDD off_set(int v) const;
+    /** @deprecated Use off_set() instead. */
+    SeqBDD OffSet(int v) const { return off_set(v); }
     /**
      * @brief Extract suffixes of sequences starting with v (onset with strip).
      *
@@ -113,35 +127,49 @@ public:
      * @return A SeqBDD of suffixes after stripping the leading v.
      */
     SeqBDD on_set0(int v) const;
+    /** @deprecated Use on_set0() instead. */
+    SeqBDD OnSet0(int v) const { return on_set0(v); }
     /**
      * @brief Extract sequences starting with variable v (onset).
      * @param v Variable number.
      * @return A SeqBDD of sequences that start with v.
      */
     SeqBDD on_set(int v) const;
+    /** @deprecated Use on_set() instead. */
+    SeqBDD OnSet(int v) const { return on_set(v); }
     /**
      * @brief Prepend variable v to all sequences.
      * @param v Variable number to prepend.
      * @return A SeqBDD with v prepended to every sequence.
      */
     SeqBDD push(int v) const;
+    /** @deprecated Use push() instead. */
+    SeqBDD Push(int v) const { return push(v); }
 
     /** @brief Print all sequences to stdout.
      * @note C++ only. Not available in the Python binding.
      *       Use print_seq() or seq_str() instead. */
     void print() const;
+    /** @deprecated Use print() instead. */
+    void Print() const { print(); }
     /**
      * @brief Export the internal ZDD in Sapporo format to a FILE stream.
      * @param strm FILE pointer (default: stdout).
      */
     void export_to(FILE* strm = stdout) const;
+    /** @deprecated Use export_to() instead. */
+    void Export(FILE* strm = stdout) const { export_to(strm); }
     /**
      * @brief Export the internal ZDD in Sapporo format to an output stream.
      * @param strm Output stream.
      */
     void export_to(std::ostream& strm) const;
+    /** @deprecated Use export_to() instead. */
+    void Export(std::ostream& strm) const { export_to(strm); }
     /** @brief Print all sequences in a human-readable format. */
     void print_seq() const;
+    /** @deprecated Use print_seq() instead. */
+    void PrintSeq() const { print_seq(); }
     /**
      * @brief Get all sequences as a string.
      * @return A string representation of all sequences.
