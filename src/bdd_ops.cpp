@@ -23,6 +23,29 @@ bddp bddand(bddp f, bddp g) {
     return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
 }
 
+bddp bddand(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddand");
+    bddp_validate(g, "bddand");
+    if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddfalse || g == bddfalse) return bddfalse;
+    if (f == bddtrue) return g;
+    if (g == bddtrue) return f;
+    if (f == g) return f;
+    if (f == bddnot(g)) return bddfalse;
+
+    // Normalize operand order (AND is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddand_iter(f, g); });
+    case BddExecMode::Recursive:
+    default:
+        return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+    }
+}
+
 static bddp bddand_rec(bddp f, bddp g) {
     BDD_RecurGuard guard;
     // Terminal cases

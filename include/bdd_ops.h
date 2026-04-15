@@ -24,6 +24,26 @@ inline bddp bddnot(bddp p) { if (p == bddnull) return bddnull; return p ^ BDD_CO
 bddp bddand(bddp f, bddp g);
 
 /**
+ * @brief Logical AND of two BDDs with execution mode selection.
+ * @param f First operand.
+ * @param g Second operand.
+ * @param mode Execution mode (Recursive or Iterative).
+ * @return The BDD for f AND g, or bddnull if either input is bddnull.
+ */
+bddp bddand(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddand.
+ *
+ * Uses an explicit heap stack. No recursion depth limit.
+ * Inputs must be pre-validated and normalized (f <= g, no null/terminal fast-paths).
+ * @param f First operand.
+ * @param g Second operand.
+ * @return The BDD for f AND g.
+ */
+bddp bddand_iter(bddp f, bddp g);
+
+/**
  * @brief Logical OR of two BDDs.
  * @param f First operand.
  * @param g Second operand.

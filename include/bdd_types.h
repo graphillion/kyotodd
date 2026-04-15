@@ -165,6 +165,14 @@ enum class WeightMode {
     Product  ///< w(S) = product of weights[v] for v in S. Empty set weight = 1.
 };
 
+/** @brief Execution mode for BDD operations. */
+enum class BddExecMode {
+    Recursive, ///< Use recursive implementation (default, uses call stack).
+    Iterative  ///< Use iterative implementation (explicit heap stack, no depth limit).
+};
+static constexpr BddExecMode BDD_EXEC_RECURSIVE = BddExecMode::Recursive;
+static constexpr BddExecMode BDD_EXEC_ITERATIVE = BddExecMode::Iterative;
+
 /**
  * @brief Memo for ZDD exact counting, associated with a specific ZDD root.
  *

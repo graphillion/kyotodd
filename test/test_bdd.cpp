@@ -393,6 +393,145 @@ TEST_F(BDDTest, OperatorAndWithTrue) {
     EXPECT_EQ(result.GetID(), a.GetID());
 }
 
+// --- bddand: parameterized tests for Recursive/Iterative modes ---
+
+class BddAndModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddand_mode(bddp f, bddp g) {
+        return bddand(f, g, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddAndModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        return info.param == BddExecMode::Recursive ? "Recursive" : "Iterative";
+    }
+);
+
+TEST_P(BddAndModeTest, Terminals) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+
+    EXPECT_EQ(bddand_mode(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bddand_mode(bddfalse, bddtrue), bddfalse);
+    EXPECT_EQ(bddand_mode(bddtrue, bddfalse), bddfalse);
+    EXPECT_EQ(bddand_mode(bddtrue, bddtrue), bddtrue);
+
+    EXPECT_EQ(bddand_mode(p, bddfalse), bddfalse);
+    EXPECT_EQ(bddand_mode(bddfalse, p), bddfalse);
+    EXPECT_EQ(bddand_mode(p, bddtrue), p);
+    EXPECT_EQ(bddand_mode(bddtrue, p), p);
+}
+
+TEST_P(BddAndModeTest, Self) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddand_mode(p, p), p);
+}
+
+TEST_P(BddAndModeTest, Complement) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddand_mode(p, bddnot(p)), bddfalse);
+}
+
+TEST_P(BddAndModeTest, TwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp result = bddand_mode(p1, p2);
+
+    EXPECT_EQ(result & BDD_CONST_FLAG, 0u);
+    EXPECT_EQ(bddand_mode(p1, p2), result);
+}
+
+TEST_P(BddAndModeTest, Commutativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddand_mode(p1, p2), bddand_mode(p2, p1));
+}
+
+TEST_P(BddAndModeTest, Associativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    EXPECT_EQ(bddand_mode(bddand_mode(p1, p2), p3),
+              bddand_mode(p1, bddand_mode(p2, p3)));
+}
+
+TEST_P(BddAndModeTest, WithNot) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+
+    bddp result = bddand_mode(p1, bddnot(p2));
+    EXPECT_NE(result, bddfalse);
+    EXPECT_NE(result, bddtrue);
+
+    EXPECT_EQ(bddand_mode(bddnot(p1), bddnot(p1)), bddnot(p1));
+}
+
+TEST_P(BddAndModeTest, CrossValidation) {
+    // Build a moderately complex BDD and verify both modes produce the same result
+    const int n = 10;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    // f = x1 & x2 & ... & x5
+    bddp f = bddtrue;
+    for (int i = 1; i <= 5; ++i)
+        f = bddand_mode(f, bddprime(i));
+
+    // g = x3 & x4 & ... & x8
+    bddp g = bddtrue;
+    for (int i = 3; i <= 8; ++i)
+        g = bddand_mode(g, bddprime(i));
+
+    bddp result = bddand_mode(f, g);
+
+    // Cross-validate against the 2-argument (recursive) version
+    bddp f2 = bddtrue;
+    for (int i = 1; i <= 5; ++i)
+        f2 = bddand(f2, bddprime(i));
+    bddp g2 = bddtrue;
+    for (int i = 3; i <= 8; ++i)
+        g2 = bddand(g2, bddprime(i));
+    bddp expected = bddand(f2, g2);
+
+    EXPECT_EQ(result, expected);
+}
+
+TEST_P(BddAndModeTest, CacheSharing) {
+    // Verify that a result cached by one mode is found by the other
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+
+    // Compute with current mode
+    bddp r1 = bddand_mode(bddand_mode(p1, p2), p3);
+
+    // Compute with original 2-arg recursive version
+    bddp r2 = bddand(bddand(p1, p2), p3);
+
+    EXPECT_EQ(r1, r2);
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {

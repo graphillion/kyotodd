@@ -14,6 +14,7 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_class.cpp
   src/bdd_io.cpp
   src/bdd_ops.cpp
+  src/bdd_ops_iter.cpp
   src/zdd_ops.cpp
   src/zdd_adv.cpp
   src/zdd_adv2.cpp

@@ -159,6 +159,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Uses BDD complement edge semantics (both children flipped).
 - Operators: `&` (AND), `|` (OR), `^` (XOR), `~` (NOT), `<<` / `>>` (shift), `==`, `!=`.
 - Free functions: `bddnand()`, `bddnor()`, `bddxnor()`, `bddsmooth()`, `bddspread()`.
+- Execution mode: `bddand(f, g, BddExecMode mode)` — select recursive or iterative implementation. `BddExecMode::Recursive` (default) or `BddExecMode::Iterative` (explicit heap stack, no depth limit). Shorthand constants: `BDD_EXEC_RECURSIVE`, `BDD_EXEC_ITERATIVE`. `bddand_iter(f, g)` — direct call to iterative implementation.
 - Cofactor/quantification: `At0(v)`, `At1(v)`, `Exist()`, `Univ()`, `Cofactor()`, `Swap()`.
 - Support: `Support()` (support set as BDD), `SupportVec()` (as vector). `Imply(g)` (implication check).
 - ITE: `BDD::Ite(f, g, h)` — static if-then-else.
@@ -393,6 +394,7 @@ data[0] bits [31:0]  : lo_hi   (upper 32 bits of 0-arc)
 - `include/zdd_weight_iter.h` — ZddMinWeightIterator/ZddMaxWeightIterator declarations
 - `src/bdd_base.cpp` — Global variables, initialization, variable management, unique table, cache, node creation
 - `src/bdd_ops.cpp` — BDD operations (and, or, xor, ite, cofactor, quantification, etc.)
+- `src/bdd_ops_iter.cpp` — Iterative (non-recursive) BDD operations (bddand_iter, etc.)
 - `src/zdd_ops.cpp` — ZDD basic operations (offset, onset, change, union, intersec, subtract, div, join, meet, delta, etc.)
 - `src/zdd_adv.cpp` — ZDD advanced operations (disjoin, restrict, permit, nonsup, nonsub, maximal, minimal, minhit, closure, card, etc.)
 - `src/zdd_adv2.cpp` — ZDD additional operations (permitsym, always, symchk, implychk, coimplychk, implyset, coimplyset, symset, etc.)
