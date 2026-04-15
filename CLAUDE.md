@@ -159,7 +159,7 @@ SeqBDD, PiDD, and RotPiDD do NOT inherit from DDBase. They use composition (wrap
 - Uses BDD complement edge semantics (both children flipped).
 - Operators: `&` (AND), `|` (OR), `^` (XOR), `~` (NOT), `<<` / `>>` (shift), `==`, `!=`.
 - Free functions: `bddnand()`, `bddnor()`, `bddxnor()`, `bddsmooth()`, `bddspread()`.
-- Execution mode: `bddand(f, g, BddExecMode mode)` — select recursive or iterative implementation. `BddExecMode::Recursive` (default) or `BddExecMode::Iterative` (explicit heap stack, no depth limit). Shorthand constants: `BDD_EXEC_RECURSIVE`, `BDD_EXEC_ITERATIVE`. `bddand_iter(f, g)` — direct call to iterative implementation.
+- Execution mode: `bddand(f, g, BddExecMode mode)` — select recursive or iterative implementation. `BddExecMode::Auto` (default), `BddExecMode::Recursive`, or `BddExecMode::Iterative`. Auto selects recursive if `max(level(f), level(g)) <= BDD_RecurLimit`, else iterative. The 2-argument `bddand(f, g)` uses Auto mode. Shorthand constants: `BDD_EXEC_AUTO`, `BDD_EXEC_RECURSIVE`, `BDD_EXEC_ITERATIVE`. `bddand_iter(f, g)` — direct call to iterative implementation.
 - Cofactor/quantification: `At0(v)`, `At1(v)`, `Exist()`, `Univ()`, `Cofactor()`, `Swap()`.
 - Support: `Support()` (support set as BDD), `SupportVec()` (as vector). `Imply(g)` (implication check).
 - ITE: `BDD::Ite(f, g, h)` — static if-then-else.

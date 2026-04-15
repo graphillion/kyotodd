@@ -167,11 +167,13 @@ enum class WeightMode {
 
 /** @brief Execution mode for BDD operations. */
 enum class BddExecMode {
-    Recursive, ///< Use recursive implementation (default, uses call stack).
-    Iterative  ///< Use iterative implementation (explicit heap stack, no depth limit).
+    Recursive, ///< Use recursive implementation (uses call stack).
+    Iterative, ///< Use iterative implementation (explicit heap stack, no depth limit).
+    Auto       ///< Auto-select: recursive if max operand level <= BDD_RecurLimit, else iterative.
 };
 static constexpr BddExecMode BDD_EXEC_RECURSIVE = BddExecMode::Recursive;
 static constexpr BddExecMode BDD_EXEC_ITERATIVE = BddExecMode::Iterative;
+static constexpr BddExecMode BDD_EXEC_AUTO = BddExecMode::Auto;
 
 /**
  * @brief Memo for ZDD exact counting, associated with a specific ZDD root.

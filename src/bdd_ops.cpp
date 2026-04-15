@@ -20,7 +20,13 @@ bddp bddand(bddp f, bddp g) {
     // Normalize operand order (AND is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+    // Auto mode: choose based on max operand level vs BDD_RecurLimit
+    bddvar max_level = std::max(var2level[node_var(f)], var2level[node_var(g)]);
+    if (max_level <= static_cast<bddvar>(BDD_RecurLimit)) {
+        return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddand_iter(f, g); });
+    }
 }
 
 bddp bddand(bddp f, bddp g, BddExecMode mode) {
@@ -41,8 +47,16 @@ bddp bddand(bddp f, bddp g, BddExecMode mode) {
     case BddExecMode::Iterative:
         return bdd_gc_guard([&]() -> bddp { return bddand_iter(f, g); });
     case BddExecMode::Recursive:
-    default:
         return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+    case BddExecMode::Auto:
+    default: {
+        bddvar max_level = std::max(var2level[node_var(f)], var2level[node_var(g)]);
+        if (max_level <= static_cast<bddvar>(BDD_RecurLimit)) {
+            return bdd_gc_guard([&]() -> bddp { return bddand_rec(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddand_iter(f, g); });
+        }
+    }
     }
 }
 

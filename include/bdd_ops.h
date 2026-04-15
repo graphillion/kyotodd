@@ -27,7 +27,8 @@ bddp bddand(bddp f, bddp g);
  * @brief Logical AND of two BDDs with execution mode selection.
  * @param f First operand.
  * @param g Second operand.
- * @param mode Execution mode (Recursive or Iterative).
+ * @param mode Execution mode (Recursive, Iterative, or Auto).
+ *             Auto selects recursive if max operand level <= BDD_RecurLimit, else iterative.
  * @return The BDD for f AND g, or bddnull if either input is bddnull.
  */
 bddp bddand(bddp f, bddp g, BddExecMode mode);

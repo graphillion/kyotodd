@@ -409,9 +409,14 @@ protected:
 INSTANTIATE_TEST_SUITE_P(
     ExecModes,
     BddAndModeTest,
-    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative),
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
     [](const ::testing::TestParamInfo<BddExecMode>& info) {
-        return info.param == BddExecMode::Recursive ? "Recursive" : "Iterative";
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
     }
 );
 
