@@ -154,6 +154,7 @@ void SeqBDD::export_to(std::ostream& strm) const
 static void print_seq_rec(std::ostream& os, SeqBDD f,
                           std::vector<int>& arr, int& idx, bool& flag)
 {
+    BDD_RecurGuard guard;
     /* Check if empty sequence (epsilon) is in f */
     if ((f & SeqBDD(1)) == SeqBDD(1)) {
         if (flag) os << " + ";

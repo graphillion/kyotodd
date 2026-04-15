@@ -326,6 +326,7 @@ void ZBDDV::Export(FILE* strm) const {
 // Internal recursive helper for PrintPla
 static int PrintPla_rec(const ZBDDV& fv, int top_var, int n_out,
                         std::string& pattern) {
+    BDD_RecurGuard guard;
     if (top_var == 0) {
         // Terminal: output the product term
         bool all_empty = true;

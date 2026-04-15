@@ -376,6 +376,7 @@ int ZDD_Import(std::istream& strm, std::vector<ZDD>& v) {
 // --- bdddump / bddvdump ---
 
 static void dump_rec(bddp f, std::unordered_set<bddp>& visited) {
+    BDD_RecurGuard guard;
     bddp node = f & ~BDD_COMP_FLAG;
     if (node & BDD_CONST_FLAG) return;
     if (!visited.insert(node).second) return;

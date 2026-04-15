@@ -442,6 +442,7 @@ static bddp mtzdd_from_zdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op
 
 static inline double mtzdd_count_rec(
     bddp f, std::unordered_map<bddp, double>& memo) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) {
         uint64_t idx = f & ~BDD_CONST_FLAG;
         return (idx == 0) ? 0.0 : 1.0;
@@ -459,6 +460,7 @@ static inline double mtzdd_count_rec(
 
 static inline bigint::BigInt mtzdd_exact_count_rec(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) {
         uint64_t idx = f & ~BDD_CONST_FLAG;
         return (idx == 0) ? bigint::BigInt(0) : bigint::BigInt(1);
@@ -479,6 +481,7 @@ static inline bigint::BigInt mtzdd_exact_count_rec(
 
 static inline double mtzdd_count_for_terminal_rec(
     bddp f, bddp target, std::unordered_map<bddp, double>& memo) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) {
         return (f == target) ? 1.0 : 0.0;
     }
@@ -496,6 +499,7 @@ static inline double mtzdd_count_for_terminal_rec(
 
 static inline bigint::BigInt mtzdd_exact_count_for_terminal_rec(
     bddp f, bddp target, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) {
         return (f == target) ? bigint::BigInt(1) : bigint::BigInt(0);
     }
@@ -697,6 +701,7 @@ static void mtzdd_enumerate_rec(
     std::vector<bddvar>& current,
     std::vector<std::pair<std::vector<bddvar>, T> >& result)
 {
+    BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) {
         uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
         T val = MTBDDTerminalTable<T>::instance().get_value(idx);

@@ -612,6 +612,7 @@ SOP SOP_ISOP(BDD on, BDD dc)
 
 static BCpair ISOP_rec(BDD s, BDD r)
 {
+    BDD_RecurGuard guard;
     bddp sp = s.GetID();
     bddp rp = r.GetID();
 
@@ -860,6 +861,7 @@ void SOPV::Print() const
 static void PrintPla_rec(const SOPV& sv, int lev, int min_lev,
                          int nin, std::vector<char>& buf, int nout)
 {
+    BDD_RecurGuard guard;
     if (lev < min_lev) {
         /* At terminal: print this cube */
         /* Input section */

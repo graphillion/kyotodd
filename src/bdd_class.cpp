@@ -232,6 +232,7 @@ std::vector<bddvar> BDD::uniform_sample_impl(
 
 static void enumerate_rec(bddp f, std::vector<bddvar>& current,
                           std::vector<std::vector<bddvar>>& result) {
+    BDD_RecurGuard guard;
     if (f == bddempty) return;
     if (f == bddsingle) {
         result.push_back(current);
@@ -440,6 +441,7 @@ ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
 // sorted_vars is sorted by level descending so the root has the highest level.
 static bddp combination_rec(const std::vector<bddvar>& sorted_vars,
                              size_t idx, bddvar k) {
+    BDD_RecurGuard guard;
     bddvar remaining = static_cast<bddvar>(sorted_vars.size() - idx);
     if (k == 0) return bddsingle;
     if (remaining < k) return bddempty;  // not enough variables left
@@ -488,6 +490,7 @@ static void print_sets_rec(std::ostream& os, bddp f,
                            const std::string& delim1,
                            const std::string& delim2,
                            const std::vector<std::string>* var_name_map) {
+    BDD_RecurGuard guard;
     if (f == bddempty) return;
     if (f == bddsingle) {
         if (!first_set) os << delim1;

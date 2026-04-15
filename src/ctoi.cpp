@@ -904,6 +904,7 @@ int CtoI::StrNum16(char* s) const
 
 static int PutForm_rec(const CtoI& c, std::vector<int>& varstack, int first)
 {
+    BDD_RecurGuard guard;
     if (c.GetZBDD() == ZDD(-1)) return 1;
     if (c == CtoI(0)) return 0;
 
