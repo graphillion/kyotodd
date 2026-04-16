@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <functional>
 #include <cmath>
+#include <unordered_map>
 
 /**
  * @brief Debug assertion macro.
@@ -383,5 +384,14 @@ inline double bigint_ratio_to_double(
     }
     return ratio;
 }
+
+/**
+ * @brief Internal recursive helper for bddexactcount.
+ *
+ * NOT part of the public API. Used by multiple zdd_adv_*.cpp files.
+ * Callers must provide their own memo table.
+ */
+bigint::BigInt bddexactcount_rec(
+    bddp f, std::unordered_map<bddp, bigint::BigInt>& memo);
 
 #endif
