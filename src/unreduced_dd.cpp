@@ -3,7 +3,7 @@
 // --- Complement expansion helpers ---
 
 // Expand BDD/QDD complement edges: ~(var, lo, hi) = (var, ~lo, ~hi)
-static bddp expand_bdd_impl(bddp f,
+static bddp expand_bdd_rec(bddp f,
                              std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;  // terminals have no complement edge
@@ -24,8 +24,8 @@ static bddp expand_bdd_impl(bddp f,
         hi = bddnot(hi);
     }
 
-    bddp elo = expand_bdd_impl(lo, memo);
-    bddp ehi = expand_bdd_impl(hi, memo);
+    bddp elo = expand_bdd_rec(lo, memo);
+    bddp ehi = expand_bdd_rec(hi, memo);
 
     bddp node_id = allocate_node();
     node_write(node_id, node_var(base), elo, ehi);
@@ -36,7 +36,7 @@ static bddp expand_bdd_impl(bddp f,
 }
 
 // Expand ZDD complement edges: ~(var, lo, hi) = (var, ~lo, hi)
-static bddp expand_zdd_impl(bddp f,
+static bddp expand_zdd_rec(bddp f,
                              std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
@@ -56,8 +56,8 @@ static bddp expand_zdd_impl(bddp f,
         // hi unchanged
     }
 
-    bddp elo = expand_zdd_impl(lo, memo);
-    bddp ehi = expand_zdd_impl(hi, memo);
+    bddp elo = expand_zdd_rec(lo, memo);
+    bddp ehi = expand_zdd_rec(hi, memo);
 
     bddp node_id = allocate_node();
     node_write(node_id, node_var(base), elo, ehi);
@@ -76,7 +76,7 @@ UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return expand_bdd_impl(id, memo);
+        return expand_bdd_rec(id, memo);
     });
 }
 
@@ -88,7 +88,7 @@ UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return expand_zdd_impl(id, memo);
+        return expand_zdd_rec(id, memo);
     });
 }
 
@@ -101,7 +101,7 @@ UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
     // QDD uses BDD complement semantics
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return expand_bdd_impl(id, memo);
+        return expand_bdd_rec(id, memo);
     });
 }
 
@@ -221,7 +221,7 @@ bool UnreducedDD::is_reduced() const {
 
 typedef bddp (*getnode_raw_fn)(bddvar, bddp, bddp);
 
-static bddp reduce_impl(bddp f, std::unordered_map<bddp, bddp>& memo,
+static bddp reduce_rec(bddp f, std::unordered_map<bddp, bddp>& memo,
                          getnode_raw_fn make_node) {
     BDD_RecurGuard guard;
     if (f == bddnull)
@@ -240,8 +240,8 @@ static bddp reduce_impl(bddp f, std::unordered_map<bddp, bddp>& memo,
     bddp lo = node_lo(base);
     bddp hi = node_hi(base);
 
-    bddp rlo = reduce_impl(lo, memo, make_node);
-    bddp rhi = reduce_impl(hi, memo, make_node);
+    bddp rlo = reduce_rec(lo, memo, make_node);
+    bddp rhi = reduce_rec(hi, memo, make_node);
 
     bddp result = make_node(node_var(base), rlo, rhi);
     memo[base] = result;
@@ -251,7 +251,7 @@ static bddp reduce_impl(bddp f, std::unordered_map<bddp, bddp>& memo,
 BDD UnreducedDD::reduce_as_bdd() const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return reduce_impl(root, memo, BDD::getnode_raw);
+        return reduce_rec(root, memo, BDD::getnode_raw);
     });
     return BDD_ID(result);
 }
@@ -259,7 +259,7 @@ BDD UnreducedDD::reduce_as_bdd() const {
 ZDD UnreducedDD::reduce_as_zdd() const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return reduce_impl(root, memo, ZDD::getnode_raw);
+        return reduce_rec(root, memo, ZDD::getnode_raw);
     });
     return ZDD_ID(result);
 }

@@ -245,7 +245,7 @@ inline bddp node_hi(bddp node_id) {
  * @throws std::invalid_argument if the shifted level overflows.
  */
 template<typename MakeNode>
-bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
+bddp bdd_lshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
@@ -266,8 +266,8 @@ bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     }
     bddvar target_var = level2var[new_level];
 
-    bddp lo = bdd_lshift_core(node_lo(fn), shift, op, make_node);
-    bddp hi = bdd_lshift_core(node_hi(fn), shift, op, make_node);
+    bddp lo = bdd_lshift_rec(node_lo(fn), shift, op, make_node);
+    bddp hi = bdd_lshift_rec(node_hi(fn), shift, op, make_node);
 
     bddp result = make_node(target_var, lo, hi);
 
@@ -290,7 +290,7 @@ bddp bdd_lshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
  * @throws std::invalid_argument if the shifted level underflows.
  */
 template<typename MakeNode>
-bddp bdd_rshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
+bddp bdd_rshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
@@ -307,8 +307,8 @@ bddp bdd_rshift_core(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     }
     bddvar target_var = level2var[lev - shift];
 
-    bddp lo = bdd_rshift_core(node_lo(fn), shift, op, make_node);
-    bddp hi = bdd_rshift_core(node_hi(fn), shift, op, make_node);
+    bddp lo = bdd_rshift_rec(node_lo(fn), shift, op, make_node);
+    bddp hi = bdd_rshift_rec(node_hi(fn), shift, op, make_node);
 
     bddp result = make_node(target_var, lo, hi);
 

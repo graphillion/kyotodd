@@ -11,7 +11,7 @@ const QDD QDD::Null(-1);
 
 // --- QDD to BDD conversion ---
 
-static bddp qdd_to_bdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
+static bddp qdd_to_bdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
@@ -25,8 +25,8 @@ static bddp qdd_to_bdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp lo = node_lo(base);
     bddp hi = node_hi(base);
 
-    bddp rlo = qdd_to_bdd_impl(lo, memo);
-    bddp rhi = qdd_to_bdd_impl(hi, memo);
+    bddp rlo = qdd_to_bdd_rec(lo, memo);
+    bddp rhi = qdd_to_bdd_rec(hi, memo);
 
     bddp result = BDD::getnode_raw(node_var(base), rlo, rhi);  // jump rule applied
     memo[base] = result;
@@ -37,14 +37,14 @@ BDD QDD::to_bdd() const {
     if (root == bddnull) return BDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return qdd_to_bdd_impl(root, memo);
+        return qdd_to_bdd_rec(root, memo);
     });
     return BDD_ID(result);
 }
 
 // --- QDD to ZDD conversion ---
 
-static bddp qdd_to_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
+static bddp qdd_to_zdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f == bddfalse) return bddempty;
     if (f == bddtrue) return bddsingle;
@@ -63,8 +63,8 @@ static bddp qdd_to_zdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
         hi = bddnot(hi);
     }
 
-    bddp zlo = qdd_to_zdd_impl(lo, memo);
-    bddp zhi = qdd_to_zdd_impl(hi, memo);
+    bddp zlo = qdd_to_zdd_rec(lo, memo);
+    bddp zhi = qdd_to_zdd_rec(hi, memo);
 
     bddp result = ZDD::getnode_raw(node_var(base), zlo, zhi);
     memo[f] = result;
@@ -75,7 +75,7 @@ ZDD QDD::to_zdd() const {
     if (root == bddnull) return ZDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        return qdd_to_zdd_impl(root, memo);
+        return qdd_to_zdd_rec(root, memo);
     });
     return ZDD_ID(result);
 }
@@ -128,7 +128,7 @@ static bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_le
 
 // --- BDD to QDD conversion ---
 
-static bddp bdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
+static bddp bdd_to_qdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f & BDD_CONST_FLAG) return f;
 
@@ -142,8 +142,8 @@ static bddp bdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
     bddp lo = node_lo(base);
     bddp hi = node_hi(base);
 
-    bddp qlo = bdd_to_qdd_impl(lo, memo);
-    bddp qhi = bdd_to_qdd_impl(hi, memo);
+    bddp qlo = bdd_to_qdd_rec(lo, memo);
+    bddp qhi = bdd_to_qdd_rec(hi, memo);
 
     bddvar node_level = var2level[node_var(base)];
 
@@ -160,7 +160,7 @@ QDD BDD::to_qdd() const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = bdd_to_qdd_impl(root, memo);
+        bddp q = bdd_to_qdd_rec(root, memo);
         // Fill levels above the root up to the top level
         bddvar q_level = bddp_level(q);
         return qdd_fill_levels(q, q_level, bdd_varcount);
@@ -170,7 +170,7 @@ QDD BDD::to_qdd() const {
 
 // --- ZDD to QDD conversion ---
 
-static bddp zdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
+static bddp zdd_to_qdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
     BDD_RecurGuard guard;
     if (f == bddempty) return bddfalse;
     if (f == bddtrue) return bddtrue;  // bddsingle == bddtrue
@@ -188,8 +188,8 @@ static bddp zdd_to_qdd_impl(bddp f, std::unordered_map<bddp, bddp>& memo) {
         lo = bddnot(lo);  // ZDD: only lo affected
     }
 
-    bddp qlo = zdd_to_qdd_impl(lo, memo);
-    bddp qhi = zdd_to_qdd_impl(hi, memo);
+    bddp qlo = zdd_to_qdd_rec(lo, memo);
+    bddp qhi = zdd_to_qdd_rec(hi, memo);
 
     bddvar node_level = var2level[node_var(base)];
 
@@ -206,7 +206,7 @@ QDD ZDD::to_qdd() const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = zdd_to_qdd_impl(root, memo);
+        bddp q = zdd_to_qdd_rec(root, memo);
         bddvar q_level = bddp_level(q);
         return qdd_fill_levels_zdd(q, q_level, bdd_varcount);
     });

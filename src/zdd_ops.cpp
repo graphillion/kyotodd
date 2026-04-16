@@ -176,7 +176,7 @@ bddp bddchange(bddp f, bddvar var) {
             "bddchange: auto-expansion beyond 2^16 variables is not supported");
     }
     if (f == bddnull) return bddnull;
-    // Auto-expand variables if needed (same pattern as bdd_lshift_core)
+    // Auto-expand variables if needed (same pattern as bdd_lshift_rec)
     while (bdd_varcount < var) {
         bddnewvar();
     }
@@ -1032,7 +1032,7 @@ bddp bddlshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_lshift_core(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
+        return bdd_lshift_rec(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
     });
 }
 
@@ -1043,7 +1043,7 @@ bddp bddrshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        return bdd_rshift_core(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
+        return bdd_rshift_rec(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
     });
 }
 

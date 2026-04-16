@@ -627,6 +627,26 @@ void ZDD::print() const {
     std::cout.flush();
 }
 
+static bool print_pla_rec(bddp f, bddvar lev, std::string& cube) {
+    BDD_RecurGuard guard;
+    if (f == bddnull) return false; // error: abort
+    if (f == bddempty) return true;  // empty: prune
+    if (lev == 0) {
+        char out_ch = (f != bddempty) ? '1' : '~';
+        std::cout << cube << " " << out_ch << "\n";
+        std::cout.flush();
+        return true;
+    }
+    bddvar var = bddvaroflev(lev);
+    // OnSet0 side (variable included, cube char = '1')
+    cube[lev - 1] = '1';
+    if (!print_pla_rec(bddonset0(f, var), lev - 1, cube)) return false;
+    // OffSet side (variable not included, cube char = '0')
+    cube[lev - 1] = '0';
+    if (!print_pla_rec(bddoffset(f, var), lev - 1, cube)) return false;
+    return true;
+}
+
 void ZDD::print_pla() const {
     if (root == bddnull) return;
 
@@ -648,28 +668,7 @@ void ZDD::print_pla() const {
     } else {
         // Recursive enumeration of product terms
         std::string cube(tlev, '0');
-        // Lambda for recursive traversal
-        std::function<bool(ZDD, bddvar)> rec = [&](ZDD f, bddvar lev) -> bool {
-            BDD_RecurGuard guard;
-            if (f.root == bddnull) return false; // error: abort
-            if (f.root == bddempty) return true;  // empty: prune
-            if (lev == 0) {
-                char out_ch = (f.root != bddempty) ? '1' : '~';
-                std::cout << cube << " " << out_ch << "\n";
-                std::cout.flush();
-                return true;
-            }
-            bddvar var = bddvaroflev(lev);
-            // OnSet0 side (variable included, cube char = '1')
-            cube[lev - 1] = '1';
-            if (!rec(f.onset0(var), lev - 1)) return false;
-            // OffSet side (variable not included, cube char = '0')
-            cube[lev - 1] = '0';
-            if (!rec(f.offset(var), lev - 1)) return false;
-            return true;
-        };
-
-        bool ok = rec(*this, tlev);
+        bool ok = print_pla_rec(root, tlev, cube);
         if (!ok) {
             // Error during traversal: do not output footer
             return;
