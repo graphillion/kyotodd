@@ -47,3 +47,33 @@ Memo Classes
    .. py:method:: clear()
 
       Clear all cached entries. The weights binding is preserved.
+
+.. py:class:: WeightMode
+
+   Weight aggregation mode for :py:meth:`ZDD.weighted_sample` and
+   :py:class:`WeightedSampleMemo`.
+
+   .. py:attribute:: Sum
+
+      ``w(S) = sum of weights``. Empty set weight = 0.
+
+   .. py:attribute:: Product
+
+      ``w(S) = product of weights``. Empty set weight = 1.
+
+.. py:class:: WeightedSampleMemo(zdd, weights, mode)
+
+   Memo for weighted sampling.
+
+   Caches precomputed weight values for
+   :py:meth:`ZDD.weighted_sample_with_memo` and
+   :py:meth:`ZDD.boltzmann_sample_with_memo` calls.
+
+   :param ZDD zdd: The ZDD to sample from.
+   :param list[float] weights: Weight vector indexed by variable number.
+   :param WeightMode mode: Weight aggregation mode (``WeightMode.Sum`` or ``WeightMode.Product``).
+
+   .. py:property:: stored
+      :type: bool
+
+      Whether the memo has been populated.
