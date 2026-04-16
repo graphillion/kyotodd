@@ -59,7 +59,7 @@ UnreducedDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``UnreducedDD(node_id=...)``.
+      Return string representation: ``UnreducedDD: id=...``.
 
    .. py:method:: __bool__()
 

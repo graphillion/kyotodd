@@ -110,7 +110,7 @@ RotPiDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``RotPiDD(node_id=...)``.
+      Return string representation: ``RotPiDD: id=...``.
 
    .. py:method:: __bool__()
 

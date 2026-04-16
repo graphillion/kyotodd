@@ -140,7 +140,7 @@ ZDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``ZDD(node_id=...)``.
+      Return string representation: ``ZDD: id=...``.
 
    .. py:method:: __bool__()
 

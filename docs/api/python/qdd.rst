@@ -47,7 +47,7 @@ QDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``QDD(node_id=...)``.
+      Return string representation: ``QDD: id=...``.
 
    .. py:method:: __bool__()
 

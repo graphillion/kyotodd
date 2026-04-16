@@ -111,7 +111,7 @@ PiDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``PiDD(node_id=...)``.
+      Return string representation: ``PiDD: id=...``.
 
    .. py:method:: __bool__()
 

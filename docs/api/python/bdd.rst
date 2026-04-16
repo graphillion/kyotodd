@@ -158,7 +158,7 @@ BDD Class
 
    .. py:method:: __repr__()
 
-      Return string representation: ``BDD(node_id=...)``.
+      Return string representation: ``BDD: id=...``.
 
    .. py:method:: __bool__()
 
