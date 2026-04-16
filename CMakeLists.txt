@@ -16,7 +16,10 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp
   src/zdd_ops.cpp
-  src/zdd_adv.cpp
+  src/zdd_adv_filter.cpp
+  src/zdd_adv_count.cpp
+  src/zdd_adv_weight.cpp
+  src/zdd_adv_rank.cpp
   src/zdd_adv2.cpp
   src/pidd.cpp
   src/rotpidd.cpp
@@ -130,6 +133,34 @@ if(KYOTODD_BUILD_TESTS)
   gtest_discover_tests(unreduced_dd_test)
   gtest_discover_tests(qdd_test)
   gtest_discover_tests(bddv_test)
+
+  add_executable(zdd_ops_test test/test_zdd_ops.cpp)
+  target_link_libraries(zdd_ops_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(zdd_ops_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(zdd_ops_test)
+
+  add_executable(zdd_count_test test/test_zdd_count.cpp)
+  target_link_libraries(zdd_count_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(zdd_count_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(zdd_count_test)
+
+  add_executable(bdd_io_test test/test_bdd_io.cpp)
+  target_link_libraries(bdd_io_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(bdd_io_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(bdd_io_test)
+
+  add_executable(zdd_advanced_test test/test_zdd_advanced.cpp)
+  target_link_libraries(zdd_advanced_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(zdd_advanced_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(zdd_advanced_test)
 
   add_executable(zbddv_test test/test_zbddv.cpp)
   target_link_libraries(zbddv_test kyotodd_lib GTest::gtest_main)
