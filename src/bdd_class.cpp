@@ -7,6 +7,9 @@
 #include <climits>
 #include <cmath>
 
+namespace kyotodd {
+
+
 const BDD BDD::False(0);
 const BDD BDD::True(1);
 const BDD BDD::Null(-1);
@@ -1384,3 +1387,5 @@ ZDD ZDD::get_k_heaviest(const bigint::BigInt& k,
                          int strict) const {
     return ZDD_ID(bddgetkheaviest(root, k, weights, strict));
 }
+
+} // namespace kyotodd

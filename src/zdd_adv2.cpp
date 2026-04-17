@@ -4,6 +4,9 @@
 #include <vector>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 // --- bddispoly ---
 
 int bddispoly(bddp f) {
@@ -528,3 +531,5 @@ bddp bdddivisor(bddp f) {
         return cur;
     });
 }
+
+} // namespace kyotodd

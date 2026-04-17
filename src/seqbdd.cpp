@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <vector>
 
+namespace kyotodd {
+
+
 /* ================================================================ */
 /*  onset0                                                          */
 /* ================================================================ */
@@ -223,3 +226,5 @@ std::string SeqBDD::seq_str() const
     print_seq_rec(oss, *this, arr, idx, flag);
     return oss.str();
 }
+
+} // namespace kyotodd

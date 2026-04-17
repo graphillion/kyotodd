@@ -19,6 +19,8 @@
 
 #include "zbddv.h"
 
+namespace kyotodd {
+
 class MLZBDDV {
     int _pin;     // number of primary input variables
     int _out;     // number of output functions
@@ -68,5 +70,7 @@ public:
     /** @brief Print summary (pin, out, sin) followed by ZBDDV contents. */
     void Print() const;
 };
+
+} // namespace kyotodd
 
 #endif

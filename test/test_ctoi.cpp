@@ -3,6 +3,8 @@
 #include <climits>
 #include <cstring>
 
+using namespace kyotodd;
+
 class CtoITest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {

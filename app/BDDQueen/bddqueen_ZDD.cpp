@@ -10,6 +10,8 @@
 #include <vector>
 #include "bdd.h"
 
+using namespace kyotodd;
+
 int main(int argc, char *argv[])
 {
   int q, n, i, j, i2;

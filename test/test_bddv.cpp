@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstring>
 
+using namespace kyotodd;
+
 class BDDVTest : public ::testing::Test {
 protected:
     void SetUp() override {

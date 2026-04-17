@@ -2,6 +2,9 @@
 #include "bdd_internal.h"
 #include <vector>
 
+namespace kyotodd {
+
+
 namespace {
 
 enum class IterPhase : uint8_t {
@@ -172,3 +175,5 @@ bddp bddand_iter(bddp f, bddp g) {
 
     return result;
 }
+
+} // namespace kyotodd

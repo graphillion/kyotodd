@@ -8,6 +8,8 @@
 #include <fstream>
 #include <cstdio>
 
+using namespace kyotodd;
+
 class SvgExportTest : public ::testing::Test {
 protected:
     void SetUp() override {

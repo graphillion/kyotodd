@@ -7,6 +7,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 // Check if ∅ ∈ F (the empty set is a member of the ZDD family)
 bool bddhasempty(bddp f) {
     if (f == bddnull) return false;
@@ -743,3 +746,5 @@ char *bddcardmp16(bddp f, char *s) {
     std::memcpy(s, hex.c_str(), hex.size() + 1);
     return s;
 }
+
+} // namespace kyotodd

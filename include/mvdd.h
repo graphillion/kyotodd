@@ -13,6 +13,8 @@
 #include <iosfwd>
 #include <stdexcept>
 
+namespace kyotodd {
+
 struct SvgParams;
 
 // ============================================================
@@ -874,5 +876,7 @@ MVZDD MVZDD::random_subset(double p, RNG& rng) {
     ZDD sampled = z.random_subset(p, rng);
     return make_result(sampled.id());
 }
+
+} // namespace kyotodd
 
 #endif

@@ -6,6 +6,8 @@
 #include <vector>
 #include "bdd_types.h"
 
+namespace kyotodd {
+
 /**
  * @brief Export BDD/ZDD nodes to a FILE stream (array version).
  *
@@ -423,5 +425,7 @@ void bddgraph(bddp f);
 void bddvgraph0(bddp* ptr, int lim);
 /** @brief @deprecated Always throws. Retained for API compatibility. */
 void bddvgraph(bddp* ptr, int lim);
+
+} // namespace kyotodd
 
 #endif

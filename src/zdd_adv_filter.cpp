@@ -1,6 +1,9 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 
+namespace kyotodd {
+
+
 static bddp bdddisjoin_rec(bddp f, bddp g);
 
 bddp bdddisjoin(bddp f, bddp g) {
@@ -606,3 +609,5 @@ static bddp bddclosure_rec(bddp f) {
     bddwcache(BDD_OP_CLOSURE, f, 0, result);
     return result;
 }
+
+} // namespace kyotodd

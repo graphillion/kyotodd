@@ -19,6 +19,8 @@
 #include "qdd.h"
 #include <iostream>
 
+namespace kyotodd {
+
 // DDBase inline definitions (bddtop/bddsize declared in bdd_base.h)
 inline bddvar DDBase::top() const { return bddtop(root); }
 inline uint64_t DDBase::raw_size() const { return bddsize(root); }
@@ -1326,6 +1328,8 @@ inline UnreducedDD UnreducedDD::import_binary(std::istream& strm) {
     u.root = unreduced_import_binary(strm);
     return u;
 }
+
+} // namespace kyotodd
 
 #include "zdd_weight_iter.h"
 #include "zdd_rank_iter.h"

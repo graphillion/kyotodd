@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstring>
 
+using namespace kyotodd;
+
 class ZBDDVTest : public ::testing::Test {
 protected:
     void SetUp() override {

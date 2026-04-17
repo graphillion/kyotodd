@@ -4,6 +4,8 @@
 #include "bdd_types.h"
 #include "bigint.hpp"
 
+namespace kyotodd {
+
 /**
  * @brief Logical NOT (complement).
  *
@@ -1270,5 +1272,7 @@ ZDD ZDD_LCM_A(char* filename, int threshold);
 ZDD ZDD_LCM_C(char* filename, int threshold);
 /** @brief LCM algorithm (maximal frequent itemsets). */
 ZDD ZDD_LCM_M(char* filename, int threshold);
+
+} // namespace kyotodd
 
 #endif

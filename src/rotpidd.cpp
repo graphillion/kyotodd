@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <vector>
 
+namespace kyotodd {
+
+
 /* --- Global variables --- */
 int RotPiDD_TopVar = 0;
 int RotPiDD_VarTableSize = 16;
@@ -859,3 +862,5 @@ std::map<bddvar, std::string> RotPiDD::svg_var_name_map() {
     }
     return m;
 }
+
+} // namespace kyotodd

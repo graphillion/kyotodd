@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <vector>
 
+namespace kyotodd {
+
+
 /* ================================================================ */
 /*  Private helpers                                                  */
 /* ================================================================ */
@@ -1008,3 +1011,5 @@ BtoI BtoI_atoi(const char* s)
     if (neg) result = -result;
     return result;
 }
+
+} // namespace kyotodd

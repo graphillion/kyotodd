@@ -19,6 +19,9 @@
 #include <utility>
 #include <vector>
 
+namespace kyotodd {
+
+
 // ========================================================================
 //  Anonymous namespace — all internal classes and helpers
 // ========================================================================
@@ -2380,3 +2383,5 @@ std::string mvzdd_save_svg(bddp f,
                            const MVDDVarTable* table, const SvgParams& params) {
     return mvdd_svg_generate_expanded(f, table, true, params);
 }
+
+} // namespace kyotodd

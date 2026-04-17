@@ -6,6 +6,8 @@
 #include <random>
 #include <set>
 
+using namespace kyotodd;
+
 class MVDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

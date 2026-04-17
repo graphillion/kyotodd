@@ -5,6 +5,8 @@
 #include "svg_export.h"
 #include <functional>
 
+namespace kyotodd {
+
 struct SvgParams;
 class QDD;
 
@@ -176,13 +178,17 @@ public:
     static const QDD Null;   /**< @brief Null (error) QDD. */
 };
 
+} // namespace kyotodd
+
 namespace std {
-    template<> struct hash<QDD> {
-        size_t operator()(const QDD& q) const {
+    template<> struct hash<kyotodd::QDD> {
+        size_t operator()(const kyotodd::QDD& q) const {
             return std::hash<uint64_t>()(q.id());
         }
     };
 }
+
+namespace kyotodd {
 
 // --- Inline definitions ---
 
@@ -274,5 +280,7 @@ inline std::string QDD::save_svg(const SvgParams& params) const {
 inline std::string QDD::save_svg() const {
     return qdd_save_svg(root);
 }
+
+} // namespace kyotodd
 
 #endif

@@ -21,6 +21,8 @@
 
 #include "bddv.h"
 
+namespace kyotodd {
+
 class BtoI {
     BDDV _bddv;
 
@@ -165,5 +167,7 @@ BtoI BtoI_NE(const BtoI& a, const BtoI& b);
 
 /** @brief Parse string to BtoI (decimal, hex "0x...", or binary "0b..."). */
 BtoI BtoI_atoi(const char* s);
+
+} // namespace kyotodd
 
 #endif

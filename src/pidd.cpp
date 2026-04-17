@@ -7,6 +7,9 @@
 #include <stdexcept>
 #include <vector>
 
+namespace kyotodd {
+
+
 /* --- Global variables --- */
 int PiDD_TopVar = 0;
 int PiDD_VarTableSize = 16;
@@ -448,3 +451,5 @@ std::map<bddvar, std::string> PiDD::svg_var_name_map() {
     }
     return m;
 }
+
+} // namespace kyotodd

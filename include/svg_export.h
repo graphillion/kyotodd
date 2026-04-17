@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 
+namespace kyotodd {
+
 class MVDDVarTable;
 
 /**
@@ -137,5 +139,7 @@ void mvzdd_save_svg(std::ostream& strm, bddp f,
 std::string mvzdd_save_svg(bddp f,
                            const MVDDVarTable* table,
                            const SvgParams& params = SvgParams());
+
+} // namespace kyotodd
 
 #endif // KYOTODD_SVG_EXPORT_H

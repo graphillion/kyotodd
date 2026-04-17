@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <vector>
 
+namespace kyotodd {
+
+
 // ============================================================
 // Constructors, destructor, assignment
 // ============================================================
@@ -554,3 +557,5 @@ ZBDDV ZBDDV_Import(FILE* strm) {
 
     return result;
 }
+
+} // namespace kyotodd

@@ -8,6 +8,9 @@
 #include <vector>
 #include <string>
 
+namespace kyotodd {
+
+
 /* ================================================================ */
 /*  Constructors / destructor / assignment                           */
 /* ================================================================ */
@@ -1307,3 +1310,5 @@ CtoI CtoI::FreqPatC(int Val) const
     bddwcache(BC_CtoI_FPC, fp, gp, h._zbdd.GetID());
     return h;
 }
+
+} // namespace kyotodd

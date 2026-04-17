@@ -2,6 +2,9 @@
 #include "bdd_internal.h"
 #include <stdexcept>
 
+namespace kyotodd {
+
+
 bddp bddpush(bddp f, bddvar v) {
     bddp_validate(f, "bddpush");
     if (f == bddnull) return bddnull;
@@ -1059,3 +1062,5 @@ ZDD ZDD_Random(int lev, int density) {
     ZDD hi = ZDD_Random(lev - 1, density).Change(v);
     return lo + hi;
 }
+
+} // namespace kyotodd

@@ -12,6 +12,8 @@
 #include <limits>
 #include <unistd.h>
 
+using namespace kyotodd;
+
 class BDDTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -1469,7 +1471,6 @@ TEST_F(BDDTest, GCDepthPreventsCollection) {
     // NOTE: Directly manipulating internal bdd_gc_depth to test GC guard behavior.
     // This couples the test to the implementation detail that bddgc() is a no-op
     // when bdd_gc_depth > 0.
-    extern int bdd_gc_depth;
     bdd_gc_depth = 1;
     bddgc();
     // GC should be a no-op at depth > 0

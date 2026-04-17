@@ -4,6 +4,8 @@
 #include "bdd.h"
 #include "svg_export.h"
 
+namespace kyotodd {
+
 struct SvgParams;
 
 /** @brief Cache operation code for SeqBDD concatenation. */
@@ -246,5 +248,7 @@ inline std::string SeqBDD::save_svg(const SvgParams& params) const {
 inline std::string SeqBDD::save_svg() const {
     return save_svg(SvgParams());
 }
+
+} // namespace kyotodd
 
 #endif

@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <sstream>
 
+namespace kyotodd {
+
 // --- Forward declarations for non-template functions (defined in mtbdd.cpp) ---
 
 void mtbdd_register_terminal_table(class MTBDDTerminalTableBase* table);
@@ -1747,5 +1749,7 @@ inline std::string MTZDD<T>::to_str() const {
     print_sets(oss);
     return oss.str();
 }
+
+} // namespace kyotodd
 
 #endif

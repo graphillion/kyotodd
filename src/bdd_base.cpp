@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 static const bddvar VAR_INITIAL_CAPACITY = 8192;
 static const uint64_t UNIQUE_TABLE_INITIAL_CAPACITY = 1024;
 
@@ -1167,3 +1170,5 @@ bool bdd_check_reduced(bddp root) {
     return true;
 }
 
+
+} // namespace kyotodd

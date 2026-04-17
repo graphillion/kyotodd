@@ -3,6 +3,8 @@
 #include <vector>
 #include <algorithm>
 
+using namespace kyotodd;
+
 class ZddRankIterTest : public ::testing::Test {
 protected:
     void SetUp() override {

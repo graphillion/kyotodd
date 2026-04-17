@@ -3,6 +3,9 @@
 #include <vector>
 #include <stdexcept>
 
+namespace kyotodd {
+
+
 // --- Dynamic op code allocation ---
 
 uint8_t mtbdd_next_op_code = 70;  // start past all static codes (max existing: 67)
@@ -144,3 +147,5 @@ bddp mtzdd_cofactor1(bddp f, bddvar v) {
 
     return bdd_gc_guard([&]() -> bddp { return mtzdd_cofactor1_rec(f, v); });
 }
+
+} // namespace kyotodd

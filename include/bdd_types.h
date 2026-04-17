@@ -13,6 +13,8 @@
 
 #include "bigint.hpp"
 
+namespace kyotodd {
+
 /** @brief DD node ID type (48-bit value stored in uint64_t). */
 typedef uint64_t bddp;
 
@@ -1840,5 +1842,7 @@ public:
     static const ZDD Single;  /**< @brief Unit family containing only the empty set {∅}. */
     static const ZDD Null;    /**< @brief Null (error) ZDD. */
 };
+
+} // namespace kyotodd
 
 #endif

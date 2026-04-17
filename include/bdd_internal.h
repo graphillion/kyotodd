@@ -7,6 +7,8 @@
 #include <cmath>
 #include <unordered_map>
 
+namespace kyotodd {
+
 /**
  * @brief Debug assertion macro.
  *
@@ -393,5 +395,7 @@ inline double bigint_ratio_to_double(
  */
 bigint::BigInt bddexactcount_rec(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo);
+
+} // namespace kyotodd
 
 #endif

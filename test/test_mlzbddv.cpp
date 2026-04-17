@@ -1,6 +1,8 @@
 #include "mlzbddv.h"
 #include <gtest/gtest.h>
 
+using namespace kyotodd;
+
 class MLZBDDVTest : public ::testing::Test {
 protected:
     void SetUp() override {

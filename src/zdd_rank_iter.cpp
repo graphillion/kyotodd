@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace kyotodd {
+
+
 // ---- descend ----
 
 bool ZddRankIterator::descend(bddp f) {
@@ -164,3 +167,5 @@ ZddRankIterator ZddRankRange::begin() const {
 ZddRankIterator ZddRankRange::end() const {
     return ZddRankIterator();
 }
+
+} // namespace kyotodd

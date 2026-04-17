@@ -5,6 +5,8 @@
 #include <set>
 #include <random>
 
+using namespace kyotodd;
+
 class ZddRandomIterTest : public ::testing::Test {
 protected:
     void SetUp() override {

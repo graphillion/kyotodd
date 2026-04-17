@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 
+namespace kyotodd {
+
+
 /* ================================================================ */
 /*  Helper: validate even VarID                                      */
 /* ================================================================ */
@@ -1015,3 +1018,5 @@ SOPV SOPV_ISOP2(BDDV on, BDDV dc)
 
     return csv + phase;
 }
+
+} // namespace kyotodd

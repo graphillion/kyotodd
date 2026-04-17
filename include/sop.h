@@ -23,6 +23,8 @@
 
 #include "zbddv.h"
 
+namespace kyotodd {
+
 // --- Operation cache codes for SOP ---
 static const uint8_t BDD_OP_SOP_MULT = 60;
 static const uint8_t BDD_OP_SOP_DIV  = 61;
@@ -437,5 +439,7 @@ SOPV SOPV_ISOP2(BDDV v);
  * @param dc Don't-care BDDV.
  */
 SOPV SOPV_ISOP2(BDDV on, BDDV dc);
+
+} // namespace kyotodd
 
 #endif

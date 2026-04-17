@@ -13,6 +13,8 @@
 #include "mvdd.h"
 #include "mtbdd.h"
 
+using namespace kyotodd;
+
 namespace py = pybind11;
 
 struct CoutRedirectGuard {

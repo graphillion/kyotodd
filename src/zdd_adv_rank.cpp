@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 // ---------------------------------------------------------------
 // Rank / Unrank
 // ---------------------------------------------------------------
@@ -449,3 +452,5 @@ ZDD ZDD_LCM_C(char* /*filename*/, int /*threshold*/) {
 ZDD ZDD_LCM_M(char* /*filename*/, int /*threshold*/) {
     throw std::logic_error("ZDD_LCM_M: not implemented");
 }
+
+} // namespace kyotodd

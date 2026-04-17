@@ -4,6 +4,8 @@
 #include "bdd.h"
 #include "svg_export.h"
 
+namespace kyotodd {
+
 struct SvgParams;
 
 /** @brief Maximum number of elements in PiDD permutations. */
@@ -322,5 +324,7 @@ inline std::string PiDD::save_svg(const SvgParams& params) const {
 inline std::string PiDD::save_svg() const {
     return save_svg(SvgParams());
 }
+
+} // namespace kyotodd
 
 #endif

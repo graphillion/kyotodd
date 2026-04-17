@@ -12,6 +12,9 @@
 #include <cstring>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 // Max token length for arc string representations (node IDs, "F", "T", "N").
 // ARC_BUF_SIZE includes the null terminator.
 #define ARC_MAX_LEN 31
@@ -2045,3 +2048,5 @@ void bddvgraph(bddp* ptr, int lim) {
     (void)ptr; (void)lim;
     throw std::logic_error("bddvgraph: obsolete — BDD/ZDD share the same node table");
 }
+
+} // namespace kyotodd

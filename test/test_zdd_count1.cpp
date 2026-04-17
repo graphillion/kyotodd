@@ -10,6 +10,8 @@
 #include <climits>
 #include <limits>
 
+using namespace kyotodd;
+
 class BDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

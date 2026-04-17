@@ -4,6 +4,9 @@
 #include <stdexcept>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 static bddp bddand_rec(bddp f, bddp g);
 
 bddp bddand(bddp f, bddp g) {
@@ -1180,3 +1183,5 @@ bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
         return inner >> static_cast<std::size_t>(top_level - n);
     }
 }
+
+} // namespace kyotodd

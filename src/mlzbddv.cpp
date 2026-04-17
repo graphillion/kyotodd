@@ -2,6 +2,9 @@
 #include <iostream>
 #include <stdexcept>
 
+namespace kyotodd {
+
+
 // ============================================================
 // Constructors, destructor, assignment
 // ============================================================
@@ -184,3 +187,5 @@ void MLZBDDV::Print() const {
     std::cout << "sin:" << _sin << std::endl;
     _zbddv.Print();
 }
+
+} // namespace kyotodd

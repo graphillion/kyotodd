@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
 
+using namespace kyotodd;
+
 class QDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

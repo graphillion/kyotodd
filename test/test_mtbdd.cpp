@@ -3,6 +3,8 @@
 #include "bdd.h"
 #include "mtbdd.h"
 
+using namespace kyotodd;
+
 class MTBDDTerminalTableTest : public ::testing::Test {
 protected:
     void SetUp() override {

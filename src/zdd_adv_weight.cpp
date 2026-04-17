@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <unordered_map>
 
+namespace kyotodd {
+
+
 // ---- weight sum ----
 
 static bigint::BigInt bddweightsum_rec(
@@ -449,3 +452,5 @@ bddp bddgetkheaviest(bddp f, int64_t k,
     }
     return bddgetkheaviest(f, bigint::BigInt(k), weights, strict);
 }
+
+} // namespace kyotodd

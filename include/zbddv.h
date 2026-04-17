@@ -20,6 +20,8 @@
 
 #include "bddv.h"
 
+namespace kyotodd {
+
 /**
  * @brief A sparse array of ZBDDs encoded into a single meta-ZBDD.
  *
@@ -187,5 +189,7 @@ int operator!=(const ZBDDV& fv, const ZBDDV& gv);
  * @return The imported ZBDDV, or a null ZBDDV on error.
  */
 ZBDDV ZBDDV_Import(FILE* strm = stdin);
+
+} // namespace kyotodd
 
 #endif

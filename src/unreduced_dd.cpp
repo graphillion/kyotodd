@@ -1,5 +1,8 @@
 #include "bdd.h"
 
+namespace kyotodd {
+
+
 // --- Complement expansion helpers ---
 
 // Expand BDD/QDD complement edges: ~(var, lo, hi) = (var, ~lo, ~hi)
@@ -267,3 +270,5 @@ ZDD UnreducedDD::reduce_as_zdd() const {
 QDD UnreducedDD::reduce_as_qdd() const {
     return reduce_as_bdd().to_qdd();
 }
+
+} // namespace kyotodd

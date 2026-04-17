@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <set>
 
+using namespace kyotodd;
+
 class ZddMinWeightIterTest : public ::testing::Test {
 protected:
     void SetUp() override {

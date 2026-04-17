@@ -20,6 +20,8 @@
 #include <set>
 #include <vector>
 
+using namespace kyotodd;
+
 static void save(const std::string& filename, const std::string& svg) {
     std::ofstream ofs(filename);
     if (!ofs) {

@@ -18,6 +18,8 @@
 
 #include "bdd.h"
 
+namespace kyotodd {
+
 /** @brief Number of output-selection (system) variables. */
 static const int BDDV_SysVarTop = 20;
 
@@ -271,5 +273,7 @@ BDDV BDDV_Import(FILE* strm = stdin);
  * @return The imported BDDV (onset || dcset), or a null BDDV on error.
  */
 BDDV BDDV_ImportPla(FILE* strm = stdin, int sopf = 0);
+
+} // namespace kyotodd
 
 #endif

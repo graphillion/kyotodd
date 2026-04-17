@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 
+using namespace kyotodd;
+
 class PiDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

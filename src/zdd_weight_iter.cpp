@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <stdexcept>
 
+namespace kyotodd {
+
+
 // ---- compute_min_dist ----
 
 static long long compute_min_dist_rec(
@@ -434,3 +437,5 @@ ZddMaxWeightIterator ZddMaxWeightRange::begin() const {
 ZddMaxWeightIterator ZddMaxWeightRange::end() const {
     return ZddMaxWeightIterator();
 }
+
+} // namespace kyotodd

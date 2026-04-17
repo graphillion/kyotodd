@@ -3,6 +3,8 @@
 #include <cstring>
 #include <climits>
 
+using namespace kyotodd;
+
 class BtoITest : public ::testing::Test {
 protected:
     static bool initialized_;

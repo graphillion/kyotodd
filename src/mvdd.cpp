@@ -4,6 +4,9 @@
 #include <sstream>
 #include <unordered_set>
 
+namespace kyotodd {
+
+
 // ============================================================
 //  MVDDVarInfo
 // ============================================================
@@ -1335,3 +1338,5 @@ void MVZDD::check_compatible(const MVZDD& other) const {
 MVZDD MVZDD::make_result(bddp p) const {
     return MVZDD(var_table_, p);
 }
+
+} // namespace kyotodd

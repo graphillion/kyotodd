@@ -6,6 +6,8 @@
 #include <memory>
 #include <iterator>
 
+namespace kyotodd {
+
 /**
  * @brief STL input iterator that enumerates sets from a ZDD family
  *        in uniformly random order without replacement.
@@ -251,5 +253,7 @@ template<typename RNG>
 ZddRandomIterator<RNG> ZddRandomRange<RNG>::end() const {
     return ZddRandomIterator<RNG>();
 }
+
+} // namespace kyotodd
 
 #endif

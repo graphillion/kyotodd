@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
+using namespace kyotodd;
+
 class SeqBDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

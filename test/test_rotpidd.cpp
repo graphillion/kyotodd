@@ -5,6 +5,8 @@
 #include <sstream>
 #include <set>
 
+using namespace kyotodd;
+
 class RotPiDDTest : public ::testing::Test {
 protected:
     void SetUp() override {

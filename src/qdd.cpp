@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <unordered_map>
 
+namespace kyotodd {
+
+
 const QDD QDD::False(0);
 const QDD QDD::True(1);
 const QDD QDD::Null(-1);
@@ -353,3 +356,5 @@ QDD QDD::cache_get(uint8_t op, const QDD& f, const QDD& g) {
 void QDD::cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result) {
     bddwcache(op, f.id(), g.id(), result.id());
 }
+
+} // namespace kyotodd

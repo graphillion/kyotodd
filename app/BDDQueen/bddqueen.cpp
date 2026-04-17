@@ -8,6 +8,8 @@
 #include <inttypes.h>
 #include "bdd.h"
 
+using namespace kyotodd;
+
 #define B_STRTOI strtoull
 #define B_ITOSTR(n, s) sprintf(s, "%" PRIu64, (uint64_t)(n))
 

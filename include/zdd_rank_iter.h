@@ -6,6 +6,8 @@
 #include <memory>
 #include <iterator>
 
+namespace kyotodd {
+
 /**
  * @brief STL input iterator that enumerates sets from a ZDD family
  *        in structure order (the same order as rank/unrank).
@@ -90,5 +92,7 @@ public:
 private:
     ZDD zdd_;
 };
+
+} // namespace kyotodd
 
 #endif

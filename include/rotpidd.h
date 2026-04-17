@@ -6,6 +6,8 @@
 #include <vector>
 #include <unordered_map>
 
+namespace kyotodd {
+
 struct SvgParams;
 
 /** @brief Maximum number of elements in RotPiDD permutations. */
@@ -467,5 +469,7 @@ inline std::string RotPiDD::save_svg(const SvgParams& params) const {
 inline std::string RotPiDD::save_svg() const {
     return save_svg(SvgParams());
 }
+
+} // namespace kyotodd
 
 #endif

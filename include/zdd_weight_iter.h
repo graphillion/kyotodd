@@ -10,6 +10,8 @@
 #include <utility>
 #include <climits>
 
+namespace kyotodd {
+
 /// A single step along a root-to-terminal path in the ZDD DAG.
 struct ZddPathStep {
     bddp node;   ///< The bddp value (with complement bit) at this step.
@@ -167,5 +169,7 @@ private:
     ZDD zdd_;
     std::vector<int> weights_;
 };
+
+} // namespace kyotodd
 
 #endif

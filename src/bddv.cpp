@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+namespace kyotodd {
+
+
 int BDDV_Active = 0;
 
 // ============================================================
@@ -802,3 +805,5 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
 
     return onset_bddv || dcset_bddv;
 }
+
+} // namespace kyotodd

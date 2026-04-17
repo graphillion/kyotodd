@@ -3,6 +3,8 @@
 
 #include "bdd_types.h"
 
+namespace kyotodd {
+
 /**
  * @brief Initialize the BDD library.
  *
@@ -397,5 +399,7 @@ bddp mtbdd_getnode(bddvar var, bddp lo, bddp hi);
 bddp mtzdd_getnode_raw(bddvar var, bddp lo, bddp hi);
 /** @brief Create an MTZDD node with validation. */
 bddp mtzdd_getnode(bddvar var, bddp lo, bddp hi);
+
+} // namespace kyotodd
 
 #endif

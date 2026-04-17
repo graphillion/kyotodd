@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+namespace kyotodd {
+
 // BDD node (16 bytes)
 //
 // Bit layout (user-specified order: var, reduced, lo, hi):
@@ -30,5 +32,7 @@ struct BddNode {
 };
 
 static_assert(sizeof(BddNode) == 16, "BddNode must be 16 bytes");
+
+} // namespace kyotodd
 
 #endif

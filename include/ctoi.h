@@ -20,6 +20,8 @@
 
 #include "bddv.h"
 
+namespace kyotodd {
+
 // --- Operation cache codes for CtoI ---
 static const uint8_t BC_CtoI_MULT = 68;
 static const uint8_t BC_CtoI_DIV  = 69;
@@ -280,5 +282,7 @@ CtoI CtoI_Min(const CtoI& a, const CtoI& b);
 CtoI CtoI_Null();
 CtoI CtoI_Meet(const CtoI& a, const CtoI& b);
 CtoI CtoI_atoi(const char* s);
+
+} // namespace kyotodd
 
 #endif
