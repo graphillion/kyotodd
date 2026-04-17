@@ -4,6 +4,8 @@
 // This header is included by bdd_types.h after type/constant definitions.
 // Do NOT include this header directly; include bdd_types.h or bdd.h instead.
 
+namespace kyotodd {
+
 /// @cond INTERNAL
 // Forward declarations (defined in bdd_base.h)
 int bddinit(uint64_t node_count, uint64_t node_max);
@@ -136,5 +138,7 @@ public:
     /** @brief Get the raw child node ID by index (0 or 1) without complement resolution. */
     static bddp raw_child(bddp f, int child);  // defined in bdd.h
 };
+
+} // namespace kyotodd
 
 #endif

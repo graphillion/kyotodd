@@ -13,6 +13,8 @@ Include the umbrella header and initialize the library:
    #include "bdd.h"
    #include <iostream>
 
+   using namespace kyotodd;
+
    int main() {
        // Initialize with 256 initial nodes, unlimited max
        bddinit(256, UINT64_MAX);

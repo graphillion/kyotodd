@@ -2,6 +2,9 @@
 #define KYOTODD_QDD_H
 
 #include "bdd_types.h"
+#include "bdd_base.h"
+#include "bdd_ops.h"
+#include "bdd_internal.h"
 #include "svg_export.h"
 #include <functional>
 

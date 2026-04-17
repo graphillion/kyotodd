@@ -149,7 +149,11 @@ void bddgc_protect(bddp* p);
 void bddgc_unprotect(bddp* p);
 /// @endcond
 
+} // namespace kyotodd
+
 #include "dd_base.h"
+
+namespace kyotodd {
 
 class BDD;
 class ZDD;

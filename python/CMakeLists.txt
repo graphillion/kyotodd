@@ -16,8 +16,12 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/bdd_class.cpp
     ${KYOTODD_ROOT}/src/bdd_io.cpp
     ${KYOTODD_ROOT}/src/bdd_ops.cpp
+    ${KYOTODD_ROOT}/src/bdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_ops.cpp
-    ${KYOTODD_ROOT}/src/zdd_adv.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_filter.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_count.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_weight.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_rank.cpp
     ${KYOTODD_ROOT}/src/zdd_adv2.cpp
     ${KYOTODD_ROOT}/src/qdd.cpp
     ${KYOTODD_ROOT}/src/unreduced_dd.cpp
@@ -26,6 +30,7 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/seqbdd.cpp
     ${KYOTODD_ROOT}/src/zdd_weight_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_rank_iter.cpp
+    ${KYOTODD_ROOT}/src/zdd_random_iter.cpp
     ${KYOTODD_ROOT}/src/mvdd.cpp
     ${KYOTODD_ROOT}/src/mtbdd.cpp
     ${KYOTODD_ROOT}/src/svg_export.cpp
