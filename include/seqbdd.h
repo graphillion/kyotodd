@@ -2,6 +2,7 @@
 #define KYOTODD_SEQBDD_H
 
 #include "bdd.h"
+#include "svg_export.h"
 
 struct SvgParams;
 
@@ -226,7 +227,6 @@ inline SeqBDD& SeqBDD::operator%=(const SeqBDD& f) { *this = *this % f; return *
 inline SeqBDD SeqBDD_ID(bddp p) { return SeqBDD(ZDD_ID(p)); }
 
 // --- SeqBDD save_svg inline implementations ---
-#include "svg_export.h"
 
 inline void SeqBDD::save_svg(const char* filename, const SvgParams& params) const {
     zdd_save_svg(filename, zdd_.id(), params);

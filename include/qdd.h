@@ -2,6 +2,7 @@
 #define KYOTODD_QDD_H
 
 #include "bdd_types.h"
+#include "svg_export.h"
 #include <functional>
 
 struct SvgParams;
@@ -254,7 +255,6 @@ inline QDD QDD::child(int child) const {
 }
 
 // --- QDD SVG export inline implementations ---
-#include "svg_export.h"
 
 inline void QDD::save_svg(const char* filename, const SvgParams& params) const {
     qdd_save_svg(filename, root, params);

@@ -10,6 +10,11 @@
 #include <unordered_set>
 #include <stdexcept>
 #include "bigint.hpp"
+#include "svg_export.h"
+#include <cstring>
+#include <fstream>
+#include <algorithm>
+#include <sstream>
 
 // --- Forward declarations for non-template functions (defined in mtbdd.cpp) ---
 
@@ -1172,11 +1177,6 @@ private:
 //  MTBDD/MTZDD binary export/import inline implementations
 // ========================================================================
 
-#include <cstring>
-#include <fstream>
-#include <algorithm>
-#include <unordered_set>
-
 namespace mtbdd_binary_detail {
 
 inline void mb_encode_le16(uint8_t* buf, uint16_t v) {
@@ -1623,9 +1623,6 @@ inline MTZDD<T> MTZDD<T>::import_binary(const char* filename) {
 // ========================================================================
 //  MTBDD/MTZDD save_svg inline implementations
 // ========================================================================
-
-#include "svg_export.h"
-#include <sstream>
 
 // Helper: build terminal_name_map by DFS from root.
 template<typename T>

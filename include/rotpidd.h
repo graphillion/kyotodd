@@ -2,6 +2,7 @@
 #define KYOTODD_ROTPIDD_H
 
 #include "bdd.h"
+#include "svg_export.h"
 #include <vector>
 #include <unordered_map>
 
@@ -447,7 +448,6 @@ inline bool operator==(const RotPiDD& p, const RotPiDD& q) { return p.zdd_ == q.
 inline bool operator!=(const RotPiDD& p, const RotPiDD& q) { return !(p == q); }
 
 // --- RotPiDD save_svg inline implementations ---
-#include "svg_export.h"
 
 inline void RotPiDD::save_svg(const char* filename, const SvgParams& params) const {
     zdd_save_svg(filename, zdd_.id(), params);

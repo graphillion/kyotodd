@@ -4,8 +4,6 @@
 // This header is included by bdd_types.h after type/constant definitions.
 // Do NOT include this header directly; include bdd_types.h or bdd.h instead.
 
-#include <stdexcept>
-
 /// @cond INTERNAL
 // Forward declarations (defined in bdd_base.h)
 int bddinit(uint64_t node_count, uint64_t node_max);

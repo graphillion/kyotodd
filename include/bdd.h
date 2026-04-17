@@ -15,6 +15,8 @@
 #include "bdd_internal.h"
 #include "bigint.hpp"
 #include "svg_export.h"
+#include "unreduced_dd.h"
+#include "qdd.h"
 #include <iostream>
 
 // DDBase inline definitions (bddtop/bddsize declared in bdd_base.h)
@@ -1260,9 +1262,6 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
     };
     return ZDD_ID(build(0));
 }
-
-#include "unreduced_dd.h"
-#include "qdd.h"
 
 // --- QDD binary format inline definitions ---
 

@@ -2,6 +2,7 @@
 #define KYOTODD_PIDD_H
 
 #include "bdd.h"
+#include "svg_export.h"
 
 struct SvgParams;
 
@@ -302,7 +303,6 @@ inline PiDD operator%(const PiDD& f, const PiDD& p) { return f - (f / p) * p; }
 inline PiDD& PiDD::operator%=(const PiDD& f) { *this = *this % f; return *this; }
 
 // --- PiDD save_svg inline implementations ---
-#include "svg_export.h"
 
 inline void PiDD::save_svg(const char* filename, const SvgParams& params) const {
     zdd_save_svg(filename, zdd_.id(), params);

@@ -6,6 +6,7 @@
 #include "bdd_ops.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include "svg_export.h"
 #include <memory>
 #include <vector>
 #include <string>
@@ -760,8 +761,6 @@ private:
 // ========================================================================
 //  MVBDD/MVZDD save_svg inline implementations
 // ========================================================================
-
-#include "svg_export.h"
 
 inline void MVBDD::save_svg(const char* filename, const SvgParams& params) const {
     if (params.mode == DrawMode::Raw) {

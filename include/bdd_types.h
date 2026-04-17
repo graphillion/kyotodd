@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 #include "bdd_node.h"
+#include <stdexcept>
 
 #include "bigint.hpp"
 

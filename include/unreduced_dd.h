@@ -2,6 +2,7 @@
 #define KYOTODD_UNREDUCED_DD_H
 
 #include "bdd_types.h"
+#include "svg_export.h"
 #include <functional>
 
 struct SvgParams;
@@ -262,7 +263,6 @@ namespace std {
 }
 
 // --- UnreducedDD SVG export inline implementations ---
-#include "svg_export.h"
 
 inline void UnreducedDD::save_svg(const char* filename, const SvgParams& params) const {
     unreduced_save_svg(filename, root, params);
