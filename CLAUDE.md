@@ -7,6 +7,7 @@
 - Commit to git after every change.
 - Always write tests after implementing a feature.
 - Do not remove or modify existing comments in the code unless explicitly asked to do so.
+- Keep each source file within 2000 lines. If a file exceeds 2000 lines, split it into multiple files along a natural boundary (e.g., by feature or operation category).
 
 ## Naming conventions
 
