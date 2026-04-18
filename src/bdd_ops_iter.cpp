@@ -325,4 +325,290 @@ bddp bddxor_iter(bddp f, bddp g) {
     return result;
 }
 
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. Intermediate bddp
+// values on the iteration stack are not registered as GC roots, so GC must be
+// deferred (bdd_gc_depth > 0) for the duration of this call. The public wrapper
+// bddat0() in bdd_ops.cpp satisfies this precondition.
+bddp bddat0_iter(bddp f, bddvar v) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar top_var;
+        bddp f_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddvar v_level = var2level[v];
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar f_level = var2level[f_var];
+
+            if (f_level < v_level) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_AT0, cf, static_cast<bddp>(v));
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            if (f_var == v) {
+                bddp r = node_lo(cf);
+                if (f_comp) r = bddnot(r);
+                bddwcache(BDD_OP_AT0, cf, static_cast<bddp>(v), r);
+                result = r; stack.pop_back(); break;
+            }
+
+            // f_level > v_level: recurse into both branches
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            frame.top_var = f_var;
+            frame.f_hi = f_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame lo_frame;
+            lo_frame.f = f_lo;
+            lo_frame.top_var = 0;
+            lo_frame.f_hi = 0;
+            lo_frame.lo_result = bddnull;
+            lo_frame.phase = Phase::ENTER;
+            stack.push_back(lo_frame);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame hi_frame;
+            hi_frame.f = frame.f_hi;
+            hi_frame.top_var = 0;
+            hi_frame.f_hi = 0;
+            hi_frame.lo_result = bddnull;
+            hi_frame.phase = Phase::ENTER;
+            stack.push_back(hi_frame);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_result = result;
+            bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_result);
+            bddwcache(BDD_OP_AT0, frame.f, static_cast<bddp>(v), combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
+bddp bddat1_iter(bddp f, bddvar v) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar top_var;
+        bddp f_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddvar v_level = var2level[v];
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar f_level = var2level[f_var];
+
+            if (f_level < v_level) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_AT1, cf, static_cast<bddp>(v));
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            if (f_var == v) {
+                bddp r = node_hi(cf);
+                if (f_comp) r = bddnot(r);
+                bddwcache(BDD_OP_AT1, cf, static_cast<bddp>(v), r);
+                result = r; stack.pop_back(); break;
+            }
+
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            frame.top_var = f_var;
+            frame.f_hi = f_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame lo_frame;
+            lo_frame.f = f_lo;
+            lo_frame.top_var = 0;
+            lo_frame.f_hi = 0;
+            lo_frame.lo_result = bddnull;
+            lo_frame.phase = Phase::ENTER;
+            stack.push_back(lo_frame);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame hi_frame;
+            hi_frame.f = frame.f_hi;
+            hi_frame.top_var = 0;
+            hi_frame.f_hi = 0;
+            hi_frame.lo_result = bddnull;
+            hi_frame.phase = Phase::ENTER;
+            stack.push_back(hi_frame);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_result = result;
+            bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_result);
+            bddwcache(BDD_OP_AT1, frame.f, static_cast<bddp>(v), combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
+// When f's top variable equals v, computes f|_{v=0} OR f|_{v=1} via
+// ~(~f_lo AND ~f_hi). The inner AND is delegated to bddand_iter so that deep
+// operands do not overflow the C++ call stack.
+bddp bddsmooth_iter(bddp f, bddvar v) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar top_var;
+        bddp f_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddvar v_level = var2level[v];
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar f_level = var2level[f_var];
+
+            if (f_level < v_level) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_SMOOTH, cf, static_cast<bddp>(v));
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            if (f_var == v) {
+                // Quantify: f_lo OR f_hi, via ~(~f_lo AND ~f_hi).
+                bddp r = bddnot(bddand_iter(bddnot(f_lo), bddnot(f_hi)));
+                bddwcache(BDD_OP_SMOOTH, cf, static_cast<bddp>(v), r);
+                result = r; stack.pop_back(); break;
+            }
+
+            frame.top_var = f_var;
+            frame.f_hi = f_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame lo_frame;
+            lo_frame.f = f_lo;
+            lo_frame.top_var = 0;
+            lo_frame.f_hi = 0;
+            lo_frame.lo_result = bddnull;
+            lo_frame.phase = Phase::ENTER;
+            stack.push_back(lo_frame);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame hi_frame;
+            hi_frame.f = frame.f_hi;
+            hi_frame.top_var = 0;
+            hi_frame.f_hi = 0;
+            hi_frame.lo_result = bddnull;
+            hi_frame.phase = Phase::ENTER;
+            stack.push_back(hi_frame);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_result = result;
+            bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_result);
+            bddwcache(BDD_OP_SMOOTH, frame.f, static_cast<bddp>(v), combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace kyotodd

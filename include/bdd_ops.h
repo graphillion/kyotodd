@@ -116,12 +116,35 @@ bddp bddxnor(bddp f, bddp g);
 bddp bddat0(bddp f, bddvar v);
 
 /**
+ * @brief Cofactor restrict v=0 with execution mode selection.
+ */
+bddp bddat0(bddp f, bddvar v, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddat0.
+ *
+ * Uses an explicit heap stack. No recursion depth limit.
+ * Inputs must be pre-validated (no null/terminal fast-paths).
+ */
+bddp bddat0_iter(bddp f, bddvar v);
+
+/**
  * @brief Cofactor: restrict variable @p v to 1.
  * @param f A BDD node ID.
  * @param v Variable number to restrict.
  * @return The resulting BDD.
  */
 bddp bddat1(bddp f, bddvar v);
+
+/**
+ * @brief Cofactor restrict v=1 with execution mode selection.
+ */
+bddp bddat1(bddp f, bddvar v, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddat1.
+ */
+bddp bddat1_iter(bddp f, bddvar v);
 
 /**
  * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
@@ -254,6 +277,16 @@ bddp bddswap(bddp f, bddvar v1, bddvar v2);
  * @return The resulting BDD.
  */
 bddp bddsmooth(bddp f, bddvar v);
+
+/**
+ * @brief Smooth with execution mode selection.
+ */
+bddp bddsmooth(bddp f, bddvar v, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsmooth.
+ */
+bddp bddsmooth_iter(bddp f, bddvar v);
 
 /**
  * @brief Spread variable values to neighboring k levels.

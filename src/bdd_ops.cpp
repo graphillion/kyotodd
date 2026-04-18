@@ -384,7 +384,34 @@ bddp bddat0(bddp f, bddvar v) {
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddat0_rec(f, v); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddat0_iter(f, v); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddat0_rec(f, v); });
+    }
+}
+
+bddp bddat0(bddp f, bddvar v, BddExecMode mode) {
+    bddp_validate(f, "bddat0");
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddat0: var out of range");
+    }
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddat0_iter(f, v); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddat0_rec(f, v); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddat0_iter(f, v); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddat0_rec(f, v); });
+        }
+    }
 }
 
 static bddp bddat0_rec(bddp f, bddvar v) {
@@ -435,7 +462,34 @@ bddp bddat1(bddp f, bddvar v) {
     // Terminal case
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddat1_rec(f, v); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddat1_iter(f, v); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddat1_rec(f, v); });
+    }
+}
+
+bddp bddat1(bddp f, bddvar v, BddExecMode mode) {
+    bddp_validate(f, "bddat1");
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddat1: var out of range");
+    }
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddat1_iter(f, v); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddat1_rec(f, v); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddat1_iter(f, v); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddat1_rec(f, v); });
+        }
+    }
 }
 
 static bddp bddat1_rec(bddp f, bddvar v) {
@@ -1014,7 +1068,34 @@ bddp bddsmooth(bddp f, bddvar v) {
     }
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddsmooth_rec(f, v); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddsmooth_iter(f, v); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddsmooth_rec(f, v); });
+    }
+}
+
+bddp bddsmooth(bddp f, bddvar v, BddExecMode mode) {
+    bddp_validate(f, "bddsmooth");
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddsmooth: var out of range");
+    }
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddsmooth_iter(f, v); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddsmooth_rec(f, v); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddsmooth_iter(f, v); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddsmooth_rec(f, v); });
+        }
+    }
 }
 
 // --- bddspread ---

@@ -646,6 +646,232 @@ TEST_P(BddXorModeTest, CrossValidation) {
     EXPECT_EQ(result, expected);
 }
 
+// --- bddat0 / bddat1 / bddsmooth Mode-parameterized tests ---
+
+class BddAt0ModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddat0_mode(bddp f, bddvar v) {
+        return bddat0(f, v, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddAt0ModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddAt0ModeTest, Terminals) {
+    bddvar v = BDD_NewVar();
+    EXPECT_EQ(bddat0_mode(bddfalse, v), bddfalse);
+    EXPECT_EQ(bddat0_mode(bddtrue, v), bddtrue);
+}
+
+TEST_P(BddAt0ModeTest, SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // p at v=0 is bddfalse
+    EXPECT_EQ(bddat0_mode(p, v), bddfalse);
+    // ~p at v=0 is bddtrue
+    EXPECT_EQ(bddat0_mode(bddnot(p), v), bddtrue);
+}
+
+TEST_P(BddAt0ModeTest, NotOccurringVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // v2 does not occur in p1, so p1 at v2=0 is still p1.
+    EXPECT_EQ(bddat0_mode(p1, v2), p1);
+}
+
+TEST_P(BddAt0ModeTest, TwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // f|_{v1=0} = false
+    EXPECT_EQ(bddat0_mode(f, v1), bddfalse);
+    // f|_{v2=0} = false
+    EXPECT_EQ(bddat0_mode(f, v2), bddfalse);
+
+    bddp g = bddor(p1, p2);
+    // g|_{v1=0} = p2
+    EXPECT_EQ(bddat0_mode(g, v1), p2);
+    // g|_{v2=0} = p1
+    EXPECT_EQ(bddat0_mode(g, v2), p1);
+}
+
+TEST_P(BddAt0ModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+
+    for (bddvar v = 1; v <= n; ++v) {
+        EXPECT_EQ(bddat0_mode(f, v), bddat0(f, v));
+    }
+}
+
+class BddAt1ModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddat1_mode(bddp f, bddvar v) {
+        return bddat1(f, v, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddAt1ModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddAt1ModeTest, Terminals) {
+    bddvar v = BDD_NewVar();
+    EXPECT_EQ(bddat1_mode(bddfalse, v), bddfalse);
+    EXPECT_EQ(bddat1_mode(bddtrue, v), bddtrue);
+}
+
+TEST_P(BddAt1ModeTest, SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddat1_mode(p, v), bddtrue);
+    EXPECT_EQ(bddat1_mode(bddnot(p), v), bddfalse);
+}
+
+TEST_P(BddAt1ModeTest, NotOccurringVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddat1_mode(p1, v2), p1);
+}
+
+TEST_P(BddAt1ModeTest, TwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    EXPECT_EQ(bddat1_mode(f, v1), p2);
+    EXPECT_EQ(bddat1_mode(f, v2), p1);
+
+    bddp g = bddor(p1, p2);
+    EXPECT_EQ(bddat1_mode(g, v1), bddtrue);
+    EXPECT_EQ(bddat1_mode(g, v2), bddtrue);
+}
+
+TEST_P(BddAt1ModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+
+    for (bddvar v = 1; v <= n; ++v) {
+        EXPECT_EQ(bddat1_mode(f, v), bddat1(f, v));
+    }
+}
+
+class BddSmoothModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddsmooth_mode(bddp f, bddvar v) {
+        return bddsmooth(f, v, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddSmoothModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddSmoothModeTest, Terminals) {
+    bddvar v = BDD_NewVar();
+    EXPECT_EQ(bddsmooth_mode(bddfalse, v), bddfalse);
+    EXPECT_EQ(bddsmooth_mode(bddtrue, v), bddtrue);
+}
+
+TEST_P(BddSmoothModeTest, SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // smooth p by v == "exists v. p" == true
+    EXPECT_EQ(bddsmooth_mode(p, v), bddtrue);
+    // smooth ~p by v == "exists v. ~p" == true
+    EXPECT_EQ(bddsmooth_mode(bddnot(p), v), bddtrue);
+}
+
+TEST_P(BddSmoothModeTest, NotOccurringVar) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // v2 does not occur in p1 -> smooth returns p1 unchanged
+    EXPECT_EQ(bddsmooth_mode(p1, v2), p1);
+}
+
+TEST_P(BddSmoothModeTest, MatchesAt0OrAt1) {
+    // smooth f by v == f|_{v=0} OR f|_{v=1}
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    EXPECT_EQ(bddsmooth_mode(f, v1), bddor(bddat0(f, v1), bddat1(f, v1)));
+    EXPECT_EQ(bddsmooth_mode(f, v2), bddor(bddat0(f, v2), bddat1(f, v2)));
+
+    bddp g = bddxor(p1, p2);
+    EXPECT_EQ(bddsmooth_mode(g, v1), bddor(bddat0(g, v1), bddat1(g, v1)));
+    EXPECT_EQ(bddsmooth_mode(g, v2), bddor(bddat0(g, v2), bddat1(g, v2)));
+}
+
+TEST_P(BddSmoothModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+
+    for (bddvar v = 1; v <= n; ++v) {
+        EXPECT_EQ(bddsmooth_mode(f, v), bddsmooth(f, v));
+    }
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {
