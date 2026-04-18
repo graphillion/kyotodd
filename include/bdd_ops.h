@@ -154,6 +154,8 @@ bddp bddat1_iter(bddp f, bddvar v);
  * @return The resulting BDD, or bddnull if any input is bddnull.
  */
 bddp bddite(bddp f, bddp g, bddp h);
+bddp bddite(bddp f, bddp g, bddp h, BddExecMode mode);
+bddp bddite_iter(bddp f, bddp g, bddp h);
 
 /**
  * @brief Check implication: whether f implies g.

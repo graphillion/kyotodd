@@ -277,7 +277,39 @@ bddp bddite(bddp f, bddp g, bddp h) {
     if (h == bddfalse) return bddand(f, g);
     if (h == bddtrue) return bddor(bddnot(f), g);
 
-    return bdd_gc_guard([&]() -> bddp { return bddite_rec(f, g, h); });
+    if (use_iter_3op(f, g, h)) {
+        return bdd_gc_guard([&]() -> bddp { return bddite_iter(f, g, h); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddite_rec(f, g, h); });
+    }
+}
+
+bddp bddite(bddp f, bddp g, bddp h, BddExecMode mode) {
+    bddp_validate(f, "bddite");
+    bddp_validate(g, "bddite");
+    bddp_validate(h, "bddite");
+    if (f == bddnull || g == bddnull || h == bddnull) return bddnull;
+    if (f == bddtrue) return g;
+    if (f == bddfalse) return h;
+    if (g == h) return g;
+    if (g == bddtrue) return bddor(f, h);
+    if (g == bddfalse) return bddand(bddnot(f), h);
+    if (h == bddfalse) return bddand(f, g);
+    if (h == bddtrue) return bddor(bddnot(f), g);
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddite_iter(f, g, h); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddite_rec(f, g, h); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_3op(f, g, h)) {
+            return bdd_gc_guard([&]() -> bddp { return bddite_iter(f, g, h); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddite_rec(f, g, h); });
+        }
+    }
 }
 
 static bddp bddite_rec(bddp f, bddp g, bddp h) {

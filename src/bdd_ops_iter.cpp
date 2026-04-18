@@ -1060,4 +1060,202 @@ bddp bddsmooth_iter(bddp f, bddvar v) {
     return result;
 }
 
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddand_iter.
+// Reductions to 2-operand (g or h terminal) are delegated to bddand_iter so the
+// entire computation stays stack-safe even when the non-terminal operands are
+// deep.
+bddp bddite_iter(bddp f, bddp g, bddp h) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;          // non-complemented after normalization
+        bddp g;          // non-complemented after normalization
+        bddp h;          // may be complemented
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp h_hi;
+        bddp lo_result;
+        bool comp;       // apply bddnot() to final result
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.g = g;
+    init.h = h;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.h_hi = 0;
+    init.lo_result = bddnull;
+    init.comp = false;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            bddp cg = frame.g;
+            bddp ch = frame.h;
+
+            // Terminal cases for f
+            if (cf == bddtrue) { result = cg; stack.pop_back(); break; }
+            if (cf == bddfalse) { result = ch; stack.pop_back(); break; }
+
+            // g == h
+            if (cg == ch) { result = cg; stack.pop_back(); break; }
+
+            // Reduction to 2-operand (use bddand_iter for stack-safety)
+            if (cg == bddtrue) {
+                // OR(f, h) = ~AND(~f, ~h)
+                result = bddnot(bddand_iter(bddnot(cf), bddnot(ch)));
+                stack.pop_back(); break;
+            }
+            if (cg == bddfalse) {
+                result = bddand_iter(bddnot(cf), ch);
+                stack.pop_back(); break;
+            }
+            if (ch == bddfalse) {
+                result = bddand_iter(cf, cg);
+                stack.pop_back(); break;
+            }
+            if (ch == bddtrue) {
+                // OR(~f, g) = ~AND(f, ~g)
+                result = bddnot(bddand_iter(cf, bddnot(cg)));
+                stack.pop_back(); break;
+            }
+
+            // All three non-terminal; normalize f
+            if (cf & BDD_COMP_FLAG) {
+                cf = bddnot(cf);
+                bddp tmp = cg; cg = ch; ch = tmp;
+            }
+
+            // Normalize g: ensure g is non-complemented
+            bool comp = false;
+            if (cg & BDD_COMP_FLAG) {
+                cg = bddnot(cg);
+                ch = bddnot(ch);
+                comp = true;
+            }
+
+            // Post-normalization terminal check
+            if (cg == ch) {
+                result = comp ? bddnot(cg) : cg;
+                stack.pop_back(); break;
+            }
+
+            // Cache lookup
+            bddp cached = bddrcache3(BDD_OP_ITE, cf, cg, ch);
+            if (cached != bddnull) {
+                result = comp ? bddnot(cached) : cached;
+                stack.pop_back(); break;
+            }
+
+            // Determine top variable (highest level among f, g, h)
+            bddvar f_var = node_var(cf);
+            bddvar g_var = node_var(cg);
+            bddvar f_level = var2level[f_var];
+            bddvar g_level = var2level[g_var];
+
+            bddvar top_var = (f_level >= g_level) ? f_var : g_var;
+            bddvar top_level = (f_level >= g_level) ? f_level : g_level;
+
+            bool h_comp = (ch & BDD_COMP_FLAG) != 0;
+            bddvar h_var = node_var(ch);
+            bddvar h_level = var2level[h_var];
+            if (h_level > top_level) { top_var = h_var; top_level = h_level; }
+
+            // Cofactors for f (non-complemented)
+            bddp f_lo, f_hi;
+            if (f_level == top_level) {
+                f_lo = node_lo(cf);
+                f_hi = node_hi(cf);
+            } else {
+                f_lo = cf; f_hi = cf;
+            }
+
+            // Cofactors for g (non-complemented)
+            bddp g_lo, g_hi;
+            if (g_level == top_level) {
+                g_lo = node_lo(cg);
+                g_hi = node_hi(cg);
+            } else {
+                g_lo = cg; g_hi = cg;
+            }
+
+            // Cofactors for h (may be complemented)
+            bddp h_lo, h_hi;
+            if (h_level == top_level) {
+                h_lo = node_lo(ch);
+                h_hi = node_hi(ch);
+                if (h_comp) { h_lo = bddnot(h_lo); h_hi = bddnot(h_hi); }
+            } else {
+                h_lo = ch; h_hi = ch;
+            }
+
+            // Save normalized key + state for GOT_LO/GOT_HI/cache
+            frame.f = cf;
+            frame.g = cg;
+            frame.h = ch;
+            frame.top_var = top_var;
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.h_hi = h_hi;
+            frame.comp = comp;
+            frame.phase = Phase::GOT_LO;
+
+            Frame lo_frame;
+            lo_frame.f = f_lo;
+            lo_frame.g = g_lo;
+            lo_frame.h = h_lo;
+            lo_frame.top_var = 0;
+            lo_frame.f_hi = 0;
+            lo_frame.g_hi = 0;
+            lo_frame.h_hi = 0;
+            lo_frame.lo_result = bddnull;
+            lo_frame.comp = false;
+            lo_frame.phase = Phase::ENTER;
+            stack.push_back(lo_frame);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame hi_frame;
+            hi_frame.f = frame.f_hi;
+            hi_frame.g = frame.g_hi;
+            hi_frame.h = frame.h_hi;
+            hi_frame.top_var = 0;
+            hi_frame.f_hi = 0;
+            hi_frame.g_hi = 0;
+            hi_frame.h_hi = 0;
+            hi_frame.lo_result = bddnull;
+            hi_frame.comp = false;
+            hi_frame.phase = Phase::ENTER;
+            stack.push_back(hi_frame);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_r = result;
+            bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_r);
+            bddwcache3(BDD_OP_ITE, frame.f, frame.g, frame.h, combined);
+            result = frame.comp ? bddnot(combined) : combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace kyotodd

@@ -1061,6 +1061,87 @@ TEST_P(BddCofactorModeTest, CrossValidation) {
     }
 }
 
+class BddIteModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddite_mode(bddp f, bddp g, bddp h) {
+        return bddite(f, g, h, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddIteModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddIteModeTest, FTerminal) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddite_mode(bddtrue, p1, p2), p1);
+    EXPECT_EQ(bddite_mode(bddfalse, p1, p2), p2);
+}
+
+TEST_P(BddIteModeTest, GhEqual) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddite_mode(p1, p1, p1), p1);
+}
+
+TEST_P(BddIteModeTest, TwoOperandReduction) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // g == true -> OR(f, h)
+    EXPECT_EQ(bddite_mode(p1, bddtrue, p2), bddor(p1, p2));
+    // g == false -> AND(~f, h)
+    EXPECT_EQ(bddite_mode(p1, bddfalse, p2), bddand(bddnot(p1), p2));
+    // h == false -> AND(f, g)
+    EXPECT_EQ(bddite_mode(p1, p2, bddfalse), bddand(p1, p2));
+    // h == true -> OR(~f, g)
+    EXPECT_EQ(bddite_mode(p1, p2, bddtrue), bddor(bddnot(p1), p2));
+}
+
+TEST_P(BddIteModeTest, IteIdentity) {
+    // ite(f, g, h) == (f AND g) OR (~f AND h)
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    bddp r = bddite_mode(p1, p2, p3);
+    bddp expected = bddor(bddand(p1, p2), bddand(bddnot(p1), p3));
+    EXPECT_EQ(r, expected);
+}
+
+TEST_P(BddIteModeTest, CrossValidation) {
+    const int n = 5;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddor(bddprime(1), bddprime(2));
+    bddp g = bddand(bddprime(3), bddprime(4));
+    bddp h = bddxor(bddprime(5), bddprime(1));
+    EXPECT_EQ(bddite_mode(f, g, h), bddite(f, g, h));
+    // Also check with complement edges
+    EXPECT_EQ(bddite_mode(bddnot(f), g, h), bddite(bddnot(f), g, h));
+    EXPECT_EQ(bddite_mode(f, bddnot(g), h), bddite(f, bddnot(g), h));
+    EXPECT_EQ(bddite_mode(f, g, bddnot(h)), bddite(f, g, bddnot(h)));
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {
