@@ -1036,6 +1036,8 @@ static double bddcount_bdd_rec(
     if (f == bddfalse) return 0.0;
     if (f == bddtrue) return 1.0;
 
+    BDD_RecurGuard guard;
+
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
 
@@ -1101,6 +1103,8 @@ static bigint::BigInt bddexactcount_bdd_rec(
     std::unordered_map<bddp, bigint::BigInt>& memo) {
     if (f == bddfalse) return bigint::BigInt(0);
     if (f == bddtrue) return bigint::BigInt(1);
+
+    BDD_RecurGuard guard;
 
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
