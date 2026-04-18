@@ -1138,9 +1138,55 @@ bddp bddswap(bddp f, bddvar v1, bddvar v2) {
         tmp = lev1; lev1 = lev2; lev2 = tmp;
     }
 
-    return bdd_gc_guard([&]() -> bddp {
-        return bddswap_rec(f, v1, v2, lev1, lev2);
-    });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            return bddswap_iter(f, v1, v2, lev1, lev2);
+        });
+    } else {
+        return bdd_gc_guard([&]() -> bddp {
+            return bddswap_rec(f, v1, v2, lev1, lev2);
+        });
+    }
+}
+
+bddp bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode) {
+    bddp_validate(f, "bddswap");
+    if (f == bddnull) return bddnull;
+    if (v1 == v2) return f;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddswap: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return f;
+
+    bddvar lev1 = var2level[v1];
+    bddvar lev2 = var2level[v2];
+    if (lev1 < lev2) {
+        bddvar tmp;
+        tmp = v1; v1 = v2; v2 = tmp;
+        tmp = lev1; lev1 = lev2; lev2 = tmp;
+    }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            return bddswap_iter(f, v1, v2, lev1, lev2);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            return bddswap_rec(f, v1, v2, lev1, lev2);
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                return bddswap_iter(f, v1, v2, lev1, lev2);
+            });
+        } else {
+            return bdd_gc_guard([&]() -> bddp {
+                return bddswap_rec(f, v1, v2, lev1, lev2);
+            });
+        }
+    }
 }
 
 // --- bddsmooth ---
@@ -1256,7 +1302,35 @@ bddp bddspread(bddp f, int k) {
     if (k == 0) return f;
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddspread_iter(f, k); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
+    }
+}
+
+bddp bddspread(bddp f, int k, BddExecMode mode) {
+    bddp_validate(f, "bddspread");
+    if (f == bddnull) return bddnull;
+    if (k < 0) {
+        throw std::invalid_argument("bddspread: k must be >= 0");
+    }
+    if (k == 0) return f;
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddspread_iter(f, k); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddspread_iter(f, k); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddspread_rec(f, k); });
+        }
+    }
 }
 
 // --- BDD satisfiability counting ---

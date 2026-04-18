@@ -301,6 +301,8 @@ bddp bddcofactor_iter(bddp f, bddp g);
  * @return The BDD with v1 and v2 swapped.
  */
 bddp bddswap(bddp f, bddvar v1, bddvar v2);
+bddp bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
+bddp bddswap_iter(bddp f, bddvar v1, bddvar v2, bddvar lev1, bddvar lev2);
 
 /**
  * @brief Smooth (existential quantification) of a single variable.
@@ -327,6 +329,8 @@ bddp bddsmooth_iter(bddp f, bddvar v);
  * @return The resulting BDD.
  */
 bddp bddspread(bddp f, int k);
+bddp bddspread(bddp f, int k, BddExecMode mode);
+bddp bddspread_iter(bddp f, int k);
 
 // ZDD operations
 

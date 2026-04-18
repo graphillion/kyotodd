@@ -1142,6 +1142,105 @@ TEST_P(BddIteModeTest, CrossValidation) {
     EXPECT_EQ(bddite_mode(f, g, bddnot(h)), bddite(f, g, bddnot(h)));
 }
 
+class BddSwapModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override { BDD_Init(1024, UINT64_MAX); }
+    bddp bddswap_mode(bddp f, bddvar v1, bddvar v2) {
+        return bddswap(f, v1, v2, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddSwapModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddSwapModeTest, Terminals) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    EXPECT_EQ(bddswap_mode(bddtrue, v1, v2), bddtrue);
+    EXPECT_EQ(bddswap_mode(bddfalse, v1, v2), bddfalse);
+}
+
+TEST_P(BddSwapModeTest, SameVar) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddswap_mode(p1, v1, v1), p1);
+}
+
+TEST_P(BddSwapModeTest, SwapsPrimeLiterals) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddswap_mode(p1, v1, v2), p2);
+    EXPECT_EQ(bddswap_mode(p2, v1, v2), p1);
+}
+
+TEST_P(BddSwapModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (bddvar v1 = 1; v1 <= n; ++v1) {
+        for (bddvar v2 = 1; v2 <= n; ++v2) {
+            EXPECT_EQ(bddswap_mode(f, v1, v2), bddswap(f, v1, v2));
+        }
+    }
+}
+
+class BddSpreadModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override { BDD_Init(1024, UINT64_MAX); }
+    bddp bddspread_mode(bddp f, int k) {
+        return bddspread(f, k, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddSpreadModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddSpreadModeTest, Terminals) {
+    EXPECT_EQ(bddspread_mode(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddspread_mode(bddfalse, 1), bddfalse);
+}
+
+TEST_P(BddSpreadModeTest, KZero) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddspread_mode(p1, 0), p1);
+}
+
+TEST_P(BddSpreadModeTest, CrossValidation) {
+    const int n = 4;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (int k = 0; k <= 3; ++k) {
+        EXPECT_EQ(bddspread_mode(f, k), bddspread(f, k));
+    }
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {

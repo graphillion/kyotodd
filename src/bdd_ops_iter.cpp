@@ -1061,6 +1061,276 @@ bddp bddsmooth_iter(bddp f, bddvar v) {
 }
 
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddand_iter.
+// Each ENTER decomposes f into 4 sub-problems (lo/hi x k and k-1). The OR
+// combining the results is delegated to bddand_iter via De Morgan.
+bddp bddspread_iter(bddp f, int k) {
+    enum class Phase : uint8_t { ENTER, GOT_A, GOT_B, GOT_C, GOT_D };
+    struct Frame {
+        bddp f;           // the BDD at this frame (cache key)
+        int k;            // current k
+        bddvar top_var;
+        bddp f_lo;
+        bddp f_hi;
+        bddp r_a;         // spread(f_lo, k)
+        bddp r_b;         // spread(f_hi, k)
+        bddp r_c;         // spread(f_lo, k-1)
+        // r_d computed from result
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.k = k;
+    init.top_var = 0;
+    init.f_lo = 0;
+    init.f_hi = 0;
+    init.r_a = 0;
+    init.r_b = 0;
+    init.r_c = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+            if (frame.k == 0) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_SPREAD, cf, static_cast<bddp>(frame.k));
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar t = node_var(cf);
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            frame.top_var = t;
+            frame.f_lo = f_lo;
+            frame.f_hi = f_hi;
+            frame.phase = Phase::GOT_A;
+
+            Frame child;
+            child.f = f_lo;
+            child.k = frame.k;
+            child.top_var = 0;
+            child.f_lo = 0;
+            child.f_hi = 0;
+            child.r_a = 0;
+            child.r_b = 0;
+            child.r_c = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_A: {
+            frame.r_a = result;
+            frame.phase = Phase::GOT_B;
+            Frame child;
+            child.f = frame.f_hi;
+            child.k = frame.k;
+            child.top_var = 0;
+            child.f_lo = 0;
+            child.f_hi = 0;
+            child.r_a = 0;
+            child.r_b = 0;
+            child.r_c = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_B: {
+            frame.r_b = result;
+            frame.phase = Phase::GOT_C;
+            Frame child;
+            child.f = frame.f_lo;
+            child.k = frame.k - 1;
+            child.top_var = 0;
+            child.f_lo = 0;
+            child.f_hi = 0;
+            child.r_a = 0;
+            child.r_b = 0;
+            child.r_c = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_C: {
+            frame.r_c = result;
+            frame.phase = Phase::GOT_D;
+            Frame child;
+            child.f = frame.f_hi;
+            child.k = frame.k - 1;
+            child.top_var = 0;
+            child.f_lo = 0;
+            child.f_hi = 0;
+            child.r_a = 0;
+            child.r_b = 0;
+            child.r_c = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_D: {
+            bddp r_d = result;
+            // lo = spread(f_lo, k) | spread(f_hi, k-1)
+            //    = ~(~r_a AND ~r_d)
+            bddp lo = bddnot(bddand_iter(bddnot(frame.r_a), bddnot(r_d)));
+            // hi = spread(f_hi, k) | spread(f_lo, k-1)
+            //    = ~(~r_b AND ~r_c)
+            bddp hi = bddnot(bddand_iter(bddnot(frame.r_b), bddnot(frame.r_c)));
+            bddp combined = BDD::getnode_raw(frame.top_var, lo, hi);
+            bddwcache(BDD_OP_SPREAD, frame.f, static_cast<bddp>(frame.k), combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddand_iter.
+// At each level the combined result may need ITE to re-order variables; that
+// inner ITE is delegated to bddite_iter so the whole traversal stays
+// stack-safe.
+bddp bddswap_iter(bddp f, bddvar v1, bddvar v2, bddvar lev1, bddvar lev2) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    enum class Combine : uint8_t { MakeNodeV1, MakeNodeVar, IteV2, IteVar };
+    struct Frame {
+        bddp f;           // non-complemented f (used as cache key)
+        bddvar top_var;
+        bddp f_hi;
+        bddp lo_result;
+        bool comp;        // whether result is negated
+        Combine combine;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.lo_result = bddnull;
+    init.comp = false;
+    init.combine = Combine::MakeNodeVar;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp cache_key = (static_cast<bddp>(v1) << 31) | static_cast<bddp>(v2);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+
+            bool comp = (cf & BDD_COMP_FLAG) != 0;
+            bddp fn = cf & ~static_cast<bddp>(BDD_COMP_FLAG);
+
+            bddvar f_var = node_var(fn);
+            bddvar f_level = var2level[f_var];
+
+            if (f_level < lev2) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_SWAP, fn, cache_key);
+            if (cached != bddnull) {
+                result = comp ? bddnot(cached) : cached;
+                stack.pop_back(); break;
+            }
+
+            bddp f_lo = node_lo(fn);
+            bddp f_hi = node_hi(fn);
+
+            frame.f = fn;
+            frame.f_hi = f_hi;
+            frame.comp = comp;
+
+            if (f_var == v2) {
+                // Below lev2, children contain neither v1 nor v2.
+                // Re-label v2 -> v1 directly without recursion.
+                bddp combined = BDD::getnode_raw(v1, f_lo, f_hi);
+                bddwcache(BDD_OP_SWAP, fn, cache_key, combined);
+                result = comp ? bddnot(combined) : combined;
+                stack.pop_back(); break;
+            }
+
+            if (f_var == v1) {
+                frame.top_var = v2;
+                frame.combine = Combine::IteV2;
+            } else if (f_level > lev1) {
+                frame.top_var = f_var;
+                frame.combine = Combine::MakeNodeVar;
+            } else {
+                frame.top_var = f_var;
+                frame.combine = Combine::IteVar;
+            }
+
+            frame.phase = Phase::GOT_LO;
+            Frame lo_frame;
+            lo_frame.f = f_lo;
+            lo_frame.top_var = 0;
+            lo_frame.f_hi = 0;
+            lo_frame.lo_result = bddnull;
+            lo_frame.comp = false;
+            lo_frame.combine = Combine::MakeNodeVar;
+            lo_frame.phase = Phase::ENTER;
+            stack.push_back(lo_frame);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+            Frame hi_frame;
+            hi_frame.f = frame.f_hi;
+            hi_frame.top_var = 0;
+            hi_frame.f_hi = 0;
+            hi_frame.lo_result = bddnull;
+            hi_frame.comp = false;
+            hi_frame.combine = Combine::MakeNodeVar;
+            hi_frame.phase = Phase::ENTER;
+            stack.push_back(hi_frame);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_r = result;
+            bddp lo_r = frame.lo_result;
+            bddp combined;
+            if (frame.combine == Combine::IteV2) {
+                combined = bddite_iter(bddprime(v2), hi_r, lo_r);
+            } else if (frame.combine == Combine::IteVar) {
+                combined = bddite_iter(bddprime(frame.top_var), hi_r, lo_r);
+            } else {
+                combined = BDD::getnode_raw(frame.top_var, lo_r, hi_r);
+            }
+            bddwcache(BDD_OP_SWAP, frame.f, cache_key, combined);
+            result = frame.comp ? bddnot(combined) : combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddand_iter.
 // Reductions to 2-operand (g or h terminal) are delegated to bddand_iter so the
 // entire computation stays stack-safe even when the non-terminal operands are
 // deep.
