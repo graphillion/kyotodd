@@ -941,6 +941,9 @@ char *bddcardmp16(bddp f, char *s);
  * @return The satisfying assignment count as a double.
  */
 double bddcount(bddp f, bddvar n);
+double bddcount(bddp f, bddvar n, BddExecMode mode);
+double bddcount_bdd_iter(bddp f, bddvar n,
+                         std::unordered_map<bddp, double>& memo);
 
 /**
  * @brief Count the number of satisfying assignments of a BDD (exact).
@@ -966,6 +969,11 @@ bigint::BigInt bddexactcount(bddp f, bddvar n);
  * @return The satisfying assignment count as a BigInt.
  */
 bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo);
+bigint::BigInt bddexactcount(bddp f, bddvar n, BddExecMode mode);
+bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo,
+                             BddExecMode mode);
+bigint::BigInt bddexactcount_bdd_iter(bddp f, bddvar n,
+                                      CountMemoMap& memo);
 
 /**
  * @brief Generate a random ZDD over the lowest @p lev levels.

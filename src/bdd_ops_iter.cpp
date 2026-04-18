@@ -1,5 +1,8 @@
 #include "bdd.h"
 #include "bdd_internal.h"
+#include "bigint.hpp"
+#include <cmath>
+#include <unordered_map>
 #include <vector>
 
 namespace kyotodd {
@@ -1520,6 +1523,266 @@ bddp bddite_iter(bddp f, bddp g, bddp h) {
             bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_r);
             bddwcache3(BDD_OP_ITE, frame.f, frame.g, frame.h, combined);
             result = frame.comp ? bddnot(combined) : combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope.
+// Explicit-stack counterpart of bddcount_bdd_rec. Returns the inner count
+// (scaled by the top-level); the outer bddcount() re-applies the top-level
+// shift. Shares the memo semantics with the recursive version.
+double bddcount_bdd_iter(bddp f, bddvar n,
+                         std::unordered_map<bddp, double>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;           // raw input (may be complemented)
+        bddp f_raw;       // f with complement stripped
+        bool comp;
+        bddvar f_level;
+        bddvar lo_level;
+        bddvar hi_level;
+        double lo_count;
+        Phase phase;
+    };
+
+    double result = 0.0;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.f_raw = 0;
+    init.comp = false;
+    init.f_level = 0;
+    init.lo_level = 0;
+    init.hi_level = 0;
+    init.lo_count = 0.0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf == bddfalse) { result = 0.0; stack.pop_back(); break; }
+            if (cf == bddtrue) { result = 1.0; stack.pop_back(); break; }
+
+            bool comp = (cf & BDD_COMP_FLAG) != 0;
+            bddp f_raw = cf & ~BDD_COMP_FLAG;
+
+            auto it = memo.find(f_raw);
+            if (it != memo.end()) {
+                double count = it->second;
+                if (comp) {
+                    bddvar lvl = var2level[node_var(f_raw)];
+                    count = std::ldexp(1.0, lvl) - count;
+                }
+                result = count;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar var = node_var(f_raw);
+            if (var > n) {
+                throw std::invalid_argument(
+                    "bddcount: BDD contains variable > n");
+            }
+            bddvar f_level = var2level[var];
+            bddp lo = node_lo(f_raw);
+            bddp hi = node_hi(f_raw);
+
+            bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0 : var2level[node_var(lo)];
+            bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
+                : var2level[node_var(hi & ~BDD_COMP_FLAG)];
+
+            frame.f_raw = f_raw;
+            frame.comp = comp;
+            frame.f_level = f_level;
+            frame.lo_level = lo_level;
+            frame.hi_level = hi_level;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = lo;
+            child.f_raw = 0;
+            child.comp = false;
+            child.f_level = 0;
+            child.lo_level = 0;
+            child.hi_level = 0;
+            child.lo_count = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_count = result;
+            frame.phase = Phase::GOT_HI;
+            bddp hi = node_hi(frame.f_raw);
+            Frame child;
+            child.f = hi;
+            child.f_raw = 0;
+            child.comp = false;
+            child.f_level = 0;
+            child.lo_level = 0;
+            child.hi_level = 0;
+            child.lo_count = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            double hi_count = result;
+            int exp_lo = static_cast<int>(frame.f_level) - 1
+                       - static_cast<int>(frame.lo_level);
+            int exp_hi = static_cast<int>(frame.f_level) - 1
+                       - static_cast<int>(frame.hi_level);
+            if (exp_lo < 0 || exp_hi < 0) {
+                throw std::logic_error(
+                    "bddcount: invalid BDD structure (child level >= parent level)");
+            }
+            double count = std::ldexp(frame.lo_count, exp_lo)
+                         + std::ldexp(hi_count, exp_hi);
+            memo[frame.f_raw] = count;
+            if (frame.comp) {
+                count = std::ldexp(1.0, frame.f_level) - count;
+            }
+            result = count;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope.
+// BigInt variant of bddcount_bdd_iter.
+bigint::BigInt bddexactcount_bdd_iter(
+    bddp f, bddvar n,
+    std::unordered_map<bddp, bigint::BigInt>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp f_raw;
+        bool comp;
+        bddvar f_level;
+        bddvar lo_level;
+        bddvar hi_level;
+        bigint::BigInt lo_count;
+        Phase phase;
+    };
+
+    bigint::BigInt result(0);
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.f_raw = 0;
+    init.comp = false;
+    init.f_level = 0;
+    init.lo_level = 0;
+    init.hi_level = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            if (cf == bddfalse) { result = bigint::BigInt(0); stack.pop_back(); break; }
+            if (cf == bddtrue) { result = bigint::BigInt(1); stack.pop_back(); break; }
+
+            bool comp = (cf & BDD_COMP_FLAG) != 0;
+            bddp f_raw = cf & ~BDD_COMP_FLAG;
+
+            auto it = memo.find(f_raw);
+            if (it != memo.end()) {
+                bigint::BigInt count = it->second;
+                if (comp) {
+                    bddvar lvl = var2level[node_var(f_raw)];
+                    count = (bigint::BigInt(1) << static_cast<std::size_t>(lvl))
+                          - count;
+                }
+                result = count;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar var = node_var(f_raw);
+            if (var > n) {
+                throw std::invalid_argument(
+                    "bddexactcount: BDD contains variable > n");
+            }
+            bddvar f_level = var2level[var];
+            bddp lo = node_lo(f_raw);
+            bddp hi = node_hi(f_raw);
+            bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0 : var2level[node_var(lo)];
+            bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
+                : var2level[node_var(hi & ~BDD_COMP_FLAG)];
+
+            frame.f_raw = f_raw;
+            frame.comp = comp;
+            frame.f_level = f_level;
+            frame.lo_level = lo_level;
+            frame.hi_level = hi_level;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = lo;
+            child.f_raw = 0;
+            child.comp = false;
+            child.f_level = 0;
+            child.lo_level = 0;
+            child.hi_level = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_count = result;
+            frame.phase = Phase::GOT_HI;
+            bddp hi = node_hi(frame.f_raw);
+            Frame child;
+            child.f = hi;
+            child.f_raw = 0;
+            child.comp = false;
+            child.f_level = 0;
+            child.lo_level = 0;
+            child.hi_level = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bigint::BigInt hi_count = result;
+            int shift_lo = static_cast<int>(frame.f_level) - 1
+                         - static_cast<int>(frame.lo_level);
+            int shift_hi = static_cast<int>(frame.f_level) - 1
+                         - static_cast<int>(frame.hi_level);
+            if (shift_lo < 0 || shift_hi < 0) {
+                throw std::logic_error(
+                    "bddexactcount: invalid BDD structure (child level >= parent level)");
+            }
+            bigint::BigInt count =
+                (frame.lo_count << static_cast<std::size_t>(shift_lo))
+              + (hi_count << static_cast<std::size_t>(shift_hi));
+            memo[frame.f_raw] = count;
+            if (frame.comp) {
+                count = (bigint::BigInt(1) << static_cast<std::size_t>(frame.f_level))
+                      - count;
+            }
+            result = count;
             stack.pop_back();
             break;
         }

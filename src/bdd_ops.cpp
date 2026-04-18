@@ -1398,7 +1398,35 @@ double bddcount(bddp f, bddvar n) {
     bddvar top_level = var2level[node_var(f_raw)];
 
     std::unordered_map<bddp, double> memo;
-    double inner = bddcount_bdd_rec(f, n, memo);
+    double inner = use_iter_1op(f)
+        ? bddcount_bdd_iter(f, n, memo)
+        : bddcount_bdd_rec(f, n, memo);
+    return ldexp(inner, static_cast<int>(n) - static_cast<int>(top_level));
+}
+
+double bddcount(bddp f, bddvar n, BddExecMode mode) {
+    bddp_validate(f, "bddcount");
+    if (f == bddnull) return 0.0;
+    if (f == bddfalse) return 0.0;
+    if (f == bddtrue) return ldexp(1.0, n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    std::unordered_map<bddp, double> memo;
+    double inner;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        inner = bddcount_bdd_iter(f, n, memo); break;
+    case BddExecMode::Recursive:
+        inner = bddcount_bdd_rec(f, n, memo); break;
+    case BddExecMode::Auto:
+    default:
+        inner = use_iter_1op(f)
+            ? bddcount_bdd_iter(f, n, memo)
+            : bddcount_bdd_rec(f, n, memo);
+        break;
+    }
     return ldexp(inner, static_cast<int>(n) - static_cast<int>(top_level));
 }
 
@@ -1467,7 +1495,9 @@ bigint::BigInt bddexactcount(bddp f, bddvar n) {
     bddvar top_level = var2level[node_var(f_raw)];
 
     std::unordered_map<bddp, bigint::BigInt> memo;
-    bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
+    bigint::BigInt inner = use_iter_1op(f)
+        ? bddexactcount_bdd_iter(f, n, memo)
+        : bddexactcount_bdd_rec(f, n, memo);
     if (n >= top_level) {
         return inner << static_cast<std::size_t>(n - top_level);
     } else {
@@ -1484,7 +1514,69 @@ bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo) {
     bddp f_raw = f & ~BDD_COMP_FLAG;
     bddvar top_level = var2level[node_var(f_raw)];
 
-    bigint::BigInt inner = bddexactcount_bdd_rec(f, n, memo);
+    bigint::BigInt inner = use_iter_1op(f)
+        ? bddexactcount_bdd_iter(f, n, memo)
+        : bddexactcount_bdd_rec(f, n, memo);
+    if (n >= top_level) {
+        return inner << static_cast<std::size_t>(n - top_level);
+    } else {
+        return inner >> static_cast<std::size_t>(top_level - n);
+    }
+}
+
+bigint::BigInt bddexactcount(bddp f, bddvar n, BddExecMode mode) {
+    bddp_validate(f, "bddexactcount");
+    if (f == bddnull) return bigint::BigInt(0);
+    if (f == bddfalse) return bigint::BigInt(0);
+    if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    std::unordered_map<bddp, bigint::BigInt> memo;
+    bigint::BigInt inner;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        inner = bddexactcount_bdd_iter(f, n, memo); break;
+    case BddExecMode::Recursive:
+        inner = bddexactcount_bdd_rec(f, n, memo); break;
+    case BddExecMode::Auto:
+    default:
+        inner = use_iter_1op(f)
+            ? bddexactcount_bdd_iter(f, n, memo)
+            : bddexactcount_bdd_rec(f, n, memo);
+        break;
+    }
+    if (n >= top_level) {
+        return inner << static_cast<std::size_t>(n - top_level);
+    } else {
+        return inner >> static_cast<std::size_t>(top_level - n);
+    }
+}
+
+bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo,
+                             BddExecMode mode) {
+    bddp_validate(f, "bddexactcount");
+    if (f == bddnull) return bigint::BigInt(0);
+    if (f == bddfalse) return bigint::BigInt(0);
+    if (f == bddtrue) return bigint::BigInt(1) << static_cast<std::size_t>(n);
+
+    bddp f_raw = f & ~BDD_COMP_FLAG;
+    bddvar top_level = var2level[node_var(f_raw)];
+
+    bigint::BigInt inner;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        inner = bddexactcount_bdd_iter(f, n, memo); break;
+    case BddExecMode::Recursive:
+        inner = bddexactcount_bdd_rec(f, n, memo); break;
+    case BddExecMode::Auto:
+    default:
+        inner = use_iter_1op(f)
+            ? bddexactcount_bdd_iter(f, n, memo)
+            : bddexactcount_bdd_rec(f, n, memo);
+        break;
+    }
     if (n >= top_level) {
         return inner << static_cast<std::size_t>(n - top_level);
     } else {

@@ -1241,6 +1241,61 @@ TEST_P(BddSpreadModeTest, CrossValidation) {
     }
 }
 
+class BddCountBddModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override { BDD_Init(1024, UINT64_MAX); }
+    double bddcount_mode(bddp f, bddvar n) { return bddcount(f, n, GetParam()); }
+    bigint::BigInt bddexactcount_mode(bddp f, bddvar n) {
+        return bddexactcount(f, n, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddCountBddModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddCountBddModeTest, Terminals) {
+    EXPECT_DOUBLE_EQ(bddcount_mode(bddfalse, 3), 0.0);
+    EXPECT_DOUBLE_EQ(bddcount_mode(bddtrue, 3), 8.0);
+    EXPECT_EQ(bddexactcount_mode(bddfalse, 3), bigint::BigInt(0));
+    EXPECT_EQ(bddexactcount_mode(bddtrue, 3), bigint::BigInt(8));
+}
+
+TEST_P(BddCountBddModeTest, SinglePrime) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    // Over n=1, p1 is true for 1 assignment
+    EXPECT_DOUBLE_EQ(bddcount_mode(p1, 1), 1.0);
+    EXPECT_EQ(bddexactcount_mode(p1, 1), bigint::BigInt(1));
+    // Over n=3, p1 is true for 4 assignments (free v2, v3)
+    BDD_NewVar();
+    BDD_NewVar();
+    EXPECT_DOUBLE_EQ(bddcount_mode(p1, 3), 4.0);
+    EXPECT_EQ(bddexactcount_mode(p1, 3), bigint::BigInt(4));
+}
+
+TEST_P(BddCountBddModeTest, CrossValidation) {
+    const int n = 5;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    EXPECT_DOUBLE_EQ(bddcount_mode(f, n), bddcount(f, n));
+    EXPECT_EQ(bddexactcount_mode(f, n), bddexactcount(f, n));
+    // Complement
+    EXPECT_DOUBLE_EQ(bddcount_mode(bddnot(f), n), bddcount(bddnot(f), n));
+    EXPECT_EQ(bddexactcount_mode(bddnot(f), n), bddexactcount(bddnot(f), n));
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {
