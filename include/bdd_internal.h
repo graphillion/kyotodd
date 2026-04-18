@@ -6,6 +6,7 @@
 #include <functional>
 #include <cmath>
 #include <unordered_map>
+#include <algorithm>
 
 namespace kyotodd {
 
@@ -385,6 +386,67 @@ inline double bigint_ratio_to_double(
         ratio *= std::pow(10.0, static_cast<double>(exp_diff));
     }
     return ratio;
+}
+
+/**
+ * @brief Return the level of a bddp. Terminals and null return 0.
+ *
+ * Safe to call on any bddp including terminals (BDD_CONST_FLAG set) and
+ * bddnull without touching the node array.
+ *
+ * @param f A bddp value.
+ * @return The level of the top variable, or 0 for terminals/null.
+ */
+inline bddvar bddp_level(bddp f) {
+    if (f == bddnull) return 0;
+    if (f & BDD_CONST_FLAG) return 0;
+    return var2level[node_var(f)];
+}
+
+/**
+ * @brief Determine whether the iterative implementation should be used
+ *        for a 1-operand recursive operation.
+ *
+ * Returns true iff level(f) > BDD_RecurLimit. Callers should dispatch to
+ * the _iter variant when this returns true, otherwise the _rec variant.
+ *
+ * @param f The single operand.
+ * @return true if iterative dispatch is required.
+ */
+inline bool use_iter_1op(bddp f) {
+    return bddp_level(f) > static_cast<bddvar>(BDD_RecurLimit);
+}
+
+/**
+ * @brief Determine whether the iterative implementation should be used
+ *        for a 2-operand recursive operation.
+ *
+ * Returns true iff max(level(f), level(g)) > BDD_RecurLimit.
+ *
+ * @param f First operand.
+ * @param g Second operand.
+ * @return true if iterative dispatch is required.
+ */
+inline bool use_iter_2op(bddp f, bddp g) {
+    bddvar m = std::max(bddp_level(f), bddp_level(g));
+    return m > static_cast<bddvar>(BDD_RecurLimit);
+}
+
+/**
+ * @brief Determine whether the iterative implementation should be used
+ *        for a 3-operand recursive operation (ITE-style).
+ *
+ * Returns true iff max(level(f), level(g), level(h)) > BDD_RecurLimit.
+ *
+ * @param f First operand.
+ * @param g Second operand.
+ * @param h Third operand.
+ * @return true if iterative dispatch is required.
+ */
+inline bool use_iter_3op(bddp f, bddp g, bddp h) {
+    bddvar m = std::max(bddp_level(f), bddp_level(g));
+    m = std::max(m, bddp_level(h));
+    return m > static_cast<bddvar>(BDD_RecurLimit);
 }
 
 /**

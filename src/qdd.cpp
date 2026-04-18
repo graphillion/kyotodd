@@ -85,11 +85,6 @@ ZDD QDD::to_zdd() const {
 
 // --- Helpers ---
 
-static bddvar bddp_level(bddp f) {
-    if (f & BDD_CONST_FLAG) return 0;
-    return var2level[node_var(f & ~BDD_COMP_FLAG)];
-}
-
 // Fill skipped levels with identity (lo==hi) nodes (for BDD conversion).
 // BDD skipped levels mean "don't care" — the function is independent of
 // the variable, so both branches lead to the same child.
