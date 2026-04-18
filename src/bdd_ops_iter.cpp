@@ -25,6 +25,10 @@ struct IterFrame {
 
 } // anonymous namespace
 
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. Intermediate bddp
+// values on the iteration stack are not registered as GC roots, so GC must be
+// deferred (bdd_gc_depth > 0) for the duration of this call. The public wrapper
+// bddand() in bdd_ops.cpp satisfies this precondition.
 bddp bddand_iter(bddp f, bddp g) {
     bddp result = bddnull;
 
