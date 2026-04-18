@@ -63,6 +63,27 @@ bddp bddor(bddp f, bddp g);
 bddp bddxor(bddp f, bddp g);
 
 /**
+ * @brief Logical XOR of two BDDs with execution mode selection.
+ * @param f First operand.
+ * @param g Second operand.
+ * @param mode Execution mode (Recursive, Iterative, or Auto).
+ *             Auto selects recursive if max operand level <= BDD_RecurLimit, else iterative.
+ * @return The BDD for f XOR g, or bddnull if either input is bddnull.
+ */
+bddp bddxor(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddxor.
+ *
+ * Uses an explicit heap stack. No recursion depth limit.
+ * Inputs must be pre-validated and normalized (no null/terminal fast-paths).
+ * @param f First operand.
+ * @param g Second operand.
+ * @return The BDD for f XOR g.
+ */
+bddp bddxor_iter(bddp f, bddp g);
+
+/**
  * @brief Logical NAND of two BDDs.
  * @param f First operand.
  * @param g Second operand.

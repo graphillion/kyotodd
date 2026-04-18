@@ -539,6 +539,113 @@ TEST_P(BddAndModeTest, CacheSharing) {
     EXPECT_EQ(r1, r2);
 }
 
+// --- bddxor: parameterized tests for Recursive/Iterative modes ---
+
+class BddXorModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddxor_mode(bddp f, bddp g) {
+        return bddxor(f, g, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddXorModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddXorModeTest, Terminals) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+
+    EXPECT_EQ(bddxor_mode(bddfalse, bddfalse), bddfalse);
+    EXPECT_EQ(bddxor_mode(bddfalse, bddtrue), bddtrue);
+    EXPECT_EQ(bddxor_mode(bddtrue, bddfalse), bddtrue);
+    EXPECT_EQ(bddxor_mode(bddtrue, bddtrue), bddfalse);
+
+    EXPECT_EQ(bddxor_mode(p, bddfalse), p);
+    EXPECT_EQ(bddxor_mode(bddfalse, p), p);
+    EXPECT_EQ(bddxor_mode(p, bddtrue), bddnot(p));
+    EXPECT_EQ(bddxor_mode(bddtrue, p), bddnot(p));
+}
+
+TEST_P(BddXorModeTest, Self) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    EXPECT_EQ(bddxor_mode(p, p), bddfalse);
+    EXPECT_EQ(bddxor_mode(p, bddnot(p)), bddtrue);
+}
+
+TEST_P(BddXorModeTest, Commutativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    EXPECT_EQ(bddxor_mode(p1, p2), bddxor_mode(p2, p1));
+}
+
+TEST_P(BddXorModeTest, Associativity) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddvar v3 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp p3 = bddprime(v3);
+    EXPECT_EQ(bddxor_mode(bddxor_mode(p1, p2), p3),
+              bddxor_mode(p1, bddxor_mode(p2, p3)));
+}
+
+TEST_P(BddXorModeTest, ComplementIdentities) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    // XOR(~a, b) = ~XOR(a, b)
+    EXPECT_EQ(bddxor_mode(bddnot(p1), p2), bddnot(bddxor_mode(p1, p2)));
+    // XOR(a, ~b) = ~XOR(a, b)
+    EXPECT_EQ(bddxor_mode(p1, bddnot(p2)), bddnot(bddxor_mode(p1, p2)));
+    // XOR(~a, ~b) = XOR(a, b)
+    EXPECT_EQ(bddxor_mode(bddnot(p1), bddnot(p2)), bddxor_mode(p1, p2));
+}
+
+TEST_P(BddXorModeTest, CrossValidation) {
+    // Build a moderately complex BDD and verify modes agree with the 2-arg version
+    const int n = 10;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    bddp f = bddfalse;
+    for (int i = 1; i <= 5; ++i)
+        f = bddxor_mode(f, bddprime(i));
+
+    bddp g = bddfalse;
+    for (int i = 3; i <= 8; ++i)
+        g = bddxor_mode(g, bddprime(i));
+
+    bddp result = bddxor_mode(f, g);
+
+    bddp f2 = bddfalse;
+    for (int i = 1; i <= 5; ++i)
+        f2 = bddxor(f2, bddprime(i));
+    bddp g2 = bddfalse;
+    for (int i = 3; i <= 8; ++i)
+        g2 = bddxor(g2, bddprime(i));
+    bddp expected = bddxor(f2, g2);
+
+    EXPECT_EQ(result, expected);
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {

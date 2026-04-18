@@ -154,7 +154,39 @@ bddp bddxor(bddp f, bddp g) {
     if (f == g) return bddfalse;
     if (f == bddnot(g)) return bddtrue;
 
-    return bdd_gc_guard([&]() -> bddp { return bddxor_rec(f, g); });
+    // Auto mode: choose based on max operand level vs BDD_RecurLimit
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddxor_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddxor_rec(f, g); });
+    }
+}
+
+bddp bddxor(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddxor");
+    bddp_validate(g, "bddxor");
+    if (f == bddnull || g == bddnull) return bddnull;
+    // Terminal cases
+    if (f == bddfalse) return g;
+    if (f == bddtrue) return bddnot(g);
+    if (g == bddfalse) return f;
+    if (g == bddtrue) return bddnot(f);
+    if (f == g) return bddfalse;
+    if (f == bddnot(g)) return bddtrue;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddxor_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddxor_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddxor_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddxor_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddxor_rec(bddp f, bddp g) {
