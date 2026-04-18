@@ -872,6 +872,195 @@ TEST_P(BddSmoothModeTest, CrossValidation) {
     }
 }
 
+// --- bddexist / bdduniv / bddcofactor Mode-parameterized tests ---
+
+class BddExistModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddexist_mode(bddp f, bddp g) {
+        return bddexist(f, g, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddExistModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddExistModeTest, Terminals) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddexist_mode(bddfalse, p1), bddfalse);
+    EXPECT_EQ(bddexist_mode(bddtrue, p1), bddtrue);
+    // g == bddfalse means no variables: return f unchanged
+    EXPECT_EQ(bddexist_mode(p1, bddfalse), p1);
+}
+
+TEST_P(BddExistModeTest, SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // exists v. p(v) == true
+    EXPECT_EQ(bddexist_mode(p, p), bddtrue);
+}
+
+TEST_P(BddExistModeTest, TwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddand(p1, p2);
+    // exists v1. f = p2
+    EXPECT_EQ(bddexist_mode(f, p1), p2);
+    // exists v2. f = p1
+    EXPECT_EQ(bddexist_mode(f, p2), p1);
+}
+
+TEST_P(BddExistModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (bddvar v = 1; v <= n; ++v) {
+        bddp g = bddprime(v);
+        EXPECT_EQ(bddexist_mode(f, g), bddexist(f, g));
+    }
+}
+
+class BddUnivModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bdduniv_mode(bddp f, bddp g) {
+        return bdduniv(f, g, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddUnivModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddUnivModeTest, Terminals) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bdduniv_mode(bddfalse, p1), bddfalse);
+    EXPECT_EQ(bdduniv_mode(bddtrue, p1), bddtrue);
+    EXPECT_EQ(bdduniv_mode(p1, bddfalse), p1);
+}
+
+TEST_P(BddUnivModeTest, SingleVar) {
+    bddvar v = BDD_NewVar();
+    bddp p = bddprime(v);
+    // forall v. p(v) == false
+    EXPECT_EQ(bdduniv_mode(p, p), bddfalse);
+}
+
+TEST_P(BddUnivModeTest, TwoVars) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddor(p1, p2);
+    // forall v1. (v1 | v2) = v2
+    EXPECT_EQ(bdduniv_mode(f, p1), p2);
+    // forall v2. (v1 | v2) = v1
+    EXPECT_EQ(bdduniv_mode(f, p2), p1);
+}
+
+TEST_P(BddUnivModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (bddvar v = 1; v <= n; ++v) {
+        bddp g = bddprime(v);
+        EXPECT_EQ(bdduniv_mode(f, g), bdduniv(f, g));
+    }
+}
+
+class BddCofactorModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+
+    bddp bddcofactor_mode(bddp f, bddp g) {
+        return bddcofactor(f, g, GetParam());
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    BddCofactorModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+TEST_P(BddCofactorModeTest, Terminals) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    EXPECT_EQ(bddcofactor_mode(bddfalse, p1), bddfalse);
+    EXPECT_EQ(bddcofactor_mode(bddtrue, p1), bddtrue);
+    EXPECT_EQ(bddcofactor_mode(p1, bddtrue), p1);
+    EXPECT_EQ(bddcofactor_mode(p1, bddfalse), bddfalse);
+}
+
+TEST_P(BddCofactorModeTest, ConstrainToTrueValueAssignment) {
+    // cofactor f w.r.t. g should equal f on the care region defined by g
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    bddp p2 = bddprime(v2);
+    bddp f = bddxor(p1, p2);
+    // Cofactor f|_{v1=1} via g = p1: equivalent to bddat1(f, v1)
+    bddp result = bddcofactor_mode(f, p1);
+    // Since g = p1, care region = v1=1; on that region, f = ~p2.
+    // The returned function must agree with f on the care region.
+    EXPECT_EQ(bddcofactor_mode(bddand(result, p1), p1), bddcofactor_mode(f, p1));
+}
+
+TEST_P(BddCofactorModeTest, CrossValidation) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+
+    for (bddvar v = 1; v <= n; ++v) {
+        bddp g = bddprime(v);
+        EXPECT_EQ(bddcofactor_mode(f, g), bddcofactor(f, g));
+    }
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {

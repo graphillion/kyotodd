@@ -191,6 +191,16 @@ std::vector<bddvar> bddsupport_vec(bddp f);
 bddp bddexist(bddp f, bddp g);
 
 /**
+ * @brief Existential quantification with execution mode selection.
+ */
+bddp bddexist(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddexist.
+ */
+bddp bddexist_iter(bddp f, bddp g);
+
+/**
  * @brief Existential quantification by a list of variables.
  * @param f The BDD to quantify.
  * @param vars Variable numbers to quantify out.
@@ -217,6 +227,16 @@ bddp bddexistvar(bddp f, bddvar v);
  * @return The resulting BDD.
  */
 bddp bdduniv(bddp f, bddp g);
+
+/**
+ * @brief Universal quantification with execution mode selection.
+ */
+bddp bdduniv(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bdduniv.
+ */
+bddp bdduniv_iter(bddp f, bddp g);
 
 /**
  * @brief Universal quantification by a list of variables.
@@ -260,6 +280,16 @@ bddp bddrshiftb(bddp f, bddvar shift);
  * @return The generalized cofactor.
  */
 bddp bddcofactor(bddp f, bddp g);
+
+/**
+ * @brief Generalized cofactor with execution mode selection.
+ */
+bddp bddcofactor(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddcofactor.
+ */
+bddp bddcofactor_iter(bddp f, bddp g);
 
 /**
  * @brief Swap variables v1 and v2 in a BDD.

@@ -664,7 +664,35 @@ bddp bddexist(bddp f, bddp g) {
     if (f == bddfalse) return bddfalse;
     if (f == bddtrue) return bddtrue;
 
-    return bdd_gc_guard([&]() -> bddp { return bddexist_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddexist_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddexist_rec(f, g); });
+    }
+}
+
+bddp bddexist(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddexist");
+    bddp_validate(g, "bddexist");
+    if (f == bddnull || g == bddnull) return bddnull;
+    g = g & ~BDD_COMP_FLAG;
+    if (g == bddfalse) return f;
+    if (f == bddfalse) return bddfalse;
+    if (f == bddtrue) return bddtrue;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddexist_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddexist_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddexist_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddexist_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddexist_rec(bddp f, bddp g) {
@@ -762,7 +790,35 @@ bddp bdduniv(bddp f, bddp g) {
     if (f == bddfalse) return bddfalse;
     if (f == bddtrue) return bddtrue;
 
-    return bdd_gc_guard([&]() -> bddp { return bdduniv_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bdduniv_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bdduniv_rec(f, g); });
+    }
+}
+
+bddp bdduniv(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bdduniv");
+    bddp_validate(g, "bdduniv");
+    if (f == bddnull || g == bddnull) return bddnull;
+    g = g & ~BDD_COMP_FLAG;
+    if (g == bddfalse) return f;
+    if (f == bddfalse) return bddfalse;
+    if (f == bddtrue) return bddtrue;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bdduniv_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bdduniv_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bdduniv_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bdduniv_rec(f, g); });
+        }
+    }
 }
 
 static bddp bdduniv_rec(bddp f, bddp g) {
@@ -873,7 +929,36 @@ bddp bddcofactor(bddp f, bddp g) {
     if (f == g) return bddtrue;          // f=1 wherever g=1
     if (g == bddtrue) return f;          // no don't care region
 
-    return bdd_gc_guard([&]() -> bddp { return bddcofactor_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddcofactor_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddcofactor_rec(f, g); });
+    }
+}
+
+bddp bddcofactor(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddcofactor");
+    bddp_validate(g, "bddcofactor");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+    if (g == bddfalse) return bddfalse;
+    if (f == bddnot(g)) return bddfalse;
+    if (f == g) return bddtrue;
+    if (g == bddtrue) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddcofactor_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddcofactor_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddcofactor_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddcofactor_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddcofactor_rec(bddp f, bddp g) {

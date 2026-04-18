@@ -516,6 +516,455 @@ bddp bddat1_iter(bddp f, bddvar v) {
 }
 
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
+// g is a cube BDD (variable set). The same-variable case combines children
+// via OR, delegated through bddand_iter to stay stack-safe.
+bddp bddexist_iter(bddp f, bddp g) {
+    enum class Phase : uint8_t { ENTER, GOT_PASS, GOT_LO, GOT_HI };
+    enum class Combine : uint8_t { MakeNode, ReduceOr };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp lo_result;
+        Combine combine;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.g = g;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.lo_result = bddnull;
+    init.combine = Combine::MakeNode;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            bddp cg = frame.g & ~BDD_COMP_FLAG;
+            frame.g = cg;
+
+            if (cg == bddfalse) { result = cf; stack.pop_back(); break; }
+            if (cf == bddfalse) { result = bddfalse; stack.pop_back(); break; }
+            if (cf == bddtrue) { result = bddtrue; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_EXIST, cf, cg);
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar f_level = var2level[f_var];
+            bddvar g_var = node_var(cg);
+            bddvar g_level = var2level[g_var];
+
+            if (g_level > f_level) {
+                // Skip g's top variable: recurse on (f, node_lo(g))
+                frame.phase = Phase::GOT_PASS;
+                Frame child;
+                child.f = cf;
+                child.g = node_lo(cg);
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+                break;
+            }
+
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            if (f_level > g_level) {
+                // Keep f's top variable: combine via make-node
+                frame.top_var = f_var;
+                frame.f_hi = f_hi;
+                frame.g_hi = cg;
+                frame.combine = Combine::MakeNode;
+                frame.phase = Phase::GOT_LO;
+                Frame child;
+                child.f = f_lo;
+                child.g = cg;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            } else {
+                // Same variable: quantify out via OR
+                bddp g_rest = node_lo(cg);
+                frame.top_var = 0;
+                frame.f_hi = f_hi;
+                frame.g_hi = g_rest;
+                frame.combine = Combine::ReduceOr;
+                frame.phase = Phase::GOT_LO;
+                Frame child;
+                child.f = f_lo;
+                child.g = g_rest;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            }
+            break;
+        }
+
+        case Phase::GOT_PASS: {
+            bddwcache(BDD_OP_EXIST, frame.f, frame.g, result);
+            stack.pop_back();
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+            Frame child;
+            child.f = frame.f_hi;
+            child.g = frame.g_hi;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.combine = Combine::MakeNode;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_r = result;
+            bddp lo_r = frame.lo_result;
+            bddp combined;
+            if (frame.combine == Combine::MakeNode) {
+                combined = BDD::getnode_raw(frame.top_var, lo_r, hi_r);
+            } else {
+                combined = bddnot(bddand_iter(bddnot(lo_r), bddnot(hi_r)));
+            }
+            bddwcache(BDD_OP_EXIST, frame.f, frame.g, combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
+// Same structure as bddexist_iter but combines via AND at the match case.
+bddp bdduniv_iter(bddp f, bddp g) {
+    enum class Phase : uint8_t { ENTER, GOT_PASS, GOT_LO, GOT_HI };
+    enum class Combine : uint8_t { MakeNode, ReduceAnd };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp lo_result;
+        Combine combine;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.g = g;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.lo_result = bddnull;
+    init.combine = Combine::MakeNode;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            bddp cg = frame.g & ~BDD_COMP_FLAG;
+            frame.g = cg;
+
+            if (cg == bddfalse) { result = cf; stack.pop_back(); break; }
+            if (cf == bddfalse) { result = bddfalse; stack.pop_back(); break; }
+            if (cf == bddtrue) { result = bddtrue; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_UNIV, cf, cg);
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar f_level = var2level[f_var];
+            bddvar g_var = node_var(cg);
+            bddvar g_level = var2level[g_var];
+
+            if (g_level > f_level) {
+                frame.phase = Phase::GOT_PASS;
+                Frame child;
+                child.f = cf;
+                child.g = node_lo(cg);
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+                break;
+            }
+
+            bddp f_lo = node_lo(cf);
+            bddp f_hi = node_hi(cf);
+            if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+
+            if (f_level > g_level) {
+                frame.top_var = f_var;
+                frame.f_hi = f_hi;
+                frame.g_hi = cg;
+                frame.combine = Combine::MakeNode;
+                frame.phase = Phase::GOT_LO;
+                Frame child;
+                child.f = f_lo;
+                child.g = cg;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            } else {
+                bddp g_rest = node_lo(cg);
+                frame.top_var = 0;
+                frame.f_hi = f_hi;
+                frame.g_hi = g_rest;
+                frame.combine = Combine::ReduceAnd;
+                frame.phase = Phase::GOT_LO;
+                Frame child;
+                child.f = f_lo;
+                child.g = g_rest;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.combine = Combine::MakeNode;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            }
+            break;
+        }
+
+        case Phase::GOT_PASS: {
+            bddwcache(BDD_OP_UNIV, frame.f, frame.g, result);
+            stack.pop_back();
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+            Frame child;
+            child.f = frame.f_hi;
+            child.g = frame.g_hi;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.combine = Combine::MakeNode;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_r = result;
+            bddp lo_r = frame.lo_result;
+            bddp combined;
+            if (frame.combine == Combine::MakeNode) {
+                combined = BDD::getnode_raw(frame.top_var, lo_r, hi_r);
+            } else {
+                combined = bddand_iter(lo_r, hi_r);
+            }
+            bddwcache(BDD_OP_UNIV, frame.f, frame.g, combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
+// Generalized cofactor. Terminal cases match bddcofactor; decomposition
+// choose single-recurse when one of g's children is bddfalse (don't-care),
+// else two recursions combined via make-node.
+bddp bddcofactor_iter(bddp f, bddp g) {
+    enum class Phase : uint8_t { ENTER, GOT_PASS, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    bddp result = bddnull;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f;
+    init.g = g;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            bddp cg = frame.g;
+
+            if (cf & BDD_CONST_FLAG) { result = cf; stack.pop_back(); break; }
+            if (cg == bddfalse) { result = bddfalse; stack.pop_back(); break; }
+            if (cf == bddnot(cg)) { result = bddfalse; stack.pop_back(); break; }
+            if (cf == cg) { result = bddtrue; stack.pop_back(); break; }
+            if (cg == bddtrue) { result = cf; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_COFACTOR, cf, cg);
+            if (cached != bddnull) { result = cached; stack.pop_back(); break; }
+
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bool g_comp = (cg & BDD_COMP_FLAG) != 0;
+            bddvar f_var = node_var(cf);
+            bddvar g_var = node_var(cg);
+            bddvar f_level = var2level[f_var];
+            bddvar g_level = var2level[g_var];
+
+            bddvar top_var;
+            bddp f_lo, f_hi, g_lo, g_hi;
+            if (f_level > g_level) {
+                top_var = f_var;
+                f_lo = node_lo(cf); f_hi = node_hi(cf);
+                if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+                g_lo = cg; g_hi = cg;
+            } else if (g_level > f_level) {
+                top_var = g_var;
+                f_lo = cf; f_hi = cf;
+                g_lo = node_lo(cg); g_hi = node_hi(cg);
+                if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+            } else {
+                top_var = f_var;
+                f_lo = node_lo(cf); f_hi = node_hi(cf);
+                if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+                g_lo = node_lo(cg); g_hi = node_hi(cg);
+                if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+            }
+
+            if (g_lo == bddfalse && g_hi != bddfalse) {
+                frame.phase = Phase::GOT_PASS;
+                Frame child;
+                child.f = f_hi;
+                child.g = g_hi;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            } else if (g_hi == bddfalse && g_lo != bddfalse) {
+                frame.phase = Phase::GOT_PASS;
+                Frame child;
+                child.f = f_lo;
+                child.g = g_lo;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            } else {
+                frame.top_var = top_var;
+                frame.f_hi = f_hi;
+                frame.g_hi = g_hi;
+                frame.phase = Phase::GOT_LO;
+                Frame child;
+                child.f = f_lo;
+                child.g = g_lo;
+                child.top_var = 0;
+                child.f_hi = 0;
+                child.g_hi = 0;
+                child.lo_result = bddnull;
+                child.phase = Phase::ENTER;
+                stack.push_back(child);
+            }
+            break;
+        }
+
+        case Phase::GOT_PASS: {
+            bddwcache(BDD_OP_COFACTOR, frame.f, frame.g, result);
+            stack.pop_back();
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+            Frame child;
+            child.f = frame.f_hi;
+            child.g = frame.g_hi;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi_r = result;
+            bddp combined = BDD::getnode_raw(frame.top_var, frame.lo_result, hi_r);
+            bddwcache(BDD_OP_COFACTOR, frame.f, frame.g, combined);
+            result = combined;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddat0_iter.
 // When f's top variable equals v, computes f|_{v=0} OR f|_{v=1} via
 // ~(~f_lo AND ~f_hi). The inner AND is delegated to bddand_iter so that deep
 // operands do not overflow the C++ call stack.
