@@ -1096,12 +1096,16 @@ public:
     void emit_circle(double cx, double cy, int r,
                      const char* fill, const char* stroke, int stroke_width)
     {
+        // xml_escape color strings so caller-supplied attribute values
+        // cannot break out of the attribute context.
+        std::string fill_s = xml_escape(fill ? fill : "");
+        std::string stroke_s = xml_escape(stroke ? stroke : "");
         char buf[512];
         std::snprintf(buf, sizeof(buf),
             "<circle cx=\"%s\" cy=\"%s\" r=\"%d\" "
             "fill=\"%s\" stroke=\"%s\" stroke-width=\"%d\" />",
             fmt_double(cx).c_str(), fmt_double(cy).c_str(), r,
-            fill, stroke, stroke_width);
+            fill_s.c_str(), stroke_s.c_str(), stroke_width);
         elements.push_back(std::string(buf));
         double total_r = r + stroke_width / 2.0;
         update_bounds(cx - total_r, cy - total_r);
@@ -1112,12 +1116,14 @@ public:
     void emit_rect(double x, double y, int w, int h,
                    const char* fill, const char* stroke, int stroke_width)
     {
+        std::string fill_s = xml_escape(fill ? fill : "");
+        std::string stroke_s = xml_escape(stroke ? stroke : "");
         char buf[512];
         std::snprintf(buf, sizeof(buf),
             "<rect x=\"%s\" y=\"%s\" width=\"%d\" height=\"%d\" "
             "fill=\"%s\" stroke=\"%s\" stroke-width=\"%d\" />",
             fmt_double(x).c_str(), fmt_double(y).c_str(), w, h,
-            fill, stroke, stroke_width);
+            fill_s.c_str(), stroke_s.c_str(), stroke_width);
         elements.push_back(std::string(buf));
         double hw = stroke_width / 2.0;
         update_bounds(x - hw, y - hw);
@@ -1136,9 +1142,9 @@ public:
         elem += "\" font-size=\"";
         elem += std::to_string(font_size);
         elem += "\" text-anchor=\"";
-        elem += text_anchor;
+        elem += xml_escape(text_anchor ? text_anchor : "");
         elem += "\" fill=\"";
-        elem += fill;
+        elem += xml_escape(fill ? fill : "");
         elem += "\">";
         elem += xml_escape(text);
         elem += "</text>";
@@ -1195,9 +1201,10 @@ public:
                  fmt_double(points.back().second);
         }
 
-        // Build <path> element
+        // Build <path> element. xml_escape on caller-supplied attribute
+        // values so they cannot break out of the attribute context.
         std::string elem = "<path d=\"" + d + "\" fill=\"none\" stroke=\"";
-        elem += stroke;
+        elem += xml_escape(stroke ? stroke : "");
         elem += "\" stroke-width=\"";
         {
             char sw[16];
@@ -1207,17 +1214,17 @@ public:
         elem += "\"";
         if (dash && dash[0]) {
             elem += " stroke-dasharray=\"";
-            elem += dash;
+            elem += xml_escape(dash);
             elem += "\"";
         }
         if (marker_end && marker_end[0]) {
             elem += " marker-end=\"";
-            elem += marker_end;
+            elem += xml_escape(marker_end);
             elem += "\"";
         }
         if (marker_start && marker_start[0]) {
             elem += " marker-start=\"";
-            elem += marker_start;
+            elem += xml_escape(marker_start);
             elem += "\"";
         }
         elem += " />";
