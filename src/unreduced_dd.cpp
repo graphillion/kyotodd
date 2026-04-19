@@ -79,6 +79,7 @@ UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(id)) return expand_bdd_iter(id, memo);
         return expand_bdd_rec(id, memo);
     });
 }
@@ -91,6 +92,7 @@ UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(id)) return expand_zdd_iter(id, memo);
         return expand_zdd_rec(id, memo);
     });
 }
@@ -104,6 +106,7 @@ UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
     // QDD uses BDD complement semantics
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(id)) return expand_bdd_iter(id, memo);
         return expand_bdd_rec(id, memo);
     });
 }
@@ -254,6 +257,7 @@ static bddp reduce_rec(bddp f, std::unordered_map<bddp, bddp>& memo,
 BDD UnreducedDD::reduce_as_bdd() const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(root)) return reduce_iter(root, memo, BDD::getnode_raw);
         return reduce_rec(root, memo, BDD::getnode_raw);
     });
     return BDD_ID(result);
@@ -262,6 +266,7 @@ BDD UnreducedDD::reduce_as_bdd() const {
 ZDD UnreducedDD::reduce_as_zdd() const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(root)) return reduce_iter(root, memo, ZDD::getnode_raw);
         return reduce_rec(root, memo, ZDD::getnode_raw);
     });
     return ZDD_ID(result);

@@ -555,6 +555,26 @@ bddp zdd_to_bdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
 /** @brief Iterative variant of bdd_to_zdd_rec. */
 bddp bdd_to_zdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
 
+// ---------------------------------------------------------------------------
+// UnreducedDD helpers (src/unreduced_dd.cpp).
+// Iterative counterparts implemented in src/unreduced_dd_iter.cpp.
+// NOT part of the public API; shared between the two translation units
+// (and tests) via this header.
+//
+// PRECONDITION for all of these: caller holds a bdd_gc_guard scope.
+// ---------------------------------------------------------------------------
+
+/** @brief Iterative variant of expand_bdd_rec (BDD complement expansion). */
+bddp expand_bdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of expand_zdd_rec (ZDD complement expansion). */
+bddp expand_zdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of reduce_rec. make_node dispatches to
+ *  BDD::getnode_raw or ZDD::getnode_raw for the target semantics. */
+bddp reduce_iter(bddp f, std::unordered_map<bddp, bddp>& memo,
+                 bddp (*make_node)(bddvar, bddp, bddp));
+
 } // namespace kyotodd
 
 #endif

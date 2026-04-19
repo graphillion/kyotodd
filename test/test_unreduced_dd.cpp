@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include "bdd_internal.h"
 
 using namespace kyotodd;
 
@@ -747,4 +748,151 @@ TEST_F(UnreducedDDTest, GetnodeRejectsOutOfRangeVar) {
     // Valid var should succeed
     bddvar v1 = bddnewvar();
     EXPECT_NO_THROW(UnreducedDD::getnode(v1, UnreducedDD::zero(), UnreducedDD::one()));
+}
+
+// =============================================================
+// Iterative helpers (expand_bdd_iter, expand_zdd_iter, reduce_iter)
+//
+// The public methods dispatch to _rec for shallow DDs, so these
+// tests exercise the _iter branch directly and compare against the
+// public API output on small examples.
+// =============================================================
+
+class UnreducedDDIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+TEST_F(UnreducedDDIterTest, ExpandBddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD bv3 = BDDvar(v3);
+    BDD cases[] = { bv1, ~bv2, bv1 & bv2, bv1 | ~bv2, bv1 ^ bv2 ^ bv3 };
+
+    for (const BDD& orig : cases) {
+        // Drive _iter directly, then reduce back and compare to orig.
+        bddp iter_result = bdd_gc_guard([&]() -> bddp {
+            std::unordered_map<bddp, bddp> emem;
+            bddp expanded = expand_bdd_iter(orig.id(), emem);
+            std::unordered_map<bddp, bddp> rmem;
+            return reduce_iter(expanded, rmem, BDD::getnode_raw);
+        });
+        EXPECT_EQ(iter_result, orig.id());
+        // Public-API constructor should also round-trip.
+        UnreducedDD via_public(orig);
+        EXPECT_EQ(via_public.reduce_as_bdd().id(), orig.id());
+    }
+}
+
+TEST_F(UnreducedDDIterTest, ExpandZddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z1 = ZDD(1).Change(v1);
+    ZDD z2 = ZDD(1).Change(v2);
+    ZDD cases[] = { z1, z2, z1 + z2, ~z1, z1 * z2 };
+
+    for (const ZDD& orig : cases) {
+        bddp iter_result = bdd_gc_guard([&]() -> bddp {
+            std::unordered_map<bddp, bddp> emem;
+            bddp expanded = expand_zdd_iter(orig.id(), emem);
+            std::unordered_map<bddp, bddp> rmem;
+            return reduce_iter(expanded, rmem, ZDD::getnode_raw);
+        });
+        EXPECT_EQ(iter_result, orig.id());
+        UnreducedDD via_public(orig);
+        EXPECT_EQ(via_public.reduce_as_zdd().id(), orig.id());
+    }
+}
+
+TEST_F(UnreducedDDIterTest, ReduceIterAsBDDMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Build a small unreduced DD with explicit structure.
+    UnreducedDD inner = UnreducedDD::getnode(
+        v1, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD outer = UnreducedDD::getnode(
+        v2, inner, UnreducedDD::one());
+    // Expected via _rec (public API dispatches):
+    BDD expected = outer.reduce_as_bdd();
+
+    // Drive _iter directly on the same DD.
+    bddp iter_result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        return reduce_iter(outer.id(), memo, BDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_result, expected.id());
+}
+
+TEST_F(UnreducedDDIterTest, ReduceIterAsZDDMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // (v1, 1, 0): ZDD zero-suppression will collapse this.
+    UnreducedDD mid = UnreducedDD::getnode(
+        v1, UnreducedDD::one(), UnreducedDD::zero());
+    UnreducedDD outer = UnreducedDD::getnode(v2, mid, UnreducedDD::one());
+    ZDD expected = outer.reduce_as_zdd();
+
+    bddp iter_result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        return reduce_iter(outer.id(), memo, ZDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_result, expected.id());
+}
+
+TEST_F(UnreducedDDIterTest, ReduceIterWithComplementEdge) {
+    bddvar v = bddnewvar();
+    UnreducedDD n = UnreducedDD::getnode(v, UnreducedDD::zero(), UnreducedDD::one());
+    UnreducedDD neg = ~n;
+
+    bddp iter_result = bdd_gc_guard([&]() -> bddp {
+        std::unordered_map<bddp, bddp> memo;
+        return reduce_iter(neg.id(), memo, BDD::getnode_raw);
+    });
+    BDD expected = ~BDDvar(v);
+    EXPECT_EQ(iter_result, expected.id());
+}
+
+TEST_F(UnreducedDDIterTest, ReduceIterThrowsOnNull) {
+    EXPECT_THROW(
+        bdd_gc_guard([&]() -> bddp {
+            std::unordered_map<bddp, bddp> memo;
+            return reduce_iter(bddnull, memo, BDD::getnode_raw);
+        }),
+        std::invalid_argument);
+}
+
+TEST_F(UnreducedDDIterTest, TerminalsHandledByIter) {
+    bddnewvar();
+    std::unordered_map<bddp, bddp> memo;
+    // Expand iter on terminals returns terminal directly.
+    EXPECT_EQ(expand_bdd_iter(bddfalse, memo), bddfalse);
+    EXPECT_EQ(expand_bdd_iter(bddtrue, memo), bddtrue);
+    memo.clear();
+    EXPECT_EQ(expand_zdd_iter(bddempty, memo), bddempty);
+    EXPECT_EQ(expand_zdd_iter(bddsingle, memo), bddsingle);
+    // reduce_iter on terminals passes through.
+    memo.clear();
+    EXPECT_EQ(reduce_iter(bddfalse, memo, BDD::getnode_raw), bddfalse);
+    EXPECT_EQ(reduce_iter(bddtrue, memo, BDD::getnode_raw), bddtrue);
+    memo.clear();
+    EXPECT_EQ(reduce_iter(bddempty, memo, ZDD::getnode_raw), bddempty);
+    EXPECT_EQ(reduce_iter(bddsingle, memo, ZDD::getnode_raw), bddsingle);
+}
+
+TEST_F(UnreducedDDIterTest, ConstructorsDispatchCorrectly) {
+    // Round-trip: BDD -> UnreducedDD -> BDD via public ctor + reduce.
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD f = BDDvar(v1) & ~BDDvar(v2);
+    UnreducedDD u(f);
+    EXPECT_EQ(u.reduce_as_bdd().id(), f.id());
+
+    ZDD z = ZDD(1).Change(v1) + ZDD(1).Change(v2);
+    UnreducedDD uz(z);
+    EXPECT_EQ(uz.reduce_as_zdd().id(), z.id());
 }
