@@ -241,8 +241,15 @@ bddp bddconst(uint64_t val);
  * Returns a BDD for the function (var = true), equivalent to
  * getnode(v, bddfalse, bddtrue).
  *
- * @param v Variable number.
+ * Side effect: if @p v exceeds the current variable count, this call
+ * auto-expands the variable table by invoking bddnewvar() until
+ * bddvarused() == v. Auto-expansion is capped at v <= 65536; a larger
+ * @p v throws std::invalid_argument even if the variable was already
+ * created by some other path.
+ *
+ * @param v Variable number. Must satisfy 1 <= v <= 65536.
  * @return The BDD node ID for variable @p v.
+ * @throws std::invalid_argument if v < 1 or v > 65536.
  */
 bddp bddprime(bddvar v);
 
