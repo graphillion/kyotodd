@@ -1544,3 +1544,74 @@ TEST_P(ZddAdvCountModeTest, CrossValidationLinearChain) {
     }
 }
 
+// --- Deep DD smoke tests for _iter dispatch (level > BDD_RecurLimit). ---
+// Each test builds a single-chain ZDD/BDD exceeding the 8192 recursion
+// budget and checks that the public wrapper auto-dispatches to the
+// iterative variant without throwing std::overflow_error.
+
+// Build a chain ZDD representing {{1,2,...,depth}}. Constructed bottom-up
+// so the top node has var = depth (level = depth > BDD_RecurLimit).
+static ZDD make_deep_zdd_chain(int depth) {
+    ZDD f = ZDD::Single;
+    for (int v = 1; v <= depth; ++v) {
+        f = ZDD_ID(ZDD::getnode_raw(
+            static_cast<bddvar>(v), bddempty, f.GetID()));
+    }
+    return f;
+}
+
+TEST_F(BDDTest, Bddlen_DeepZDDExceedsRecurLimit) {
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    ZDD f = make_deep_zdd_chain(depth);
+    EXPECT_NO_THROW({
+        uint64_t len = bddlen(f.GetID());
+        EXPECT_EQ(len, static_cast<uint64_t>(depth));
+    });
+}
+
+TEST_F(BDDTest, Bddlit_DeepZDDExceedsRecurLimit) {
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    ZDD f = make_deep_zdd_chain(depth);
+    // Single-chain family {{1..depth}} has lit = depth.
+    EXPECT_NO_THROW({
+        uint64_t lit = bddlit(f.GetID());
+        EXPECT_EQ(lit, static_cast<uint64_t>(depth));
+    });
+}
+
+TEST_F(BDDTest, Bddimply_DeepBDDExceedsRecurLimit) {
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    // BDD chain: f = v1 & v2 & ... & vdepth (all-true conjunction).
+    // Built from the top down so that the top node has var = depth.
+    bddp f = bddtrue;
+    for (int v = 1; v <= depth; ++v) {
+        f = BDD::getnode_raw(v, bddfalse, f);
+    }
+    // f implies itself — must return 1 without recursive overflow.
+    EXPECT_NO_THROW({
+        int r = bddimply(f, f);
+        EXPECT_EQ(r, 1);
+    });
+}
+
+TEST_F(BDDTest, SetZskip_DeepZDDExceedsRecurLimit) {
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    ZDD f = make_deep_zdd_chain(depth);
+    EXPECT_NO_THROW({ f.set_zskip(); });
+}
+
+TEST_F(BDDTest, GetKSets_DeepZDDExceedsRecurLimit) {
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    ZDD f = make_deep_zdd_chain(depth);
+    // A chain contains a single set; get_k_sets(1) must return f itself.
+    EXPECT_NO_THROW({
+        ZDD g = f.get_k_sets(bigint::BigInt(1));
+        EXPECT_EQ(g.GetID(), f.GetID());
+    });
+}
+

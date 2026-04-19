@@ -407,4 +407,117 @@ bddp bddproject_iter(bddp f, const std::vector<bddvar>& vars) {
     return result;
 }
 
+// =====================================================================
+// bddgetksets_iter — explicit-stack rewrite of bddgetksets_rec.
+//
+// bddgetksets_rec recurses on exactly one child per invocation: either
+// hi (when k <= card_hi) or lo (otherwise). So the iterative version is
+// a single-child DFS whose GOT_CHILD phase combines the sub-result with
+// the untouched sibling via ZDD::getnode_raw.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (the public wrapper @ref
+// bddgetksets satisfies this). Intermediate bddp values on the stack are
+// not registered as GC roots, which is safe only while GC is deferred.
+// =====================================================================
+bddp bddgetksets_iter(bddp f, const bigint::BigInt& k,
+                       CountMemoMap& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_CHILD };
+    struct Frame {
+        bddp f;
+        bigint::BigInt k;
+        // Cached during ENTER, consumed in GOT_CHILD
+        bddvar var;
+        bddp sibling;   // the child NOT recursed on
+        bool take_hi;   // true: recursed on hi (sibling = lo = empty)
+                        // false: recursed on lo (sibling = hi)
+        Phase phase;
+    };
+
+    bddp result = bddempty;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f; init.k = k;
+    init.var = 0;
+    init.sibling = bddempty;
+    init.take_hi = true;
+    init.phase = Phase::ENTER;
+    stack.push_back(std::move(init));
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            const bigint::BigInt& ck = frame.k;
+
+            if (ck.is_zero() || cf == bddempty) {
+                result = bddempty;
+                stack.pop_back();
+                break;
+            }
+            if (cf == bddsingle) {
+                result = bddsingle;
+                stack.pop_back();
+                break;
+            }
+
+            bigint::BigInt total = bddexactcount_iter(cf, memo);
+            if (ck >= total) {
+                result = cf;
+                stack.pop_back();
+                break;
+            }
+
+            bool comp = (cf & BDD_COMP_FLAG) != 0;
+            bddp f_raw = cf & ~BDD_COMP_FLAG;
+            bddvar var = node_var(f_raw);
+            bddp raw_lo = node_lo(f_raw);
+            bddp f_hi = node_hi(f_raw);
+            bddp f_lo = comp ? bddnot(raw_lo) : raw_lo;
+
+            bigint::BigInt card_hi = bddexactcount_iter(f_hi, memo);
+
+            frame.var = var;
+            frame.phase = Phase::GOT_CHILD;
+
+            Frame child;
+            child.var = 0;
+            child.sibling = bddempty;
+            child.take_hi = true;
+            child.phase = Phase::ENTER;
+
+            if (ck <= card_hi) {
+                // Take only from hi: child recurses on f_hi with k.
+                frame.sibling = bddempty;
+                frame.take_hi = true;
+                child.f = f_hi;
+                child.k = ck;
+            } else {
+                // Take all of hi + (k - card_hi) from lo.
+                frame.sibling = f_hi;
+                frame.take_hi = false;
+                child.f = f_lo;
+                child.k = ck - card_hi;
+            }
+            stack.push_back(std::move(child));
+            break;
+        }
+
+        case Phase::GOT_CHILD: {
+            bddp child_result = result;
+            if (frame.take_hi) {
+                result = ZDD::getnode_raw(frame.var, bddempty, child_result);
+            } else {
+                result = ZDD::getnode_raw(frame.var, child_result, frame.sibling);
+            }
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace kyotodd

@@ -371,6 +371,10 @@ bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
 
 // ---- cardinality ----
 
+// NOTE: bddcard is obsolete. Use bddcount (double) or bddexactcount (BigInt)
+// instead. No _iter version is provided for bddcard; deep ZDDs should be
+// counted via those functions, which have matching _iter implementations.
+
 static const uint64_t BDDCARD_MAX = (UINT64_C(1) << 39) - 1;
 
 uint64_t bddcard(bddp f) {
@@ -436,8 +440,7 @@ uint64_t bddcard(bddp f) {
 
 static const uint64_t BDDLIT_MAX = (UINT64_C(1) << 39) - 1;
 
-uint64_t bddlit(bddp f) {
-    bddp_validate(f, "bddlit");
+static uint64_t bddlit_rec(bddp f) {
     if (f == bddnull) return 0;
     // Terminal cases
     if (f == bddempty) return 0;
@@ -457,8 +460,8 @@ uint64_t bddlit(bddp f) {
     bddp lo = node_lo(f_raw);
     bddp hi = node_hi(f_raw);
 
-    uint64_t l0 = bddlit(lo);
-    uint64_t l1 = bddlit(hi);
+    uint64_t l0 = bddlit_rec(lo);
+    uint64_t l1 = bddlit_rec(hi);
     uint64_t c1 = bddcard(hi);
 
     // lit(f) = lit(f0) + lit(f1) + card(f1), with overflow check
@@ -479,10 +482,15 @@ uint64_t bddlit(bddp f) {
     return sum;
 }
 
+uint64_t bddlit(bddp f) {
+    bddp_validate(f, "bddlit");
+    if (use_iter_1op(f)) return bddlit_iter(f);
+    return bddlit_rec(f);
+}
+
 static const uint64_t BDDLEN_MAX = (UINT64_C(1) << 39) - 1;
 
-uint64_t bddlen(bddp f) {
-    bddp_validate(f, "bddlen");
+static uint64_t bddlen_rec(bddp f) {
     if (f == bddnull) return 0;
     if (f == bddempty) return 0;
     if (f == bddsingle) return 0;
@@ -501,8 +509,8 @@ uint64_t bddlen(bddp f) {
     bddp lo = node_lo(f_raw);
     bddp hi = node_hi(f_raw);
 
-    uint64_t len0 = bddlen(lo);
-    uint64_t len1 = bddlen(hi);
+    uint64_t len0 = bddlen_rec(lo);
+    uint64_t len1 = bddlen_rec(hi);
 
     // len(f1) + 1 with overflow check
     if (len1 >= BDDLEN_MAX) {
@@ -515,6 +523,12 @@ uint64_t bddlen(bddp f) {
 
     bddwcache(BDD_OP_LEN, f_raw, 0, result);
     return result;
+}
+
+uint64_t bddlen(bddp f) {
+    bddp_validate(f, "bddlen");
+    if (use_iter_1op(f)) return bddlen_iter(f);
+    return bddlen_rec(f);
 }
 
 static uint64_t bddminsize_rec(bddp f) {

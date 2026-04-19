@@ -188,6 +188,15 @@ bddp bddite_iter(bddp f, bddp g, bddp h);
 int bddimply(bddp f, bddp g);
 
 /**
+ * @brief Iterative (non-recursive) implementation of bddimply.
+ *
+ * Advanced API. Inputs must be pre-validated (no bddnull). Must run inside
+ * a @c bdd_gc_guard scope. The public @ref bddimply wrapper satisfies these
+ * preconditions.
+ */
+int bddimply_iter(bddp f, bddp g);
+
+/**
  * @brief Compute the support set as a BDD (disjunction of variables).
  * @param f A BDD node ID.
  * @return A BDD representing the disjunction of all variables in the support.
@@ -938,6 +947,15 @@ double bddcount_iter(bddp f, std::unordered_map<bddp, double>& memo);
 uint64_t bddlit(bddp f);
 
 /**
+ * @brief Iterative (non-recursive) implementation of bddlit.
+ *
+ * Advanced API. Input must be pre-validated (no bddnull). The global op
+ * cache is used for both BDD_OP_LIT and BDD_OP_CARD (lit and card are
+ * co-computed bottom-up).
+ */
+uint64_t bddlit_iter(bddp f);
+
+/**
  * @brief Return the maximum set size in a ZDD family.
  *
  * Returns the size of the largest set in the family represented by @p f.
@@ -950,6 +968,14 @@ uint64_t bddlit(bddp f);
  *         Returns (2^39 - 1) if saturated.
  */
 uint64_t bddlen(bddp f);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddlen.
+ *
+ * Advanced API. Input must be pre-validated (no bddnull). The global op
+ * cache is used (BDD_OP_LEN).
+ */
+uint64_t bddlen_iter(bddp f);
 
 /**
  * @brief Return the minimum set size in a ZDD family.

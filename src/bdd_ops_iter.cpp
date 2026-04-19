@@ -1791,4 +1791,132 @@ bigint::BigInt bddexactcount_bdd_iter(
     return result;
 }
 
+// =====================================================================
+// bddimply_iter — Template A-ish (binary BDD walk, int return with early
+//                                   termination, pair memo).
+//
+// Mirrors bddimply_rec: return 1 when f implies g, 0 when a counterexample
+// exists, -1 for error. Cache stores bddtrue (1) / bddfalse (0); -1 is not
+// memoized.
+//
+// PRECONDITION: Caller holds bdd_gc_guard. No new nodes are created here,
+// so this is a conservative requirement that matches bddimply's public
+// wrapper.
+// =====================================================================
+int bddimply_iter(bddp f, bddp g) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddp f_hi;
+        bddp g_hi;
+        Phase phase;
+    };
+
+    int result = -1;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = f; init.g = g;
+    init.f_hi = 0; init.g_hi = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp cf = frame.f;
+            bddp cg = frame.g;
+
+            if (cf == bddnull || cg == bddnull) { result = -1; stack.pop_back(); break; }
+            if (cf == bddfalse) { result = 1; stack.pop_back(); break; }
+            if (cg == bddtrue)  { result = 1; stack.pop_back(); break; }
+            if (cf == bddtrue && cg == bddfalse) { result = 0; stack.pop_back(); break; }
+            if (cf == cg)           { result = 1; stack.pop_back(); break; }
+            if (cf == bddnot(cg))   { result = 0; stack.pop_back(); break; }
+
+            bddp cached = bddrcache(BDD_OP_IMPLY, cf, cg);
+            if (cached != bddnull) {
+                result = (cached == bddtrue) ? 1 : 0;
+                stack.pop_back();
+                break;
+            }
+
+            bool f_is_const = (cf & BDD_CONST_FLAG) != 0;
+            bool g_is_const = (cg & BDD_CONST_FLAG) != 0;
+            bool f_comp = (cf & BDD_COMP_FLAG) != 0;
+            bool g_comp = (cg & BDD_COMP_FLAG) != 0;
+
+            bddvar f_var = f_is_const ? 0 : node_var(cf);
+            bddvar g_var = g_is_const ? 0 : node_var(cg);
+            bddvar f_level = f_is_const ? 0 : var2level[f_var];
+            bddvar g_level = g_is_const ? 0 : var2level[g_var];
+
+            bddp f_lo, f_hi, g_lo, g_hi;
+            if (f_level > g_level) {
+                f_lo = node_lo(cf);
+                f_hi = node_hi(cf);
+                if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+                g_lo = cg;
+                g_hi = cg;
+            } else if (g_level > f_level) {
+                f_lo = cf;
+                f_hi = cf;
+                g_lo = node_lo(cg);
+                g_hi = node_hi(cg);
+                if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+            } else {
+                f_lo = node_lo(cf);
+                f_hi = node_hi(cf);
+                if (f_comp) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+                g_lo = node_lo(cg);
+                g_hi = node_hi(cg);
+                if (g_comp) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+            }
+
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo; child.g = g_lo;
+            child.f_hi = 0; child.g_hi = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            int r_lo = result;
+            if (r_lo != 1) {
+                // Early termination: 0 memoized as bddfalse; -1 not cached.
+                if (r_lo == 0) bddwcache(BDD_OP_IMPLY, frame.f, frame.g, bddfalse);
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_HI;
+            Frame child;
+            child.f = frame.f_hi; child.g = frame.g_hi;
+            child.f_hi = 0; child.g_hi = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            int r_hi = result;
+            if (r_hi >= 0) {
+                bddwcache(BDD_OP_IMPLY, frame.f, frame.g,
+                          r_hi ? bddtrue : bddfalse);
+            }
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace kyotodd

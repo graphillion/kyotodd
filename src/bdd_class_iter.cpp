@@ -634,4 +634,100 @@ double ws_total_prod_iter(bddp root,
     return result;
 }
 
+// =====================================================================
+// set_zskip_iter — explicit-stack rewrite of set_zskip_rec in
+//                  src/bdd_class.cpp.
+//
+// Traverses the ZDD in DFS order, populating the BDD_OP_ZSKIP cache with
+// the skip target for each non-trivial node (tlev > 4). For each node the
+// traversal is: descend lo (OffSet), then hi (OnSet0); write cache after
+// both children return.
+//
+// Intermediate bddp values (bddoffset / bddonset0 / zlev results) are not
+// registered as GC roots, so they are wrapped in ZDD objects on a per-frame
+// stack to keep them protected until the frame finishes.
+//
+// PRECONDITION: ZDD::set_zskip() is the only caller and it holds the root
+// via a member bddp, keeping the root reachable. This helper extends the
+// same reachability to intermediates via the ZDD wrappers.
+// =====================================================================
+void set_zskip_iter(bddp root_in) {
+    if (root_in == bddnull) return;
+
+    enum class Phase : uint8_t { ENTER, GOT_F0, GOT_F1 };
+    struct Frame {
+        bddp root;       // canonical (complement-stripped) node id
+        // GC-protected intermediates; their bddp values are read via .id().
+        ZDD f0;
+        ZDD f1;
+        ZDD skip_target;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    auto push_node = [&](bddp r) {
+        if (r == bddnull) return;
+        bddp canonical = (r & BDD_COMP_FLAG)
+            ? (r & ~static_cast<bddp>(BDD_COMP_FLAG))
+            : r;
+        Frame frame;
+        frame.root = canonical;
+        frame.phase = Phase::ENTER;
+        stack.push_back(std::move(frame));
+    };
+
+    push_node(root_in);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp r = frame.root;
+            if (r == bddnull) { stack.pop_back(); break; }
+
+            // Early exit: level <= 4
+            bddvar tv = bddtop(r);
+            bddvar tlev = bddlevofvar(tv);
+            if (tlev <= 4) { stack.pop_back(); break; }
+
+            // Already cached?
+            bddp cached = bddrcache(BDD_OP_ZSKIP, r, r);
+            if (cached != bddnull) { stack.pop_back(); break; }
+
+            // Compute f0 and skip_target up-front so they stay protected
+            // for the duration of both child traversals.
+            frame.f0 = ZDD_ID(bddoffset(r, tv));
+            bddvar n = zlevnum(tlev);
+            frame.skip_target = ZDD_ID(r).zlev(n, 1);
+            if (frame.skip_target.id() == r) {
+                frame.skip_target = frame.f0;
+            }
+
+            frame.phase = Phase::GOT_F0;
+            push_node(frame.f0.id());
+            break;
+        }
+        case Phase::GOT_F0: {
+            // f1 = OnSet0(r, top var). Compute now so it is GC-protected
+            // while the hi subtree is traversed.
+            bddp r = frame.root;
+            bddvar tv = bddtop(r);
+            frame.f1 = ZDD_ID(bddonset0(r, tv));
+            frame.phase = Phase::GOT_F1;
+            push_node(frame.f1.id());
+            break;
+        }
+        case Phase::GOT_F1: {
+            // Write cache AFTER both children processed.
+            bddp r = frame.root;
+            bddwcache(BDD_OP_ZSKIP, r, r, frame.skip_target.id());
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+}
+
 } // namespace kyotodd

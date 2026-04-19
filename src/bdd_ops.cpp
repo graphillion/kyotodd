@@ -561,9 +561,7 @@ static bddp bddat1_rec(bddp f, bddvar v) {
     return result;
 }
 
-int bddimply(bddp f, bddp g) {
-    bddp_validate(f, "bddimply");
-    bddp_validate(g, "bddimply");
+static int bddimply_rec(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return -1;
     // Terminal cases: is there an assignment where f=1 and g=0?
     if (f == bddfalse) return 1;   // f is never true
@@ -613,15 +611,24 @@ int bddimply(bddp f, bddp g) {
     }
 
     // Both branches must satisfy the implication
-    int r_lo = bddimply(f_lo, g_lo);
+    int r_lo = bddimply_rec(f_lo, g_lo);
     if (r_lo != 1) {
         if (r_lo == 0) bddwcache(BDD_OP_IMPLY, f, g, bddfalse);
         return r_lo;  // propagate 0 or -1
     }
-    int result = bddimply(f_hi, g_hi);
+    int result = bddimply_rec(f_hi, g_hi);
 
     if (result >= 0) bddwcache(BDD_OP_IMPLY, f, g, result ? bddtrue : bddfalse);
     return result;
+}
+
+int bddimply(bddp f, bddp g) {
+    bddp_validate(f, "bddimply");
+    bddp_validate(g, "bddimply");
+    if (use_iter_2op(f, g)) {
+        return bddimply_iter(f, g);
+    }
+    return bddimply_rec(f, g);
 }
 
 static void bddsupport_collect(bddp f, std::unordered_set<bddvar>& vars,

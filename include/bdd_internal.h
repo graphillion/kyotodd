@@ -718,6 +718,29 @@ double ws_total_sum_iter(bddp f, const std::vector<double>& weights,
 double ws_total_prod_iter(bddp f, const std::vector<double>& weights,
                           WeightMemoMap& prod_memo);
 
+/** @brief Iterative variant of set_zskip_rec in bdd_class.cpp. */
+void set_zskip_iter(bddp root);
+
+/** @brief Iterative variant of bddgetksets_rec in zdd_adv_rank.cpp.
+ *
+ *  PRECONDITION: Caller must hold bdd_gc_guard. Intermediate nodes
+ *  created via ZDD::getnode_raw rely on GC deferral for correctness.
+ */
+bddp bddgetksets_iter(bddp f, const bigint::BigInt& k, CountMemoMap& memo);
+
+/** @brief Operation code for the BDD_OP_ZSKIP cache slot (defined in
+ *         bdd_class.cpp).  Shared with bdd_class_iter.cpp. */
+extern const uint8_t BDD_OP_ZSKIP;
+
+/**
+ * @brief Compute the skip-target level for a given level n.
+ *
+ * NOT part of the public API. Shared between bdd_class.cpp and
+ * bdd_class_iter.cpp so the iterative set_zskip can reuse the same
+ * skip-level table as ZDD::zlev / set_zskip_rec.
+ */
+bddvar zlevnum(bddvar n);
+
 // ---------------------------------------------------------------------------
 // QDD/BDD/ZDD inter-conversion helpers (src/qdd.cpp).
 // Exposed for use by src/qdd_iter.cpp.

@@ -8,8 +8,11 @@
 
 namespace kyotodd {
 
-// BDDLEN_MAX mirrors the saturation bound in zdd_adv_count.cpp.
+// BDDLEN_MAX / BDDLIT_MAX / BDDCARD_MAX mirror the saturation bounds
+// in zdd_adv_count.cpp.
 static const uint64_t BDDLEN_MAX_ITER = (UINT64_C(1) << 39) - 1;
+static const uint64_t BDDLIT_MAX_ITER = (UINT64_C(1) << 39) - 1;
+static const uint64_t BDDCARD_MAX_ITER = (UINT64_C(1) << 39) - 1;
 
 // =====================================================================
 // bddchoose_iter — Template B (unary + int, bddp return, cache-memoized)
@@ -768,6 +771,230 @@ bigint::BigInt bddcountintersec_iter(
         }
     }
     return result;
+}
+
+// =====================================================================
+// bddlen_iter — Template D (unary, uint64 return)
+//
+// Returns the maximum element size across the family represented by f.
+// Uses BDD_OP_LEN cache. Complement is invariant because ∅ has size 0.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
+// =====================================================================
+uint64_t bddlen_iter(bddp root_f) {
+    if (root_f == bddnull) return 0;
+    if (root_f == bddempty) return 0;
+    if (root_f == bddsingle) return 0;
+
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f_raw;
+        uint64_t lo_len;
+        Phase phase;
+    };
+
+    uint64_t result = 0;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f_raw = root_f & ~BDD_COMP_FLAG;
+    init.lo_len = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f_raw = frame.f_raw;
+            bddp cached = bddrcache(BDD_OP_LEN, f_raw, 0);
+            if (cached != bddnull) {
+                result = static_cast<uint64_t>(cached);
+                stack.pop_back();
+                break;
+            }
+            bddp lo = node_lo(f_raw);
+            frame.phase = Phase::GOT_LO;
+            if (lo == bddnull || lo == bddempty || lo == bddsingle) {
+                result = 0;
+                break;
+            }
+            Frame child;
+            child.f_raw = lo & ~BDD_COMP_FLAG;
+            child.lo_len = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            frame.lo_len = result;
+            bddp hi = node_hi(frame.f_raw);
+            frame.phase = Phase::GOT_HI;
+            if (hi == bddnull || hi == bddempty || hi == bddsingle) {
+                result = 0;
+                break;
+            }
+            Frame child;
+            child.f_raw = hi & ~BDD_COMP_FLAG;
+            child.lo_len = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            uint64_t hi_len = result;
+            // len(f) = max(len(lo), len(hi) + 1), saturated at BDDLEN_MAX.
+            if (hi_len >= BDDLEN_MAX_ITER) {
+                hi_len = BDDLEN_MAX_ITER;
+            } else {
+                hi_len += 1;
+            }
+            uint64_t len = frame.lo_len > hi_len ? frame.lo_len : hi_len;
+            bddwcache(BDD_OP_LEN, frame.f_raw, 0, len);
+            result = len;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+// =====================================================================
+// bddlit_iter — Template D variant (unary, uint64 return)
+//
+// Returns the total literal count (= sum over sets of their sizes).
+// The recursion formula is
+//   lit(f) = lit(f0) + lit(f1) + card(f1)
+// so each frame computes both lit and card bottom-up and reuses the
+// BDD_OP_LIT / BDD_OP_CARD caches. The complement edge only toggles the
+// ∅ membership, which affects card (±1) but not lit. Stored cache values
+// are the complement-free "raw" quantities; the complement adjustment is
+// applied when a parent consumes a child edge.
+//
+// PRECONDITION: Caller holds bdd_gc_guard.
+// =====================================================================
+uint64_t bddlit_iter(bddp root_f) {
+    if (root_f == bddnull) return 0;
+    if (root_f == bddempty) return 0;
+    if (root_f == bddsingle) return 0;
+
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f_raw;
+        uint64_t lit_lo;
+        uint64_t card_lo;
+        Phase phase;
+    };
+
+    auto adjust_card = [](bddp edge, uint64_t raw_card) -> uint64_t {
+        if (edge == bddnull || edge == bddempty) return 0;
+        if (edge == bddsingle) return 1;
+        if ((edge & BDD_COMP_FLAG) == 0) return raw_card;
+        bddp raw = edge & ~BDD_COMP_FLAG;
+        if (bddhasempty(raw)) {
+            return raw_card > 0 ? raw_card - 1 : 0;
+        }
+        if (raw_card >= BDDCARD_MAX_ITER) return BDDCARD_MAX_ITER;
+        return raw_card + 1;
+    };
+
+    // result_lit / result_card carry the RAW values (no complement
+    // adjustment) of the most recently completed frame.
+    uint64_t result_lit = 0, result_card = 0;
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f_raw = root_f & ~BDD_COMP_FLAG;
+    init.lit_lo = 0; init.card_lo = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f_raw = frame.f_raw;
+            bddp cached_lit = bddrcache(BDD_OP_LIT, f_raw, 0);
+            bddp cached_card = bddrcache(BDD_OP_CARD, f_raw, 0);
+            if (cached_lit != bddnull && cached_card != bddnull) {
+                result_lit = static_cast<uint64_t>(cached_lit);
+                result_card = static_cast<uint64_t>(cached_card);
+                stack.pop_back();
+                break;
+            }
+            bddp lo = node_lo(f_raw);
+            frame.phase = Phase::GOT_LO;
+            if (lo == bddnull || lo == bddempty) {
+                result_lit = 0; result_card = 0;
+                break;
+            }
+            if (lo == bddsingle) {
+                result_lit = 0; result_card = 1;
+                break;
+            }
+            Frame child;
+            child.f_raw = lo & ~BDD_COMP_FLAG;
+            child.lit_lo = 0; child.card_lo = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_LO: {
+            bddp lo = node_lo(frame.f_raw);
+            frame.lit_lo = result_lit;
+            frame.card_lo = adjust_card(lo, result_card);
+            bddp hi = node_hi(frame.f_raw);
+            frame.phase = Phase::GOT_HI;
+            if (hi == bddnull || hi == bddempty) {
+                result_lit = 0; result_card = 0;
+                break;
+            }
+            if (hi == bddsingle) {
+                result_lit = 0; result_card = 1;
+                break;
+            }
+            Frame child;
+            child.f_raw = hi & ~BDD_COMP_FLAG;
+            child.lit_lo = 0; child.card_lo = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+
+        case Phase::GOT_HI: {
+            bddp hi = node_hi(frame.f_raw);
+            uint64_t lit_hi = result_lit;
+            uint64_t card_hi = adjust_card(hi, result_card);
+
+            uint64_t lit = frame.lit_lo;
+            if (lit_hi > BDDLIT_MAX_ITER - lit) lit = BDDLIT_MAX_ITER;
+            else lit += lit_hi;
+            if (card_hi > BDDLIT_MAX_ITER - lit) lit = BDDLIT_MAX_ITER;
+            else lit += card_hi;
+            if (lit > BDDLIT_MAX_ITER) lit = BDDLIT_MAX_ITER;
+
+            uint64_t card;
+            if (frame.card_lo > BDDCARD_MAX_ITER - card_hi) card = BDDCARD_MAX_ITER;
+            else card = frame.card_lo + card_hi;
+
+            bddwcache(BDD_OP_LIT, frame.f_raw, 0, lit);
+            bddwcache(BDD_OP_CARD, frame.f_raw, 0, card);
+            result_lit = lit;
+            result_card = card;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    // lit is complement-invariant, so result_lit is the answer for root_f.
+    return result_lit;
 }
 
 } // namespace kyotodd

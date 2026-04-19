@@ -735,11 +735,12 @@ void ZDD::print_pla() const {
 }
 
 // Operation code for ZSkip cache (BC_ZBDD_ZSkip = 65)
-static const uint8_t BDD_OP_ZSKIP = 65;
+extern const uint8_t BDD_OP_ZSKIP;
+const uint8_t BDD_OP_ZSKIP = 65;
 
 // ZLevNum: compute the skip-target level for a given level n.
 // Returns n - (skip width), i.e. the level to skip to.
-static bddvar zlevnum(bddvar n) {
+bddvar zlevnum(bddvar n) {
     bddvar skip;
     switch (n & 3) {
     case 3: // bit1=1, bit0=1: largest skip
@@ -868,20 +869,19 @@ ZDD ZDD::zlev(bddvar lev, int last) const {
     return result;
 }
 
-void ZDD::set_zskip() const {
+static void set_zskip_rec(bddp root) {
     // Propagate bddnull: nothing to do
     if (root == bddnull) return;
 
     // If complemented, work on the raw node instead.
     // The skip structure is the same regardless of complement.
     if (root & BDD_COMP_FLAG) {
-        ZDD raw = ZDD_ID(root & ~static_cast<bddp>(BDD_COMP_FLAG));
-        raw.set_zskip();
+        set_zskip_rec(root & ~static_cast<bddp>(BDD_COMP_FLAG));
         return;
     }
 
     // Early exit: level <= 4
-    bddvar tv = top();
+    bddvar tv = bddtop(root);
     bddvar tlev = bddlevofvar(tv);
     if (tlev <= 4) return;
 
@@ -891,27 +891,36 @@ void ZDD::set_zskip() const {
 
     BDD_RecurGuard guard;
 
-    // Recurse on 0-branch (OffSet) first
-    ZDD f0 = offset(tv);
-    f0.set_zskip();
+    // Recurse on 0-branch (OffSet) first. Wrap intermediates in ZDD so
+    // they remain GC-protected during the recursive traversal.
+    ZDD f0 = ZDD_ID(bddoffset(root, tv));
+    set_zskip_rec(f0.id());
 
     // Compute skip target
     bddvar n = zlevnum(tlev);
-    ZDD skip_target = zlev(n, 1);
+    ZDD skip_target = ZDD_ID(root).zlev(n, 1);
 
     // Avoid self-loop
-    if (skip_target.root == root) {
+    if (skip_target.id() == root) {
         skip_target = f0;
     }
 
     // Recurse on 1-branch (OnSet0)
-    ZDD f1 = onset0(tv);
-    f1.set_zskip();
+    ZDD f1 = ZDD_ID(bddonset0(root, tv));
+    set_zskip_rec(f1.id());
 
     // Write to cache AFTER all recursion completes, so that if an
     // exception occurs during subtree processing, the root entry
     // is not left in a partially-constructed state.
-    bddwcache(BDD_OP_ZSKIP, root, root, skip_target.root);
+    bddwcache(BDD_OP_ZSKIP, root, root, skip_target.id());
+}
+
+void ZDD::set_zskip() const {
+    if (use_iter_1op(root)) {
+        set_zskip_iter(root);
+    } else {
+        set_zskip_rec(root);
+    }
 }
 
 bigint::BigInt ZDD::get_sum(const std::vector<int>& weights) const {

@@ -163,7 +163,7 @@ std::vector<bddvar> bddunrank(bddp f, int64_t order) {
 
 // Core recursive function: pure hi-before-lo ordering, no ∅ special handling.
 // ∅ is handled only at the outermost level (in the public wrapper).
-static bddp bddgetksets_core(bddp f, const bigint::BigInt& k,
+static bddp bddgetksets_rec(bddp f, const bigint::BigInt& k,
                               CountMemoMap& memo) {
     BDD_RecurGuard guard;
 
@@ -189,11 +189,11 @@ static bddp bddgetksets_core(bddp f, const bigint::BigInt& k,
 
     if (k <= card_hi) {
         // Take only from hi
-        bddp g_hi = bddgetksets_core(f_hi, k, memo);
+        bddp g_hi = bddgetksets_rec(f_hi, k, memo);
         return ZDD::getnode_raw(var, bddempty, g_hi);
     } else {
         // Take all hi + (k - card_hi) sets from lo
-        bddp g_lo = bddgetksets_core(f_lo, k - card_hi, memo);
+        bddp g_lo = bddgetksets_rec(f_lo, k - card_hi, memo);
         return ZDD::getnode_raw(var, g_lo, f_hi);
     }
 }
@@ -212,17 +212,24 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo) {
     if (f == bddsingle) return bddsingle;
 
     return bdd_gc_guard([&]() -> bddp {
-        bigint::BigInt total = bddexactcount_rec(f, memo);
+        bool use_iter = use_iter_1op(f);
+        bigint::BigInt total = use_iter
+            ? bddexactcount_iter(f, memo)
+            : bddexactcount_rec(f, memo);
         if (k >= total) return f;
 
         // ∅ gets index 0 in structure order (handled only at top level)
         if (bddhasempty(f)) {
             if (k == bigint::BigInt(1)) return bddsingle;
-            bddp g = bddgetksets_core(bddnot(f), k - bigint::BigInt(1), memo);
-            return bddnot(g);
+            bddp arg = bddnot(f);
+            return bddnot(use_iter
+                ? bddgetksets_iter(arg, k - bigint::BigInt(1), memo)
+                : bddgetksets_rec(arg, k - bigint::BigInt(1), memo));
         }
 
-        return bddgetksets_core(f, k, memo);
+        return use_iter
+            ? bddgetksets_iter(f, k, memo)
+            : bddgetksets_rec(f, k, memo);
     });
 }
 
