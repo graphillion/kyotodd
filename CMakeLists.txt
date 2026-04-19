@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(KYOTODD_LIB_SOURCES
   src/bdd_base.cpp
   src/bdd_class.cpp
+  src/bdd_class_iter.cpp
   src/bdd_io.cpp
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp

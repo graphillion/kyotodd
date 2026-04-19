@@ -7,6 +7,9 @@
 #include <cmath>
 #include <unordered_map>
 #include <algorithm>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace kyotodd {
 
@@ -475,6 +478,47 @@ bigint::BigInt bddexactcount_rec(
  */
 bigint::BigInt bddexactcount_iter(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo);
+
+// ---------------------------------------------------------------------------
+// Iterative counterparts of helpers in src/bdd_class.cpp. Implemented in
+// src/bdd_class_iter.cpp. NOT part of the public API; shared between the
+// two translation units (and tests) via this header.
+//
+// PRECONDITION for all of these: the bddp inputs must remain valid for the
+// duration of the call. Intermediate bddp values on the explicit stack are
+// not registered as GC roots, so GC must be deferred (typically satisfied
+// because these are called from within ZDD methods that do not themselves
+// allocate new nodes, or from within an outer bdd_gc_guard scope).
+// ---------------------------------------------------------------------------
+
+/** @brief Iterative variant of enumerate_rec in bdd_class.cpp. */
+void enumerate_iter(bddp f, std::vector<bddvar>& current,
+                    std::vector<std::vector<bddvar>>& result);
+
+/** @brief Iterative variant of combination_rec in bdd_class.cpp. */
+bddp combination_iter(const std::vector<bddvar>& sorted_vars,
+                      size_t idx, bddvar k);
+
+/** @brief Iterative variant of print_sets_rec in bdd_class.cpp. */
+void print_sets_iter(std::ostream& os, bddp f,
+                     std::vector<bddvar>& current, bool& first_set,
+                     const std::string& delim1, const std::string& delim2,
+                     const std::vector<std::string>* var_name_map);
+
+/** @brief Iterative variant of print_pla_rec in bdd_class.cpp. */
+bool print_pla_iter(bddp f, bddvar lev, std::string& cube);
+
+/** @brief Iterative variant of ws_count_rec in bdd_class.cpp. */
+double ws_count_iter(bddp f, std::unordered_map<bddp, double>& memo);
+
+/** @brief Iterative variant of ws_total_sum_rec in bdd_class.cpp. */
+double ws_total_sum_iter(bddp f, const std::vector<double>& weights,
+                         WeightMemoMap& sum_memo,
+                         std::unordered_map<bddp, double>& count_memo);
+
+/** @brief Iterative variant of ws_total_prod_rec in bdd_class.cpp. */
+double ws_total_prod_iter(bddp f, const std::vector<double>& weights,
+                          WeightMemoMap& prod_memo);
 
 } // namespace kyotodd
 

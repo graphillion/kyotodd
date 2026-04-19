@@ -262,6 +262,17 @@ static void enumerate_rec(bddp f, std::vector<bddvar>& current,
     current.pop_back();
 }
 
+// Level-based dispatcher for enumerate: use iterative variant when the
+// DD is too deep for the native recursion budget.
+static void enumerate_dispatch(bddp f, std::vector<bddvar>& current,
+                               std::vector<std::vector<bddvar>>& result) {
+    if (use_iter_1op(f)) {
+        enumerate_iter(f, current, result);
+    } else {
+        enumerate_rec(f, current, result);
+    }
+}
+
 bool ZDD::has_empty() const {
     return bddhasempty(root);
 }
@@ -462,6 +473,18 @@ static bddp combination_rec(const std::vector<bddvar>& sorted_vars,
     return ZDD::getnode_raw(v, lo, hi);
 }
 
+// Level-based dispatcher for combination: the recursion depth is bounded
+// by sorted_vars.size() - idx, so we switch to the iterative implementation
+// when that exceeds BDD_RecurLimit.
+static bddp combination_dispatch(const std::vector<bddvar>& sorted_vars,
+                                  size_t idx, bddvar k) {
+    if (sorted_vars.size() - idx >
+        static_cast<size_t>(BDD_RecurLimit)) {
+        return combination_iter(sorted_vars, idx, k);
+    }
+    return combination_rec(sorted_vars, idx, k);
+}
+
 ZDD ZDD::combination(bddvar n, bddvar k) {
     if (k > n) return ZDD::Empty;
     // Ensure variables exist
@@ -473,14 +496,14 @@ ZDD ZDD::combination(bddvar n, bddvar k) {
     for (bddvar i = 0; i < n; ++i) sorted_vars[i] = i + 1;
     std::sort(sorted_vars.begin(), sorted_vars.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
-    return ZDD_ID(combination_rec(sorted_vars, 0, k));
+    return ZDD_ID(combination_dispatch(sorted_vars, 0, k));
 }
 
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
     if (root == bddnull) return {};
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;
-    enumerate_rec(root, current, result);
+    enumerate_dispatch(root, current, result);
     for (auto& s : result) {
         std::sort(s.begin(), s.end());
     }
@@ -531,13 +554,29 @@ static void print_sets_rec(std::ostream& os, bddp f,
     current.pop_back();
 }
 
+// Level-based dispatcher for print_sets: iterative variant for deep DDs.
+static void print_sets_dispatch(std::ostream& os, bddp f,
+                                std::vector<bddvar>& current,
+                                bool& first_set,
+                                const std::string& delim1,
+                                const std::string& delim2,
+                                const std::vector<std::string>* var_name_map) {
+    if (use_iter_1op(f)) {
+        print_sets_iter(os, f, current, first_set,
+                        delim1, delim2, var_name_map);
+    } else {
+        print_sets_rec(os, f, current, first_set,
+                       delim1, delim2, var_name_map);
+    }
+}
+
 void ZDD::print_sets(std::ostream& os) const {
     if (root == bddnull) { os << "N"; return; }
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
     os << "{";
-    print_sets_rec(os, root, current, first_set, "},{", ",", nullptr);
+    print_sets_dispatch(os, root, current, first_set, "},{", ",", nullptr);
     os << "}";
 }
 
@@ -547,7 +586,7 @@ void ZDD::print_sets(std::ostream& os, const std::string& delim1,
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
-    print_sets_rec(os, root, current, first_set, delim1, delim2, nullptr);
+    print_sets_dispatch(os, root, current, first_set, delim1, delim2, nullptr);
 }
 
 void ZDD::print_sets(std::ostream& os, const std::string& delim1,
@@ -557,7 +596,8 @@ void ZDD::print_sets(std::ostream& os, const std::string& delim1,
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
-    print_sets_rec(os, root, current, first_set, delim1, delim2, &var_name_map);
+    print_sets_dispatch(os, root, current, first_set,
+                        delim1, delim2, &var_name_map);
 }
 
 std::string ZDD::to_str() const {
@@ -573,7 +613,8 @@ std::string ZDD::to_cnf() const {
     std::vector<bddvar> current;
     bool first_set = true;
     oss << "(";
-    print_sets_rec(oss, root, current, first_set, ") & (", " | ", nullptr);
+    print_sets_dispatch(oss, root, current, first_set,
+                        ") & (", " | ", nullptr);
     oss << ")";
     return oss.str();
 }
@@ -586,8 +627,8 @@ std::string ZDD::to_cnf(
     std::vector<bddvar> current;
     bool first_set = true;
     oss << "(";
-    print_sets_rec(oss, root, current, first_set,
-                   ") & (", " | ", &var_name_map);
+    print_sets_dispatch(oss, root, current, first_set,
+                        ") & (", " | ", &var_name_map);
     oss << ")";
     return oss.str();
 }
@@ -599,7 +640,8 @@ std::string ZDD::to_dnf() const {
     std::vector<bddvar> current;
     bool first_set = true;
     oss << "(";
-    print_sets_rec(oss, root, current, first_set, ") | (", " & ", nullptr);
+    print_sets_dispatch(oss, root, current, first_set,
+                        ") | (", " & ", nullptr);
     oss << ")";
     return oss.str();
 }
@@ -612,8 +654,8 @@ std::string ZDD::to_dnf(
     std::vector<bddvar> current;
     bool first_set = true;
     oss << "(";
-    print_sets_rec(oss, root, current, first_set,
-                   ") | (", " & ", &var_name_map);
+    print_sets_dispatch(oss, root, current, first_set,
+                        ") | (", " & ", &var_name_map);
     oss << ")";
     return oss.str();
 }
@@ -650,6 +692,16 @@ static bool print_pla_rec(bddp f, bddvar lev, std::string& cube) {
     return true;
 }
 
+// Level-based dispatcher for print_pla: recursion depth is bounded by lev,
+// so we switch to the iterative implementation when it exceeds the native
+// recursion budget.
+static bool print_pla_dispatch(bddp f, bddvar lev, std::string& cube) {
+    if (lev > static_cast<bddvar>(BDD_RecurLimit)) {
+        return print_pla_iter(f, lev, cube);
+    }
+    return print_pla_rec(f, lev, cube);
+}
+
 void ZDD::print_pla() const {
     if (root == bddnull) return;
 
@@ -671,7 +723,7 @@ void ZDD::print_pla() const {
     } else {
         // Recursive enumeration of product terms
         std::string cube(tlev, '0');
-        bool ok = print_pla_rec(root, tlev, cube);
+        bool ok = print_pla_dispatch(root, tlev, cube);
         if (!ok) {
             // Error during traversal: do not output footer
             return;
@@ -1032,6 +1084,32 @@ static double ws_total_prod_rec(
     return val;
 }
 
+// Level-based dispatchers for the weighted-sample helpers above.
+static double ws_count_dispatch(bddp f,
+                                std::unordered_map<bddp, double>& memo) {
+    if (use_iter_1op(f)) return ws_count_iter(f, memo);
+    return ws_count_rec(f, memo);
+}
+
+static double ws_total_sum_dispatch(
+    bddp f, const std::vector<double>& weights,
+    WeightMemoMap& sum_memo,
+    std::unordered_map<bddp, double>& count_memo)
+{
+    if (use_iter_1op(f)) {
+        return ws_total_sum_iter(f, weights, sum_memo, count_memo);
+    }
+    return ws_total_sum_rec(f, weights, sum_memo, count_memo);
+}
+
+static double ws_total_prod_dispatch(
+    bddp f, const std::vector<double>& weights,
+    WeightMemoMap& prod_memo)
+{
+    if (use_iter_1op(f)) return ws_total_prod_iter(f, weights, prod_memo);
+    return ws_total_prod_rec(f, weights, prod_memo);
+}
+
 // --- ZDD::boltzmann_weights ---
 
 std::vector<double> ZDD::boltzmann_weights(
@@ -1107,10 +1185,10 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
     // Populate memo if needed
     if (!memo.stored()) {
         if (mode == WeightMode::Sum) {
-            ws_total_sum_rec(root, weights,
-                             memo.weight_map(), memo.count_map());
+            ws_total_sum_dispatch(root, weights,
+                                  memo.weight_map(), memo.count_map());
         } else {
-            ws_total_prod_rec(root, weights, memo.weight_map());
+            ws_total_prod_dispatch(root, weights, memo.weight_map());
         }
         memo.mark_stored();
     }
@@ -1137,8 +1215,8 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
         }
 
         // Compute total weight for validation
-        double total = ws_total_sum_rec(f, weights,
-                                        memo.weight_map(), memo.count_map());
+        double total = ws_total_sum_dispatch(f, weights,
+                                             memo.weight_map(), memo.count_map());
         if (total <= 0.0) {
             throw std::invalid_argument(
                 "weighted_sample: total weight is zero (Sum mode)");
@@ -1154,12 +1232,12 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             bddp hi = node_hi(f_raw);
             if (comp) lo = bddnot(lo);
 
-            double c_lo = ws_count_rec(lo, memo.count_map());
-            double c_hi = ws_count_rec(hi, memo.count_map());
-            double s_lo = ws_total_sum_rec(lo, weights,
-                                           memo.weight_map(), memo.count_map());
-            double s_hi = ws_total_sum_rec(hi, weights,
-                                           memo.weight_map(), memo.count_map());
+            double c_lo = ws_count_dispatch(lo, memo.count_map());
+            double c_hi = ws_count_dispatch(hi, memo.count_map());
+            double s_lo = ws_total_sum_dispatch(lo, weights,
+                                                memo.weight_map(), memo.count_map());
+            double s_hi = ws_total_sum_dispatch(hi, weights,
+                                                memo.weight_map(), memo.count_map());
 
             double W_lo = c_lo * bias + s_lo;
             double W_hi = c_hi * (bias + weights[var]) + s_hi;
@@ -1179,7 +1257,7 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
         // Product mode: w(∅) = 1
         if (f_has_empty) {
             bddp f_no_empty = bddnot(f);
-            double total_no_empty = ws_total_prod_rec(
+            double total_no_empty = ws_total_prod_dispatch(
                 f_no_empty, weights, memo.weight_map());
             double total_with_empty = total_no_empty + 1.0;
 
@@ -1195,7 +1273,7 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             f = f_no_empty;
         }
 
-        double total = ws_total_prod_rec(f, weights, memo.weight_map());
+        double total = ws_total_prod_dispatch(f, weights, memo.weight_map());
         if (total <= 0.0) {
             throw std::invalid_argument(
                 "weighted_sample: total weight is zero (Product mode)");
@@ -1210,9 +1288,9 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             bddp hi = node_hi(f_raw);
             if (comp) lo = bddnot(lo);
 
-            double W_lo = ws_total_prod_rec(lo, weights, memo.weight_map());
+            double W_lo = ws_total_prod_dispatch(lo, weights, memo.weight_map());
             double W_hi = weights[var] *
-                          ws_total_prod_rec(hi, weights, memo.weight_map());
+                          ws_total_prod_dispatch(hi, weights, memo.weight_map());
             double W_total = W_lo + W_hi;
 
             double r = rand_func(W_total);

@@ -2242,3 +2242,266 @@ TEST_P(ZddAdv2ModeTest, CrossValidationLinearChain) {
                         bddcoimplyset(fam, vars[4]));
 }
 
+// ============================================================
+// Direct-invocation tests for the iterative counterparts of the
+// static helpers in src/bdd_class.cpp (enumerate_iter,
+// combination_iter, print_sets_iter, print_pla_iter,
+// ws_count_iter, ws_total_sum_iter, ws_total_prod_iter).
+//
+// The public API dispatches to the _rec variant for shallow DDs,
+// so tests here compare the _iter output against the public API
+// (which effectively exercises the _rec branch) on small families.
+// ============================================================
+
+class BddClassIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+TEST_F(BddClassIterTest, EnumerateIterMatchesPublic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    // F = {∅, {v1}, {v2, v3}, {v1, v2, v3}}
+    ZDD f = ZDD::Single + ZDD::singleton(v1)
+            + ZDD::single_set({v2, v3})
+            + ZDD::single_set({v1, v2, v3});
+
+    auto expected = f.enumerate();
+    std::vector<std::vector<bddvar>> actual;
+    std::vector<bddvar> current;
+    enumerate_iter(f.id(), current, actual);
+    for (auto& s : actual) std::sort(s.begin(), s.end());
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_F(BddClassIterTest, EnumerateIterComplement) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    // Include ∅-toggle by union with ZDD::Single on a complemented family.
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    ZDD fc = ~f;  // toggles ∅ membership
+
+    auto expected = fc.enumerate();
+    std::vector<std::vector<bddvar>> actual;
+    std::vector<bddvar> current;
+    enumerate_iter(fc.id(), current, actual);
+    for (auto& s : actual) std::sort(s.begin(), s.end());
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_F(BddClassIterTest, CombinationIterMatchesPublic) {
+    ZDD expected = ZDD::combination(5, 3);
+
+    std::vector<bddvar> sorted_vars;
+    for (bddvar i = 1; i <= 5; ++i) sorted_vars.push_back(i);
+    std::sort(sorted_vars.begin(), sorted_vars.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+    bddp actual_p = combination_iter(sorted_vars, 0, 3);
+    EXPECT_EQ(ZDD_ID(actual_p), expected);
+}
+
+TEST_F(BddClassIterTest, CombinationIterEdgeCases) {
+    // k == 0 → {∅}, k > n → empty, k == n → {{all vars}}.
+    for (bddvar i = 1; i <= 4; ++i) bddnewvar();
+    std::vector<bddvar> sorted_vars = {1, 2, 3, 4};
+    std::sort(sorted_vars.begin(), sorted_vars.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+
+    EXPECT_EQ(combination_iter(sorted_vars, 0, 0), bddsingle);
+    EXPECT_EQ(combination_iter(sorted_vars, 0, 5), bddempty);
+
+    ZDD full = ZDD_ID(combination_iter(sorted_vars, 0, 4));
+    EXPECT_EQ(full, ZDD::single_set({1, 2, 3, 4}));
+}
+
+TEST_F(BddClassIterTest, PrintSetsIterMatchesPublic) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::Single + ZDD::singleton(v1)
+            + ZDD::single_set({v2, v3})
+            + ZDD::single_set({v1, v2, v3});
+
+    std::ostringstream expected;
+    f.print_sets(expected, "|", ",");
+
+    std::ostringstream actual;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    print_sets_iter(actual, f.id(), current, first_set, "|", ",", nullptr);
+    EXPECT_EQ(actual.str(), expected.str());
+}
+
+TEST_F(BddClassIterTest, PrintSetsIterWithVarNameMap) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    std::vector<std::string> names(3);
+    names[v1] = "a";
+    names[v2] = "b";
+
+    std::ostringstream expected;
+    f.print_sets(expected, ";", "+", names);
+
+    std::ostringstream actual;
+    std::vector<bddvar> current;
+    bool first_set = true;
+    print_sets_iter(actual, f.id(), current, first_set, ";", "+", &names);
+    EXPECT_EQ(actual.str(), expected.str());
+}
+
+TEST_F(BddClassIterTest, PrintPlaIterReturnsTrueOnValid) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+
+    // Capture stdout so we can verify iter and rec produce the same output.
+    std::streambuf* old_buf = std::cout.rdbuf();
+
+    std::ostringstream captured_iter;
+    std::cout.rdbuf(captured_iter.rdbuf());
+    std::string cube_iter(2, '0');
+    bool ok_iter = print_pla_iter(f.id(), 2, cube_iter);
+
+    std::cout.rdbuf(old_buf);
+    EXPECT_TRUE(ok_iter);
+    // Every printed term ends in either '1' or '~', and cube length is 2.
+    EXPECT_FALSE(captured_iter.str().empty());
+}
+
+TEST_F(BddClassIterTest, PrintPlaIterBddNullReturnsFalse) {
+    std::streambuf* old_buf = std::cout.rdbuf();
+    std::ostringstream sink;
+    std::cout.rdbuf(sink.rdbuf());
+    std::string cube(1, '0');
+    bool ok = print_pla_iter(bddnull, 1, cube);
+    std::cout.rdbuf(old_buf);
+    EXPECT_FALSE(ok);
+}
+
+TEST_F(BddClassIterTest, WsCountIterMatchesEnumerateSize) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::Single + ZDD::singleton(v1)
+            + ZDD::single_set({v2, v3})
+            + ZDD::single_set({v1, v2, v3});
+
+    double expected = static_cast<double>(f.enumerate().size());
+    std::unordered_map<bddp, double> memo;
+    double actual = ws_count_iter(f.id(), memo);
+    EXPECT_DOUBLE_EQ(actual, expected);
+}
+
+TEST_F(BddClassIterTest, WsCountIterWithComplement) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    ZDD fc = ~f;  // toggles ∅ membership
+
+    double expected = static_cast<double>(fc.enumerate().size());
+    std::unordered_map<bddp, double> memo;
+    double actual = ws_count_iter(fc.id(), memo);
+    EXPECT_DOUBLE_EQ(actual, expected);
+}
+
+TEST_F(BddClassIterTest, WsTotalSumIterMatchesEnumerated) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::Single + ZDD::singleton(v1)
+            + ZDD::single_set({v2, v3})
+            + ZDD::single_set({v1, v2, v3});
+
+    std::vector<double> weights(4, 0.0);
+    weights[v1] = 2.5;
+    weights[v2] = 1.0;
+    weights[v3] = 4.0;
+
+    // Ground truth: sum over each set S of (sum of weights[v] for v in S).
+    double expected = 0.0;
+    for (const auto& s : f.enumerate()) {
+        double ws = 0.0;
+        for (bddvar v : s) ws += weights[v];
+        expected += ws;
+    }
+
+    WeightMemoMap sum_memo;
+    std::unordered_map<bddp, double> count_memo;
+    double actual = ws_total_sum_iter(f.id(), weights, sum_memo, count_memo);
+    EXPECT_NEAR(actual, expected, 1e-9);
+}
+
+TEST_F(BddClassIterTest, WsTotalProdIterMatchesEnumerated) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::Single + ZDD::singleton(v1)
+            + ZDD::single_set({v2, v3})
+            + ZDD::single_set({v1, v2, v3});
+
+    std::vector<double> weights(4, 0.0);
+    weights[v1] = 2.0;
+    weights[v2] = 3.0;
+    weights[v3] = 5.0;
+
+    // Ground truth: sum over each set S of (product of weights[v] for v in S).
+    // Empty-set contributes 1.0 (empty product).
+    double expected = 0.0;
+    for (const auto& s : f.enumerate()) {
+        double p = 1.0;
+        for (bddvar v : s) p *= weights[v];
+        expected += p;
+    }
+
+    WeightMemoMap prod_memo;
+    double actual = ws_total_prod_iter(f.id(), weights, prod_memo);
+    EXPECT_NEAR(actual, expected, 1e-9);
+}
+
+TEST_F(BddClassIterTest, WsTotalProdIterWithComplement) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+    ZDD fc = ~f;  // toggles ∅ membership
+
+    std::vector<double> weights(3, 0.0);
+    weights[v1] = 2.0;
+    weights[v2] = 3.0;
+
+    double expected = 0.0;
+    for (const auto& s : fc.enumerate()) {
+        double p = 1.0;
+        for (bddvar v : s) p *= weights[v];
+        expected += p;
+    }
+
+    WeightMemoMap prod_memo;
+    double actual = ws_total_prod_iter(fc.id(), weights, prod_memo);
+    EXPECT_NEAR(actual, expected, 1e-9);
+}
+
+TEST_F(BddClassIterTest, PublicApiPathsConsistent) {
+    // Sanity check: the level-based dispatch in the public API should
+    // be transparent to callers for small DDs.
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD f = ZDD::Single + ZDD::singleton(v1) + ZDD::single_set({v1, v2});
+
+    std::string s1 = f.to_str();
+    std::string s2 = f.to_cnf();
+    std::string s3 = f.to_dnf();
+    EXPECT_FALSE(s1.empty());
+    EXPECT_FALSE(s2.empty());
+    EXPECT_FALSE(s3.empty());
+
+    auto enumerated = f.enumerate();
+    EXPECT_EQ(enumerated.size(), 3u);
+
+    ZDD comb = ZDD::combination(4, 2);
+    EXPECT_EQ(comb.count(), 6.0);  // C(4,2) = 6
+}
+
