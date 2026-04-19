@@ -1574,6 +1574,15 @@ TEST_F(BDDTest, ZDD_GetKLightest_NegativeKThrows) {
     EXPECT_THROW(f.get_k_heaviest(-1, w), std::invalid_argument);
 }
 
+TEST_F(BDDTest, ZDD_GetKHeaviest_StrictIntMinRejected) {
+    // Forwarding to get_k_lightest computes -strict, which overflows when
+    // strict == INT_MIN. The API must reject this value.
+    bddvar v1 = bddnewvar();
+    std::vector<int> w = {0, 1};
+    ZDD f = ZDD::singleton(v1);
+    EXPECT_THROW(f.get_k_heaviest(1, w, INT_MIN), std::invalid_argument);
+}
+
 TEST_F(BDDTest, ZDD_GetKLightest_FreeFunctions) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();

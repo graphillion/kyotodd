@@ -251,7 +251,8 @@ static void bddminweightset_trace(bddp f, const std::vector<int>& weights,
 
         long long lo_val = memo[lo];
         long long hi_val = memo[hi];
-        long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+        long long hi_total = costbound_safe_add(
+            static_cast<long long>(weights[var]), hi_val);
 
         if (lo_val <= hi_total) {
             f = lo;
@@ -292,7 +293,8 @@ static void bddmaxweightset_trace(bddp f, const std::vector<int>& weights,
 
         long long lo_val = memo[lo];
         long long hi_val = memo[hi];
-        long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+        long long hi_total = costbound_safe_add(
+            static_cast<long long>(weights[var]), hi_val);
 
         if (lo_val >= hi_total) {
             f = lo;
@@ -540,9 +542,15 @@ bddp bddgetklightest(bddp f, const bigint::BigInt& k,
         bigint::BigInt left_card(0);
         bddp right_zbdd = f;
 
-        // Binary search on cost bound
-        while (hi_bound - lo_bound > 1) {
-            long long mid = lo_bound + (hi_bound - lo_bound) / 2;
+        // Binary search on cost bound. Use unsigned arithmetic for the
+        // difference so that a full-range span (LLONG_MAX - LLONG_MIN)
+        // does not signed-overflow.
+        while (static_cast<unsigned long long>(hi_bound)
+                   - static_cast<unsigned long long>(lo_bound) > 1ULL) {
+            unsigned long long diff =
+                static_cast<unsigned long long>(hi_bound)
+              - static_cast<unsigned long long>(lo_bound);
+            long long mid = lo_bound + static_cast<long long>(diff / 2ULL);
             bddp mid_zbdd = bddcostbound_le(f, weights, mid, cost_memo);
             bigint::BigInt mid_card = bddexactcount(mid_zbdd, count_memo);
 
@@ -589,6 +597,11 @@ bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
     }
     if (k < bigint::BigInt(0)) {
         throw std::invalid_argument("bddgetkheaviest: k must be >= 0");
+    }
+    if (strict == INT_MIN) {
+        // -INT_MIN overflows when forwarding to bddgetklightest.
+        throw std::invalid_argument(
+            "bddgetkheaviest: strict must be > INT_MIN");
     }
     if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
