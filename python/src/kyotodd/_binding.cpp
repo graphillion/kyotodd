@@ -4109,6 +4109,11 @@ PYBIND11_MODULE(_core, m) {
            "    g: Another MVZDD with the same variable table.\n\n"
            "Returns:\n"
            "    The symmetric difference count as a Python int.")
+        .def("overlap_coefficient", &MVZDD::overlap_coefficient, py::arg("g"),
+            "Overlap coefficient |F & G| / min(|F|, |G|).\n\n"
+            "Returns 1.0 when both families are empty; 0.0 when exactly one is empty.\n\n"
+            "Args:\n"
+            "    g: Another MVZDD with the same variable table.")
         // Support
         .def("support_vars", &MVZDD::support_vars,
             "Return all MVDD variable numbers appearing in the family.\n\n"

@@ -1003,6 +1003,36 @@ TEST_F(MVDDTest, MVZDDHammingDistance) {
     EXPECT_EQ(f.hamming_distance(f).to_string(), "0");
 }
 
+TEST_F(MVDDTest, MVZDDOverlapCoefficient) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    MVZDD g = MVZDD::from_sets(base, {{1, 2}, {2, 1}, {0, 1}});
+
+    // |F ∩ G| = 1 ({1,2}), min(|F|, |G|) = min(2, 3) = 2
+    EXPECT_NEAR(f.overlap_coefficient(g), 1.0 / 2.0, 1e-10);
+    EXPECT_NEAR(f.overlap_coefficient(f), 1.0, 1e-10);
+
+    // Subset: F ⊆ G → overlap = 1.0
+    MVZDD h = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}});
+    EXPECT_NEAR(f.overlap_coefficient(h), 1.0, 1e-10);
+
+    // Disjoint → 0.0
+    MVZDD d = MVZDD::from_sets(base, {{2, 1}, {0, 1}});
+    EXPECT_NEAR(f.overlap_coefficient(d), 0.0, 1e-10);
+
+    // Both empty → 1.0; one empty → 0.0
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_NEAR(empty.overlap_coefficient(empty), 1.0, 1e-10);
+    EXPECT_NEAR(f.overlap_coefficient(empty), 0.0, 1e-10);
+    EXPECT_NEAR(empty.overlap_coefficient(f), 0.0, 1e-10);
+
+    // Symmetry
+    EXPECT_NEAR(f.overlap_coefficient(g), g.overlap_coefficient(f), 1e-10);
+}
+
 // ============================================================
 //  MVZDD::cost_bound_range tests
 // ============================================================

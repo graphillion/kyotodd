@@ -916,6 +916,11 @@ bigint::BigInt MVZDD::hamming_distance(const MVZDD& g) const {
     return bddhammingdist(root, g.root);
 }
 
+double MVZDD::overlap_coefficient(const MVZDD& g) const {
+    check_compatible(g);
+    return bddoverlapcoeff(root, g.root);
+}
+
 // --- Support ---
 
 std::vector<bddvar> MVZDD::support_vars() const {

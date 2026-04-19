@@ -468,6 +468,13 @@ public:
      */
     bigint::BigInt hamming_distance(const MVZDD& g) const;
 
+    /**
+     * @brief Overlap coefficient |F ∩ G| / min(|F|, |G|).
+     * @param g Another MVZDD with the same variable table.
+     * @return 1.0 when both families are empty; 0.0 when exactly one is empty.
+     */
+    double overlap_coefficient(const MVZDD& g) const;
+
     // --- Support ---
 
     /**
