@@ -1126,6 +1126,213 @@ bddp random_subset_rec(bddp f, double p, RNG& rng,
     return ZDD::getnode_raw(var, result_lo, result_hi);
 }
 
+// ---------------------------------------------------------------
+// Iterative counterparts of sample_k_rec / random_subset_rec.
+//
+// Explicit-stack rewrites for stack-safety on deep ZDDs. Visit
+// order and RNG consumption order match the _rec versions
+// exactly, so given the same RNG seed the results are identical.
+//
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+// ---------------------------------------------------------------
+
+template<typename RNG>
+bddp sample_k_iter(
+    bddp root_f,
+    const bigint::BigInt& root_k,
+    RNG& rng,
+    CountMemoMap& memo)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bigint::BigInt k;
+        bddp f_hi;
+        bigint::BigInt k_hi;
+        bddvar var;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.k = root_k;
+    init.f_hi = bddnull;
+    init.k_hi = bigint::BigInt(0);
+    init.var = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(std::move(init));
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.k.is_zero() || frame.f == bddempty) {
+                result = bddempty;
+                stack.pop_back();
+                break;
+            }
+            if (frame.f == bddsingle) {
+                result = bddsingle;  // k >= 1, only ∅ in family
+                stack.pop_back();
+                break;
+            }
+
+            bigint::BigInt total = bddexactcount(frame.f, memo);
+            if (frame.k >= total) {
+                result = frame.f;
+                stack.pop_back();
+                break;
+            }
+
+            bool comp = (frame.f & BDD_COMP_FLAG) != 0;
+            bddp f_raw = frame.f & ~BDD_COMP_FLAG;
+
+            bddvar var = node_var(f_raw);
+            bddp raw_lo = node_lo(f_raw);
+            bddp f_hi = node_hi(f_raw);
+            bddp f_lo = comp ? bddnot(raw_lo) : raw_lo;
+
+            bigint::BigInt count_hi = bddexactcount(f_hi, memo);
+
+            // Hypergeometric: from k draws in population of size total,
+            // count_hi are "successes" (hi-branch sets)
+            bigint::BigInt k_hi =
+                hypergeometric_sample(frame.k, count_hi, total, rng);
+            bigint::BigInt k_lo = frame.k - k_hi;
+
+            frame.var = var;
+            frame.f_hi = f_hi;
+            frame.k_hi = k_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo;
+            child.k = std::move(k_lo);
+            child.f_hi = bddnull;
+            child.k_hi = bigint::BigInt(0);
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi;
+            child.k = frame.k_hi;
+            child.f_hi = bddnull;
+            child.k_hi = bigint::BigInt(0);
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            result = ZDD::getnode_raw(frame.var, frame.lo_result, hi);
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+template<typename RNG>
+bddp random_subset_iter(bddp root_f, double p, RNG& rng,
+                         std::uniform_real_distribution<double>& dist)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp f_hi;
+        bddvar var;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.f_hi = bddnull;
+    init.var = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.f == bddempty) {
+                result = bddempty;
+                stack.pop_back();
+                break;
+            }
+            if (frame.f == bddsingle) {
+                result = (dist(rng) < p) ? bddsingle : bddempty;
+                stack.pop_back();
+                break;
+            }
+
+            bool comp = (frame.f & BDD_COMP_FLAG) != 0;
+            bddp f_raw = frame.f & ~BDD_COMP_FLAG;
+
+            bddvar var = node_var(f_raw);
+            bddp raw_lo = node_lo(f_raw);
+            bddp f_hi = node_hi(f_raw);
+            bddp f_lo = comp ? bddnot(raw_lo) : raw_lo;
+
+            frame.var = var;
+            frame.f_hi = f_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo;
+            child.f_hi = bddnull;
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi;
+            child.f_hi = bddnull;
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            result = ZDD::getnode_raw(frame.var, frame.lo_result, hi);
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace detail
 
 template<typename RNG>
@@ -1150,6 +1357,14 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
     bigint::BigInt total = bddexactcount(root, memo.map());
     if (bk >= total) return *this;
 
+    auto sample_k_dispatch =
+        [&](bddp f, const bigint::BigInt& k) -> bddp {
+            if (use_iter_1op(f)) {
+                return detail::sample_k_iter(f, k, rng, memo.map());
+            }
+            return detail::sample_k_rec(f, k, rng, memo.map());
+        };
+
     bddp result = bdd_gc_guard([&]() -> bddp {
         // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
         bool has_empty = bddhasempty(root);
@@ -1159,19 +1374,18 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
             if (r < bk) {
                 // Include ∅, sample k-1 from f without ∅
                 bddp f_no_empty = bddnot(root);  // toggle ∅
-                bddp sampled = detail::sample_k_rec(
-                    f_no_empty, bk - bigint::BigInt(1), rng, memo.map());
+                bddp sampled = sample_k_dispatch(
+                    f_no_empty, bk - bigint::BigInt(1));
                 return bddnot(sampled);  // add ∅ back
             } else {
                 // Exclude ∅, sample k from f without ∅
                 bddp f_no_empty = bddnot(root);
-                bddp sampled = detail::sample_k_rec(
-                    f_no_empty, bk, rng, memo.map());
+                bddp sampled = sample_k_dispatch(f_no_empty, bk);
                 return sampled;
             }
         }
 
-        return detail::sample_k_rec(root, bk, rng, memo.map());
+        return sample_k_dispatch(root, bk);
     });
     return ZDD_ID(result);
 }
@@ -1189,21 +1403,27 @@ ZDD ZDD::random_subset(double p, RNG& rng) {
 
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
+    auto random_subset_dispatch = [&](bddp f) -> bddp {
+        if (use_iter_1op(f)) {
+            return detail::random_subset_iter(f, p, rng, dist);
+        }
+        return detail::random_subset_rec(f, p, rng, dist);
+    };
+
     bddp result = bdd_gc_guard([&]() -> bddp {
         // Handle ∅ membership: if ∅ ∈ F, decide whether to include it
         bool has_empty = bddhasempty(root);
         if (has_empty) {
             bool include_empty = (dist(rng) < p);
             bddp f_no_empty = bddnot(root);
-            bddp sampled = detail::random_subset_rec(
-                f_no_empty, p, rng, dist);
+            bddp sampled = random_subset_dispatch(f_no_empty);
             if (include_empty) {
                 return bddnot(sampled);  // add ∅ back
             }
             return sampled;
         }
 
-        return detail::random_subset_rec(root, p, rng, dist);
+        return random_subset_dispatch(root);
     });
     return ZDD_ID(result);
 }
