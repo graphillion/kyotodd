@@ -16,6 +16,7 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp
   src/zdd_ops.cpp
+  src/zdd_ops_iter.cpp
   src/zdd_adv_filter.cpp
   src/zdd_adv_count.cpp
   src/zdd_adv_weight.cpp

@@ -26,7 +26,34 @@ bddp bddoffset(bddp f, bddvar var) {
     // Terminal cases
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddoffset_rec(f, var); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddoffset_iter(f, var); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddoffset_rec(f, var); });
+    }
+}
+
+bddp bddoffset(bddp f, bddvar var, BddExecMode mode) {
+    bddp_validate(f, "bddoffset");
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddoffset: var out of range");
+    }
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddoffset_iter(f, var); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddoffset_rec(f, var); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddoffset_iter(f, var); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddoffset_rec(f, var); });
+        }
+    }
 }
 
 static bddp bddoffset_rec(bddp f, bddvar var) {
@@ -77,7 +104,34 @@ bddp bddonset(bddp f, bddvar var) {
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddonset_rec(f, var); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddonset_iter(f, var); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddonset_rec(f, var); });
+    }
+}
+
+bddp bddonset(bddp f, bddvar var, BddExecMode mode) {
+    bddp_validate(f, "bddonset");
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddonset: var out of range");
+    }
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddonset_iter(f, var); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddonset_rec(f, var); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddonset_iter(f, var); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddonset_rec(f, var); });
+        }
+    }
 }
 
 static bddp bddonset_rec(bddp f, bddvar var) {
@@ -128,7 +182,34 @@ bddp bddonset0(bddp f, bddvar var) {
     // Terminal cases: no sets contain any variable
     if (f & BDD_CONST_FLAG) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddonset0_rec(f, var); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddonset0_iter(f, var); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddonset0_rec(f, var); });
+    }
+}
+
+bddp bddonset0(bddp f, bddvar var, BddExecMode mode) {
+    bddp_validate(f, "bddonset0");
+    if (var < 1 || var > bdd_varcount) {
+        throw std::invalid_argument("bddonset0: var out of range");
+    }
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddonset0_iter(f, var); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddonset0_rec(f, var); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddonset0_iter(f, var); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddonset0_rec(f, var); });
+        }
+    }
 }
 
 static bddp bddonset0_rec(bddp f, bddvar var) {
@@ -186,7 +267,41 @@ bddp bddchange(bddp f, bddvar var) {
     // Terminal cases
     if (f == bddempty) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddchange_rec(f, var); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddchange_iter(f, var); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddchange_rec(f, var); });
+    }
+}
+
+bddp bddchange(bddp f, bddvar var, BddExecMode mode) {
+    bddp_validate(f, "bddchange");
+    if (var < 1) {
+        throw std::invalid_argument("bddchange: var out of range");
+    }
+    if (var > 65536) {
+        throw std::invalid_argument(
+            "bddchange: auto-expansion beyond 2^16 variables is not supported");
+    }
+    if (f == bddnull) return bddnull;
+    while (bdd_varcount < var) {
+        bddnewvar();
+    }
+    if (f == bddempty) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddchange_iter(f, var); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddchange_rec(f, var); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddchange_iter(f, var); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddchange_rec(f, var); });
+        }
+    }
 }
 
 static bddp bddchange_rec(bddp f, bddvar var) {
@@ -240,7 +355,35 @@ bddp bddunion(bddp f, bddp g) {
     // Normalize order (union is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddunion_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddunion_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddunion_rec(f, g); });
+    }
+}
+
+bddp bddunion(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddunion");
+    bddp_validate(g, "bddunion");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return g;
+    if (g == bddempty) return f;
+    if (f == g) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddunion_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddunion_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddunion_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddunion_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddunion_rec(bddp f, bddp g) {
@@ -311,7 +454,35 @@ bddp bddintersec(bddp f, bddp g) {
     // Normalize order (intersection is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddintersec_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddintersec_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddintersec_rec(f, g); });
+    }
+}
+
+bddp bddintersec(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddintersec");
+    bddp_validate(g, "bddintersec");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (f == g) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddintersec_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddintersec_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddintersec_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddintersec_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddintersec_rec(bddp f, bddp g) {
@@ -374,7 +545,34 @@ bddp bddsubtract(bddp f, bddp g) {
     if (g == bddempty) return f;
     if (f == g) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddsubtract_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddsubtract_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddsubtract_rec(f, g); });
+    }
+}
+
+bddp bddsubtract(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddsubtract");
+    bddp_validate(g, "bddsubtract");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;
+    if (f == g) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddsubtract_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddsubtract_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddsubtract_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddsubtract_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddsubtract_rec(bddp f, bddp g) {
@@ -488,8 +686,35 @@ bool bddissubset(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return false;
     if (f == bddempty) return true;
     if (f == g) return true;
+    if (use_iter_2op(f, g)) {
+        return bddissubset_iter(f, g);
+    }
     SubsetMemoMap memo;
     return bddissubset_rec(f, g, memo);
+}
+
+bool bddissubset(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddissubset");
+    bddp_validate(g, "bddissubset");
+    if (f == bddnull || g == bddnull) return false;
+    if (f == bddempty) return true;
+    if (f == g) return true;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddissubset_iter(f, g);
+    case BddExecMode::Recursive: {
+        SubsetMemoMap memo;
+        return bddissubset_rec(f, g, memo);
+    }
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bddissubset_iter(f, g);
+        }
+        SubsetMemoMap memo;
+        return bddissubset_rec(f, g, memo);
+    }
 }
 
 static bool bddisdisjoint_rec(bddp f, bddp g, SubsetMemoMap& memo) {
@@ -558,8 +783,35 @@ bool bddisdisjoint(bddp f, bddp g) {
     if (f == bddnull || g == bddnull) return false;
     if (f == bddempty || g == bddempty) return true;
     if (f == g) return false;
+    if (use_iter_2op(f, g)) {
+        return bddisdisjoint_iter(f, g);
+    }
     SubsetMemoMap memo;
     return bddisdisjoint_rec(f, g, memo);
+}
+
+bool bddisdisjoint(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddisdisjoint");
+    bddp_validate(g, "bddisdisjoint");
+    if (f == bddnull || g == bddnull) return false;
+    if (f == bddempty || g == bddempty) return true;
+    if (f == g) return false;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddisdisjoint_iter(f, g);
+    case BddExecMode::Recursive: {
+        SubsetMemoMap memo;
+        return bddisdisjoint_rec(f, g, memo);
+    }
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bddisdisjoint_iter(f, g);
+        }
+        SubsetMemoMap memo;
+        return bddisdisjoint_rec(f, g, memo);
+    }
 }
 
 static bddp bdddiv_rec(bddp f, bddp g);
@@ -573,7 +825,34 @@ bddp bdddiv(bddp f, bddp g) {
     if (f == bddempty || g == bddempty) return bddempty;
     if (f == bddsingle) return bddempty;  // G contains non-empty sets
 
-    return bdd_gc_guard([&]() -> bddp { return bdddiv_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bdddiv_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bdddiv_rec(f, g); });
+    }
+}
+
+bddp bdddiv(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bdddiv");
+    bddp_validate(g, "bdddiv");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (g == bddsingle) return f;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bdddiv_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bdddiv_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bdddiv_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bdddiv_rec(f, g); });
+        }
+    }
 }
 
 static bddp bdddiv_rec(bddp f, bddp g) {
@@ -644,7 +923,35 @@ bddp bddsymdiff(bddp f, bddp g) {
     // Normalize order (symmetric difference is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddsymdiff_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddsymdiff_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddsymdiff_rec(f, g); });
+    }
+}
+
+bddp bddsymdiff(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddsymdiff");
+    bddp_validate(g, "bddsymdiff");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return g;
+    if (g == bddempty) return f;
+    if (f == g) return bddempty;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddsymdiff_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddsymdiff_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddsymdiff_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddsymdiff_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddsymdiff_rec(bddp f, bddp g) {
@@ -714,7 +1021,35 @@ bddp bddjoin(bddp f, bddp g) {
     // Normalize order (join is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddjoin_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddjoin_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddjoin_rec(f, g); });
+    }
+}
+
+bddp bddjoin(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddjoin");
+    bddp_validate(g, "bddjoin");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddjoin_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddjoin_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddjoin_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddjoin_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddjoin_rec(bddp f, bddp g) {
@@ -795,7 +1130,35 @@ bddp bddproduct(bddp f, bddp g) {
     // Normalize order (product is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddproduct_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddproduct_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddproduct_rec(f, g); });
+    }
+}
+
+bddp bddproduct(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddproduct");
+    bddp_validate(g, "bddproduct");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddproduct_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddproduct_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddproduct_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddproduct_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddproduct_rec(bddp f, bddp g) {
@@ -862,7 +1225,35 @@ bddp bddmeet(bddp f, bddp g) {
     // Normalize order (meet is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddmeet_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddmeet_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddmeet_rec(f, g); });
+    }
+}
+
+bddp bddmeet(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddmeet");
+    bddp_validate(g, "bddmeet");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    if (g == bddsingle) return bddsingle;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddmeet_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddmeet_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddmeet_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddmeet_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddmeet_rec(bddp f, bddp g) {
@@ -937,7 +1328,35 @@ bddp bdddelta(bddp f, bddp g) {
     // Normalize order (delta is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bdddelta_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bdddelta_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bdddelta_rec(f, g); });
+    }
+}
+
+bddp bdddelta(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bdddelta");
+    bddp_validate(g, "bdddelta");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bdddelta_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bdddelta_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bdddelta_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bdddelta_rec(f, g); });
+        }
+    }
 }
 
 static bddp bdddelta_rec(bddp f, bddp g) {

@@ -1993,3 +1993,218 @@ TEST_F(BDDTest, ZDDNonsubWithEmptySet) {
     EXPECT_EQ(bddnonsub(F, z_v2), z_v1);
 }
 
+// ============================================================
+// Parameterized tests for Recursive/Iterative modes (Batch 2)
+// ============================================================
+
+class ZddOpsModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddOpsModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+// Build a moderately non-trivial ZDD family shared by several tests.
+namespace {
+struct TestFamilies {
+    bddvar v1, v2, v3;
+    bddp single_v1;     // {{v1}}
+    bddp single_v2;     // {{v2}}
+    bddp single_v3;     // {{v3}}
+    bddp v1v2;          // {{v1,v2}}
+    bddp v2v3;          // {{v2,v3}}
+    bddp complex;       // union of v1, v1v2, v2v3
+};
+
+static TestFamilies make_families() {
+    TestFamilies t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.single_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.single_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.single_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    // {v1,v2} via join of singletons: but simpler: build manually
+    // {v1,v2} = change(single_v1, v2) — or via join
+    t.v1v2 = bddjoin(t.single_v1, t.single_v2);
+    t.v2v3 = bddjoin(t.single_v2, t.single_v3);
+    t.complex = bddunion(bddunion(t.single_v1, t.v1v2), t.v2v3);
+    return t;
+}
+} // namespace
+
+// --- Group A: unary + var ---
+
+TEST_P(ZddOpsModeTest, OffsetTerminal) {
+    auto t = make_families();
+    EXPECT_EQ(bddoffset(bddempty, t.v1, GetParam()), bddempty);
+    EXPECT_EQ(bddoffset(bddsingle, t.v1, GetParam()), bddsingle);
+}
+
+TEST_P(ZddOpsModeTest, OffsetFamily) {
+    auto t = make_families();
+    bddp ref = bddoffset(t.complex, t.v1);
+    EXPECT_EQ(bddoffset(t.complex, t.v1, GetParam()), ref);
+    EXPECT_EQ(bddoffset(t.complex, t.v2, GetParam()), bddoffset(t.complex, t.v2));
+    EXPECT_EQ(bddoffset(t.complex, t.v3, GetParam()), bddoffset(t.complex, t.v3));
+}
+
+TEST_P(ZddOpsModeTest, OnsetFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddonset(t.complex, t.v1, GetParam()), bddonset(t.complex, t.v1));
+    EXPECT_EQ(bddonset(t.complex, t.v2, GetParam()), bddonset(t.complex, t.v2));
+    EXPECT_EQ(bddonset(t.complex, t.v3, GetParam()), bddonset(t.complex, t.v3));
+}
+
+TEST_P(ZddOpsModeTest, Onset0Family) {
+    auto t = make_families();
+    EXPECT_EQ(bddonset0(t.complex, t.v1, GetParam()), bddonset0(t.complex, t.v1));
+    EXPECT_EQ(bddonset0(t.complex, t.v2, GetParam()), bddonset0(t.complex, t.v2));
+}
+
+TEST_P(ZddOpsModeTest, ChangeFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddchange(t.complex, t.v1, GetParam()), bddchange(t.complex, t.v1));
+    EXPECT_EQ(bddchange(t.complex, t.v2, GetParam()), bddchange(t.complex, t.v2));
+    EXPECT_EQ(bddchange(t.complex, t.v3, GetParam()), bddchange(t.complex, t.v3));
+}
+
+// --- Group B: simple binary ---
+
+TEST_P(ZddOpsModeTest, UnionFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddunion(t.complex, t.v2v3, GetParam()), bddunion(t.complex, t.v2v3));
+    EXPECT_EQ(bddunion(t.single_v1, t.v1v2, GetParam()), bddunion(t.single_v1, t.v1v2));
+    EXPECT_EQ(bddunion(bddempty, t.complex, GetParam()), t.complex);
+    EXPECT_EQ(bddunion(t.complex, bddempty, GetParam()), t.complex);
+}
+
+TEST_P(ZddOpsModeTest, IntersecFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddintersec(t.complex, t.v1v2, GetParam()), bddintersec(t.complex, t.v1v2));
+    EXPECT_EQ(bddintersec(t.complex, t.v2v3, GetParam()), bddintersec(t.complex, t.v2v3));
+    EXPECT_EQ(bddintersec(bddempty, t.complex, GetParam()), bddempty);
+}
+
+TEST_P(ZddOpsModeTest, SubtractFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddsubtract(t.complex, t.v1v2, GetParam()), bddsubtract(t.complex, t.v1v2));
+    EXPECT_EQ(bddsubtract(t.complex, t.single_v1, GetParam()), bddsubtract(t.complex, t.single_v1));
+    EXPECT_EQ(bddsubtract(t.complex, t.complex, GetParam()), bddempty);
+}
+
+TEST_P(ZddOpsModeTest, SymdiffFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddsymdiff(t.complex, t.v1v2, GetParam()), bddsymdiff(t.complex, t.v1v2));
+    EXPECT_EQ(bddsymdiff(t.complex, t.complex, GetParam()), bddempty);
+}
+
+// --- Group C: bool binary ---
+
+TEST_P(ZddOpsModeTest, IsSubset) {
+    auto t = make_families();
+    EXPECT_EQ(bddissubset(t.single_v1, t.complex, GetParam()),
+              bddissubset(t.single_v1, t.complex));
+    EXPECT_EQ(bddissubset(t.complex, t.complex, GetParam()), true);
+    EXPECT_EQ(bddissubset(t.complex, t.single_v1, GetParam()),
+              bddissubset(t.complex, t.single_v1));
+    EXPECT_EQ(bddissubset(bddempty, t.complex, GetParam()), true);
+}
+
+TEST_P(ZddOpsModeTest, IsDisjoint) {
+    auto t = make_families();
+    EXPECT_EQ(bddisdisjoint(t.single_v1, t.single_v2, GetParam()),
+              bddisdisjoint(t.single_v1, t.single_v2));
+    EXPECT_EQ(bddisdisjoint(t.complex, t.v2v3, GetParam()),
+              bddisdisjoint(t.complex, t.v2v3));
+    EXPECT_EQ(bddisdisjoint(t.complex, t.complex, GetParam()), false);
+    EXPECT_EQ(bddisdisjoint(bddempty, t.complex, GetParam()), true);
+}
+
+// --- Group D: composite binary ---
+
+TEST_P(ZddOpsModeTest, DivFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bdddiv(t.complex, t.single_v1, GetParam()),
+              bdddiv(t.complex, t.single_v1));
+    EXPECT_EQ(bdddiv(t.complex, bddsingle, GetParam()), t.complex);
+    EXPECT_EQ(bdddiv(bddempty, t.single_v1, GetParam()), bddempty);
+}
+
+TEST_P(ZddOpsModeTest, JoinFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddjoin(t.single_v1, t.single_v2, GetParam()), t.v1v2);
+    EXPECT_EQ(bddjoin(t.complex, t.single_v3, GetParam()),
+              bddjoin(t.complex, t.single_v3));
+    EXPECT_EQ(bddjoin(t.complex, bddsingle, GetParam()), t.complex);
+    EXPECT_EQ(bddjoin(bddempty, t.complex, GetParam()), bddempty);
+}
+
+TEST_P(ZddOpsModeTest, ProductFamily) {
+    // product requires disjoint var sets; use single_v1 and single_v2
+    auto t = make_families();
+    EXPECT_EQ(bddproduct(t.single_v1, t.single_v2, GetParam()),
+              bddproduct(t.single_v1, t.single_v2));
+    EXPECT_EQ(bddproduct(bddsingle, t.single_v1, GetParam()), t.single_v1);
+}
+
+TEST_P(ZddOpsModeTest, MeetFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bddmeet(t.complex, t.v1v2, GetParam()), bddmeet(t.complex, t.v1v2));
+    EXPECT_EQ(bddmeet(t.complex, bddempty, GetParam()), bddempty);
+    EXPECT_EQ(bddmeet(t.complex, bddsingle, GetParam()), bddsingle);
+}
+
+TEST_P(ZddOpsModeTest, DeltaFamily) {
+    auto t = make_families();
+    EXPECT_EQ(bdddelta(t.complex, t.v1v2, GetParam()),
+              bdddelta(t.complex, t.v1v2));
+    EXPECT_EQ(bdddelta(t.complex, bddsingle, GetParam()), t.complex);
+}
+
+// Cross-validation test: build a deeper ZDD and ensure iterative matches recursive.
+TEST_P(ZddOpsModeTest, CrossValidationLinearChain) {
+    // Build a linear chain: {{v1},{v1,v2},{v1,v2,v3},...}
+    const int n = 12;
+    std::vector<bddvar> vars;
+    for (int i = 0; i < n; ++i) vars.push_back(bddnewvar());
+
+    // accum = {{v1}}, {{v1,v2}}, ..., {{v1,...,vn}}
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+
+    // Verify each op is consistent across modes.
+    EXPECT_EQ(bddoffset(fam, vars[0], GetParam()), bddoffset(fam, vars[0]));
+    EXPECT_EQ(bddonset(fam, vars[5], GetParam()), bddonset(fam, vars[5]));
+    EXPECT_EQ(bddchange(fam, vars[3], GetParam()), bddchange(fam, vars[3]));
+    bddp other = bddunion(
+        ZDD::getnode(vars[1], bddempty, bddsingle),
+        ZDD::getnode(vars[4], bddempty, bddsingle));
+    EXPECT_EQ(bddunion(fam, other, GetParam()), bddunion(fam, other));
+    EXPECT_EQ(bddintersec(fam, other, GetParam()), bddintersec(fam, other));
+    EXPECT_EQ(bddsubtract(fam, other, GetParam()), bddsubtract(fam, other));
+    EXPECT_EQ(bddsymdiff(fam, other, GetParam()), bddsymdiff(fam, other));
+    EXPECT_EQ(bddmeet(fam, other, GetParam()), bddmeet(fam, other));
+    EXPECT_EQ(bdddelta(fam, other, GetParam()), bdddelta(fam, other));
+    EXPECT_EQ(bddjoin(fam, bddsingle, GetParam()), fam);
+    EXPECT_EQ(bddissubset(fam, fam, GetParam()), true);
+    EXPECT_EQ(bddisdisjoint(fam, fam, GetParam()), false);
+}

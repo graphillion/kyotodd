@@ -344,6 +344,8 @@ bddp bddspread_iter(bddp f, int k);
  * @return The resulting ZDD.
  */
 bddp bddoffset(bddp f, bddvar var);
+bddp bddoffset(bddp f, bddvar var, BddExecMode mode);
+bddp bddoffset_iter(bddp f, bddvar var);
 
 /**
  * @brief ZDD onset: select sets containing variable @p var, keeping @p var in the result.
@@ -356,6 +358,8 @@ bddp bddoffset(bddp f, bddvar var);
  * @return The resulting ZDD.
  */
 bddp bddonset(bddp f, bddvar var);
+bddp bddonset(bddp f, bddvar var, BddExecMode mode);
+bddp bddonset_iter(bddp f, bddvar var);
 
 /**
  * @brief ZDD onset0: select sets containing variable @p var and remove @p var (1-cofactor).
@@ -368,6 +372,8 @@ bddp bddonset(bddp f, bddvar var);
  * @return The resulting ZDD.
  */
 bddp bddonset0(bddp f, bddvar var);
+bddp bddonset0(bddp f, bddvar var, BddExecMode mode);
+bddp bddonset0_iter(bddp f, bddvar var);
 
 /**
  * @brief ZDD change: toggle membership of variable @p var in all sets.
@@ -380,6 +386,8 @@ bddp bddonset0(bddp f, bddvar var);
  * @return The resulting ZDD.
  */
 bddp bddchange(bddp f, bddvar var);
+bddp bddchange(bddp f, bddvar var, BddExecMode mode);
+bddp bddchange_iter(bddp f, bddvar var);
 
 /**
  * @brief Union of two ZDD families.
@@ -388,6 +396,8 @@ bddp bddchange(bddp f, bddvar var);
  * @return The ZDD for f ∪ g, or bddnull if either input is bddnull.
  */
 bddp bddunion(bddp f, bddp g);
+bddp bddunion(bddp f, bddp g, BddExecMode mode);
+bddp bddunion_iter(bddp f, bddp g);
 
 /**
  * @brief Intersection of two ZDD families.
@@ -396,6 +406,8 @@ bddp bddunion(bddp f, bddp g);
  * @return The ZDD for f ∩ g, or bddnull if either input is bddnull.
  */
 bddp bddintersec(bddp f, bddp g);
+bddp bddintersec(bddp f, bddp g, BddExecMode mode);
+bddp bddintersec_iter(bddp f, bddp g);
 
 /**
  * @brief Subtraction (set difference) of two ZDD families.
@@ -404,6 +416,8 @@ bddp bddintersec(bddp f, bddp g);
  * @return The ZDD for f \\ g, or bddnull if either input is bddnull.
  */
 bddp bddsubtract(bddp f, bddp g);
+bddp bddsubtract(bddp f, bddp g, BddExecMode mode);
+bddp bddsubtract_iter(bddp f, bddp g);
 
 /**
  * @brief Division (quotient) of two ZDD families.
@@ -417,6 +431,8 @@ bddp bddsubtract(bddp f, bddp g);
  * @return The quotient ZDD.
  */
 bddp bdddiv(bddp f, bddp g);
+bddp bdddiv(bddp f, bddp g, BddExecMode mode);
+bddp bdddiv_iter(bddp f, bddp g);
 
 /**
  * @brief Symmetric difference of two ZDD families.
@@ -425,6 +441,8 @@ bddp bdddiv(bddp f, bddp g);
  * @return The ZDD for f △ g (union minus intersection).
  */
 bddp bddsymdiff(bddp f, bddp g);
+bddp bddsymdiff(bddp f, bddp g, BddExecMode mode);
+bddp bddsymdiff_iter(bddp f, bddp g);
 
 /**
  * @brief Join (cross product with union of elements) of two ZDD families.
@@ -436,6 +454,8 @@ bddp bddsymdiff(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddjoin(bddp f, bddp g);
+bddp bddjoin(bddp f, bddp g, BddExecMode mode);
+bddp bddjoin_iter(bddp f, bddp g);
 
 /**
  * @brief Cross product of two ZDD families over disjoint variable sets.
@@ -449,6 +469,8 @@ bddp bddjoin(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddproduct(bddp f, bddp g);
+bddp bddproduct(bddp f, bddp g, BddExecMode mode);
+bddp bddproduct_iter(bddp f, bddp g);
 
 /**
  * @brief Meet (cross product with intersection of elements) of two ZDD families.
@@ -460,6 +482,8 @@ bddp bddproduct(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddmeet(bddp f, bddp g);
+bddp bddmeet(bddp f, bddp g, BddExecMode mode);
+bddp bddmeet_iter(bddp f, bddp g);
 
 /**
  * @brief Delta operation on two ZDD families.
@@ -472,6 +496,8 @@ bddp bddmeet(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bdddelta(bddp f, bddp g);
+bddp bdddelta(bddp f, bddp g, BddExecMode mode);
+bddp bdddelta_iter(bddp f, bddp g);
 
 /**
  * @brief Remainder (modulo) of two ZDD families.
@@ -706,6 +732,8 @@ uint64_t bddmaxsize(bddp f);
  * @return true if F ∩ G = ∅, false otherwise.
  */
 bool bddisdisjoint(bddp f, bddp g);
+bool bddisdisjoint(bddp f, bddp g, BddExecMode mode);
+bool bddisdisjoint_iter(bddp f, bddp g);
 
 /**
  * @brief Count the number of sets in the intersection of two ZDD families.
@@ -821,6 +849,8 @@ bool bddcontains(bddp f, const std::vector<bddvar>& s);
  * @return true if f ⊆ g.
  */
 bool bddissubset(bddp f, bddp g);
+bool bddissubset(bddp f, bddp g, BddExecMode mode);
+bool bddissubset_iter(bddp f, bddp g);
 
 /**
  * @brief Return the union of all sets in the family as a single-set ZDD.
