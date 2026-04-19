@@ -115,13 +115,27 @@ Mark-and-sweep GC with free list reuse. Dead nodes are reclaimed without changin
 - 3-operand API: `bddrcache3(op, f, g, h)` / `bddwcache3(op, f, g, h, result)`. Used by ITE.
 - Typed wrappers: `BDD::cache_get()` / `BDD::cache_put()`, `ZDD::cache_get()` / `ZDD::cache_put()`, `QDD::cache_get()` / `QDD::cache_put()`.
 
-### `_rec` separation pattern
+### `_rec` / `_iter` separation pattern
 
-Each recursive operation is split into a public wrapper and a static `_rec` function:
+Each recursive operation is split into three parts: a public wrapper, a static `_rec` function, and an `_iter` function that simulates recursion with an explicit stack. The wrapper chooses between `_rec` and `_iter` based on DD depth so that deep diagrams never blow the C++ call stack.
 
-- **Public wrapper** (e.g. `bddand`): Handles terminal fast-path checks, normalization (argument swap), then wraps the core logic in `bdd_gc_guard(...)`.
-- **`_rec` function** (e.g. `bddand_rec`): Contains the actual recursive logic with cache lookup, cofactoring, and recursive calls. Uses `_rec` directly for same-file calls (zero overhead). Cross-file calls go through public wrappers.
+- **Public wrapper** (e.g. `bddand`): Handles terminal fast-path checks, normalization (argument swap), dispatches to `_rec` or `_iter` based on DD level, then wraps the core logic in `bdd_gc_guard(...)`.
+- **`_rec` function** (e.g. `bddand_rec`): Recursive implementation with cache lookup, cofactoring, and recursive calls. Uses `_rec` directly for same-file calls (zero overhead). Cross-file calls go through public wrappers.
+- **`_iter` function** (e.g. `bddand_iter`): Iterative implementation using `std::vector<IterFrame>` as an explicit stack. Shares the same op code / cache slots with `_rec`, so results are interchangeable. `_iter` functions assume `bdd_gc_guard` has been entered by the caller (PRECONDITION comment attached). Non-template `_iter` functions live in dedicated `src/<module>_iter.cpp` files; template `_iter` functions live alongside their `_rec` counterparts in headers (`include/mtbdd.h`, `include/bdd_internal.h`, `include/bdd.h`).
 - **`bdd_gc_guard` template** (`include/bdd_internal.h`): At outermost level (`bdd_gc_depth == 0`): pre-checks GC, increments depth, executes lambda, catches `overflow_error` for retry. At depth > 0: just increments/decrements depth.
+
+#### Execution mode dispatch
+
+Public wrappers default to Auto mode, which picks `_iter` when the DD is deeper than `BDD_RecurLimit` (8192 levels). Users may force a mode via the `BddExecMode` enum (`Auto`, `Recursive`, `Iterative`). Shorthand constants: `BDD_EXEC_AUTO`, `BDD_EXEC_RECURSIVE`, `BDD_EXEC_ITERATIVE`.
+
+Level-judgement helpers in `include/bdd_internal.h`:
+
+- `bddp_level(bddp f)` — returns the level of a node (0 for terminal/null).
+- `use_iter_1op(bddp f)` — true if `level(f) > BDD_RecurLimit`.
+- `use_iter_2op(bddp f, bddp g)` — true if `max(level(f), level(g)) > BDD_RecurLimit`.
+- `use_iter_3op(bddp f, bddp g, bddp h)` — true if `max(level(f), level(g), level(h)) > BDD_RecurLimit`.
+
+Operations with a public `BddExecMode` overload (e.g. `bddand(f, g, mode)`) expose the choice explicitly; internal `_rec` functions take no mode argument. See `iter_plan.md` and `recursive.md` for the full list of operations with `_iter` implementations.
 
 ### BDD/ZDD class auto-protection
 
