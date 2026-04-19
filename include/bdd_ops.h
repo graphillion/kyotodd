@@ -1485,6 +1485,17 @@ bddp bdddivisor(bddp f);
  * @throws std::invalid_argument if f is bddnull or weights is too small.
  */
 bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights);
+bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights,
+                             BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddweightsum.
+ *
+ * Advanced API. Inputs must be pre-validated. Both memos are caller-owned.
+ */
+bigint::BigInt bddweightsum_iter(
+    bddp f, const std::vector<int>& weights,
+    CountMemoMap& sum_memo, CountMemoMap& count_memo);
 
 /**
  * @brief Find the minimum weight sum among all sets in a ZDD family.
@@ -1499,6 +1510,19 @@ bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights);
  * @throws std::invalid_argument if f is empty/null or weights is too small.
  */
 long long bddminweight(bddp f, const std::vector<int>& weights);
+long long bddminweight(bddp f, const std::vector<int>& weights,
+                       BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddminweight.
+ *
+ * Advanced API. Inputs must be pre-validated. The memo is caller-owned
+ * and keyed on the full bddp (including the complement bit), matching
+ * the recursive implementation.
+ */
+long long bddminweight_iter(
+    bddp f, const std::vector<int>& weights,
+    std::unordered_map<bddp, long long>& memo);
 
 /**
  * @brief Find the maximum weight sum among all sets in a ZDD family.
@@ -1510,6 +1534,19 @@ long long bddminweight(bddp f, const std::vector<int>& weights);
  * @throws std::invalid_argument if f is empty/null or weights is too small.
  */
 long long bddmaxweight(bddp f, const std::vector<int>& weights);
+long long bddmaxweight(bddp f, const std::vector<int>& weights,
+                       BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddmaxweight.
+ *
+ * Advanced API. Inputs must be pre-validated. The memo is caller-owned
+ * and keyed on the full bddp (including the complement bit), matching
+ * the recursive implementation.
+ */
+long long bddmaxweight_iter(
+    bddp f, const std::vector<int>& weights,
+    std::unordered_map<bddp, long long>& memo);
 
 /**
  * @brief Find a set with the minimum weight sum in a ZDD family.
@@ -1549,6 +1586,19 @@ std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
  */
 bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
                       CostBoundMemo& memo);
+bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddcostbound_le.
+ *
+ * Advanced API. Must be invoked under a @c bdd_gc_guard scope. The public
+ * @ref bddcostbound_le wrapper handles validation, memo binding, and the
+ * terminal fast-paths; this helper assumes @p f is non-terminal and the
+ * memo is already bound to the same weights vector.
+ */
+bddp bddcostbound_iter(bddp f, const std::vector<int>& weights, long long b,
+                        CostBoundMemo& memo);
 
 /**
  * @brief Cost-bound filtering (>=) via BkTrk-IntervalMemo.
@@ -1567,6 +1617,8 @@ bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
  */
 bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
                       CostBoundMemo& memo);
+bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo, BddExecMode mode);
 
 // ZDD ranking / unranking
 

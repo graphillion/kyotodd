@@ -41,21 +41,51 @@ static bigint::BigInt bddweightsum_rec(
     return result;
 }
 
-bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights) {
-    bddp_validate(f, "bddweightsum");
+static void bddweightsum_validate(bddp f, const std::vector<int>& weights,
+                                   const char* name) {
+    bddp_validate(f, name);
     if (f == bddnull) {
-        throw std::invalid_argument("bddweightsum: null ZDD");
+        throw std::invalid_argument(std::string(name) + ": null ZDD");
     }
-    if (f == bddempty || f == bddsingle)
-        return bigint::BigInt(0);
+    if (f == bddempty || f == bddsingle) return;
     bddvar top = bddtop(f);
     if (weights.size() <= static_cast<size_t>(top)) {
         throw std::invalid_argument(
-            "bddweightsum: weights.size() must be > top variable");
+            std::string(name) + ": weights.size() must be > top variable");
     }
+}
+
+bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights) {
+    bddweightsum_validate(f, weights, "bddweightsum");
+    if (f == bddempty || f == bddsingle)
+        return bigint::BigInt(0);
     CountMemoMap sum_memo;
     CountMemoMap count_memo;
+    if (use_iter_1op(f)) {
+        return bddweightsum_iter(f, weights, sum_memo, count_memo);
+    }
     return bddweightsum_rec(f, weights, sum_memo, count_memo);
+}
+
+bigint::BigInt bddweightsum(bddp f, const std::vector<int>& weights,
+                             BddExecMode mode) {
+    bddweightsum_validate(f, weights, "bddweightsum");
+    if (f == bddempty || f == bddsingle)
+        return bigint::BigInt(0);
+    CountMemoMap sum_memo;
+    CountMemoMap count_memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddweightsum_iter(f, weights, sum_memo, count_memo);
+    case BddExecMode::Recursive:
+        return bddweightsum_rec(f, weights, sum_memo, count_memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bddweightsum_iter(f, weights, sum_memo, count_memo);
+        }
+        return bddweightsum_rec(f, weights, sum_memo, count_memo);
+    }
 }
 
 // ---- min/max weight ----
@@ -108,7 +138,28 @@ static long long bddminweight_rec(bddp f, const std::vector<int>& weights,
 long long bddminweight(bddp f, const std::vector<int>& weights) {
     bddweight_validate(f, weights, "bddminweight");
     std::unordered_map<bddp, long long> memo;
+    if (use_iter_1op(f)) {
+        return bddminweight_iter(f, weights, memo);
+    }
     return bddminweight_rec(f, weights, memo);
+}
+
+long long bddminweight(bddp f, const std::vector<int>& weights,
+                       BddExecMode mode) {
+    bddweight_validate(f, weights, "bddminweight");
+    std::unordered_map<bddp, long long> memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddminweight_iter(f, weights, memo);
+    case BddExecMode::Recursive:
+        return bddminweight_rec(f, weights, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bddminweight_iter(f, weights, memo);
+        }
+        return bddminweight_rec(f, weights, memo);
+    }
 }
 
 static long long bddmaxweight_rec(bddp f, const std::vector<int>& weights,
@@ -141,7 +192,28 @@ static long long bddmaxweight_rec(bddp f, const std::vector<int>& weights,
 long long bddmaxweight(bddp f, const std::vector<int>& weights) {
     bddweight_validate(f, weights, "bddmaxweight");
     std::unordered_map<bddp, long long> memo;
+    if (use_iter_1op(f)) {
+        return bddmaxweight_iter(f, weights, memo);
+    }
     return bddmaxweight_rec(f, weights, memo);
+}
+
+long long bddmaxweight(bddp f, const std::vector<int>& weights,
+                       BddExecMode mode) {
+    bddweight_validate(f, weights, "bddmaxweight");
+    std::unordered_map<bddp, long long> memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddmaxweight_iter(f, weights, memo);
+    case BddExecMode::Recursive:
+        return bddmaxweight_rec(f, weights, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bddmaxweight_iter(f, weights, memo);
+        }
+        return bddmaxweight_rec(f, weights, memo);
+    }
 }
 
 static void bddminweightset_trace(bddp f, const std::vector<int>& weights,
@@ -172,7 +244,11 @@ static void bddminweightset_trace(bddp f, const std::vector<int>& weights,
 std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights) {
     bddweight_validate(f, weights, "bddminweightset");
     std::unordered_map<bddp, long long> memo;
-    bddminweight_rec(f, weights, memo);
+    if (use_iter_1op(f)) {
+        bddminweight_iter(f, weights, memo);
+    } else {
+        bddminweight_rec(f, weights, memo);
+    }
     memo[bddempty] = LLONG_MAX;
     memo[bddsingle] = 0;
     std::vector<bddvar> result;
@@ -209,7 +285,11 @@ static void bddmaxweightset_trace(bddp f, const std::vector<int>& weights,
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights) {
     bddweight_validate(f, weights, "bddmaxweightset");
     std::unordered_map<bddp, long long> memo;
-    bddmaxweight_rec(f, weights, memo);
+    if (use_iter_1op(f)) {
+        bddmaxweight_iter(f, weights, memo);
+    } else {
+        bddmaxweight_rec(f, weights, memo);
+    }
     memo[bddempty] = LLONG_MIN;
     memo[bddsingle] = 0;
     std::vector<bddvar> result;
@@ -281,29 +361,71 @@ static CostBoundResult bddcostbound_rec(
     return {h, aw, rb};
 }
 
-bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
-                      CostBoundMemo& memo) {
-    bddp_validate(f, "bddcostbound_le");
+static void bddcostbound_le_validate(bddp f, const std::vector<int>& weights,
+                                      CostBoundMemo& memo, const char* name) {
+    bddp_validate(f, name);
     if (f == bddnull) {
-        throw std::invalid_argument("bddcostbound_le: null ZDD");
+        throw std::invalid_argument(std::string(name) + ": null ZDD");
     }
     if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            "bddcostbound_le: weights.size() must be > bddvarused()");
+            std::string(name) + ": weights.size() must be > bddvarused()");
     }
-
-    // Validate memo is used with consistent weights
     memo.bind_weights(weights);
+}
+
+bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo) {
+    bddcostbound_le_validate(f, weights, memo, "bddcostbound_le");
 
     // Terminal fast-paths
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return b >= 0 ? bddsingle : bddempty;
 
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            memo.invalidate_if_stale();
+            return bddcostbound_iter(f, weights, b, memo);
+        });
+    }
     return bdd_gc_guard([&]() -> bddp {
         // Invalidate memo if GC ran (e.g. at bdd_gc_guard entry)
         memo.invalidate_if_stale();
         return bddcostbound_rec(f, weights, b, memo).h;
     });
+}
+
+bddp bddcostbound_le(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo, BddExecMode mode) {
+    bddcostbound_le_validate(f, weights, memo, "bddcostbound_le");
+
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return b >= 0 ? bddsingle : bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            memo.invalidate_if_stale();
+            return bddcostbound_iter(f, weights, b, memo);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            memo.invalidate_if_stale();
+            return bddcostbound_rec(f, weights, b, memo).h;
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                memo.invalidate_if_stale();
+                return bddcostbound_iter(f, weights, b, memo);
+            });
+        }
+        return bdd_gc_guard([&]() -> bddp {
+            memo.invalidate_if_stale();
+            return bddcostbound_rec(f, weights, b, memo).h;
+        });
+    }
 }
 
 static std::vector<int> costbound_negate_weights(const std::vector<int>& weights) {
@@ -330,6 +452,18 @@ bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
     CostBoundMemo local_memo;
     (void)memo;  // user memo is not usable for negated-weight le call
     return bddcostbound_le(f, neg, -b, local_memo);
+}
+
+bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
+                      CostBoundMemo& memo, BddExecMode mode) {
+    if (b == LLONG_MIN) {
+        throw std::invalid_argument(
+            "bddcostbound_ge: bound value LLONG_MIN is not supported");
+    }
+    std::vector<int> neg = costbound_negate_weights(weights);
+    CostBoundMemo local_memo;
+    (void)memo;
+    return bddcostbound_le(f, neg, -b, local_memo, mode);
 }
 
 // ---------------------------------------------------------------

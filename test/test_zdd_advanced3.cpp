@@ -1684,3 +1684,186 @@ TEST_P(ZddAdvFilterModeTest, CrossValidationLinearChain) {
     EXPECT_FILTER_MODE_EQ(bddminhit(fam, GetParam()), bddminhit(fam));
 }
 
+// ============================================================
+// Parameterized mode tests for zdd_adv_weight operations
+// (bddweightsum / bddminweight / bddmaxweight / bddcostbound_le).
+// ============================================================
+
+#define EXPECT_WEIGHT_MODE_EQ(expr_mode, expr_default)        \
+    do {                                                      \
+        bdd_cache_clear();                                    \
+        auto _actual = (expr_mode);                           \
+        bdd_cache_clear();                                    \
+        auto _expected = (expr_default);                      \
+        EXPECT_EQ(_actual, _expected);                        \
+    } while (0)
+
+class ZddAdvWeightModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddAdvWeightModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+namespace {
+struct WeightFamilies {
+    bddvar v1, v2, v3, v4;
+    bddp s_v1, s_v2, s_v3, s_v4;
+    bddp F;           // {{v1},{v1,v2},{v2,v3}}
+    bddp G;           // {{v1,v2},{v2,v3},{v3,v4}}
+    bddp pow3;        // powerset over v1,v2,v3 (contains ∅)
+    bddp comp_F;      // ~F (complement edge)
+    std::vector<int> w;
+    std::vector<int> w_neg;
+};
+
+static WeightFamilies make_weight_families() {
+    WeightFamilies t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.v4 = bddnewvar();
+    t.s_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.s_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.s_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    t.s_v4 = ZDD::getnode(t.v4, bddempty, bddsingle);
+    bddp v1v2 = bddjoin(t.s_v1, t.s_v2);
+    bddp v2v3 = bddjoin(t.s_v2, t.s_v3);
+    bddp v3v4 = bddjoin(t.s_v3, t.s_v4);
+    bddp v1v2v3 = bddjoin(v1v2, t.s_v3);
+    t.F = bddunion(bddunion(t.s_v1, v1v2), v2v3);
+    t.G = bddunion(bddunion(v1v2, v2v3), v3v4);
+    t.pow3 = bddunion(bddunion(bddunion(bddsingle, t.s_v1),
+                                bddunion(t.s_v2, v1v2)),
+                      bddunion(bddunion(t.s_v3, bddjoin(t.s_v1, t.s_v3)),
+                               bddunion(v2v3, v1v2v3)));
+    t.comp_F = bddnot(t.F);
+    t.w = {0, 1, 2, 3, 4};
+    t.w_neg = {0, -1, 2, -3, 4};
+    bdd_cache_clear();
+    return t;
+}
+} // namespace
+
+TEST_P(ZddAdvWeightModeTest, WeightSum) {
+    auto t = make_weight_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddweightsum(bddempty, t.w, m), bigint::BigInt(0));
+    EXPECT_EQ(bddweightsum(bddsingle, t.w, m), bigint::BigInt(0));
+    EXPECT_EQ(bddweightsum(t.F, t.w, m), bddweightsum(t.F, t.w));
+    EXPECT_EQ(bddweightsum(t.G, t.w, m), bddweightsum(t.G, t.w));
+    EXPECT_EQ(bddweightsum(t.pow3, t.w, m), bddweightsum(t.pow3, t.w));
+    EXPECT_EQ(bddweightsum(t.comp_F, t.w, m), bddweightsum(t.comp_F, t.w));
+    EXPECT_EQ(bddweightsum(t.F, t.w_neg, m), bddweightsum(t.F, t.w_neg));
+}
+
+TEST_P(ZddAdvWeightModeTest, MinWeight) {
+    auto t = make_weight_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddminweight(t.F, t.w, m), bddminweight(t.F, t.w));
+    EXPECT_EQ(bddminweight(t.G, t.w, m), bddminweight(t.G, t.w));
+    EXPECT_EQ(bddminweight(t.pow3, t.w, m), bddminweight(t.pow3, t.w));
+    EXPECT_EQ(bddminweight(t.comp_F, t.w, m), bddminweight(t.comp_F, t.w));
+    EXPECT_EQ(bddminweight(t.F, t.w_neg, m), bddminweight(t.F, t.w_neg));
+    EXPECT_EQ(bddminweight(t.G, t.w_neg, m), bddminweight(t.G, t.w_neg));
+}
+
+TEST_P(ZddAdvWeightModeTest, MaxWeight) {
+    auto t = make_weight_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddmaxweight(t.F, t.w, m), bddmaxweight(t.F, t.w));
+    EXPECT_EQ(bddmaxweight(t.G, t.w, m), bddmaxweight(t.G, t.w));
+    EXPECT_EQ(bddmaxweight(t.pow3, t.w, m), bddmaxweight(t.pow3, t.w));
+    EXPECT_EQ(bddmaxweight(t.comp_F, t.w, m), bddmaxweight(t.comp_F, t.w));
+    EXPECT_EQ(bddmaxweight(t.F, t.w_neg, m), bddmaxweight(t.F, t.w_neg));
+    EXPECT_EQ(bddmaxweight(t.G, t.w_neg, m), bddmaxweight(t.G, t.w_neg));
+}
+
+TEST_P(ZddAdvWeightModeTest, CostBoundLe) {
+    auto t = make_weight_families();
+    BddExecMode m = GetParam();
+    // Terminal fast-paths
+    CostBoundMemo memo0;
+    EXPECT_EQ(bddcostbound_le(bddempty, t.w, 5, memo0, m), bddempty);
+    CostBoundMemo memo1;
+    EXPECT_EQ(bddcostbound_le(bddsingle, t.w, 0, memo1, m), bddsingle);
+    CostBoundMemo memo2;
+    EXPECT_EQ(bddcostbound_le(bddsingle, t.w, -1, memo2, m), bddempty);
+
+    for (long long b : {-1LL, 0LL, 1LL, 3LL, 5LL, 10LL, 100LL}) {
+        CostBoundMemo ma, mb;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_le(t.F, t.w, b, ma, m),
+            bddcostbound_le(t.F, t.w, b, mb));
+        CostBoundMemo ma2, mb2;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_le(t.G, t.w, b, ma2, m),
+            bddcostbound_le(t.G, t.w, b, mb2));
+        CostBoundMemo ma3, mb3;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_le(t.pow3, t.w, b, ma3, m),
+            bddcostbound_le(t.pow3, t.w, b, mb3));
+        CostBoundMemo ma4, mb4;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_le(t.comp_F, t.w, b, ma4, m),
+            bddcostbound_le(t.comp_F, t.w, b, mb4));
+    }
+}
+
+TEST_P(ZddAdvWeightModeTest, CostBoundGe) {
+    auto t = make_weight_families();
+    BddExecMode m = GetParam();
+    for (long long b : {-5LL, 0LL, 1LL, 3LL, 5LL, 10LL}) {
+        CostBoundMemo ma, mb;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_ge(t.F, t.w, b, ma, m),
+            bddcostbound_ge(t.F, t.w, b, mb));
+        CostBoundMemo ma2, mb2;
+        EXPECT_WEIGHT_MODE_EQ(
+            bddcostbound_ge(t.pow3, t.w, b, ma2, m),
+            bddcostbound_ge(t.pow3, t.w, b, mb2));
+    }
+}
+
+// Cross-validation: linear-chain family exercising lo/hi on every level.
+TEST_P(ZddAdvWeightModeTest, CrossValidationLinearChain) {
+    const int n = 8;
+    std::vector<bddvar> vars;
+    std::vector<int> w(n + 1, 0);
+    for (int i = 0; i < n; ++i) {
+        vars.push_back(bddnewvar());
+        w[vars[i]] = (i % 2 == 0) ? (i + 1) : -(i + 1);
+    }
+
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddweightsum(fam, w, m), bddweightsum(fam, w));
+    EXPECT_EQ(bddminweight(fam, w, m), bddminweight(fam, w));
+    EXPECT_EQ(bddmaxweight(fam, w, m), bddmaxweight(fam, w));
+    for (long long b : {-20LL, -5LL, 0LL, 5LL, 20LL}) {
+        CostBoundMemo ma, mb;
+        EXPECT_WEIGHT_MODE_EQ(bddcostbound_le(fam, w, b, ma, m),
+                              bddcostbound_le(fam, w, b, mb));
+    }
+}
+
