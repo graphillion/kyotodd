@@ -11,6 +11,7 @@
 #include "rotpidd.h"
 #include "seqbdd.h"
 #include "mvdd.h"
+#include "mvzdd_iter.h"
 #include "mtbdd.h"
 
 using namespace kyotodd;
@@ -3697,6 +3698,49 @@ PYBIND11_MODULE(_core, m) {
         })
     ;
 
+    // MVZDDRankRange / Iterator
+    py::class_<MVZDDRankRange>(m, "_MVZDDRankRange")
+        .def("__iter__", [](MVZDDRankRange& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<MVZDDRankIterator>(m, "_MVZDDRankIterator")
+        .def("__iter__", [](MVZDDRankIterator& it) -> MVZDDRankIterator& {
+            return it;
+        })
+        .def("__next__", [](MVZDDRankIterator& it) {
+            MVZDDRankIterator end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
+    ;
+
+    // MVZDDRandomRange / Iterator
+    typedef MVZDDRandomRange<std::mt19937_64> MVZDDRandomRange64;
+    typedef MVZDDRandomIterator<std::mt19937_64> MVZDDRandomIterator64;
+
+    py::class_<MVZDDRandomRange64>(m, "_MVZDDRandomRange")
+        .def("__iter__", [](MVZDDRandomRange64& r) {
+            return r.begin();
+        })
+    ;
+
+    py::class_<MVZDDRandomIterator64>(m, "_MVZDDRandomIterator")
+        .def("__iter__", [](MVZDDRandomIterator64& it) -> MVZDDRandomIterator64& {
+            return it;
+        })
+        .def("__next__", [](MVZDDRandomIterator64& it) {
+            MVZDDRandomIterator64 end;
+            if (it == end) throw py::stop_iteration();
+            auto val = *it;
+            ++it;
+            return val;
+        })
+    ;
+
     // ================================================================
     //  MVDDVarInfo
     // ================================================================
@@ -4206,6 +4250,26 @@ PYBIND11_MODULE(_core, m) {
             "Args:\n"
             "    k: Number of assignments to extract.\n"
             "    memo: A ZddCountMemo for the internal ZDD.")
+        // Rank-order iteration
+        .def("iter_rank", [](const MVZDD& f) {
+            return MVZDDRankRange(f);
+        }, py::keep_alive<0, 1>(),
+            "Iterate over assignments in structure order (same as rank/unrank).\n\n"
+            "Each element is an assignment (list of values).\n\n"
+            "Example:\n"
+            "    for a in mvzdd.iter_rank():\n"
+            "        print(a)\n")
+        // Random-order iteration (without replacement)
+        .def("iter_random", [](const MVZDD& f, uint64_t seed) {
+            std::mt19937_64 rng(seed);
+            return MVZDDRandomRange<std::mt19937_64>(f, rng);
+        }, py::arg("seed") = 0, py::keep_alive<0, 1>(),
+            "Iterate over assignments in uniformly random order without replacement.\n\n"
+            "Args:\n"
+            "    seed: Random seed (default: 0).\n\n"
+            "Example:\n"
+            "    for a in mvzdd.iter_random(seed=42):\n"
+            "        print(a)\n")
         // Support
         .def("support_vars", &MVZDD::support_vars,
             "Return all MVDD variable numbers appearing in the family.\n\n"

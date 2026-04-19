@@ -47,6 +47,7 @@ set(KYOTODD_LIB_SOURCES
   src/mtbdd.cpp
   src/mtbdd_iter.cpp
   src/mvdd.cpp
+  src/mvzdd_iter.cpp
   src/svg_export.cpp
 )
 

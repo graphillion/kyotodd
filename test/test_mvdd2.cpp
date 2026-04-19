@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
 #include "mvdd.h"
+#include "mvzdd_iter.h"
+#include <algorithm>
+#include <cstddef>
 #include <sstream>
 #include <string>
 #include <random>
@@ -1184,6 +1187,101 @@ TEST_F(MVDDTest, MVZDDGetKSetsWithMemo) {
     // Exact count variant on large values (still within small test).
     MVZDD gall = f.get_k_sets(bigint::BigInt(100));
     EXPECT_EQ(gall.count(), f.count());
+}
+
+// ============================================================
+//  MVZDDRankIterator / MVZDDRandomIterator tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDRankIteratorMatchesUnrank) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(
+        base, {{0, 0}, {1, 2}, {2, 1}, {0, 2}, {1, 0}});
+
+    int64_t count = static_cast<int64_t>(f.count());
+    std::vector<std::vector<int>> via_iter;
+    for (const auto& a : MVZDDRankRange(f)) {
+        via_iter.push_back(a);
+    }
+    EXPECT_EQ(static_cast<int64_t>(via_iter.size()), count);
+
+    // Rank iterator must yield sets in the same order as unrank.
+    for (int64_t i = 0; i < count; ++i) {
+        EXPECT_EQ(via_iter[i], f.unrank(i));
+    }
+}
+
+TEST_F(MVDDTest, MVZDDRankIteratorEmpty) {
+    MVZDD base(3);
+    base.new_var();
+    MVZDD empty = MVZDD::from_sets(base, {});
+
+    size_t count = 0;
+    for (const auto& a : MVZDDRankRange(empty)) {
+        (void)a;
+        ++count;
+    }
+    EXPECT_EQ(count, 0u);
+}
+
+TEST_F(MVDDTest, MVZDDRankIteratorIncludesEmptyAssignment) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    // {0,0} is the all-zero MVDD assignment; it maps to the empty set
+    // in the internal ZDD and must appear in the iteration.
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 0}});
+    std::vector<std::vector<int>> seen;
+    for (const auto& a : MVZDDRankRange(f)) {
+        seen.push_back(a);
+    }
+    EXPECT_EQ(seen.size(), 2u);
+    std::sort(seen.begin(), seen.end());
+    EXPECT_EQ(seen[0], (std::vector<int>{0, 0}));
+    EXPECT_EQ(seen[1], (std::vector<int>{1, 0}));
+}
+
+TEST_F(MVDDTest, MVZDDRandomIteratorEnumeratesAll) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    std::vector<std::vector<int>> assigns = {
+        {0, 0}, {1, 2}, {2, 1}, {0, 2}, {1, 0}, {2, 2}};
+    MVZDD f = MVZDD::from_sets(base, assigns);
+
+    std::mt19937_64 rng(42);
+    std::vector<std::vector<int>> seen;
+    for (const auto& a : MVZDDRandomRange<std::mt19937_64>(f, rng)) {
+        seen.push_back(a);
+    }
+    EXPECT_EQ(seen.size(), assigns.size());
+
+    // Each element must be in the family, no duplicates.
+    std::sort(seen.begin(), seen.end());
+    EXPECT_EQ(std::unique(seen.begin(), seen.end()) - seen.begin(),
+              static_cast<std::ptrdiff_t>(assigns.size()));
+    for (const auto& a : seen) {
+        EXPECT_TRUE(f.contains(a));
+    }
+}
+
+TEST_F(MVDDTest, MVZDDRandomIteratorEmpty) {
+    MVZDD base(3);
+    base.new_var();
+    MVZDD empty = MVZDD::from_sets(base, {});
+
+    std::mt19937_64 rng(7);
+    size_t count = 0;
+    for (const auto& a : MVZDDRandomRange<std::mt19937_64>(empty, rng)) {
+        (void)a;
+        ++count;
+    }
+    EXPECT_EQ(count, 0u);
 }
 
 // ============================================================
