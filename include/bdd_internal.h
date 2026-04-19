@@ -52,6 +52,15 @@ int bddgc();
 bool bdd_should_gc();
 
 /**
+ * @brief Clear the operation cache without running garbage collection.
+ *
+ * Intended for tests and benchmarks that need to compare implementations
+ * on a pristine cache. Unlike @ref bddgc, this does not touch the node
+ * array, so raw @c bddp values remain valid across the call.
+ */
+void bdd_cache_clear();
+
+/**
  * @brief RAII guard that increments/decrements bdd_gc_depth.
  *
  * While bdd_gc_depth > 0, GC invocations are suppressed to prevent

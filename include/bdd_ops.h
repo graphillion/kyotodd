@@ -345,6 +345,17 @@ bddp bddspread_iter(bddp f, int k);
  */
 bddp bddoffset(bddp f, bddvar var);
 bddp bddoffset(bddp f, bddvar var, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddoffset.
+ *
+ * Advanced API. Prefer the public @ref bddoffset overloads unless you have a
+ * specific reason to bypass validation. Inputs must be pre-validated
+ * (`f != bddnull`, `1 <= var <= bdd_varcount`). Must be called from within
+ * a @c bdd_gc_guard scope: intermediate @c bddp values on the iteration
+ * stack are not registered as GC roots, so GC must be deferred for the
+ * duration of this call.
+ */
 bddp bddoffset_iter(bddp f, bddvar var);
 
 /**
@@ -359,6 +370,13 @@ bddp bddoffset_iter(bddp f, bddvar var);
  */
 bddp bddonset(bddp f, bddvar var);
 bddp bddonset(bddp f, bddvar var, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddonset.
+ *
+ * Advanced API. Preconditions as in @ref bddoffset_iter (validated inputs,
+ * must run inside a @c bdd_gc_guard scope).
+ */
 bddp bddonset_iter(bddp f, bddvar var);
 
 /**
@@ -373,6 +391,12 @@ bddp bddonset_iter(bddp f, bddvar var);
  */
 bddp bddonset0(bddp f, bddvar var);
 bddp bddonset0(bddp f, bddvar var, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddonset0.
+ *
+ * Advanced API. Preconditions as in @ref bddoffset_iter.
+ */
 bddp bddonset0_iter(bddp f, bddvar var);
 
 /**
@@ -387,6 +411,15 @@ bddp bddonset0_iter(bddp f, bddvar var);
  */
 bddp bddchange(bddp f, bddvar var);
 bddp bddchange(bddp f, bddvar var, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddchange.
+ *
+ * Advanced API. Preconditions as in @ref bddoffset_iter. Additionally, the
+ * caller is responsible for performing variable auto-expansion
+ * (@c bddnewvar()) so that @p var is valid; the public @ref bddchange
+ * wrappers do this automatically, this entry point does not.
+ */
 bddp bddchange_iter(bddp f, bddvar var);
 
 /**
@@ -397,6 +430,15 @@ bddp bddchange_iter(bddp f, bddvar var);
  */
 bddp bddunion(bddp f, bddp g);
 bddp bddunion(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddunion.
+ *
+ * Advanced API. Inputs must be pre-validated (non-null, no bddnull). Must
+ * run inside a @c bdd_gc_guard scope: intermediate results on the explicit
+ * stack are not GC roots. The public @ref bddunion wrappers satisfy these
+ * preconditions.
+ */
 bddp bddunion_iter(bddp f, bddp g);
 
 /**
@@ -407,6 +449,12 @@ bddp bddunion_iter(bddp f, bddp g);
  */
 bddp bddintersec(bddp f, bddp g);
 bddp bddintersec(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddintersec.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
 bddp bddintersec_iter(bddp f, bddp g);
 
 /**
@@ -417,6 +465,12 @@ bddp bddintersec_iter(bddp f, bddp g);
  */
 bddp bddsubtract(bddp f, bddp g);
 bddp bddsubtract(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsubtract.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
 bddp bddsubtract_iter(bddp f, bddp g);
 
 /**
@@ -432,6 +486,12 @@ bddp bddsubtract_iter(bddp f, bddp g);
  */
 bddp bdddiv(bddp f, bddp g);
 bddp bdddiv(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bdddiv.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
 bddp bdddiv_iter(bddp f, bddp g);
 
 /**
@@ -442,6 +502,12 @@ bddp bdddiv_iter(bddp f, bddp g);
  */
 bddp bddsymdiff(bddp f, bddp g);
 bddp bddsymdiff(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsymdiff.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
 bddp bddsymdiff_iter(bddp f, bddp g);
 
 /**
@@ -455,6 +521,14 @@ bddp bddsymdiff_iter(bddp f, bddp g);
  */
 bddp bddjoin(bddp f, bddp g);
 bddp bddjoin(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddjoin.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter, so the same GC-guard requirement
+ * applies transitively.
+ */
 bddp bddjoin_iter(bddp f, bddp g);
 
 /**
@@ -470,6 +544,14 @@ bddp bddjoin_iter(bddp f, bddp g);
  */
 bddp bddproduct(bddp f, bddp g);
 bddp bddproduct(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddproduct.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. The operand variable
+ * sets must be disjoint; violating this raises @c std::invalid_argument
+ * (same contract as @ref bddproduct).
+ */
 bddp bddproduct_iter(bddp f, bddp g);
 
 /**
@@ -483,6 +565,13 @@ bddp bddproduct_iter(bddp f, bddp g);
  */
 bddp bddmeet(bddp f, bddp g);
 bddp bddmeet(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddmeet.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter.
+ */
 bddp bddmeet_iter(bddp f, bddp g);
 
 /**
@@ -497,6 +586,13 @@ bddp bddmeet_iter(bddp f, bddp g);
  */
 bddp bdddelta(bddp f, bddp g);
 bddp bdddelta(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bdddelta.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter.
+ */
 bddp bdddelta_iter(bddp f, bddp g);
 
 /**
@@ -733,6 +829,14 @@ uint64_t bddmaxsize(bddp f);
  */
 bool bddisdisjoint(bddp f, bddp g);
 bool bddisdisjoint(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddisdisjoint.
+ *
+ * Advanced API. Inputs must be pre-validated (no bddnull). Must run inside
+ * a @c bdd_gc_guard scope. The public @ref bddisdisjoint wrappers satisfy
+ * these preconditions.
+ */
 bool bddisdisjoint_iter(bddp f, bddp g);
 
 /**
@@ -850,6 +954,14 @@ bool bddcontains(bddp f, const std::vector<bddvar>& s);
  */
 bool bddissubset(bddp f, bddp g);
 bool bddissubset(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddissubset.
+ *
+ * Advanced API. Inputs must be pre-validated (no bddnull). Must run inside
+ * a @c bdd_gc_guard scope. The public @ref bddissubset wrappers satisfy
+ * these preconditions.
+ */
 bool bddissubset_iter(bddp f, bddp g);
 
 /**

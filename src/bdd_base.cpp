@@ -279,7 +279,7 @@ int bddinit(uint64_t node_count, uint64_t node_max) {
     return 0;
 }
 
-static void bdd_cache_clear() {
+void bdd_cache_clear() {
     if (bdd_cache_size == 0 || !bdd_cache) return;
     for (uint64_t i = 0; i < bdd_cache_size; i++) {
         bdd_cache[i].fop = 0;
