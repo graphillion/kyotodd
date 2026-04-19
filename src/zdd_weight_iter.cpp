@@ -17,6 +17,13 @@ static long long weight_saturate_add(long long a, long long b) {
     return a + b;
 }
 
+// Saturating signed negate. Unary -LLONG_MIN overflows in two's complement,
+// so clamp to LLONG_MAX instead.
+static long long weight_saturate_negate(long long x) {
+    if (x == LLONG_MIN) return LLONG_MAX;
+    return -x;
+}
+
 
 // ---- compute_min_dist ----
 
@@ -501,7 +508,11 @@ ZddMaxWeightIterator::ZddMaxWeightIterator()
 
 void ZddMaxWeightIterator::sync_current() {
     const auto& val = *inner_;
-    current_ = {-val.first, val.second};
+    // inner_ runs on negated weights, so flip the sign to recover the max
+    // weight. Use saturating negate because the inner saturating adder can
+    // produce LLONG_MIN on deep ZDDs with extreme weights, for which the
+    // plain unary minus would be undefined behavior.
+    current_ = {weight_saturate_negate(val.first), val.second};
 }
 
 ZddMaxWeightIterator::reference ZddMaxWeightIterator::operator*() const {

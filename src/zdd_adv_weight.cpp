@@ -14,6 +14,11 @@ static long long costbound_safe_sub(long long a, long long b);
 
 
 // ---- weight sum ----
+//
+// WARNING: sum_memo is keyed only on the node id; the weight vector is
+// not part of the key. Callers MUST pass a fresh sum_memo for each
+// distinct weight vector. count_memo is weight-independent and safe to
+// share across bddexactcount calls on the same ZDD family.
 
 static bigint::BigInt bddweightsum_rec(
     bddp f,
@@ -116,6 +121,9 @@ static void bddweight_validate(bddp f, const std::vector<int>& weights,
     }
 }
 
+// WARNING: memo is keyed only on the node id; the weight vector is not
+// part of the key. Callers MUST pass a fresh memo for each distinct
+// weight vector.
 static long long bddminweight_rec(bddp f, const std::vector<int>& weights,
                                    std::unordered_map<bddp, long long>& memo) {
     if (f == bddempty) return LLONG_MAX;
@@ -171,6 +179,9 @@ long long bddminweight(bddp f, const std::vector<int>& weights,
     }
 }
 
+// WARNING: memo is keyed only on the node id; the weight vector is not
+// part of the key. Callers MUST pass a fresh memo for each distinct
+// weight vector.
 static long long bddmaxweight_rec(bddp f, const std::vector<int>& weights,
                                    std::unordered_map<bddp, long long>& memo) {
     if (f == bddempty) return LLONG_MIN;

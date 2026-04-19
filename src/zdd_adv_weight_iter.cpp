@@ -24,6 +24,11 @@ long long costbound_safe_sub(long long a, long long b);
 // bddexactcount_iter for the per-node hi-subtree cardinality.
 //
 // PRECONDITION: f is a well-formed bddp; memos are caller-owned.
+// WARNING: sum_memo is keyed only on the node id; the weight vector is
+// not part of the key. Callers MUST pass a fresh sum_memo for each
+// distinct weight vector. count_memo, in contrast, is weight-independent
+// and can safely be shared across bddexactcount_iter calls on the same
+// ZDD family.
 // =====================================================================
 bigint::BigInt bddweightsum_iter(
     bddp f, const std::vector<int>& weights,
@@ -120,6 +125,10 @@ bigint::BigInt bddweightsum_iter(
 // Memo is keyed on the full bddp (including the complement bit) to
 // match bddminweight_rec exactly. Complement is propagated to the lo
 // child per ZDD semantics before recursing.
+//
+// WARNING: memo is keyed only on the node id; the weight vector is not
+// part of the key. Callers MUST pass a fresh memo for each distinct
+// weight vector.
 // =====================================================================
 long long bddminweight_iter(
     bddp f, const std::vector<int>& weights,
@@ -216,6 +225,10 @@ long long bddminweight_iter(
 //
 // Structural twin of bddminweight_iter with max() in place of min() and
 // LLONG_MIN as the empty-family sentinel.
+//
+// WARNING: memo is keyed only on the node id; the weight vector is not
+// part of the key. Callers MUST pass a fresh memo for each distinct
+// weight vector.
 // =====================================================================
 long long bddmaxweight_iter(
     bddp f, const std::vector<int>& weights,

@@ -1322,6 +1322,11 @@ static inline bigint::BigInt mtzdd_exact_count_iter(
 }
 
 // --- MTZDD count helpers (target-specific terminal counting) ---
+//
+// WARNING: memo is keyed only on the node id; the target terminal is not
+// part of the key. Callers MUST pass a fresh memo for each distinct target
+// (or the target-specific subtree counts will be reused for unrelated
+// targets, producing wrong numbers).
 
 static inline double mtzdd_count_for_terminal_rec(
     bddp f, bddp target, std::unordered_map<bddp, double>& memo) {
