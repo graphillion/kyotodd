@@ -600,17 +600,177 @@ struct BCpair {
 };
 
 static BCpair ISOP_rec(BDD s, BDD r);
+static BCpair ISOP_iter(BDD s, BDD r);
 
 SOP SOP_ISOP(BDD f)
 {
-    BCpair result = ISOP_rec(f, ~f);
+    BDD s = f;
+    BDD r = ~f;
+    BCpair result;
+    if (use_iter_2op(s.GetID(), r.GetID())) {
+        result = ISOP_iter(s, r);
+    } else {
+        result = ISOP_rec(s, r);
+    }
     return result._cs;
 }
 
 SOP SOP_ISOP(BDD on, BDD dc)
 {
-    BCpair result = ISOP_rec(on | dc, ~on | dc);
+    BDD s = on | dc;
+    BDD r = ~on | dc;
+    BCpair result;
+    if (use_iter_2op(s.GetID(), r.GetID())) {
+        result = ISOP_iter(s, r);
+    } else {
+        result = ISOP_rec(s, r);
+    }
     return result._cs;
+}
+
+// Iterative counterpart to ISOP_rec. Three recursive branches (pos / neg /
+// don't-care) are driven by an explicit frame stack. The don't-care branch
+// needs f1 and f0 from the preceding calls, so frames keep interim BDDs.
+// BDD and SOP objects in frames remain GC-protected via their copy/move
+// constructors.
+static BCpair ISOP_iter(BDD root_s, BDD root_r)
+{
+    enum class Phase : uint8_t { ENTER, AFTER_POS, AFTER_NEG, AFTER_DC };
+    struct Frame {
+        BDD s;
+        BDD r;
+        bddp sp;
+        bddp rp;
+        int sop_top;
+        BDD s0, s1, r0, r1;
+        BDD sD;
+        BDD f1;
+        BDD f0;
+        SOP c1;
+        SOP c0;
+        Phase phase;
+        Frame() : s(), r(), sp(bddnull), rp(bddnull), sop_top(0),
+                  s0(), s1(), r0(), r1(), sD(), f1(), f0(), c1(), c0(),
+                  phase(Phase::ENTER) {}
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+    {
+        Frame init;
+        init.s = root_s;
+        init.r = root_r;
+        stack.push_back(std::move(init));
+    }
+
+    BCpair result;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp sp = frame.s.GetID();
+            bddp rp = frame.r.GetID();
+            if (sp == bddnull || rp == bddnull) {
+                result = {BDD(-1), SOP(-1)};
+                stack.pop_back();
+                break;
+            }
+            if (rp == bddsingle) {
+                result = {BDD(0), SOP(0)};
+                stack.pop_back();
+                break;
+            }
+            if (sp == bddsingle) {
+                result = {BDD(1), SOP(1)};
+                stack.pop_back();
+                break;
+            }
+
+            bddp cached_bdd = bddrcache(BDD_OP_ISOP1, sp, rp);
+            if (cached_bdd != bddnull) {
+                bddp cached_sop = bddrcache(BDD_OP_ISOP2, sp, rp);
+                if (cached_sop != bddnull) {
+                    result = {BDD_ID(cached_bdd), SOP(ZDD_ID(cached_sop))};
+                    stack.pop_back();
+                    break;
+                }
+            }
+
+            bddvar stop = frame.s.Top();
+            bddvar rtop = frame.r.Top();
+            bddvar top;
+            if (stop == 0) top = rtop;
+            else if (rtop == 0) top = stop;
+            else {
+                bddvar slev = bddlevofvar(stop);
+                bddvar rlev = bddlevofvar(rtop);
+                top = (slev >= rlev) ? stop : rtop;
+            }
+            int sop_top = (static_cast<int>(top) + 1) & ~1;
+
+            frame.sp = sp;
+            frame.rp = rp;
+            frame.sop_top = sop_top;
+            frame.s0 = frame.s.At0(static_cast<bddvar>(sop_top));
+            frame.s1 = frame.s.At1(static_cast<bddvar>(sop_top));
+            frame.r0 = frame.r.At0(static_cast<bddvar>(sop_top));
+            frame.r1 = frame.r.At1(static_cast<bddvar>(sop_top));
+
+            frame.phase = Phase::AFTER_POS;
+            Frame child;
+            child.s = frame.s1;
+            child.r = frame.r1 | frame.s0;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::AFTER_POS: {
+            frame.f1 = result._f;
+            frame.c1 = result._cs.And1(frame.sop_top);
+
+            frame.phase = Phase::AFTER_NEG;
+            Frame child;
+            child.s = frame.s0;
+            child.r = frame.r0 | frame.s1;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::AFTER_NEG: {
+            frame.f0 = result._f;
+            frame.c0 = result._cs.And0(frame.sop_top);
+
+            frame.sD = frame.s0 & frame.s1;
+
+            frame.phase = Phase::AFTER_DC;
+            Frame child;
+            child.s = frame.sD;
+            child.r = ~frame.sD |
+                      ((frame.r0 | frame.f0) & (frame.r1 | frame.f1));
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::AFTER_DC: {
+            BDD fD = result._f;
+            SOP cD = result._cs;
+
+            BDD x = BDDvar(static_cast<bddvar>(frame.sop_top));
+            BDD result_f = (~x & frame.f0) | (x & frame.f1) | fD;
+            SOP result_cs = frame.c1 + frame.c0 + cD;
+
+            bddp rfp = result_f.GetID();
+            bddp rcp = result_cs.GetZBDD().GetID();
+            if (rfp != bddnull) {
+                bddwcache(BDD_OP_ISOP1, frame.sp, frame.rp, rfp);
+            }
+            if (rcp != bddnull) {
+                bddwcache(BDD_OP_ISOP2, frame.sp, frame.rp, rcp);
+            }
+            result = {result_f, result_cs};
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
 }
 
 static BCpair ISOP_rec(BDD s, BDD r)
@@ -861,6 +1021,105 @@ void SOPV::Print() const
 /*  SOPV PrintPla                                                    */
 /* ================================================================ */
 
+// Iterative counterpart to PrintPla_rec. Emits the same cube lines in the
+// same order (positive / negative / don't-care at each level). No shared
+// cache: the buffer is rewritten per path, and each traversal is side-
+// effect only (putchar).
+static void PrintPla_iter(const SOPV& root_sv, int root_lev, int min_lev,
+                          int nin, std::vector<char>& buf, int nout)
+{
+    enum class Phase : uint8_t { ENTER, AFTER_F1, AFTER_F0, AFTER_FD };
+    struct Frame {
+        SOPV sv;
+        int lev;
+        int var_idx;
+        SOPV f1;
+        SOPV f0;
+        SOPV fD;
+        Phase phase;
+        Frame() : sv(), lev(0), var_idx(0), f1(), f0(), fD(),
+                  phase(Phase::ENTER) {}
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+    {
+        Frame init;
+        init.sv = root_sv;
+        init.lev = root_lev;
+        stack.push_back(std::move(init));
+    }
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.lev < min_lev) {
+                for (int i = nin - 1; i >= 0; i--) {
+                    putchar(buf[i]);
+                }
+                putchar(' ');
+                for (int i = 0; i < nout; i++) {
+                    SOP s = frame.sv.GetSOP(i);
+                    bddp sp = s.GetZBDD().GetID();
+                    if (sp == bddsingle) {
+                        putchar('1');
+                    } else {
+                        putchar('0');
+                    }
+                }
+                putchar('\n');
+                stack.pop_back();
+                break;
+            }
+
+            bddvar var = bddvaroflev(static_cast<bddvar>(frame.lev));
+            int sop_var = (static_cast<int>(var) + 1) & ~1;
+            frame.var_idx = (frame.lev - min_lev) / 2;
+            frame.f1 = frame.sv.Factor1(sop_var);
+            frame.f0 = frame.sv.Factor0(sop_var);
+            frame.fD = frame.sv.FactorD(sop_var);
+
+            frame.phase = Phase::AFTER_F1;
+            if (frame.f1.GetZBDDV().GetMetaZBDD().GetID() != bddempty) {
+                buf[frame.var_idx] = '1';
+                Frame child;
+                child.sv = frame.f1;
+                child.lev = frame.lev - 2;
+                stack.push_back(std::move(child));
+            }
+            break;
+        }
+        case Phase::AFTER_F1: {
+            frame.phase = Phase::AFTER_F0;
+            if (frame.f0.GetZBDDV().GetMetaZBDD().GetID() != bddempty) {
+                buf[frame.var_idx] = '0';
+                Frame child;
+                child.sv = frame.f0;
+                child.lev = frame.lev - 2;
+                stack.push_back(std::move(child));
+            }
+            break;
+        }
+        case Phase::AFTER_F0: {
+            frame.phase = Phase::AFTER_FD;
+            if (frame.fD.GetZBDDV().GetMetaZBDD().GetID() != bddempty) {
+                buf[frame.var_idx] = '-';
+                Frame child;
+                child.sv = frame.fD;
+                child.lev = frame.lev - 2;
+                stack.push_back(std::move(child));
+            }
+            break;
+        }
+        case Phase::AFTER_FD: {
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+}
+
 static void PrintPla_rec(const SOPV& sv, int lev, int min_lev,
                          int nin, std::vector<char>& buf, int nout)
 {
@@ -937,7 +1196,11 @@ int SOPV::PrintPla() const
 
     if (top_lev >= min_lev) {
         std::vector<char> buf(nin, '-');
-        PrintPla_rec(*this, top_lev, min_lev, nin, buf, nout);
+        if (use_iter_1op(vp)) {
+            PrintPla_iter(*this, top_lev, min_lev, nin, buf, nout);
+        } else {
+            PrintPla_rec(*this, top_lev, min_lev, nin, buf, nout);
+        }
     } else {
         /* All constant: just output the values */
         for (int i = 0; i < nout; i++) {

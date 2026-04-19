@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "sop.h"
 #include <sstream>
+#include <vector>
+#include <unistd.h>
+#include <fcntl.h>
 
 using namespace kyotodd;
 
@@ -1020,4 +1023,53 @@ TEST_F(SOPTest, GetBDD_ISOP_Roundtrip) {
     SOP isop = SOP_ISOP(f);
     BDD roundtrip = isop.GetBDD();
     EXPECT_EQ(roundtrip == f, 1);
+}
+
+// Iterative dispatch smoke tests. A single-cube product over thousands of
+// variables produces a BDD whose level exceeds BDD_RecurLimit (8192), so
+// SOP_ISOP must take the ISOP_iter path without stack overflow.
+TEST_F(SOPTest, ISOP_DeepBDDExceedsRecurLimit) {
+    const int n = 4200;  // >8192 / 2 pairs → level > BDD_RecurLimit
+    std::vector<BDD> vars;
+    vars.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        int v = SOP_NewVar();
+        vars.push_back(BDD::prime(static_cast<bddvar>(v)));
+    }
+    BDD f(1);
+    for (int i = 0; i < n; ++i) f &= vars[i];
+
+    SOP isop = SOP_ISOP(f);
+    BDD roundtrip = isop.GetBDD();
+    EXPECT_EQ(roundtrip == f, 1);
+}
+
+TEST_F(SOPTest, PrintPla_DeepBDDExceedsRecurLimit) {
+    // Deep SOPV whose top level exceeds BDD_RecurLimit. PrintPla output
+    // is discarded; the test only checks that PrintPla() returns without
+    // exceptions.
+    const int n = 4200;
+    std::vector<BDD> vars;
+    vars.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        int v = SOP_NewVar();
+        vars.push_back(BDD::prime(static_cast<bddvar>(v)));
+    }
+    BDD f(1);
+    for (int i = 0; i < n; ++i) f &= vars[i];
+    SOP isop = SOP_ISOP(f);
+    SOPV sv(isop, 0);
+
+    // Redirect stdout to /dev/null.
+    fflush(stdout);
+    int saved = dup(STDOUT_FILENO);
+    int devnull = open("/dev/null", O_WRONLY);
+    if (devnull >= 0) {
+        dup2(devnull, STDOUT_FILENO);
+        close(devnull);
+    }
+    int rc = sv.PrintPla();
+    fflush(stdout);
+    if (saved >= 0) { dup2(saved, STDOUT_FILENO); close(saved); }
+    EXPECT_EQ(rc, 0);
 }
