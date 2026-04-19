@@ -11,6 +11,7 @@
 #include <functional>
 #include <limits>
 #include <unistd.h>
+#include <fcntl.h>
 
 using namespace kyotodd;
 
@@ -1875,6 +1876,49 @@ TEST_F(BDDTest, Bddvdump_SharedNodes) {
         pos += nstr.size();
     }
     EXPECT_EQ(count, 1u);
+}
+
+// Redirect stdout to /dev/null during fn() so that voluminous output does
+// not block on a full pipe buffer (as capture_stdout would).
+static void silence_stdout(std::function<void()> fn) {
+    fflush(stdout);
+    int saved = dup(STDOUT_FILENO);
+    int devnull = open("/dev/null", O_WRONLY);
+    if (devnull < 0) { if (saved >= 0) close(saved); fn(); return; }
+    dup2(devnull, STDOUT_FILENO);
+    close(devnull);
+    fn();
+    fflush(stdout);
+    if (saved >= 0) {
+        dup2(saved, STDOUT_FILENO);
+        close(saved);
+    }
+}
+
+TEST_F(BDDTest, Bdddump_DeepBDDExceedsRecurLimit) {
+    // Deep chain BDD (level > BDD_RecurLimit=8192). bdddump must dispatch
+    // to the iterative implementation without stack overflow. Output is
+    // discarded to avoid pipe-buffer deadlock; the test only checks
+    // that no exception is thrown.
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    bddp f = bddfalse;
+    for (int v = 1; v <= depth; ++v) {
+        f = BDD::getnode_raw(v, bddfalse, (v == 1) ? bddtrue : f);
+    }
+    EXPECT_NO_THROW(silence_stdout([f]{ bdddump(f); }));
+}
+
+TEST_F(BDDTest, Bddvdump_DeepBDDExceedsRecurLimit) {
+    // Deep chain BDD for bddvdump's iterative path.
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    bddp f = bddfalse;
+    for (int v = 1; v <= depth; ++v) {
+        f = BDD::getnode_raw(v, bddfalse, (v == 1) ? bddtrue : f);
+    }
+    bddp arr[1] = {f};
+    EXPECT_NO_THROW(silence_stdout([&arr]{ bddvdump(arr, 1); }));
 }
 
 TEST_F(BDDTest, Bddgraph0_Throws) {

@@ -378,6 +378,106 @@ int ZDD_Import(std::istream& strm, std::vector<ZDD>& v) {
 
 // --- bdddump / bddvdump ---
 
+static void dump_print_node(bddp node) {
+    uint64_t ndx = node / 2;
+    bddvar v = node_var(node);
+    bddvar lev = var2level[v];
+    bddp f0 = node_lo(node);
+    bddp f1 = node_hi(node);
+
+    std::printf("N%" PRIu64 " = [V%u(%u), ", ndx,
+                static_cast<unsigned>(v), static_cast<unsigned>(lev));
+
+    if (f0 & BDD_CONST_FLAG) {
+        std::printf("%" PRIu64, f0 & ~BDD_CONST_FLAG);
+    } else {
+        std::printf("N%" PRIu64, (f0 & ~BDD_COMP_FLAG) / 2);
+    }
+
+    std::printf(", ");
+
+    bool neg1 = (f1 & BDD_COMP_FLAG) != 0;
+    bddp f1abs = f1 & ~BDD_COMP_FLAG;
+    if (f1abs & BDD_CONST_FLAG) {
+        if (neg1) std::printf("~");
+        std::printf("%" PRIu64, f1abs & ~BDD_CONST_FLAG);
+    } else {
+        if (neg1) std::printf("~");
+        std::printf("N%" PRIu64, f1abs / 2);
+    }
+
+    std::printf("]\n");
+}
+
+// Explicit-stack rewrite of dump_rec. Post-order DFS: each node's children
+// are emitted before the node itself. Shared nodes are visited once.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+static void dump_iter(bddp root_f, std::unordered_set<bddp>& visited) {
+    enum class Phase : uint8_t { ENTER, AFTER_LO, AFTER_HI };
+    struct Frame {
+        bddp f;
+        bddp node;
+        bddp f1;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.node = 0;
+    init.f1 = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp node = f & ~BDD_COMP_FLAG;
+            if (node & BDD_CONST_FLAG) { stack.pop_back(); break; }
+            if (!visited.insert(node).second) { stack.pop_back(); break; }
+
+            uint64_t idx = node / 2 - 1;
+            if (idx >= bdd_node_used) {
+                std::printf("bdddump: Invalid bddp\n");
+                stack.pop_back();
+                break;
+            }
+
+            bddp f0 = node_lo(node);
+            bddp f1 = node_hi(node);
+            frame.node = node;
+            frame.f1 = f1;
+            frame.phase = Phase::AFTER_LO;
+
+            Frame child;
+            child.f = f0;
+            child.node = 0; child.f1 = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::AFTER_LO: {
+            frame.phase = Phase::AFTER_HI;
+            Frame child;
+            child.f = frame.f1 & ~BDD_COMP_FLAG;
+            child.node = 0; child.f1 = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::AFTER_HI: {
+            dump_print_node(frame.node);
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+}
+
 static void dump_rec(bddp f, std::unordered_set<bddp>& visited) {
     BDD_RecurGuard guard;
     bddp node = f & ~BDD_COMP_FLAG;
@@ -458,7 +558,11 @@ void bdddump(bddp f) {
         }
     }
     std::unordered_set<bddp> visited;
-    dump_rec(f, visited);
+    if (use_iter_1op(f)) {
+        dump_iter(f, visited);
+    } else {
+        dump_rec(f, visited);
+    }
     dump_root("RT", f);
     std::printf("\n");
 }
@@ -484,10 +588,15 @@ void bddvdump(bddp *p, int n) {
         }
     }
 
-    // Dump all nodes (shared nodes printed once)
+    // Dump all nodes (shared nodes printed once). Dispatch per-root to the
+    // iterative implementation when the root's level exceeds BDD_RecurLimit.
     std::unordered_set<bddp> visited;
     for (int i = 0; i < lim; i++) {
-        dump_rec(p[i], visited);
+        if (use_iter_1op(p[i])) {
+            dump_iter(p[i], visited);
+        } else {
+            dump_rec(p[i], visited);
+        }
     }
 
     // Print roots (up to and including the first bddnull)
