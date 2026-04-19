@@ -26,7 +26,7 @@ int PiDD_NewVar()
     /* First call: allocate PiDD_XOfLev */
     if (PiDD_TopVar == 0) {
         PiDD_XOfLev = new int[PiDD_VarTableSize];
-        PiDD_XOfLev[0] = 0;
+        std::memset(PiDD_XOfLev, 0, sizeof(int) * PiDD_VarTableSize);
         PiDD_LevOfX[0] = 0;
         PiDD_LevOfX[1] = 0;
     }

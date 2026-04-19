@@ -27,7 +27,7 @@ int RotPiDD_NewVar()
     /* First call: allocate RotPiDD_XOfLev */
     if (RotPiDD_TopVar == 0) {
         RotPiDD_XOfLev = new int[RotPiDD_VarTableSize];
-        RotPiDD_XOfLev[0] = 0;
+        std::memset(RotPiDD_XOfLev, 0, sizeof(int) * RotPiDD_VarTableSize);
         RotPiDD_LevOfX[0] = 0;
         RotPiDD_LevOfX[1] = 0;
     }
