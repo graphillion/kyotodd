@@ -4177,6 +4177,35 @@ PYBIND11_MODULE(_core, m) {
             "    memo: A ZddCountMemo for the internal ZDD.\n\n"
             "Returns:\n"
             "    The assignment as a list of values.")
+        // First-k extraction
+        .def("get_k_sets", [](const MVZDD& f, int64_t k) -> MVZDD {
+            return f.get_k_sets(k);
+        }, py::arg("k"),
+            "Return an MVZDD containing the first k assignments in structure order.\n\n"
+            "If k >= |F|, returns the whole family. If k == 0, returns empty.\n\n"
+            "Args:\n"
+            "    k: Number of assignments to extract (must be >= 0).\n\n"
+            "Raises:\n"
+            "    ValueError: If k is negative.")
+        .def("exact_get_k_sets", [](const MVZDD& f, py::int_ k) -> MVZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return f.get_k_sets(bi);
+        }, py::arg("k"),
+            "Arbitrary-precision variant of get_k_sets.\n\n"
+            "Args:\n"
+            "    k: Number of assignments to extract (int, arbitrary precision).")
+        .def("exact_get_k_sets_with_memo", [](const MVZDD& f, py::int_ k,
+                                              ZddCountMemo& memo) -> MVZDD {
+            std::string s = py::str(k).cast<std::string>();
+            bigint::BigInt bi(s);
+            return f.get_k_sets(bi, memo);
+        }, py::arg("k"), py::arg("memo"),
+            "Arbitrary-precision get_k_sets using a memo.\n\n"
+            "The memo must have been created for the internal ZDD (to_zdd()).\n\n"
+            "Args:\n"
+            "    k: Number of assignments to extract.\n"
+            "    memo: A ZddCountMemo for the internal ZDD.")
         // Support
         .def("support_vars", &MVZDD::support_vars,
             "Return all MVDD variable numbers appearing in the family.\n\n"

@@ -1122,6 +1122,71 @@ TEST_F(MVDDTest, MVZDDExactRankWithMemo) {
 }
 
 // ============================================================
+//  MVZDD::get_k_sets tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDGetKSetsBasic) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(
+        base, {{0, 0}, {1, 2}, {2, 1}, {0, 2}, {1, 0}});
+    EXPECT_EQ(f.count(), 5.0);
+
+    // k == 0 → empty family.
+    MVZDD g0 = f.get_k_sets(0);
+    EXPECT_EQ(g0.count(), 0.0);
+
+    // k < |F| → subset with exactly k elements.
+    MVZDD g3 = f.get_k_sets(3);
+    EXPECT_EQ(g3.count(), 3.0);
+    EXPECT_TRUE(g3.is_subset_family(f));
+
+    // get_k_sets takes the first k in structure order: the first 3 sets
+    // returned by unrank must exactly be g3.
+    std::vector<std::vector<int>> first_three;
+    for (int64_t i = 0; i < 3; ++i) {
+        first_three.push_back(f.unrank(i));
+    }
+    for (const auto& s : first_three) {
+        EXPECT_TRUE(g3.contains(s));
+    }
+
+    // k >= |F| → whole family.
+    MVZDD gall = f.get_k_sets(10);
+    EXPECT_EQ(gall.count(), f.count());
+    EXPECT_TRUE(f.is_subset_family(gall));
+    EXPECT_TRUE(gall.is_subset_family(f));
+}
+
+TEST_F(MVDDTest, MVZDDGetKSetsNegative) {
+    MVZDD base(3);
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0}, {1}, {2}});
+    EXPECT_THROW(f.get_k_sets(-1), std::invalid_argument);
+}
+
+TEST_F(MVDDTest, MVZDDGetKSetsWithMemo) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(
+        base, {{0, 0}, {1, 2}, {2, 1}, {0, 2}});
+    ZddCountMemo memo(f.to_zdd());
+
+    MVZDD g = f.get_k_sets(bigint::BigInt(2), memo);
+    EXPECT_EQ(g.count(), 2.0);
+    EXPECT_TRUE(g.is_subset_family(f));
+
+    // Exact count variant on large values (still within small test).
+    MVZDD gall = f.get_k_sets(bigint::BigInt(100));
+    EXPECT_EQ(gall.count(), f.count());
+}
+
+// ============================================================
 //  MVZDD::cost_bound_range tests
 // ============================================================
 

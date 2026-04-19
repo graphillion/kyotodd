@@ -724,6 +724,29 @@ public:
     std::vector<int> exact_unrank(const bigint::BigInt& order,
                                    ZddCountMemo& memo) const;
 
+    // --- First-k extraction ---
+
+    /**
+     * @brief Return an MVZDD containing the first k assignments in
+     *        structure order (int64_t).
+     *
+     * If k >= |F|, returns the whole family. If k == 0, returns an
+     * empty family.
+     *
+     * @param k Number of assignments to extract (must be >= 0).
+     * @throws std::invalid_argument if k is negative.
+     */
+    MVZDD get_k_sets(int64_t k) const;
+
+    /** @brief BigInt variant of get_k_sets. */
+    MVZDD get_k_sets(const bigint::BigInt& k) const;
+
+    /**
+     * @brief get_k_sets reusing a ZddCountMemo.
+     * @param memo Memo created for the internal ZDD (to_zdd()).
+     */
+    MVZDD get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const;
+
     // --- Evaluation ---
 
     /**

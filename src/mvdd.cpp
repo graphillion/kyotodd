@@ -1027,6 +1027,32 @@ std::vector<int> MVZDD::exact_unrank(const bigint::BigInt& order,
         dd_vars, *var_table_, "MVZDD::exact_unrank");
 }
 
+// --- First-k extraction ---
+
+MVZDD MVZDD::get_k_sets(int64_t k) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::get_k_sets: no var table");
+    }
+    ZDD result = to_zdd().get_k_sets(k);
+    return make_result(result.id());
+}
+
+MVZDD MVZDD::get_k_sets(const bigint::BigInt& k) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::get_k_sets: no var table");
+    }
+    ZDD result = to_zdd().get_k_sets(k);
+    return make_result(result.id());
+}
+
+MVZDD MVZDD::get_k_sets(const bigint::BigInt& k, ZddCountMemo& memo) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::get_k_sets: no var table");
+    }
+    ZDD result = to_zdd().get_k_sets(k, memo);
+    return make_result(result.id());
+}
+
 // --- Support ---
 
 std::vector<bddvar> MVZDD::support_vars() const {
