@@ -507,6 +507,21 @@ TEST_F(SeqBDDTest, SeqStrEpsilonInSet) {
     EXPECT_NE(str.find("e"), std::string::npos);
 }
 
+TEST_F(SeqBDDTest, SeqStrMediumDepth) {
+    /* SeqBDD with a few thousand pushes. Still within the recursion limit
+     * (which bounds the pre-call to len()), but exercises the print_seq
+     * traversal on a non-trivial chain. */
+    const int depth = 2000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    SeqBDD s = SeqBDD(1);
+    for (int v = 1; v <= depth; ++v) {
+        s = s.push(v);
+    }
+    std::string str = s.seq_str();
+    EXPECT_FALSE(str.empty());
+    EXPECT_EQ(str.find(" + "), std::string::npos);
+}
+
 /* ---- Move semantics ---- */
 TEST_F(SeqBDDTest, MoveConstructor) {
     bddvar v1 = BDD_NewVar();
