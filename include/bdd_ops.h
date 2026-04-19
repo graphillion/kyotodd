@@ -38,8 +38,13 @@ bddp bddand(bddp f, bddp g, BddExecMode mode);
 /**
  * @brief Iterative (non-recursive) implementation of bddand.
  *
- * Uses an explicit heap stack. No recursion depth limit.
- * Inputs must be pre-validated and normalized (f <= g, no null/terminal fast-paths).
+ * Advanced API. Uses an explicit heap stack; no recursion depth limit.
+ * Inputs must be pre-validated and normalized (f != bddnull, g != bddnull,
+ * no null/terminal fast-paths; operands already ordered f <= g if the caller
+ * wants the cache-normalized form). Must run inside a @c bdd_gc_guard scope:
+ * intermediate @c bddp values on the iteration stack are not registered as
+ * GC roots, so GC must be deferred for the duration of this call. The public
+ * @ref bddand wrappers satisfy these preconditions.
  * @param f First operand.
  * @param g Second operand.
  * @return The BDD for f AND g.
@@ -75,8 +80,10 @@ bddp bddxor(bddp f, bddp g, BddExecMode mode);
 /**
  * @brief Iterative (non-recursive) implementation of bddxor.
  *
- * Uses an explicit heap stack. No recursion depth limit.
- * Inputs must be pre-validated and normalized (no null/terminal fast-paths).
+ * Advanced API. Preconditions as in @ref bddand_iter (validated non-null
+ * inputs, must run inside a @c bdd_gc_guard scope). Internally composes
+ * via @ref bddand_iter, so the same GC-guard requirement applies
+ * transitively.
  * @param f First operand.
  * @param g Second operand.
  * @return The BDD for f XOR g.
@@ -123,8 +130,10 @@ bddp bddat0(bddp f, bddvar v, BddExecMode mode);
 /**
  * @brief Iterative (non-recursive) implementation of bddat0.
  *
- * Uses an explicit heap stack. No recursion depth limit.
- * Inputs must be pre-validated (no null/terminal fast-paths).
+ * Advanced API. Inputs must be pre-validated (f != bddnull,
+ * 1 <= v <= bdd_varcount; the body reads @c var2level[v] without range
+ * checks). Must run inside a @c bdd_gc_guard scope. The public @ref bddat0
+ * wrappers satisfy these preconditions.
  */
 bddp bddat0_iter(bddp f, bddvar v);
 
@@ -143,6 +152,9 @@ bddp bddat1(bddp f, bddvar v, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bddat1.
+ *
+ * Advanced API. Preconditions as in @ref bddat0_iter (validated
+ * non-null @p f, @p v in range, @c bdd_gc_guard active).
  */
 bddp bddat1_iter(bddp f, bddvar v);
 
@@ -155,6 +167,15 @@ bddp bddat1_iter(bddp f, bddvar v);
  */
 bddp bddite(bddp f, bddp g, bddp h);
 bddp bddite(bddp f, bddp g, bddp h, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddite.
+ *
+ * Advanced API. Inputs must be pre-validated (all three operands non-null).
+ * Must run inside a @c bdd_gc_guard scope. Internally composes via
+ * @ref bddand_iter for 2-operand reductions, so the same GC-guard
+ * requirement applies transitively.
+ */
 bddp bddite_iter(bddp f, bddp g, bddp h);
 
 /**
@@ -199,6 +220,10 @@ bddp bddexist(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bddexist.
+ *
+ * Advanced API. Preconditions as in @ref bddand_iter (validated non-null
+ * inputs, must run inside a @c bdd_gc_guard scope). Internally composes
+ * via @ref bddand_iter.
  */
 bddp bddexist_iter(bddp f, bddp g);
 
@@ -237,6 +262,9 @@ bddp bdduniv(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bdduniv.
+ *
+ * Advanced API. Preconditions as in @ref bddand_iter. Internally composes
+ * via @ref bddand_iter.
  */
 bddp bdduniv_iter(bddp f, bddp g);
 
@@ -290,6 +318,9 @@ bddp bddcofactor(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bddcofactor.
+ *
+ * Advanced API. Preconditions as in @ref bddand_iter (validated non-null
+ * inputs, must run inside a @c bdd_gc_guard scope).
  */
 bddp bddcofactor_iter(bddp f, bddp g);
 
@@ -302,6 +333,19 @@ bddp bddcofactor_iter(bddp f, bddp g);
  */
 bddp bddswap(bddp f, bddvar v1, bddvar v2);
 bddp bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddswap.
+ *
+ * Advanced API. The caller is responsible for full pre-validation and
+ * normalization that the public @ref bddswap wrappers perform:
+ *   - @p f must be non-null and non-terminal.
+ *   - 1 <= @p v1, @p v2 <= bdd_varcount and @p v1 != @p v2.
+ *   - @p lev1 = @c var2level[v1], @p lev2 = @c var2level[v2], and
+ *     @p lev1 > @p lev2 (v1 must be at the higher level).
+ * Must run inside a @c bdd_gc_guard scope. Internally composes via
+ * @ref bddite_iter (and therefore @ref bddand_iter).
+ */
 bddp bddswap_iter(bddp f, bddvar v1, bddvar v2, bddvar lev1, bddvar lev2);
 
 /**
@@ -319,6 +363,10 @@ bddp bddsmooth(bddp f, bddvar v, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bddsmooth.
+ *
+ * Advanced API. Preconditions as in @ref bddat0_iter (validated non-null
+ * @p f, 1 <= @p v <= bdd_varcount, @c bdd_gc_guard active). Internally
+ * composes via @ref bddand_iter.
  */
 bddp bddsmooth_iter(bddp f, bddvar v);
 
@@ -330,6 +378,16 @@ bddp bddsmooth_iter(bddp f, bddvar v);
  */
 bddp bddspread(bddp f, int k);
 bddp bddspread(bddp f, int k, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddspread.
+ *
+ * Advanced API. Inputs must be pre-validated: @p f non-null, @p k >= 0
+ * (the @c k == 0 fast-path assumes non-negative input; a negative value
+ * drives @c frame.k - 1 into signed overflow and produces a corrupt cache
+ * key from @c static_cast<bddp>(frame.k)). Must run inside a
+ * @c bdd_gc_guard scope. Internally composes via @ref bddand_iter.
+ */
 bddp bddspread_iter(bddp f, int k);
 
 // ZDD operations
@@ -1084,6 +1142,15 @@ char *bddcardmp16(bddp f, char *s);
  */
 double bddcount(bddp f, bddvar n);
 double bddcount(bddp f, bddvar n, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddcount.
+ *
+ * Advanced API. Inputs must be pre-validated: @p f must not be
+ * @c bddnull and must be a valid @c bddp (terminal or live node); the
+ * body dereferences @c node_var(f) without a null/validity check. Must
+ * run inside a @c bdd_gc_guard scope. The memo must be caller-owned.
+ */
 double bddcount_bdd_iter(bddp f, bddvar n,
                          std::unordered_map<bddp, double>& memo);
 
@@ -1114,6 +1181,14 @@ bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo);
 bigint::BigInt bddexactcount(bddp f, bddvar n, BddExecMode mode);
 bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo,
                              BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddexactcount.
+ *
+ * Advanced API. Preconditions as in @ref bddcount_bdd_iter: @p f must not
+ * be @c bddnull and must be a valid @c bddp. Must run inside a
+ * @c bdd_gc_guard scope. The memo must be caller-owned.
+ */
 bigint::BigInt bddexactcount_bdd_iter(bddp f, bddvar n,
                                       CountMemoMap& memo);
 
