@@ -1454,6 +1454,9 @@ bddp bddlshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
+        if (use_iter_1op(f)) {
+            return bdd_lshift_iter(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
+        }
         return bdd_lshift_rec(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
     });
 }
@@ -1465,6 +1468,9 @@ bddp bddrshiftz(bddp f, bddvar shift) {
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
+        if (use_iter_1op(f)) {
+            return bdd_rshift_iter(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
+        }
         return bdd_rshift_rec(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
     });
 }

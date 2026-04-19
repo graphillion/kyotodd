@@ -1171,3 +1171,118 @@ TEST_F(BDDTest, ImportzFilePtrVector) {
     EXPECT_EQ(v[0], z);
 }
 
+// ============================================================================
+// BddShiftIterTest: compares bdd_lshift_iter/bdd_rshift_iter vs _rec.
+// ============================================================================
+
+class BddShiftIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+        for (int i = 0; i < 6; i++) BDD_NewVar();
+    }
+};
+
+TEST_F(BddShiftIterTest, BddLshiftIterMatchesRec) {
+    // Build a BDD exercising complement edges and varied lo/hi children
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD c = BDD::prime(3);
+    BDD f = (a & b) | (~c);
+    bddvar shift = 2;
+
+    uint8_t op_rec = BDD_OP_LSHIFTB + 100;  // separate op codes to isolate caches
+    uint8_t op_iter = BDD_OP_LSHIFTB + 101;
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_lshift_rec(f.id(), shift, op_rec, BDD::getnode_raw);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_lshift_iter(f.id(), shift, op_iter, BDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(BddShiftIterTest, BddRshiftIterMatchesRec) {
+    BDD a = BDD::prime(3);
+    BDD b = BDD::prime(4);
+    BDD c = BDD::prime(5);
+    BDD f = (a & b) ^ c;
+    bddvar shift = 2;
+
+    uint8_t op_rec = BDD_OP_RSHIFTB + 100;
+    uint8_t op_iter = BDD_OP_RSHIFTB + 101;
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_rshift_rec(f.id(), shift, op_rec, BDD::getnode_raw);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_rshift_iter(f.id(), shift, op_iter, BDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(BddShiftIterTest, ZddLshiftIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + x2 + (x1 * x3);
+    bddvar shift = 2;
+
+    uint8_t op_rec = BDD_OP_LSHIFTZ + 100;
+    uint8_t op_iter = BDD_OP_LSHIFTZ + 101;
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_lshift_rec(f.id(), shift, op_rec, ZDD::getnode_raw);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_lshift_iter(f.id(), shift, op_iter, ZDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(BddShiftIterTest, ZddRshiftIterMatchesRec) {
+    ZDD x3 = ZDD::singleton(3);
+    ZDD x4 = ZDD::singleton(4);
+    ZDD x5 = ZDD::singleton(5);
+    ZDD f = x3 + x4 + (x4 * x5);
+    bddvar shift = 2;
+
+    uint8_t op_rec = BDD_OP_RSHIFTZ + 100;
+    uint8_t op_iter = BDD_OP_RSHIFTZ + 101;
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_rshift_rec(f.id(), shift, op_rec, ZDD::getnode_raw);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return bdd_rshift_iter(f.id(), shift, op_iter, ZDD::getnode_raw);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(BddShiftIterTest, PublicLshiftRoundtrip) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD f = a & b;
+    BDD shifted = f << 2;
+    BDD back = shifted >> 2;
+    EXPECT_EQ(back.id(), f.id());
+}
+
+TEST_F(BddShiftIterTest, PublicZddShiftRoundtrip) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD f = x1 + x2 + (x1 * x2);
+    ZDD shifted = f << 3;
+    ZDD back = shifted >> 3;
+    EXPECT_EQ(back.id(), f.id());
+}
+
+TEST_F(BddShiftIterTest, RshiftUnderflowThrows) {
+    BDD a = BDD::prime(1);  // level 1
+    BDD b = BDD::prime(2);
+    BDD f = a & b;
+    uint8_t op = BDD_OP_RSHIFTB + 105;
+    EXPECT_THROW(
+        bdd_gc_guard([&]() -> bddp {
+            return bdd_rshift_iter(f.id(), 5, op, BDD::getnode_raw);
+        }),
+        std::invalid_argument);
+}
+

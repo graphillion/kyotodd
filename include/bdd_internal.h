@@ -292,6 +292,108 @@ bddp bdd_lshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
 }
 
 /**
+ * @brief Iterative counterpart to bdd_lshift_rec.
+ *
+ * Explicit-stack implementation for stack-safety on deep DDs. Shares
+ * cache with _rec via op code.
+ * PRECONDITION: caller holds a bdd_gc_guard scope.
+ */
+template<typename MakeNode>
+bddp bdd_lshift_iter(bddp root_f, bddvar shift, uint8_t op, MakeNode make_node) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp fn;          // non-complemented node (set after ENTER)
+        bool comp;        // complement to apply to final result
+        bddvar target_var;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.fn = root_f;
+    init.comp = false;
+    init.target_var = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.fn;
+            if (f & BDD_CONST_FLAG) {
+                result = f;
+                stack.pop_back();
+                break;
+            }
+
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp fn = f & ~BDD_COMP_FLAG;
+
+            bddp cached = bddrcache(op, fn, static_cast<bddp>(shift));
+            if (cached != bddnull) {
+                result = comp ? bddnot(cached) : cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar v = node_var(fn);
+            uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
+            if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
+                throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+            }
+            bddvar new_level = static_cast<bddvar>(new_level64);
+            while (bdd_varcount < new_level) {
+                bddnewvar();
+            }
+            bddvar target_var = level2var[new_level];
+
+            frame.fn = fn;
+            frame.comp = comp;
+            frame.target_var = target_var;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.fn = node_lo(fn);
+            child.comp = false;
+            child.target_var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.fn = node_hi(frame.fn);
+            child.comp = false;
+            child.target_var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = make_node(frame.target_var, frame.lo_result, hi);
+            bddwcache(op, frame.fn, static_cast<bddp>(shift), r);
+            result = frame.comp ? bddnot(r) : r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
+/**
  * @brief Core implementation of right shift for BDD/ZDD.
  *
  * Recursively shifts all variable levels downward by the given amount.
@@ -330,6 +432,102 @@ bddp bdd_rshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
 
     bddwcache(op, fn, static_cast<bddp>(shift), result);
     return comp ? bddnot(result) : result;
+}
+
+/**
+ * @brief Iterative counterpart to bdd_rshift_rec.
+ *
+ * PRECONDITION: caller holds a bdd_gc_guard scope.
+ */
+template<typename MakeNode>
+bddp bdd_rshift_iter(bddp root_f, bddvar shift, uint8_t op, MakeNode make_node) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp fn;
+        bool comp;
+        bddvar target_var;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.fn = root_f;
+    init.comp = false;
+    init.target_var = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.fn;
+            if (f & BDD_CONST_FLAG) {
+                result = f;
+                stack.pop_back();
+                break;
+            }
+
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp fn = f & ~BDD_COMP_FLAG;
+
+            bddp cached = bddrcache(op, fn, static_cast<bddp>(shift));
+            if (cached != bddnull) {
+                result = comp ? bddnot(cached) : cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar v = node_var(fn);
+            bddvar lev = var2level[v];
+            if (lev <= shift) {
+                throw std::invalid_argument("bddrshift: shifted level underflows");
+            }
+            bddvar target_var = level2var[lev - shift];
+
+            frame.fn = fn;
+            frame.comp = comp;
+            frame.target_var = target_var;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.fn = node_lo(fn);
+            child.comp = false;
+            child.target_var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.fn = node_hi(frame.fn);
+            child.comp = false;
+            child.target_var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = make_node(frame.target_var, frame.lo_result, hi);
+            bddwcache(op, frame.fn, static_cast<bddp>(shift), r);
+            result = frame.comp ? bddnot(r) : r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
 }
 
 /**
