@@ -18,7 +18,35 @@ bddp bdddisjoin(bddp f, bddp g) {
     // Normalize order (disjoint join is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bdddisjoin_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bdddisjoin_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bdddisjoin_rec(f, g); });
+    }
+}
+
+bddp bdddisjoin(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bdddisjoin");
+    bddp_validate(g, "bdddisjoin");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return g;
+    if (g == bddsingle) return f;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bdddisjoin_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bdddisjoin_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bdddisjoin_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bdddisjoin_rec(f, g); });
+        }
+    }
 }
 
 static bddp bdddisjoin_rec(bddp f, bddp g) {
@@ -96,7 +124,35 @@ bddp bddjointjoin(bddp f, bddp g) {
     // Normalize order (joint join is commutative)
     if (f > g) { bddp tmp = f; f = g; g = tmp; }
 
-    return bdd_gc_guard([&]() -> bddp { return bddjointjoin_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddjointjoin_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddjointjoin_rec(f, g); });
+    }
+}
+
+bddp bddjointjoin(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddjointjoin");
+    bddp_validate(g, "bddjointjoin");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty || g == bddempty) return bddempty;
+    if (f == bddsingle) return bddempty;
+    if (g == bddsingle) return bddempty;
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddjointjoin_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddjointjoin_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddjointjoin_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddjointjoin_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddjointjoin_rec(bddp f, bddp g) {
@@ -173,7 +229,35 @@ bddp bddrestrict(bddp f, bddp g) {
     if (g == bddsingle) return f;  // ∅ ⊆ every set A
     if (f == g) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddrestrict_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddrestrict_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddrestrict_rec(f, g); });
+    }
+}
+
+bddp bddrestrict(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddrestrict");
+    bddp_validate(g, "bddrestrict");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (g == bddsingle) return f;
+    if (f == g) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddrestrict_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddrestrict_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddrestrict_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddrestrict_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddrestrict_rec(bddp f, bddp g) {
@@ -243,7 +327,35 @@ bddp bddpermit(bddp f, bddp g) {
     if (f == bddsingle) return bddsingle;  // ∅ ⊆ any B in G
     if (f == g) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddpermit_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddpermit_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddpermit_rec(f, g); });
+    }
+}
+
+bddp bddpermit(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddpermit");
+    bddp_validate(g, "bddpermit");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    if (f == g) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddpermit_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddpermit_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddpermit_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddpermit_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddpermit_rec(bddp f, bddp g) {
@@ -312,7 +424,35 @@ bddp bddnonsup(bddp f, bddp g) {
     if (g == bddsingle) return bddempty;   // ∅ ⊆ every A → none qualify
     if (f == g) return bddempty;           // A ⊆ A → none qualify
 
-    return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+    }
+}
+
+bddp bddnonsup(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddnonsup");
+    bddp_validate(g, "bddnonsup");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;
+    if (g == bddsingle) return bddempty;
+    if (f == g) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddnonsup_rec(bddp f, bddp g) {
@@ -382,7 +522,35 @@ bddp bddnonsub(bddp f, bddp g) {
     if (f == bddsingle) return bddempty;   // ∅ ⊆ every B → condition fails
     if (f == g) return bddempty;           // A ⊆ A → condition fails
 
-    return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+    if (use_iter_2op(f, g)) {
+        return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+    }
+}
+
+bddp bddnonsub(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddnonsub");
+    bddp_validate(g, "bddnonsub");
+    if (f == bddnull || g == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (g == bddempty) return f;
+    if (f == bddsingle) return bddempty;
+    if (f == g) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+        }
+    }
 }
 
 static bddp bddnonsub_rec(bddp f, bddp g) {
@@ -449,7 +617,32 @@ bddp bddmaximal(bddp f) {
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
 
-    return bdd_gc_guard([&]() -> bddp { return bddmaximal_rec(f); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddmaximal_iter(f); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddmaximal_rec(f); });
+    }
+}
+
+bddp bddmaximal(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddmaximal");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddmaximal_iter(f); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddmaximal_rec(f); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddmaximal_iter(f); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddmaximal_rec(f); });
+        }
+    }
 }
 
 static bddp bddmaximal_rec(bddp f) {
@@ -488,7 +681,32 @@ bddp bddminimal(bddp f) {
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
 
-    return bdd_gc_guard([&]() -> bddp { return bddminimal_rec(f); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddminimal_iter(f); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddminimal_rec(f); });
+    }
+}
+
+bddp bddminimal(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddminimal");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddminimal_iter(f); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddminimal_rec(f); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddminimal_iter(f); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddminimal_rec(f); });
+        }
+    }
 }
 
 static bddp bddminimal_rec(bddp f) {
@@ -531,7 +749,33 @@ bddp bddminhit(bddp f) {
     // Early termination: if ∅ ∈ F, impossible to hit
     if (bddhasempty(f)) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddminhit_rec(f); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddminhit_iter(f); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddminhit_rec(f); });
+    }
+}
+
+bddp bddminhit(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddminhit");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddsingle;
+    if (f == bddsingle) return bddempty;
+    if (bddhasempty(f)) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddminhit_iter(f); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddminhit_rec(f); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddminhit_iter(f); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddminhit_rec(f); });
+        }
+    }
 }
 
 static bddp bddminhit_rec(bddp f) {
@@ -577,7 +821,32 @@ bddp bddclosure(bddp f) {
     if (f == bddempty) return bddempty;
     if (f == bddsingle) return bddsingle;
 
-    return bdd_gc_guard([&]() -> bddp { return bddclosure_rec(f); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddclosure_iter(f); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddclosure_rec(f); });
+    }
+}
+
+bddp bddclosure(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddclosure");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (f == bddsingle) return bddsingle;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddclosure_iter(f); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddclosure_rec(f); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddclosure_iter(f); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddclosure_rec(f); });
+        }
+    }
 }
 
 static bddp bddclosure_rec(bddp f) {

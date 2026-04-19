@@ -1476,3 +1476,211 @@ TEST_F(BDDTest, ZDD_Join) {
     EXPECT_EQ(z_v1.join(ZDD(1)), z_v1);
 }
 
+// ============================================================
+// Parameterized mode tests: Recursive / Iterative / Auto must
+// agree for all zdd_adv_filter operations.
+// ============================================================
+
+// Clear the op cache between calls so both recursive and iterative
+// paths actually execute (the same op code is shared and a cached
+// result would short-circuit the second invocation).
+#define EXPECT_FILTER_MODE_EQ(expr_mode, expr_default)        \
+    do {                                                      \
+        bdd_cache_clear();                                    \
+        auto _actual = (expr_mode);                           \
+        bdd_cache_clear();                                    \
+        auto _expected = (expr_default);                      \
+        EXPECT_EQ(_actual, _expected);                        \
+    } while (0)
+
+class ZddAdvFilterModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddAdvFilterModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+namespace {
+struct FilterFamilies {
+    bddvar v1, v2, v3, v4;
+    bddp s_v1, s_v2, s_v3, s_v4;  // singletons {{vi}}
+    bddp v1v2;                     // {{v1,v2}}
+    bddp v2v3;                     // {{v2,v3}}
+    bddp v1v2v3;                   // {{v1,v2,v3}}
+    bddp v3v4;                     // {{v3,v4}}
+    bddp F;                        // {{v1},{v1,v2},{v2,v3}}
+    bddp G;                        // {{v1,v2},{v2,v3},{v3,v4}}
+    bddp H;                        // {{v1},{v2},{v1,v2},{v2,v3}} — overlapping chain
+};
+
+static FilterFamilies make_filter_families() {
+    FilterFamilies t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.v4 = bddnewvar();
+    t.s_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.s_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.s_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    t.s_v4 = ZDD::getnode(t.v4, bddempty, bddsingle);
+    t.v1v2 = bddjoin(t.s_v1, t.s_v2);
+    t.v2v3 = bddjoin(t.s_v2, t.s_v3);
+    t.v1v2v3 = bddjoin(t.v1v2, t.s_v3);
+    t.v3v4 = bddjoin(t.s_v3, t.s_v4);
+    t.F = bddunion(bddunion(t.s_v1, t.v1v2), t.v2v3);
+    t.G = bddunion(bddunion(t.v1v2, t.v2v3), t.v3v4);
+    t.H = bddunion(bddunion(bddunion(t.s_v1, t.s_v2), t.v1v2), t.v2v3);
+    bdd_cache_clear();
+    return t;
+}
+} // namespace
+
+TEST_P(ZddAdvFilterModeTest, DisjoinFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bdddisjoin(bddempty, t.F, GetParam()), bddempty);
+    EXPECT_EQ(bdddisjoin(t.F, bddsingle, GetParam()), t.F);
+    EXPECT_FILTER_MODE_EQ(bdddisjoin(t.F, t.G, GetParam()), bdddisjoin(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bdddisjoin(t.s_v1, t.v3v4, GetParam()),
+                          bdddisjoin(t.s_v1, t.v3v4));
+}
+
+TEST_P(ZddAdvFilterModeTest, JointJoinFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddjointjoin(bddempty, t.F, GetParam()), bddempty);
+    EXPECT_EQ(bddjointjoin(t.F, bddsingle, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddjointjoin(t.F, t.G, GetParam()),
+                          bddjointjoin(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddjointjoin(t.H, t.v1v2, GetParam()),
+                          bddjointjoin(t.H, t.v1v2));
+}
+
+TEST_P(ZddAdvFilterModeTest, RestrictFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddrestrict(t.F, bddsingle, GetParam()), t.F);
+    EXPECT_EQ(bddrestrict(t.F, bddempty, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddrestrict(t.F, t.G, GetParam()),
+                          bddrestrict(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddrestrict(t.H, t.v1v2, GetParam()),
+                          bddrestrict(t.H, t.v1v2));
+}
+
+TEST_P(ZddAdvFilterModeTest, PermitFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddpermit(bddsingle, t.F, GetParam()), bddsingle);
+    EXPECT_EQ(bddpermit(t.F, bddempty, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddpermit(t.F, t.G, GetParam()),
+                          bddpermit(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddpermit(t.H, t.v1v2v3, GetParam()),
+                          bddpermit(t.H, t.v1v2v3));
+}
+
+TEST_P(ZddAdvFilterModeTest, NonsupFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddnonsup(t.F, bddempty, GetParam()), t.F);
+    EXPECT_EQ(bddnonsup(t.F, bddsingle, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddnonsup(t.F, t.G, GetParam()),
+                          bddnonsup(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddnonsup(t.H, t.v1v2, GetParam()),
+                          bddnonsup(t.H, t.v1v2));
+}
+
+TEST_P(ZddAdvFilterModeTest, NonsubFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddnonsub(t.F, bddempty, GetParam()), t.F);
+    EXPECT_FILTER_MODE_EQ(bddnonsub(t.F, t.G, GetParam()),
+                          bddnonsub(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddnonsub(t.H, t.v1v2, GetParam()),
+                          bddnonsub(t.H, t.v1v2));
+}
+
+TEST_P(ZddAdvFilterModeTest, MaximalFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddmaximal(bddempty, GetParam()), bddempty);
+    EXPECT_EQ(bddmaximal(bddsingle, GetParam()), bddsingle);
+    EXPECT_FILTER_MODE_EQ(bddmaximal(t.F, GetParam()), bddmaximal(t.F));
+    EXPECT_FILTER_MODE_EQ(bddmaximal(t.H, GetParam()), bddmaximal(t.H));
+    EXPECT_FILTER_MODE_EQ(bddmaximal(t.G, GetParam()), bddmaximal(t.G));
+}
+
+TEST_P(ZddAdvFilterModeTest, MinimalFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddminimal(bddempty, GetParam()), bddempty);
+    EXPECT_EQ(bddminimal(bddsingle, GetParam()), bddsingle);
+    EXPECT_FILTER_MODE_EQ(bddminimal(t.F, GetParam()), bddminimal(t.F));
+    EXPECT_FILTER_MODE_EQ(bddminimal(t.H, GetParam()), bddminimal(t.H));
+    EXPECT_FILTER_MODE_EQ(bddminimal(t.G, GetParam()), bddminimal(t.G));
+}
+
+TEST_P(ZddAdvFilterModeTest, MinhitFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddminhit(bddempty, GetParam()), bddsingle);
+    EXPECT_EQ(bddminhit(bddsingle, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddminhit(t.F, GetParam()), bddminhit(t.F));
+    EXPECT_FILTER_MODE_EQ(bddminhit(t.G, GetParam()), bddminhit(t.G));
+    EXPECT_FILTER_MODE_EQ(bddminhit(t.H, GetParam()), bddminhit(t.H));
+}
+
+TEST_P(ZddAdvFilterModeTest, ClosureFamily) {
+    auto t = make_filter_families();
+    EXPECT_EQ(bddclosure(bddempty, GetParam()), bddempty);
+    EXPECT_EQ(bddclosure(bddsingle, GetParam()), bddsingle);
+    EXPECT_FILTER_MODE_EQ(bddclosure(t.F, GetParam()), bddclosure(t.F));
+    EXPECT_FILTER_MODE_EQ(bddclosure(t.H, GetParam()), bddclosure(t.H));
+    EXPECT_FILTER_MODE_EQ(bddclosure(t.v1v2v3, GetParam()), bddclosure(t.v1v2v3));
+}
+
+// Cross-validation test: moderately deep family to exercise asymmetric-level
+// branches. n=10 keeps runtime short; BDD_RecurLimit is 8192 so the Auto
+// parameter still dispatches to _rec here, but explicit Iterative exercises
+// the _iter path.
+TEST_P(ZddAdvFilterModeTest, CrossValidationLinearChain) {
+    const int n = 10;
+    std::vector<bddvar> vars;
+    for (int i = 0; i < n; ++i) vars.push_back(bddnewvar());
+
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+    // other: pick two non-adjacent sets so the asymmetric and same-var
+    // branches both fire
+    bddp other = bddunion(
+        ZDD::getnode(vars[2], bddempty, bddsingle),
+        bddjoin(ZDD::getnode(vars[5], bddempty, bddsingle),
+                ZDD::getnode(vars[7], bddempty, bddsingle)));
+
+    EXPECT_FILTER_MODE_EQ(bdddisjoin(fam, other, GetParam()),
+                          bdddisjoin(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddjointjoin(fam, other, GetParam()),
+                          bddjointjoin(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddrestrict(fam, other, GetParam()),
+                          bddrestrict(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddpermit(fam, other, GetParam()),
+                          bddpermit(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddnonsup(fam, other, GetParam()),
+                          bddnonsup(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddnonsub(fam, other, GetParam()),
+                          bddnonsub(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddmaximal(fam, GetParam()), bddmaximal(fam));
+    EXPECT_FILTER_MODE_EQ(bddminimal(fam, GetParam()), bddminimal(fam));
+    EXPECT_FILTER_MODE_EQ(bddclosure(fam, GetParam()), bddclosure(fam));
+    // minhit requires ∅ ∉ F, which holds for this chain (all sets non-empty)
+    EXPECT_FILTER_MODE_EQ(bddminhit(fam, GetParam()), bddminhit(fam));
+}
+

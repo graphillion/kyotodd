@@ -675,6 +675,16 @@ bddp bddremainder(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bdddisjoin(bddp f, bddp g);
+bddp bdddisjoin(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bdddisjoin.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter, so the same GC-guard requirement
+ * applies.
+ */
+bddp bdddisjoin_iter(bddp f, bddp g);
 
 /**
  * @brief Joint join of two ZDD families.
@@ -687,6 +697,15 @@ bddp bdddisjoin(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddjointjoin(bddp f, bddp g);
+bddp bddjointjoin(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddjointjoin.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter and @ref bddjoin_iter.
+ */
+bddp bddjointjoin_iter(bddp f, bddp g);
 
 /**
  * @brief Restrict to sets that are subsets of some set in @p g.
@@ -699,6 +718,15 @@ bddp bddjointjoin(bddp f, bddp g);
  * @return The restricted ZDD.
  */
 bddp bddrestrict(bddp f, bddp g);
+bddp bddrestrict(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddrestrict.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter at same-variable cases.
+ */
+bddp bddrestrict_iter(bddp f, bddp g);
 
 /**
  * @brief Keep sets whose elements are all permitted by @p g.
@@ -707,6 +735,15 @@ bddp bddrestrict(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddpermit(bddp f, bddp g);
+bddp bddpermit(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddpermit.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter.
+ */
+bddp bddpermit_iter(bddp f, bddp g);
 
 /**
  * @brief Remove supersets: remove sets that are supersets of some set in @p g.
@@ -715,6 +752,15 @@ bddp bddpermit(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddnonsup(bddp f, bddp g);
+bddp bddnonsup(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddnonsup.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter at same-variable cases.
+ */
+bddp bddnonsup_iter(bddp f, bddp g);
 
 /**
  * @brief Remove subsets: remove sets that are subsets of some set in @p g.
@@ -723,6 +769,15 @@ bddp bddnonsup(bddp f, bddp g);
  * @return The resulting ZDD.
  */
 bddp bddnonsub(bddp f, bddp g);
+bddp bddnonsub(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddnonsub.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * sub-results via @ref bddunion_iter.
+ */
+bddp bddnonsub_iter(bddp f, bddp g);
 
 // Unary ZDD operations
 
@@ -732,6 +787,15 @@ bddp bddnonsub(bddp f, bddp g);
  * @return A ZDD containing only the maximal sets of @p f.
  */
 bddp bddmaximal(bddp f);
+bddp bddmaximal(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddmaximal.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
+ * @ref bddnonsub_iter.
+ */
+bddp bddmaximal_iter(bddp f);
 
 /**
  * @brief Extract minimal sets (no proper subset in the family).
@@ -739,6 +803,15 @@ bddp bddmaximal(bddp f);
  * @return A ZDD containing only the minimal sets of @p f.
  */
 bddp bddminimal(bddp f);
+bddp bddminimal(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddminimal.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
+ * @ref bddnonsup_iter.
+ */
+bddp bddminimal_iter(bddp f);
 
 /**
  * @brief Compute minimum hitting sets.
@@ -750,6 +823,15 @@ bddp bddminimal(bddp f);
  * @return A ZDD of minimal hitting sets.
  */
 bddp bddminhit(bddp f);
+bddp bddminhit(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddminhit.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
+ * @ref bddunion_iter and @ref bddnonsup_iter.
+ */
+bddp bddminhit_iter(bddp f);
 
 /**
  * @brief Compute the downward closure.
@@ -760,6 +842,15 @@ bddp bddminhit(bddp f);
  * @return A ZDD representing the downward closure.
  */
 bddp bddclosure(bddp f);
+bddp bddclosure(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddclosure.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
+ * @ref bddunion_iter.
+ */
+bddp bddclosure_iter(bddp f);
 
 /**
  * @brief Push a variable onto a ZDD node.
