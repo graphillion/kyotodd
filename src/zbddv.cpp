@@ -1,4 +1,6 @@
 #include "zbddv.h"
+#include "bdd_internal.h"
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -326,6 +328,107 @@ void ZBDDV::Export(FILE* strm) const {
     bddexport(strm, ids.data(), count);
 }
 
+// Iterative counterpart to PrintPla_rec. Two-branch recursion (OnSet0 / OffSet
+// at each user variable level). Same output order as the recursive version.
+static void PrintPla_iter(const ZBDDV& root_fv, int root_top, int n_out,
+                          std::string& pattern) {
+    enum class Phase : uint8_t { ENTER, AFTER_ON, AFTER_OFF };
+    struct Frame {
+        ZBDDV fv;
+        int top_var;
+        int next_var;
+        ZBDDV on;
+        ZBDDV off;
+        bool on_pushed;
+        bool off_pushed;
+        Phase phase;
+        Frame() : fv(), top_var(0), next_var(0), on(), off(),
+                  on_pushed(false), off_pushed(false), phase(Phase::ENTER) {}
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+    {
+        Frame init;
+        init.fv = root_fv;
+        init.top_var = root_top;
+        stack.push_back(std::move(init));
+    }
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.top_var == 0) {
+                bool all_empty = true;
+                for (int j = 0; j < n_out; j++) {
+                    ZDD elem = frame.fv.GetZBDD(j);
+                    if (elem.GetID() != bddempty) {
+                        all_empty = false;
+                        break;
+                    }
+                }
+                if (!all_empty) {
+                    std::cout << pattern << " ";
+                    for (int j = 0; j < n_out; j++) {
+                        ZDD elem = frame.fv.GetZBDD(j);
+                        std::cout << ((elem.GetID() != bddempty) ? "1" : "0");
+                    }
+                    std::cout << std::endl;
+                }
+                stack.pop_back();
+                break;
+            }
+
+            bddvar var = static_cast<bddvar>(frame.top_var);
+            bddvar lev = BDD_LevOfVar(var);
+            int next_var = 0;
+            if (lev > static_cast<bddvar>(BDDV_SysVarTop) + 1) {
+                next_var = static_cast<int>(bddvaroflev(lev - 1));
+            }
+            frame.next_var = next_var;
+            frame.on = frame.fv.OnSet0(frame.top_var);
+            frame.off = frame.fv.OffSet(frame.top_var);
+
+            frame.phase = Phase::AFTER_ON;
+            if (frame.on.GetMetaZBDD().GetID() != bddempty) {
+                pattern.push_back('1');
+                frame.on_pushed = true;
+                Frame child;
+                child.fv = frame.on;
+                child.top_var = next_var;
+                stack.push_back(std::move(child));
+            }
+            break;
+        }
+        case Phase::AFTER_ON: {
+            if (frame.on_pushed) {
+                pattern.pop_back();
+                frame.on_pushed = false;
+            }
+            frame.phase = Phase::AFTER_OFF;
+            if (frame.off.GetMetaZBDD().GetID() != bddempty) {
+                pattern.push_back('0');
+                frame.off_pushed = true;
+                Frame child;
+                child.fv = frame.off;
+                child.top_var = frame.next_var;
+                stack.push_back(std::move(child));
+            }
+            break;
+        }
+        case Phase::AFTER_OFF: {
+            if (frame.off_pushed) {
+                pattern.pop_back();
+                frame.off_pushed = false;
+            }
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+}
+
 // Internal recursive helper for PrintPla
 static int PrintPla_rec(const ZBDDV& fv, int top_var, int n_out,
                         std::string& pattern) {
@@ -402,7 +505,12 @@ int ZBDDV::PrintPla() const {
         std::cout << std::endl;
     } else {
         std::string pattern;
-        PrintPla_rec(*this, top, n_out, pattern);
+        bddp meta = _zbdd.GetID();
+        if (use_iter_1op(meta)) {
+            PrintPla_iter(*this, top, n_out, pattern);
+        } else {
+            PrintPla_rec(*this, top, n_out, pattern);
+        }
     }
 
     std::cout << ".e" << std::endl;

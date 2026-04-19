@@ -412,6 +412,25 @@ TEST_F(ZBDDVTest, PrintPlaConstant) {
     EXPECT_NE(output.find(".o 1"), std::string::npos);
 }
 
+TEST_F(ZBDDVTest, PrintPlaDeepZBDDExceedsRecurLimit) {
+    // Build a ZBDDV whose meta-ZDD level exceeds BDD_RecurLimit (8192) so
+    // PrintPla dispatches to the iterative implementation. The family
+    // consists of a single cube {v1, v2, ..., vn}.
+    const int n = 9000;
+    for (int i = BDDV_UserTopLev(); i < n; ++i) BDDV_NewVar();
+    ZDD cube(1);
+    for (int i = 0; i < n; ++i) {
+        bddvar v = static_cast<bddvar>(i + 1 + BDDV_SysVarTop);
+        cube = cube.Change(v);
+    }
+    ZBDDV zv(cube, 0);
+    testing::internal::CaptureStdout();
+    int rc = zv.PrintPla();
+    std::string out = testing::internal::GetCapturedStdout();
+    EXPECT_EQ(rc, 0);
+    EXPECT_FALSE(out.empty());
+}
+
 TEST_F(ZBDDVTest, PrintPlaOutputUsesZeroNotTilde) {
     // Multi-output ZBDDV where some outputs are empty for a given cube
     int va = BDDV_NewVar();
