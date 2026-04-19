@@ -323,6 +323,16 @@ long long costbound_safe_add(long long a, long long b) {
     return a + b;
 }
 
+long long costbound_safe_sub(long long a, long long b) {
+    if (a == LLONG_MIN) return LLONG_MIN;
+    if (a == LLONG_MAX) return LLONG_MAX;
+    if (b == LLONG_MIN) return LLONG_MAX;
+    if (b == LLONG_MAX) return LLONG_MIN;
+    if (b > 0 && a < LLONG_MIN + b) return LLONG_MIN;
+    if (b < 0 && a > LLONG_MAX + b) return LLONG_MAX;
+    return a - b;
+}
+
 } // namespace
 
 bddp bddcostbound_iter(bddp f, const std::vector<int>& weights, long long b,
@@ -436,7 +446,7 @@ bddp bddcostbound_iter(bddp f, const std::vector<int>& weights, long long b,
             frame.phase = Phase::GOT_HI;
             Frame child;
             child.f_in = frame.hi;
-            child.b = frame.b - frame.cx;
+            child.b = costbound_safe_sub(frame.b, frame.cx);
             child.var = 0;
             child.lo = 0; child.hi = 0;
             child.cx = 0;

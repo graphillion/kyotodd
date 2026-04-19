@@ -314,6 +314,16 @@ static long long costbound_safe_add(long long a, long long b) {
     return a + b;
 }
 
+static long long costbound_safe_sub(long long a, long long b) {
+    if (a == LLONG_MIN) return LLONG_MIN;
+    if (a == LLONG_MAX) return LLONG_MAX;
+    if (b == LLONG_MIN) return LLONG_MAX;
+    if (b == LLONG_MAX) return LLONG_MIN;
+    if (b > 0 && a < LLONG_MIN + b) return LLONG_MIN;
+    if (b < 0 && a > LLONG_MAX + b) return LLONG_MAX;
+    return a - b;
+}
+
 static CostBoundResult bddcostbound_rec(
     bddp f, const std::vector<int>& weights, long long b,
     CostBoundMemo& memo)
@@ -347,7 +357,7 @@ static CostBoundResult bddcostbound_rec(
     // Recurse on children
     long long cx = static_cast<long long>(weights[var]);
     CostBoundResult r0 = bddcostbound_rec(lo, weights, b, memo);
-    CostBoundResult r1 = bddcostbound_rec(hi, weights, b - cx, memo);
+    CostBoundResult r1 = bddcostbound_rec(hi, weights, costbound_safe_sub(b, cx), memo);
 
     // Construct result node
     bddp h = ZDD::getnode_raw(var, r0.h, r1.h);

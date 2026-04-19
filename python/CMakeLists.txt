@@ -14,17 +14,26 @@ set(KYOTODD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." CACHE PATH
 set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/bdd_base.cpp
     ${KYOTODD_ROOT}/src/bdd_class.cpp
+    ${KYOTODD_ROOT}/src/bdd_class_iter.cpp
     ${KYOTODD_ROOT}/src/bdd_io.cpp
     ${KYOTODD_ROOT}/src/bdd_ops.cpp
     ${KYOTODD_ROOT}/src/bdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_ops.cpp
+    ${KYOTODD_ROOT}/src/zdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_filter.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_filter_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_count.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_count_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_weight.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_weight_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_rank.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv_rank_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv2.cpp
+    ${KYOTODD_ROOT}/src/zdd_adv2_iter.cpp
     ${KYOTODD_ROOT}/src/qdd.cpp
+    ${KYOTODD_ROOT}/src/qdd_iter.cpp
     ${KYOTODD_ROOT}/src/unreduced_dd.cpp
+    ${KYOTODD_ROOT}/src/unreduced_dd_iter.cpp
     ${KYOTODD_ROOT}/src/pidd.cpp
     ${KYOTODD_ROOT}/src/rotpidd.cpp
     ${KYOTODD_ROOT}/src/seqbdd.cpp
@@ -33,6 +42,7 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/zdd_random_iter.cpp
     ${KYOTODD_ROOT}/src/mvdd.cpp
     ${KYOTODD_ROOT}/src/mtbdd.cpp
+    ${KYOTODD_ROOT}/src/mtbdd_iter.cpp
     ${KYOTODD_ROOT}/src/svg_export.cpp
 )
 
