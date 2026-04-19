@@ -20,6 +20,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_adv_filter.cpp
   src/zdd_adv_filter_iter.cpp
   src/zdd_adv_count.cpp
+  src/zdd_adv_count_iter.cpp
   src/zdd_adv_weight.cpp
   src/zdd_adv_rank.cpp
   src/zdd_adv2.cpp

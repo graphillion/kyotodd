@@ -91,7 +91,42 @@ bddp bddchoose(bddp f, int k) {
     }
 
     // k > 0, f has no complement bit
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddchoose_iter(f, k); });
+    }
     return bdd_gc_guard([&]() -> bddp { return bddchoose_rec(f, k); });
+}
+
+bddp bddchoose(bddp f, int k, BddExecMode mode) {
+    bddp_validate(f, "bddchoose");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (k < 0) return bddempty;
+    if (f == bddsingle) return (k == 0) ? bddsingle : bddempty;
+
+    bool comp = (f & BDD_COMP_FLAG) != 0;
+    if (comp) {
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+        if (k == 0) {
+            return bddhasempty(f_raw) ? bddempty : bddsingle;
+        }
+        f = f_raw;
+    } else if (k == 0) {
+        return bddhasempty(f) ? bddsingle : bddempty;
+    }
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddchoose_iter(f, k); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddchoose_rec(f, k); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddchoose_iter(f, k); });
+        }
+        return bdd_gc_guard([&]() -> bddp { return bddchoose_rec(f, k); });
+    }
 }
 
 static bddp bddchoose_rec(bddp f, int k) {
@@ -180,7 +215,26 @@ std::vector<bigint::BigInt> bddprofile(bddp f) {
     bddp_validate(f, "bddprofile");
     if (f == bddnull) return {};
     ProfileMemoMap memo;
+    if (use_iter_1op(f)) {
+        return bddprofile_iter(f, memo);
+    }
     return bddprofile_rec(f, memo);
+}
+
+std::vector<bigint::BigInt> bddprofile(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddprofile");
+    if (f == bddnull) return {};
+    ProfileMemoMap memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddprofile_iter(f, memo);
+    case BddExecMode::Recursive:
+        return bddprofile_rec(f, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) return bddprofile_iter(f, memo);
+        return bddprofile_rec(f, memo);
+    }
 }
 
 std::vector<double> bddprofile_double(bddp f) {
@@ -246,7 +300,27 @@ std::vector<bigint::BigInt> bddelmfreq(bddp f) {
     if (f == bddnull) return {};
     ElmFreqMemoMap freq_memo;
     CountMemoMap count_memo;
+    if (use_iter_1op(f)) {
+        return bddelmfreq_iter(f, freq_memo, count_memo);
+    }
     return bddelmfreq_rec(f, freq_memo, count_memo);
+}
+
+std::vector<bigint::BigInt> bddelmfreq(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddelmfreq");
+    if (f == bddnull) return {};
+    ElmFreqMemoMap freq_memo;
+    CountMemoMap count_memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddelmfreq_iter(f, freq_memo, count_memo);
+    case BddExecMode::Recursive:
+        return bddelmfreq_rec(f, freq_memo, count_memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) return bddelmfreq_iter(f, freq_memo, count_memo);
+        return bddelmfreq_rec(f, freq_memo, count_memo);
+    }
 }
 
 bddp bddflatten(bddp f) {
@@ -486,7 +560,27 @@ uint64_t bddminsize(bddp f) {
 
     if (bddhasempty(f)) return 0;
 
-    uint64_t r = bddminsize_rec(f);
+    uint64_t r = use_iter_1op(f) ? bddminsize_iter(f) : bddminsize_rec(f);
+    return (r == UINT64_MAX) ? 0 : r;
+}
+
+uint64_t bddminsize(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddminsize");
+    if (f == bddnull) return 0;
+    if (f == bddempty) return 0;
+    if (f == bddsingle) return 0;
+
+    if (bddhasempty(f)) return 0;
+
+    uint64_t r;
+    switch (mode) {
+    case BddExecMode::Iterative: r = bddminsize_iter(f); break;
+    case BddExecMode::Recursive: r = bddminsize_rec(f); break;
+    case BddExecMode::Auto:
+    default:
+        r = use_iter_1op(f) ? bddminsize_iter(f) : bddminsize_rec(f);
+        break;
+    }
     return (r == UINT64_MAX) ? 0 : r;
 }
 
@@ -533,7 +627,22 @@ double bddcount(bddp f) {
     bddp_validate(f, "bddcount");
     if (f == bddnull) return 0.0;
     std::unordered_map<bddp, double> memo;
+    if (use_iter_1op(f)) return bddcount_iter(f, memo);
     return bddcount_rec(f, memo);
+}
+
+double bddcount(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddcount");
+    if (f == bddnull) return 0.0;
+    std::unordered_map<bddp, double> memo;
+    switch (mode) {
+    case BddExecMode::Iterative: return bddcount_iter(f, memo);
+    case BddExecMode::Recursive: return bddcount_rec(f, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) return bddcount_iter(f, memo);
+        return bddcount_rec(f, memo);
+    }
 }
 
 // Non-static: declared in bdd_internal.h for cross-file use
@@ -584,13 +693,42 @@ bigint::BigInt bddexactcount(bddp f) {
     bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
     std::unordered_map<bddp, bigint::BigInt> memo;
+    if (use_iter_1op(f)) return bddexactcount_iter(f, memo);
     return bddexactcount_rec(f, memo);
+}
+
+bigint::BigInt bddexactcount(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddexactcount");
+    if (f == bddnull) return bigint::BigInt(0);
+    std::unordered_map<bddp, bigint::BigInt> memo;
+    switch (mode) {
+    case BddExecMode::Iterative: return bddexactcount_iter(f, memo);
+    case BddExecMode::Recursive: return bddexactcount_rec(f, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) return bddexactcount_iter(f, memo);
+        return bddexactcount_rec(f, memo);
+    }
 }
 
 bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo) {
     bddp_validate(f, "bddexactcount");
     if (f == bddnull) return bigint::BigInt(0);
+    if (use_iter_1op(f)) return bddexactcount_iter(f, memo);
     return bddexactcount_rec(f, memo);
+}
+
+bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo, BddExecMode mode) {
+    bddp_validate(f, "bddexactcount");
+    if (f == bddnull) return bigint::BigInt(0);
+    switch (mode) {
+    case BddExecMode::Iterative: return bddexactcount_iter(f, memo);
+    case BddExecMode::Recursive: return bddexactcount_rec(f, memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) return bddexactcount_iter(f, memo);
+        return bddexactcount_rec(f, memo);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -667,7 +805,32 @@ bigint::BigInt bddcountintersec(bddp f, bddp g) {
     if (f == g) return bddexactcount(f);
     PairCountMemoMap pair_memo;
     CountMemoMap count_memo;
+    if (use_iter_2op(f, g)) {
+        return bddcountintersec_iter(f, g, pair_memo, count_memo);
+    }
     return bddcountintersec_rec(f, g, pair_memo, count_memo);
+}
+
+bigint::BigInt bddcountintersec(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddcountintersec");
+    bddp_validate(g, "bddcountintersec");
+    if (f == bddnull || g == bddnull) return bigint::BigInt(0);
+    if (f == bddempty || g == bddempty) return bigint::BigInt(0);
+    if (f == g) return bddexactcount(f, mode);
+    PairCountMemoMap pair_memo;
+    CountMemoMap count_memo;
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bddcountintersec_iter(f, g, pair_memo, count_memo);
+    case BddExecMode::Recursive:
+        return bddcountintersec_rec(f, g, pair_memo, count_memo);
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_2op(f, g)) {
+            return bddcountintersec_iter(f, g, pair_memo, count_memo);
+        }
+        return bddcountintersec_rec(f, g, pair_memo, count_memo);
+    }
 }
 
 double bddjaccardindex(bddp f, bddp g) {

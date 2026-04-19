@@ -913,6 +913,16 @@ uint64_t bddcard(bddp f);
  * @return The cardinality of the family as a double.
  */
 double bddcount(bddp f);
+double bddcount(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of ZDD bddcount.
+ *
+ * Advanced API. Inputs must be pre-validated (no bddnull). The memo must be
+ * caller-owned. The global node array is not mutated, so no
+ * @c bdd_gc_guard scope is required.
+ */
+double bddcount_iter(bddp f, std::unordered_map<bddp, double>& memo);
 
 /**
  * @brief Return the total literal count of a ZDD family.
@@ -952,6 +962,16 @@ uint64_t bddlen(bddp f);
  * @return The minimum set size, or 0 for the empty family or {∅}.
  */
 uint64_t bddminsize(bddp f);
+uint64_t bddminsize(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddminsize.
+ *
+ * Advanced API. Inputs must be pre-validated (no bddnull and ∅ ∉ F
+ * pre-checked by the public wrapper). The global op cache is used so
+ * callers that mix modes should clear the cache between calls.
+ */
+uint64_t bddminsize_iter(bddp f);
 
 /**
  * @brief Return the maximum set size in a ZDD family.
@@ -999,6 +1019,20 @@ bool bddisdisjoint_iter(bddp f, bddp g);
  * @return |F ∩ G| as a BigInt.
  */
 bigint::BigInt bddcountintersec(bddp f, bddp g);
+bigint::BigInt bddcountintersec(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddcountintersec.
+ *
+ * Advanced API. Inputs must be pre-validated. Callers own both memo
+ * tables. No global cache / node allocation happens inside, so no
+ * @c bdd_gc_guard scope is required.
+ */
+bigint::BigInt bddcountintersec_iter(
+    bddp f, bddp g,
+    std::unordered_map<bddp,
+        std::unordered_map<bddp, bigint::BigInt>>& pair_memo,
+    CountMemoMap& count_memo);
 
 /**
  * @brief Compute the Jaccard index of two ZDD families.
@@ -1135,6 +1169,17 @@ bddp bddflatten(bddp f);
  * @return A ZDD node ID representing the filtered family.
  */
 bddp bddchoose(bddp f, int k);
+bddp bddchoose(bddp f, int k, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddchoose.
+ *
+ * Advanced API. Must be invoked under a @c bdd_gc_guard scope. The
+ * public @ref bddchoose wrapper strips the complement bit and handles
+ * terminal / k == 0 cases, so this helper assumes @p f is a
+ * non-terminal bddp with complement bit 0 and @p k > 0.
+ */
+bddp bddchoose_iter(bddp f, int k);
 
 /**
  * @brief Return the set size distribution of a ZDD family (arbitrary precision).
@@ -1146,6 +1191,17 @@ bddp bddchoose(bddp f, int k);
  * @return The profile vector (empty for null or empty family).
  */
 std::vector<bigint::BigInt> bddprofile(bddp f);
+std::vector<bigint::BigInt> bddprofile(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddprofile.
+ *
+ * Advanced API. Inputs must be pre-validated. The memo is caller-owned
+ * and keyed on the non-complement bddp.
+ */
+std::vector<bigint::BigInt> bddprofile_iter(
+    bddp f,
+    std::unordered_map<bddp, std::vector<bigint::BigInt>>& memo);
 
 /**
  * @brief Return the set size distribution of a ZDD family (double precision).
@@ -1167,6 +1223,17 @@ std::vector<double> bddprofile_double(bddp f);
  * @return The frequency vector (empty for null, empty, or unit family).
  */
 std::vector<bigint::BigInt> bddelmfreq(bddp f);
+std::vector<bigint::BigInt> bddelmfreq(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddelmfreq.
+ *
+ * Advanced API. Inputs must be pre-validated. Both memos are caller-owned.
+ */
+std::vector<bigint::BigInt> bddelmfreq_iter(
+    bddp f,
+    std::unordered_map<bddp, std::vector<bigint::BigInt>>& freq_memo,
+    CountMemoMap& count_memo);
 
 /**
  * @brief Count the number of sets in a ZDD family (arbitrary precision).
@@ -1178,6 +1245,7 @@ std::vector<bigint::BigInt> bddelmfreq(bddp f);
  * @return The cardinality of the family as a BigInt.
  */
 bigint::BigInt bddexactcount(bddp f);
+bigint::BigInt bddexactcount(bddp f, BddExecMode mode);
 
 /**
  * @brief Count the number of sets in a ZDD family (arbitrary precision),
@@ -1191,6 +1259,7 @@ bigint::BigInt bddexactcount(bddp f);
  * @return The cardinality of the family as a BigInt.
  */
 bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo);
+bigint::BigInt bddexactcount(bddp f, CountMemoMap& memo, BddExecMode mode);
 
 /**
  * @brief Count the number of sets in a ZDD family as a hex string.

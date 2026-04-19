@@ -1334,3 +1334,213 @@ TEST_F(BDDTest, ZDD_ToStr_PowerSet2) {
     EXPECT_EQ(f.to_str(), "{},{1},{2},{2,1}");
 }
 
+// ============================================================
+// Parameterized mode tests: Recursive / Iterative / Auto must
+// agree for all zdd_adv_count operations (batch 4 _iter additions).
+// ============================================================
+
+#define EXPECT_COUNT_MODE_EQ(expr_mode, expr_default)         \
+    do {                                                      \
+        bdd_cache_clear();                                    \
+        auto _actual = (expr_mode);                           \
+        bdd_cache_clear();                                    \
+        auto _expected = (expr_default);                      \
+        EXPECT_EQ(_actual, _expected);                        \
+    } while (0)
+
+class ZddAdvCountModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddAdvCountModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+namespace {
+struct CountFamilies {
+    bddvar v1, v2, v3, v4;
+    bddp s_v1, s_v2, s_v3, s_v4;
+    bddp v1v2;          // {{v1,v2}}
+    bddp v2v3;          // {{v2,v3}}
+    bddp v3v4;          // {{v3,v4}}
+    bddp v1v2v3;        // {{v1,v2,v3}}
+    bddp F;             // {{v1},{v1,v2},{v2,v3}}
+    bddp G;             // {{v1,v2},{v2,v3},{v3,v4}}
+    bddp H;             // {{v1},{v2},{v1,v2},{v2,v3}}
+    bddp pow3;          // powerset over v1,v2,v3 (contains ∅)
+    bddp pow3_noempty;  // powerset minus ∅
+    bddp comp_F;        // ~F (complement edge)
+};
+
+static CountFamilies make_count_families() {
+    CountFamilies t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.v4 = bddnewvar();
+    t.s_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.s_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.s_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    t.s_v4 = ZDD::getnode(t.v4, bddempty, bddsingle);
+    t.v1v2 = bddjoin(t.s_v1, t.s_v2);
+    t.v2v3 = bddjoin(t.s_v2, t.s_v3);
+    t.v3v4 = bddjoin(t.s_v3, t.s_v4);
+    t.v1v2v3 = bddjoin(t.v1v2, t.s_v3);
+    t.F = bddunion(bddunion(t.s_v1, t.v1v2), t.v2v3);
+    t.G = bddunion(bddunion(t.v1v2, t.v2v3), t.v3v4);
+    t.H = bddunion(bddunion(bddunion(t.s_v1, t.s_v2), t.v1v2), t.v2v3);
+    // powerset over v1,v2,v3 using union composition
+    t.pow3 = bddunion(bddunion(bddunion(bddsingle, t.s_v1),
+                                bddunion(t.s_v2, t.v1v2)),
+                      bddunion(bddunion(t.s_v3, bddjoin(t.s_v1, t.s_v3)),
+                               bddunion(t.v2v3, t.v1v2v3)));
+    t.pow3_noempty = bddsubtract(t.pow3, bddsingle);
+    t.comp_F = bddnot(t.F);
+    bdd_cache_clear();
+    return t;
+}
+} // namespace
+
+TEST_P(ZddAdvCountModeTest, Choose) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    // Terminal / degenerate
+    EXPECT_EQ(bddchoose(bddempty, 0, m), bddempty);
+    EXPECT_EQ(bddchoose(bddempty, 2, m), bddempty);
+    EXPECT_EQ(bddchoose(bddsingle, 0, m), bddsingle);
+    EXPECT_EQ(bddchoose(bddsingle, 1, m), bddempty);
+    // Non-trivial
+    for (int k = 0; k <= 3; ++k) {
+        EXPECT_COUNT_MODE_EQ(bddchoose(t.F, k, m), bddchoose(t.F, k));
+        EXPECT_COUNT_MODE_EQ(bddchoose(t.G, k, m), bddchoose(t.G, k));
+        EXPECT_COUNT_MODE_EQ(bddchoose(t.H, k, m), bddchoose(t.H, k));
+        EXPECT_COUNT_MODE_EQ(bddchoose(t.pow3, k, m), bddchoose(t.pow3, k));
+        // ∅-containing complement case
+        EXPECT_COUNT_MODE_EQ(bddchoose(t.comp_F, k, m), bddchoose(t.comp_F, k));
+    }
+}
+
+TEST_P(ZddAdvCountModeTest, MinSize) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddminsize(bddempty, m), 0u);
+    EXPECT_EQ(bddminsize(bddsingle, m), 0u);
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.F, m), bddminsize(t.F));
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.G, m), bddminsize(t.G));
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.H, m), bddminsize(t.H));
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.pow3_noempty, m),
+                         bddminsize(t.pow3_noempty));
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.v1v2v3, m), bddminsize(t.v1v2v3));
+    EXPECT_COUNT_MODE_EQ(bddminsize(t.comp_F, m), bddminsize(t.comp_F));
+}
+
+TEST_P(ZddAdvCountModeTest, Count) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddcount(bddempty, m), 0.0);
+    EXPECT_EQ(bddcount(bddsingle, m), 1.0);
+    EXPECT_EQ(bddcount(t.F, m), bddcount(t.F));
+    EXPECT_EQ(bddcount(t.G, m), bddcount(t.G));
+    EXPECT_EQ(bddcount(t.H, m), bddcount(t.H));
+    EXPECT_EQ(bddcount(t.pow3, m), bddcount(t.pow3));
+    EXPECT_EQ(bddcount(t.comp_F, m), bddcount(t.comp_F));
+}
+
+TEST_P(ZddAdvCountModeTest, ExactCount) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddexactcount(bddempty, m), bigint::BigInt(0));
+    EXPECT_EQ(bddexactcount(bddsingle, m), bigint::BigInt(1));
+    EXPECT_EQ(bddexactcount(t.F, m), bddexactcount(t.F));
+    EXPECT_EQ(bddexactcount(t.G, m), bddexactcount(t.G));
+    EXPECT_EQ(bddexactcount(t.H, m), bddexactcount(t.H));
+    EXPECT_EQ(bddexactcount(t.pow3, m), bddexactcount(t.pow3));
+    EXPECT_EQ(bddexactcount(t.comp_F, m), bddexactcount(t.comp_F));
+    // memo-variant overload
+    CountMemoMap memo;
+    EXPECT_EQ(bddexactcount(t.F, memo, m), bddexactcount(t.F));
+    EXPECT_EQ(bddexactcount(t.G, memo, m), bddexactcount(t.G));
+}
+
+TEST_P(ZddAdvCountModeTest, Profile) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddprofile(bddempty, m).size(), 0u);
+    EXPECT_EQ(bddprofile(bddsingle, m).size(), 1u);
+    EXPECT_EQ(bddprofile(t.F, m), bddprofile(t.F));
+    EXPECT_EQ(bddprofile(t.G, m), bddprofile(t.G));
+    EXPECT_EQ(bddprofile(t.H, m), bddprofile(t.H));
+    EXPECT_EQ(bddprofile(t.pow3, m), bddprofile(t.pow3));
+    EXPECT_EQ(bddprofile(t.comp_F, m), bddprofile(t.comp_F));
+}
+
+TEST_P(ZddAdvCountModeTest, ElmFreq) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddelmfreq(bddempty, m).size(), 0u);
+    EXPECT_EQ(bddelmfreq(bddsingle, m).size(), 0u);
+    EXPECT_EQ(bddelmfreq(t.F, m), bddelmfreq(t.F));
+    EXPECT_EQ(bddelmfreq(t.G, m), bddelmfreq(t.G));
+    EXPECT_EQ(bddelmfreq(t.H, m), bddelmfreq(t.H));
+    EXPECT_EQ(bddelmfreq(t.pow3, m), bddelmfreq(t.pow3));
+    EXPECT_EQ(bddelmfreq(t.comp_F, m), bddelmfreq(t.comp_F));
+}
+
+TEST_P(ZddAdvCountModeTest, CountIntersec) {
+    auto t = make_count_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddcountintersec(bddempty, t.F, m), bigint::BigInt(0));
+    EXPECT_EQ(bddcountintersec(t.F, bddempty, m), bigint::BigInt(0));
+    EXPECT_EQ(bddcountintersec(t.F, t.F, m), bddexactcount(t.F));
+    EXPECT_EQ(bddcountintersec(t.F, t.G, m), bddcountintersec(t.F, t.G));
+    EXPECT_EQ(bddcountintersec(t.G, t.F, m), bddcountintersec(t.F, t.G));
+    EXPECT_EQ(bddcountintersec(t.F, t.H, m), bddcountintersec(t.F, t.H));
+    EXPECT_EQ(bddcountintersec(t.pow3, t.pow3_noempty, m),
+              bddcountintersec(t.pow3, t.pow3_noempty));
+    EXPECT_EQ(bddcountintersec(t.pow3, t.comp_F, m),
+              bddcountintersec(t.pow3, t.comp_F));
+}
+
+// Cross-validation test: mid-depth family exercising both lo/hi paths
+// and complement interactions across all count ops.
+TEST_P(ZddAdvCountModeTest, CrossValidationLinearChain) {
+    const int n = 8;
+    std::vector<bddvar> vars;
+    for (int i = 0; i < n; ++i) vars.push_back(bddnewvar());
+
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+    bddp other = bddunion(ZDD::getnode(vars[2], bddempty, bddsingle),
+                          bddjoin(ZDD::getnode(vars[5], bddempty, bddsingle),
+                                  ZDD::getnode(vars[7], bddempty, bddsingle)));
+
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddcount(fam, m), bddcount(fam));
+    EXPECT_EQ(bddexactcount(fam, m), bddexactcount(fam));
+    EXPECT_EQ(bddminsize(fam, m), bddminsize(fam));
+    EXPECT_EQ(bddprofile(fam, m), bddprofile(fam));
+    EXPECT_EQ(bddelmfreq(fam, m), bddelmfreq(fam));
+    EXPECT_EQ(bddcountintersec(fam, other, m),
+              bddcountintersec(fam, other));
+    for (int k = 0; k <= 4; ++k) {
+        EXPECT_COUNT_MODE_EQ(bddchoose(fam, k, m), bddchoose(fam, k));
+    }
+}
+

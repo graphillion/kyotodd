@@ -467,6 +467,15 @@ inline bool use_iter_3op(bddp f, bddp g, bddp h) {
 bigint::BigInt bddexactcount_rec(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo);
 
+/**
+ * @brief Internal iterative helper for bddexactcount (ZDD).
+ *
+ * NOT part of the public API. Explicit-stack counterpart to
+ * @ref bddexactcount_rec. Used by other zdd_adv_*_iter.cpp files.
+ */
+bigint::BigInt bddexactcount_iter(
+    bddp f, std::unordered_map<bddp, bigint::BigInt>& memo);
+
 } // namespace kyotodd
 
 #endif
