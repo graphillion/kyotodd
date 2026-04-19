@@ -1034,6 +1034,94 @@ TEST_F(MVDDTest, MVZDDOverlapCoefficient) {
 }
 
 // ============================================================
+//  MVZDD::rank / unrank tests
+// ============================================================
+
+TEST_F(MVDDTest, MVZDDRankUnrankRoundTrip) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    std::vector<std::vector<int>> assigns = {
+        {0, 0}, {1, 2}, {2, 1}, {0, 2}, {1, 0}};
+    MVZDD f = MVZDD::from_sets(base, assigns);
+
+    int64_t count = static_cast<int64_t>(f.count());
+    EXPECT_EQ(count, static_cast<int64_t>(assigns.size()));
+
+    // rank ∘ unrank = identity on [0, count)
+    for (int64_t i = 0; i < count; ++i) {
+        std::vector<int> a = f.unrank(i);
+        EXPECT_TRUE(f.contains(a));
+        EXPECT_EQ(f.rank(a), i);
+    }
+
+    // unrank enumerates the family exactly once (set-equality vs enumerate()).
+    std::vector<std::vector<int>> unranked;
+    for (int64_t i = 0; i < count; ++i) {
+        unranked.push_back(f.unrank(i));
+    }
+    std::vector<std::vector<int>> enumerated = f.enumerate();
+    std::sort(unranked.begin(), unranked.end());
+    std::sort(enumerated.begin(), enumerated.end());
+    EXPECT_EQ(unranked, enumerated);
+}
+
+TEST_F(MVDDTest, MVZDDRankNotInFamily) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    EXPECT_EQ(f.rank({2, 1}), -1);
+    EXPECT_EQ(f.rank({0, 1}), -1);
+    EXPECT_EQ(f.exact_rank({2, 1}).to_string(), "-1");
+}
+
+TEST_F(MVDDTest, MVZDDUnrankOutOfRange) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    EXPECT_THROW(f.unrank(2), std::out_of_range);
+    EXPECT_THROW(f.unrank(-1), std::out_of_range);
+
+    MVZDD empty = MVZDD::from_sets(base, {});
+    EXPECT_THROW(empty.unrank(0), std::out_of_range);
+}
+
+TEST_F(MVDDTest, MVZDDRankValidation) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}});
+    EXPECT_THROW(f.rank({0}), std::invalid_argument);           // size mismatch
+    EXPECT_THROW(f.rank({0, 3}), std::invalid_argument);        // out of range
+    EXPECT_THROW(f.rank({-1, 0}), std::invalid_argument);       // negative
+}
+
+TEST_F(MVDDTest, MVZDDExactRankWithMemo) {
+    MVZDD base(3);
+    base.new_var();
+    base.new_var();
+
+    MVZDD f = MVZDD::from_sets(base, {{0, 0}, {1, 2}, {2, 1}, {0, 2}});
+    ZddCountMemo memo(f.to_zdd());
+
+    int64_t count = static_cast<int64_t>(f.count());
+    for (int64_t i = 0; i < count; ++i) {
+        std::vector<int> a = f.exact_unrank(bigint::BigInt(i), memo);
+        EXPECT_TRUE(f.contains(a));
+        EXPECT_EQ(f.exact_rank(a, memo).to_string(), std::to_string(i));
+    }
+
+    // Not in family: exact_rank returns -1.
+    EXPECT_EQ(f.exact_rank({1, 1}, memo).to_string(), "-1");
+}
+
+// ============================================================
 //  MVZDD::cost_bound_range tests
 // ============================================================
 

@@ -921,6 +921,112 @@ double MVZDD::overlap_coefficient(const MVZDD& g) const {
     return bddoverlapcoeff(root, g.root);
 }
 
+// --- Ranking / Unranking ---
+
+namespace {
+
+// Convert MVDD assignment to DD-level variable list (one-hot encoding).
+// Same convention as MVZDD::contains / evaluate.
+std::vector<bddvar> mvzdd_assignment_to_dd_vars(
+    const std::vector<int>& s, const MVDDVarTable& table,
+    const char* ctx) {
+    if (s.size() != table.mvdd_var_count()) {
+        throw std::invalid_argument(
+            std::string(ctx) + ": assignment size mismatch");
+    }
+    int kv = table.k();
+    std::vector<bddvar> dd_vars;
+    for (bddvar mv = 1; mv <= table.mvdd_var_count(); ++mv) {
+        int val = s[mv - 1];
+        if (val < 0 || val >= kv) {
+            throw std::invalid_argument(
+                std::string(ctx) + ": value out of range");
+        }
+        if (val > 0) {
+            const std::vector<bddvar>& dvars = table.dd_vars_of(mv);
+            dd_vars.push_back(dvars[val - 1]);
+        }
+    }
+    return dd_vars;
+}
+
+// Convert DD-level variable list (from unrank) to MVDD assignment.
+std::vector<int> mvzdd_dd_vars_to_assignment(
+    const std::vector<bddvar>& dd_vars, const MVDDVarTable& table,
+    const char* ctx) {
+    bddvar n = table.mvdd_var_count();
+    std::vector<int> assign(n, 0);
+    for (size_t j = 0; j < dd_vars.size(); ++j) {
+        bddvar dv = dd_vars[j];
+        bddvar mv = table.mvdd_var_of(dv);
+        if (mv == 0) {
+            throw std::logic_error(
+                std::string(ctx) + ": DD variable " + std::to_string(dv) +
+                " is not registered in the var table");
+        }
+        int idx = table.dd_var_index(dv);
+        assign[mv - 1] = idx + 1;
+    }
+    return assign;
+}
+
+}  // namespace
+
+int64_t MVZDD::rank(const std::vector<int>& s) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::rank: no var table");
+    }
+    std::vector<bddvar> dd_vars = mvzdd_assignment_to_dd_vars(
+        s, *var_table_, "MVZDD::rank");
+    return bddrank(root, dd_vars);
+}
+
+bigint::BigInt MVZDD::exact_rank(const std::vector<int>& s) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::exact_rank: no var table");
+    }
+    std::vector<bddvar> dd_vars = mvzdd_assignment_to_dd_vars(
+        s, *var_table_, "MVZDD::exact_rank");
+    return bddexactrank(root, dd_vars);
+}
+
+bigint::BigInt MVZDD::exact_rank(const std::vector<int>& s,
+                                 ZddCountMemo& memo) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::exact_rank: no var table");
+    }
+    std::vector<bddvar> dd_vars = mvzdd_assignment_to_dd_vars(
+        s, *var_table_, "MVZDD::exact_rank");
+    return to_zdd().exact_rank(dd_vars, memo);
+}
+
+std::vector<int> MVZDD::unrank(int64_t order) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::unrank: no var table");
+    }
+    std::vector<bddvar> dd_vars = bddunrank(root, order);
+    return mvzdd_dd_vars_to_assignment(dd_vars, *var_table_, "MVZDD::unrank");
+}
+
+std::vector<int> MVZDD::exact_unrank(const bigint::BigInt& order) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::exact_unrank: no var table");
+    }
+    std::vector<bddvar> dd_vars = bddexactunrank(root, order);
+    return mvzdd_dd_vars_to_assignment(
+        dd_vars, *var_table_, "MVZDD::exact_unrank");
+}
+
+std::vector<int> MVZDD::exact_unrank(const bigint::BigInt& order,
+                                     ZddCountMemo& memo) const {
+    if (!var_table_) {
+        throw std::logic_error("MVZDD::exact_unrank: no var table");
+    }
+    std::vector<bddvar> dd_vars = to_zdd().exact_unrank(order, memo);
+    return mvzdd_dd_vars_to_assignment(
+        dd_vars, *var_table_, "MVZDD::exact_unrank");
+}
+
 // --- Support ---
 
 std::vector<bddvar> MVZDD::support_vars() const {

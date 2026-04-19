@@ -675,6 +675,55 @@ public:
     MVZDD cost_bound_range(const std::vector<std::vector<int>>& weights,
                             long long lo, long long hi) const;
 
+    // --- Ranking / Unranking ---
+
+    /**
+     * @brief Return the 0-based rank of assignment s in the family.
+     *
+     * The ordering is the ZDD structure order on the internal one-hot
+     * encoded ZDD (empty set first, then hi-edge before lo-edge).
+     *
+     * @param s 0-indexed assignment: s[i] is the value of MVDD variable i+1.
+     *          Size must equal mvdd_var_count.
+     * @return The rank as int64_t, or -1 if the assignment is not in the family.
+     * @throws std::overflow_error if the rank exceeds int64_t range.
+     */
+    int64_t rank(const std::vector<int>& s) const;
+
+    /**
+     * @brief Arbitrary-precision variant of rank().
+     * @param s Assignment (same format as rank()).
+     * @return The rank as BigInt, or -1 if not in the family.
+     */
+    bigint::BigInt exact_rank(const std::vector<int>& s) const;
+
+    /**
+     * @brief Arbitrary-precision rank with memo.
+     * @param s Assignment (same format as rank()).
+     * @param memo A ZddCountMemo created for the internal ZDD (to_zdd()).
+     */
+    bigint::BigInt exact_rank(const std::vector<int>& s,
+                              ZddCountMemo& memo) const;
+
+    /**
+     * @brief Retrieve the assignment at the given 0-based index.
+     * @param order 0-based index in structure order.
+     * @return Assignment vector (result[i] = value of MVDD variable i+1).
+     * @throws std::out_of_range if order is outside [0, |F|).
+     */
+    std::vector<int> unrank(int64_t order) const;
+
+    /** @brief Arbitrary-precision variant of unrank(). */
+    std::vector<int> exact_unrank(const bigint::BigInt& order) const;
+
+    /**
+     * @brief Arbitrary-precision unrank with memo.
+     * @param order 0-based index.
+     * @param memo A ZddCountMemo created for the internal ZDD (to_zdd()).
+     */
+    std::vector<int> exact_unrank(const bigint::BigInt& order,
+                                   ZddCountMemo& memo) const;
+
     // --- Evaluation ---
 
     /**

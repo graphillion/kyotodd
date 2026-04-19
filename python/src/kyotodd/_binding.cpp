@@ -4114,6 +4114,69 @@ PYBIND11_MODULE(_core, m) {
             "Returns 1.0 when both families are empty; 0.0 when exactly one is empty.\n\n"
             "Args:\n"
             "    g: Another MVZDD with the same variable table.")
+        // Rank / Unrank
+        .def("rank", &MVZDD::rank, py::arg("s"),
+            "Return the 0-based rank of assignment s in the family.\n\n"
+            "Args:\n"
+            "    s: List of values (0-indexed: s[i] is the value of MVDD variable i+1).\n\n"
+            "Returns:\n"
+            "    The rank (int), or -1 if the assignment is not in the family.\n\n"
+            "Raises:\n"
+            "    OverflowError: If the rank exceeds int64 range.")
+        .def("exact_rank", [](const MVZDD& f, const std::vector<int>& s) -> py::int_ {
+            bigint::BigInt bi = f.exact_rank(s);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("s"),
+            "Arbitrary-precision rank.\n\n"
+            "Args:\n"
+            "    s: List of values (0-indexed).\n\n"
+            "Returns:\n"
+            "    The rank (int), or -1 if the assignment is not in the family.")
+        .def("exact_rank_with_memo", [](const MVZDD& f, const std::vector<int>& s,
+                                        ZddCountMemo& memo) -> py::int_ {
+            bigint::BigInt bi = f.exact_rank(s, memo);
+            return py::int_(py::str(bi.to_string()));
+        }, py::arg("s"), py::arg("memo"),
+            "Arbitrary-precision rank using a memo.\n\n"
+            "The memo must have been created for the internal ZDD (to_zdd()).\n\n"
+            "Args:\n"
+            "    s: List of values (0-indexed).\n"
+            "    memo: A ZddCountMemo for the internal ZDD.\n\n"
+            "Returns:\n"
+            "    The rank (int), or -1 if the assignment is not in the family.")
+        .def("unrank", &MVZDD::unrank, py::arg("order"),
+            "Retrieve the assignment at the given 0-based index.\n\n"
+            "Args:\n"
+            "    order: The 0-based index.\n\n"
+            "Returns:\n"
+            "    The assignment as a list of values.\n\n"
+            "Raises:\n"
+            "    IndexError: If order is out of range.")
+        .def("exact_unrank", [](const MVZDD& f, py::int_ order) -> std::vector<int> {
+            std::string s = py::str(order).cast<std::string>();
+            bigint::BigInt bi(s);
+            return f.exact_unrank(bi);
+        }, py::arg("order"),
+            "Arbitrary-precision unrank.\n\n"
+            "Args:\n"
+            "    order: The 0-based index (int, arbitrary precision).\n\n"
+            "Returns:\n"
+            "    The assignment as a list of values.\n\n"
+            "Raises:\n"
+            "    IndexError: If order is out of range.")
+        .def("exact_unrank_with_memo", [](const MVZDD& f, py::int_ order,
+                                          ZddCountMemo& memo) -> std::vector<int> {
+            std::string s = py::str(order).cast<std::string>();
+            bigint::BigInt bi(s);
+            return f.exact_unrank(bi, memo);
+        }, py::arg("order"), py::arg("memo"),
+            "Arbitrary-precision unrank using a memo.\n\n"
+            "The memo must have been created for the internal ZDD (to_zdd()).\n\n"
+            "Args:\n"
+            "    order: The 0-based index.\n"
+            "    memo: A ZddCountMemo for the internal ZDD.\n\n"
+            "Returns:\n"
+            "    The assignment as a list of values.")
         // Support
         .def("support_vars", &MVZDD::support_vars,
             "Return all MVDD variable numbers appearing in the family.\n\n"
