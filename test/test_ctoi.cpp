@@ -595,6 +595,25 @@ TEST_F(CtoITest, PutFormZero) {
     EXPECT_NE(output.find("0"), std::string::npos);
 }
 
+TEST_F(CtoITest, PutFormDeepCtoIExceedsRecurLimit) {
+    // Construct a ZDD of a single monomial v1*v2*...*vn with n > 8192,
+    // wrap it as a CtoI, and exercise PutForm. Level of the wrapped ZDD
+    // is n, triggering the iterative dispatch.
+    const int n = 9000;
+    while (BDDV_UserTopLev() < n) BDDV_NewVar();
+    ZDD cube(1); // {emptyset}
+    for (int v = 1; v <= n; ++v) {
+        bddvar var = static_cast<bddvar>(v + BDDV_SysVarTop);
+        cube = cube.Change(var);
+    }
+    CtoI c(cube);
+    testing::internal::CaptureStdout();
+    int err = c.PutForm();
+    std::string output = testing::internal::GetCapturedStdout();
+    EXPECT_EQ(err, 0);
+    EXPECT_FALSE(output.empty());
+}
+
 /* ================================================================ */
 /*  CtoI_atoi                                                        */
 /* ================================================================ */

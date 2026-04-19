@@ -905,6 +905,98 @@ int CtoI::StrNum16(char* s) const
 /*  PutForm                                                          */
 /* ================================================================ */
 
+// Iterative counterpart to PutForm_rec. Two-branch recursion (Factor1 / Factor0).
+// `first` starts at the root and becomes 0 once any non-zero term has been
+// emitted on the left spine; PutForm_rec threads this in via its return path.
+// We mirror that semantics by tracking per-frame the `first` value for each
+// entry (inherited from caller's current value, set to 0 when Factor0 is
+// entered after the Factor1 branch).
+static int PutForm_iter(const CtoI& root_c, std::vector<int>& varstack,
+                        int root_first)
+{
+    enum class Phase : uint8_t { ENTER, AFTER_F1, AFTER_F0 };
+    struct Frame {
+        CtoI c;
+        int first;
+        int ti;
+        bool pushed;
+        Phase phase;
+        Frame() : c(), first(0), ti(0), pushed(false), phase(Phase::ENTER) {}
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+    {
+        Frame init;
+        init.c = root_c;
+        init.first = root_first;
+        stack.push_back(std::move(init));
+    }
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.c.GetZBDD() == ZDD(-1)) return 1;
+            if (frame.c == CtoI(0)) { stack.pop_back(); break; }
+
+            int ti = frame.c.TopItem();
+            if (ti == 0) {
+                int val = frame.c.GetInt();
+                if (val == 0) { stack.pop_back(); break; }
+                if (!frame.first && val > 0) std::printf(" +");
+                if (varstack.empty()) {
+                    std::printf(" %d", val);
+                } else {
+                    if (val == 1) {
+                        std::printf(" ");
+                    } else if (val == -1) {
+                        std::printf(" -");
+                    } else {
+                        std::printf(" %d", val);
+                    }
+                    for (size_t i = 0; i < varstack.size(); i++) {
+                        std::printf("v%d", varstack[i]);
+                        if (i + 1 < varstack.size()) std::printf("*");
+                    }
+                }
+                stack.pop_back();
+                break;
+            }
+
+            varstack.push_back(ti);
+            frame.ti = ti;
+            frame.pushed = true;
+            frame.phase = Phase::AFTER_F1;
+
+            Frame child;
+            child.c = frame.c.Factor1(ti);
+            child.first = frame.first;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::AFTER_F1: {
+            if (frame.pushed) {
+                varstack.pop_back();
+                frame.pushed = false;
+            }
+            frame.phase = Phase::AFTER_F0;
+
+            Frame child;
+            child.c = frame.c.Factor0(frame.ti);
+            child.first = 0;
+            stack.push_back(std::move(child));
+            break;
+        }
+        case Phase::AFTER_F0: {
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return 0;
+}
+
 static int PutForm_rec(const CtoI& c, std::vector<int>& varstack, int first)
 {
     BDD_RecurGuard guard;
@@ -953,6 +1045,10 @@ int CtoI::PutForm() const
         return 0;
     }
     std::vector<int> varstack;
+    bddp p = _zbdd.GetID();
+    if (use_iter_1op(p)) {
+        return PutForm_iter(*this, varstack, 1);
+    }
     return PutForm_rec(*this, varstack, 1);
 }
 
