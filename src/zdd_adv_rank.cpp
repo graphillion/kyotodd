@@ -97,7 +97,7 @@ int64_t bddrank(bddp f, const std::vector<bddvar>& s) {
         throw std::overflow_error(
             "bddrank: rank exceeds int64_t range; use bddexactrank instead");
     }
-    return std::stoll(result.to_string());
+    return result.to_int64();
 }
 
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,

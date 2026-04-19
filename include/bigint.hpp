@@ -553,6 +553,36 @@ public:
         return limbs_.empty();
     }
 
+    /**
+     * @brief Convert to int64_t without going through a decimal string.
+     * @throws std::overflow_error if the value is outside int64_t range.
+     */
+    int64_t to_int64() const {
+        if (is_zero()) return 0;
+        if (limbs_.size() > 2) {
+            throw std::overflow_error("BigInt::to_int64: value out of range");
+        }
+        uint64_t mag = static_cast<uint64_t>(limbs_[0]);
+        if (limbs_.size() == 2) {
+            mag |= static_cast<uint64_t>(limbs_[1]) << 32;
+        }
+        if (negative_) {
+            // The only negative value with |x| == 2^63 is INT64_MIN.
+            if (mag > static_cast<uint64_t>(INT64_MAX) + 1ULL) {
+                throw std::overflow_error(
+                    "BigInt::to_int64: value out of range");
+            }
+            if (mag == static_cast<uint64_t>(INT64_MAX) + 1ULL) {
+                return INT64_MIN;
+            }
+            return -static_cast<int64_t>(mag);
+        }
+        if (mag > static_cast<uint64_t>(INT64_MAX)) {
+            throw std::overflow_error("BigInt::to_int64: value out of range");
+        }
+        return static_cast<int64_t>(mag);
+    }
+
     void swap(BigInt& other) noexcept {
         limbs_.swap(other.limbs_);
         std::swap(negative_, other.negative_);

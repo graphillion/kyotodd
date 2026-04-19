@@ -936,6 +936,22 @@ TEST_F(BDDTest, ZDD_Rank_DuplicateInput) {
     EXPECT_EQ(r, f.rank({v1, v2}));
 }
 
+TEST_F(BDDTest, BigInt_ToInt64_Roundtrip) {
+    // to_int64() is the direct path bddrank uses. Cover signed boundaries
+    // explicitly so the conversion doesn't regress.
+    using bigint::BigInt;
+    EXPECT_EQ(BigInt(0).to_int64(), 0);
+    EXPECT_EQ(BigInt(1).to_int64(), 1);
+    EXPECT_EQ(BigInt(-1).to_int64(), -1);
+    EXPECT_EQ(BigInt(INT64_MAX).to_int64(), INT64_MAX);
+    EXPECT_EQ(BigInt(INT64_MIN).to_int64(), INT64_MIN);
+    // Just beyond int64_t range on either side must throw.
+    BigInt overflow_hi = BigInt(INT64_MAX) + BigInt(1);
+    BigInt overflow_lo = BigInt(INT64_MIN) - BigInt(1);
+    EXPECT_THROW(overflow_hi.to_int64(), std::overflow_error);
+    EXPECT_THROW(overflow_lo.to_int64(), std::overflow_error);
+}
+
 TEST_F(BDDTest, ZDD_Rank_PowerSet3_RoundtripWithEnumerate) {
     // power_set(3) has 8 sets. Verify rank matches enumerate order.
     bddvar v1 = bddnewvar();
