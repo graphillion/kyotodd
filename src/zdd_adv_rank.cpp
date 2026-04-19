@@ -3,6 +3,7 @@
 #include "bigint.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -292,27 +293,80 @@ static bddp bddsupersets_of_rec(
     return result;
 }
 
+namespace {
+// Normalize input s vector: validate, dedup, and sort by descending level.
+std::vector<bddvar> normalize_supersets_of_args(
+    const std::vector<bddvar>& s, const char* func_name) {
+    std::vector<bddvar> sorted_s(s);
+    std::sort(sorted_s.begin(), sorted_s.end());
+    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
+                   sorted_s.end());
+    for (bddvar v : sorted_s) {
+        if (v < 1 || v > bdd_varcount) {
+            std::string msg(func_name);
+            msg += ": variable out of range";
+            throw std::invalid_argument(msg);
+        }
+    }
+    std::sort(sorted_s.begin(), sorted_s.end(),
+              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+    return sorted_s;
+}
+} // namespace
+
 bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s) {
     bddp_validate(f, "bddsupersets_of");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (s.empty()) return f;
 
-    std::vector<bddvar> sorted_s(s);
-    std::sort(sorted_s.begin(), sorted_s.end());
-    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
-                   sorted_s.end());
-    for (bddvar v : sorted_s) {
-        if (v < 1 || v > bdd_varcount)
-            throw std::invalid_argument("bddsupersets_of: variable out of range");
-    }
-    std::sort(sorted_s.begin(), sorted_s.end(),
-              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+    std::vector<bddvar> sorted_s =
+        normalize_supersets_of_args(s, "bddsupersets_of");
 
-    return bdd_gc_guard([&]() -> bddp {
-        BddpIdxMemo memo;
-        return bddsupersets_of_rec(f, 0, sorted_s, memo);
-    });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            return bddsupersets_of_iter(f, sorted_s);
+        });
+    } else {
+        return bdd_gc_guard([&]() -> bddp {
+            BddpIdxMemo memo;
+            return bddsupersets_of_rec(f, 0, sorted_s, memo);
+        });
+    }
+}
+
+bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s, BddExecMode mode) {
+    bddp_validate(f, "bddsupersets_of");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (s.empty()) return f;
+
+    std::vector<bddvar> sorted_s =
+        normalize_supersets_of_args(s, "bddsupersets_of");
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            return bddsupersets_of_iter(f, sorted_s);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            BddpIdxMemo memo;
+            return bddsupersets_of_rec(f, 0, sorted_s, memo);
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                return bddsupersets_of_iter(f, sorted_s);
+            });
+        } else {
+            return bdd_gc_guard([&]() -> bddp {
+                BddpIdxMemo memo;
+                return bddsupersets_of_rec(f, 0, sorted_s, memo);
+            });
+        }
+    }
 }
 
 // ============================================================
@@ -367,21 +421,52 @@ bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s) {
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
 
-    std::vector<bddvar> sorted_s(s);
-    std::sort(sorted_s.begin(), sorted_s.end());
-    sorted_s.erase(std::unique(sorted_s.begin(), sorted_s.end()),
-                   sorted_s.end());
-    for (bddvar v : sorted_s) {
-        if (v < 1 || v > bdd_varcount)
-            throw std::invalid_argument("bddsubsets_of: variable out of range");
-    }
-    std::sort(sorted_s.begin(), sorted_s.end(),
-              [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
+    std::vector<bddvar> sorted_s =
+        normalize_supersets_of_args(s, "bddsubsets_of");
 
-    return bdd_gc_guard([&]() -> bddp {
-        BddpIdxMemo memo;
-        return bddsubsets_of_rec(f, 0, sorted_s, memo);
-    });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            return bddsubsets_of_iter(f, sorted_s);
+        });
+    } else {
+        return bdd_gc_guard([&]() -> bddp {
+            BddpIdxMemo memo;
+            return bddsubsets_of_rec(f, 0, sorted_s, memo);
+        });
+    }
+}
+
+bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s, BddExecMode mode) {
+    bddp_validate(f, "bddsubsets_of");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+
+    std::vector<bddvar> sorted_s =
+        normalize_supersets_of_args(s, "bddsubsets_of");
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            return bddsubsets_of_iter(f, sorted_s);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            BddpIdxMemo memo;
+            return bddsubsets_of_rec(f, 0, sorted_s, memo);
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                return bddsubsets_of_iter(f, sorted_s);
+            });
+        } else {
+            return bdd_gc_guard([&]() -> bddp {
+                BddpIdxMemo memo;
+                return bddsubsets_of_rec(f, 0, sorted_s, memo);
+            });
+        }
+    }
 }
 
 // ============================================================
@@ -423,22 +508,70 @@ static bddp bddproject_rec(
     return result;
 }
 
+namespace {
+void validate_project_vars(const std::vector<bddvar>& vars) {
+    for (bddvar v : vars) {
+        if (v < 1 || v > bdd_varcount)
+            throw std::invalid_argument("bddproject: variable out of range");
+    }
+}
+} // namespace
+
 bddp bddproject(bddp f, const std::vector<bddvar>& vars) {
     bddp_validate(f, "bddproject");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (vars.empty()) return f;
 
-    for (bddvar v : vars) {
-        if (v < 1 || v > bdd_varcount)
-            throw std::invalid_argument("bddproject: variable out of range");
-    }
+    validate_project_vars(vars);
 
-    std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
-    return bdd_gc_guard([&]() -> bddp {
-        std::unordered_map<bddp, bddp> memo;
-        return bddproject_rec(f, var_set, memo);
-    });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            return bddproject_iter(f, vars);
+        });
+    } else {
+        std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
+        return bdd_gc_guard([&]() -> bddp {
+            std::unordered_map<bddp, bddp> memo;
+            return bddproject_rec(f, var_set, memo);
+        });
+    }
+}
+
+bddp bddproject(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
+    bddp_validate(f, "bddproject");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (vars.empty()) return f;
+
+    validate_project_vars(vars);
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            return bddproject_iter(f, vars);
+        });
+    case BddExecMode::Recursive: {
+        std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
+        return bdd_gc_guard([&]() -> bddp {
+            std::unordered_map<bddp, bddp> memo;
+            return bddproject_rec(f, var_set, memo);
+        });
+    }
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                return bddproject_iter(f, vars);
+            });
+        } else {
+            std::unordered_set<bddvar> var_set(vars.begin(), vars.end());
+            return bdd_gc_guard([&]() -> bddp {
+                std::unordered_map<bddp, bddp> memo;
+                return bddproject_rec(f, var_set, memo);
+            });
+        }
+    }
 }
 
 ZDD ZDD_LCM_A(char* /*filename*/, int /*threshold*/) {

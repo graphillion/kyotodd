@@ -1075,17 +1075,47 @@ double bddoverlapcoeff(bddp f, bddp g);
  * Returns all sets A in f where s ⊆ A.
  */
 bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s);
+bddp bddsupersets_of(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsupersets_of.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. @p sorted_s must be
+ * the variable vector already sorted in descending level order and
+ * deduplicated (as prepared by the public wrapper).
+ */
+bddp bddsupersets_of_iter(bddp f, const std::vector<bddvar>& sorted_s);
 
 /**
  * @brief Extract subsets of a given set from a ZDD family.
  * Returns all sets A in f where A ⊆ s.
  */
 bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s);
+bddp bddsubsets_of(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsubsets_of.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. @p sorted_s must be
+ * the variable vector already sorted in descending level order and
+ * deduplicated (as prepared by the public wrapper).
+ */
+bddp bddsubsets_of_iter(bddp f, const std::vector<bddvar>& sorted_s);
 
 /**
  * @brief Project (remove) specified variables from all sets in a ZDD family.
  */
 bddp bddproject(bddp f, const std::vector<bddvar>& vars);
+bddp bddproject(bddp f, const std::vector<bddvar>& vars, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddproject.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
+ * projected sub-results via @ref bddunion_iter. @p vars is the raw variable
+ * list (deduplication is not required).
+ */
+bddp bddproject_iter(bddp f, const std::vector<bddvar>& vars);
 
 /**
  * @brief Coalesce (merge) two variables in a ZDD family.

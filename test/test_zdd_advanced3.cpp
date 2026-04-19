@@ -1867,3 +1867,178 @@ TEST_P(ZddAdvWeightModeTest, CrossValidationLinearChain) {
     }
 }
 
+// ============================================================
+// Parameterized mode tests for zdd_adv_rank operations
+// (bddsupersets_of / bddsubsets_of / bddproject).
+// ============================================================
+
+#define EXPECT_RANK_MODE_EQ(expr_mode, expr_default)          \
+    do {                                                      \
+        bdd_cache_clear();                                    \
+        auto _actual = (expr_mode);                           \
+        bdd_cache_clear();                                    \
+        auto _expected = (expr_default);                      \
+        EXPECT_EQ(_actual, _expected);                        \
+    } while (0)
+
+class ZddAdvRankModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddAdvRankModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+namespace {
+struct RankFamilies {
+    bddvar v1, v2, v3, v4;
+    bddp s_v1, s_v2, s_v3, s_v4;
+    bddp v1v2, v1v3, v2v3, v1v2v3, v3v4;
+    bddp F;      // {{v1},{v1,v2},{v2,v3}}
+    bddp G;      // {{v1,v2},{v1,v3},{v2,v3}}
+    bddp H;      // {∅,{v1},{v1,v2},{v2,v3}}
+    bddp pow3;   // powerset over v1..v3
+};
+
+static RankFamilies make_rank_families() {
+    RankFamilies t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.v4 = bddnewvar();
+    t.s_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.s_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.s_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    t.s_v4 = ZDD::getnode(t.v4, bddempty, bddsingle);
+    t.v1v2 = bddjoin(t.s_v1, t.s_v2);
+    t.v1v3 = bddjoin(t.s_v1, t.s_v3);
+    t.v2v3 = bddjoin(t.s_v2, t.s_v3);
+    t.v1v2v3 = bddjoin(t.v1v2, t.s_v3);
+    t.v3v4 = bddjoin(t.s_v3, t.s_v4);
+    t.F = bddunion(bddunion(t.s_v1, t.v1v2), t.v2v3);
+    t.G = bddunion(bddunion(t.v1v2, t.v1v3), t.v2v3);
+    t.H = bddunion(t.F, bddsingle);
+    // Build pow3 = power_set over {v1,v2,v3}
+    t.pow3 = bddsingle;
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v1, bddempty, t.pow3));
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v2, bddempty, t.pow3));
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v3, bddempty, t.pow3));
+    bdd_cache_clear();
+    return t;
+}
+} // namespace
+
+TEST_P(ZddAdvRankModeTest, SupersetsOfTerminals) {
+    auto t = make_rank_families();
+    EXPECT_EQ(bddsupersets_of(bddempty, {t.v1}, GetParam()), bddempty);
+    EXPECT_EQ(bddsupersets_of(t.F, {}, GetParam()), t.F);
+}
+
+TEST_P(ZddAdvRankModeTest, SupersetsOfSingleVar) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.F, {t.v1}, GetParam()),
+                        bddsupersets_of(t.F, {t.v1}));
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.G, {t.v2}, GetParam()),
+                        bddsupersets_of(t.G, {t.v2}));
+}
+
+TEST_P(ZddAdvRankModeTest, SupersetsOfMultiVar) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.pow3, {t.v1, t.v2}, GetParam()),
+                        bddsupersets_of(t.pow3, {t.v1, t.v2}));
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.F, {t.v1, t.v3}, GetParam()),
+                        bddsupersets_of(t.F, {t.v1, t.v3}));
+}
+
+TEST_P(ZddAdvRankModeTest, SupersetsOfWithEmptyMember) {
+    auto t = make_rank_families();
+    // H contains ∅, which is superset only of ∅ itself.
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.H, {}, GetParam()),
+                        bddsupersets_of(t.H, {}));
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(t.H, {t.v1}, GetParam()),
+                        bddsupersets_of(t.H, {t.v1}));
+}
+
+TEST_P(ZddAdvRankModeTest, SubsetsOfTerminals) {
+    auto t = make_rank_families();
+    EXPECT_EQ(bddsubsets_of(bddempty, {t.v1}, GetParam()), bddempty);
+    // subsets_of({}) = sets that are subsets of ∅ = {∅} iff ∅ ∈ F else ∅.
+    EXPECT_RANK_MODE_EQ(bddsubsets_of(t.H, {}, GetParam()),
+                        bddsubsets_of(t.H, {}));
+    EXPECT_RANK_MODE_EQ(bddsubsets_of(t.F, {}, GetParam()),
+                        bddsubsets_of(t.F, {}));
+}
+
+TEST_P(ZddAdvRankModeTest, SubsetsOfBasic) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(bddsubsets_of(t.F, {t.v1, t.v2}, GetParam()),
+                        bddsubsets_of(t.F, {t.v1, t.v2}));
+    EXPECT_RANK_MODE_EQ(bddsubsets_of(t.pow3, {t.v1, t.v2}, GetParam()),
+                        bddsubsets_of(t.pow3, {t.v1, t.v2}));
+}
+
+TEST_P(ZddAdvRankModeTest, SubsetsOfAllVars) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(
+        bddsubsets_of(t.F, {t.v1, t.v2, t.v3, t.v4}, GetParam()),
+        bddsubsets_of(t.F, {t.v1, t.v2, t.v3, t.v4}));
+}
+
+TEST_P(ZddAdvRankModeTest, ProjectTerminals) {
+    auto t = make_rank_families();
+    EXPECT_EQ(bddproject(bddempty, {t.v1}, GetParam()), bddempty);
+    EXPECT_EQ(bddproject(t.F, {}, GetParam()), t.F);
+}
+
+TEST_P(ZddAdvRankModeTest, ProjectSingleVar) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(bddproject(t.F, {t.v2}, GetParam()),
+                        bddproject(t.F, {t.v2}));
+    EXPECT_RANK_MODE_EQ(bddproject(t.G, {t.v3}, GetParam()),
+                        bddproject(t.G, {t.v3}));
+}
+
+TEST_P(ZddAdvRankModeTest, ProjectMultiVar) {
+    auto t = make_rank_families();
+    EXPECT_RANK_MODE_EQ(bddproject(t.pow3, {t.v1, t.v2}, GetParam()),
+                        bddproject(t.pow3, {t.v1, t.v2}));
+    EXPECT_RANK_MODE_EQ(bddproject(t.F, {t.v2, t.v3}, GetParam()),
+                        bddproject(t.F, {t.v2, t.v3}));
+}
+
+// Cross-validation: linear-chain family exercising every level.
+TEST_P(ZddAdvRankModeTest, CrossValidationLinearChain) {
+    const int n = 10;
+    std::vector<bddvar> vars;
+    for (int i = 0; i < n; ++i) vars.push_back(bddnewvar());
+
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+    // Pick non-adjacent variables from the chain.
+    std::vector<bddvar> probe = {vars[1], vars[4], vars[7]};
+
+    EXPECT_RANK_MODE_EQ(bddsupersets_of(fam, probe, GetParam()),
+                        bddsupersets_of(fam, probe));
+    EXPECT_RANK_MODE_EQ(bddsubsets_of(fam, probe, GetParam()),
+                        bddsubsets_of(fam, probe));
+    EXPECT_RANK_MODE_EQ(bddproject(fam, probe, GetParam()),
+                        bddproject(fam, probe));
+}
+
