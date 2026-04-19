@@ -796,6 +796,16 @@ MVZDD MVZDD::child(int value) const {
             // Zero-suppressed → hi is bddempty
             f = bddempty;
         }
+        // Take lo at remaining lower dd_vars. In a well-formed one-hot
+        // encoding these are zero-suppressed already, but when the ZDD is
+        // wrapped via from_zdd with arbitrary structure we must still walk
+        // them so the returned child selects the subfamily that pins the
+        // lower dd_vars to 0.
+        for (int i = value - 2; i >= 0; --i) {
+            if (f & BDD_CONST_FLAG) break;
+            if (node_var(f) != dvars[i]) continue;
+            f = ZDD::child0(f);
+        }
     }
 
     return make_result(f);
