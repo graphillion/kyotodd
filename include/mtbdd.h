@@ -1779,7 +1779,7 @@ template<typename T>
 static bddp mtzdd_to_zdd_rec(
     bddp f,
     const std::unordered_set<bddp>& pred_terminals,
-    uint8_t cache_op)
+    std::unordered_map<bddp, bddp>& memo)
 {
     BDD_RecurGuard guard;
 
@@ -1787,15 +1787,15 @@ static bddp mtzdd_to_zdd_rec(
         return pred_terminals.count(f) ? bddsingle : bddempty;
     }
 
-    bddp cached = bddrcache(cache_op, f, 0);
-    if (cached != bddnull) return cached;
+    std::unordered_map<bddp, bddp>::iterator it = memo.find(f);
+    if (it != memo.end()) return it->second;
 
     bddvar var = node_var(f);
-    bddp lo = mtzdd_to_zdd_rec<T>(node_lo(f), pred_terminals, cache_op);
-    bddp hi = mtzdd_to_zdd_rec<T>(node_hi(f), pred_terminals, cache_op);
+    bddp lo = mtzdd_to_zdd_rec<T>(node_lo(f), pred_terminals, memo);
+    bddp hi = mtzdd_to_zdd_rec<T>(node_hi(f), pred_terminals, memo);
     bddp result = ZDD::getnode_raw(var, lo, hi);
 
-    bddwcache(cache_op, f, 0, result);
+    memo[f] = result;
     return result;
 }
 
@@ -1805,7 +1805,7 @@ template<typename T>
 static bddp mtzdd_to_zdd_iter(
     bddp root_f,
     const std::unordered_set<bddp>& pred_terminals,
-    uint8_t cache_op)
+    std::unordered_map<bddp, bddp>& memo)
 {
     enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
     struct Frame {
@@ -1836,9 +1836,9 @@ static bddp mtzdd_to_zdd_iter(
                 stack.pop_back();
                 break;
             }
-            bddp cached = bddrcache(cache_op, f, 0);
-            if (cached != bddnull) {
-                result = cached;
+            std::unordered_map<bddp, bddp>::iterator it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
                 stack.pop_back();
                 break;
             }
@@ -1868,7 +1868,7 @@ static bddp mtzdd_to_zdd_iter(
         case Phase::GOT_HI: {
             bddp hi = result;
             bddp r = ZDD::getnode_raw(frame.var, frame.lo_result, hi);
-            bddwcache(cache_op, frame.f, 0, r);
+            memo[frame.f] = r;
             result = r;
             stack.pop_back();
             break;
@@ -1998,12 +1998,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2018,12 +2018,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2038,12 +2038,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2058,12 +2058,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2078,12 +2078,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2098,12 +2098,12 @@ public:
             }
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }
@@ -2116,12 +2116,12 @@ public:
             pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
         }
         if (pred_terminals.empty()) return ZDD(0);
-        static uint8_t op = mtbdd_alloc_op_code();
+        std::unordered_map<bddp, bddp> memo;
         bddp result = bdd_gc_guard([&]() -> bddp {
             if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
             }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
         });
         return ZDD_ID(result);
     }

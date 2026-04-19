@@ -180,9 +180,12 @@ TEST_F(BDDTest, MinMaxWeight_UnrelatedNewVarDoesNotBreak) {
     std::vector<int> w = {0, 5};
     EXPECT_EQ(f.min_weight(w), 5);
 
-    // Creating more variables should not break existing ZDD's weight ops.
+    // Creating more variables expands bddvarused(); weights must be resized
+    // to cover every possible descendant variable (matching cost_bound_le's
+    // API), after which the original ZDD's weight ops must still work.
     bddnewvar();
     bddnewvar();
+    w.resize(bddvarused() + 1, 0);
     EXPECT_EQ(f.min_weight(w), 5);
     EXPECT_EQ(f.max_weight(w), 5);
     std::vector<bddvar> expected = {v1};

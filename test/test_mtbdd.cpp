@@ -2196,13 +2196,13 @@ TEST_F(MtbddTemplateIterTest, MtzddToZddIterMatchesRec) {
         pred_terminals.insert(MTBDDTerminalTable<int64_t>::make_terminal(i));
     }
 
-    uint8_t op_rec = mtbdd_alloc_op_code();
-    uint8_t op_iter = mtbdd_alloc_op_code();
+    std::unordered_map<bddp, bddp> memo_rec;
+    std::unordered_map<bddp, bddp> memo_iter;
     bddp rec_r = bdd_gc_guard([&]() -> bddp {
-        return mtzdd_to_zdd_rec<int64_t>(m.id(), pred_terminals, op_rec);
+        return mtzdd_to_zdd_rec<int64_t>(m.id(), pred_terminals, memo_rec);
     });
     bddp iter_r = bdd_gc_guard([&]() -> bddp {
-        return mtzdd_to_zdd_iter<int64_t>(m.id(), pred_terminals, op_iter);
+        return mtzdd_to_zdd_iter<int64_t>(m.id(), pred_terminals, memo_iter);
     });
     EXPECT_EQ(iter_r, rec_r);
 }

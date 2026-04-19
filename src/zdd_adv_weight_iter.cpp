@@ -9,6 +9,12 @@
 
 namespace kyotodd {
 
+namespace {
+// Forward declarations (definitions appear later in this file).
+long long costbound_safe_add(long long a, long long b);
+long long costbound_safe_sub(long long a, long long b);
+}
+
 // =====================================================================
 // bddweightsum_iter — Template D + memo.
 //
@@ -192,8 +198,8 @@ long long bddminweight_iter(
 
         case Phase::GOT_HI: {
             long long hi_val = result;
-            long long hi_total =
-                static_cast<long long>(weights[frame.var]) + hi_val;
+            long long hi_total = costbound_safe_add(
+                static_cast<long long>(weights[frame.var]), hi_val);
             long long r = std::min(frame.lo_val, hi_total);
             memo[frame.f_in] = r;
             result = r;
@@ -288,8 +294,8 @@ long long bddmaxweight_iter(
 
         case Phase::GOT_HI: {
             long long hi_val = result;
-            long long hi_total =
-                static_cast<long long>(weights[frame.var]) + hi_val;
+            long long hi_total = costbound_safe_add(
+                static_cast<long long>(weights[frame.var]), hi_val);
             long long r = std::max(frame.lo_val, hi_total);
             memo[frame.f_in] = r;
             result = r;

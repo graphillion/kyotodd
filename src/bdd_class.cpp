@@ -496,7 +496,10 @@ ZDD ZDD::combination(bddvar n, bddvar k) {
     for (bddvar i = 0; i < n; ++i) sorted_vars[i] = i + 1;
     std::sort(sorted_vars.begin(), sorted_vars.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
-    return ZDD_ID(combination_dispatch(sorted_vars, 0, k));
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        return combination_dispatch(sorted_vars, 0, k);
+    });
+    return ZDD_ID(r);
 }
 
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {

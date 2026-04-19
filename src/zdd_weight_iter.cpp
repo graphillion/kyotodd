@@ -2,10 +2,20 @@
 #include "bdd_internal.h"
 #include "zdd_weight_iter.h"
 #include <algorithm>
+#include <climits>
 #include <cstdint>
 #include <stdexcept>
 
 namespace kyotodd {
+
+// Saturating signed add that also preserves LLONG_MAX/LLONG_MIN sentinels.
+static long long weight_saturate_add(long long a, long long b) {
+    if (a == LLONG_MIN || b == LLONG_MIN) return LLONG_MIN;
+    if (a == LLONG_MAX || b == LLONG_MAX) return LLONG_MAX;
+    if (b > 0 && a > LLONG_MAX - b) return LLONG_MAX;
+    if (b < 0 && a < LLONG_MIN - b) return LLONG_MIN;
+    return a + b;
+}
 
 
 // ---- compute_min_dist ----
@@ -33,9 +43,8 @@ static long long compute_min_dist_rec(
 
     long long lo_dist = compute_min_dist_rec(lo, weights, memo);
     long long hi_dist = compute_min_dist_rec(hi, weights, memo);
-    long long hi_total = (hi_dist == LLONG_MAX)
-                             ? LLONG_MAX
-                             : static_cast<long long>(weights[var]) + hi_dist;
+    long long hi_total = weight_saturate_add(
+        static_cast<long long>(weights[var]), hi_dist);
 
     long long result = std::min(lo_dist, hi_total);
     memo[f] = result;
@@ -127,9 +136,8 @@ static long long compute_min_dist_iter(
         }
         case Phase::GOT_HI: {
             long long hi_dist = result;
-            long long hi_total = (hi_dist == LLONG_MAX)
-                                     ? LLONG_MAX
-                                     : static_cast<long long>(weights[frame.var]) + hi_dist;
+            long long hi_total = weight_saturate_add(
+                static_cast<long long>(weights[frame.var]), hi_dist);
             long long r = std::min(frame.lo_dist, hi_total);
             memo[frame.f] = r;
             result = r;
@@ -164,9 +172,8 @@ ZddMinWeightIterator::trace_shortest_path(bddp f) {
 
         long long lo_dist = compute_min_dist(lo);
         long long hi_dist = compute_min_dist(hi);
-        long long hi_total = (hi_dist == LLONG_MAX)
-                                 ? LLONG_MAX
-                                 : static_cast<long long>(state_->weights[var]) + hi_dist;
+        long long hi_total = weight_saturate_add(
+            static_cast<long long>(state_->weights[var]), hi_dist);
 
         if (lo_dist <= hi_total) {
             ZddPathStep step;
@@ -203,7 +210,8 @@ ZddMinWeightIterator::path_to_value(
             bddp f_raw = path[i].node & ~BDD_COMP_FLAG;
             bddvar var = node_var(f_raw);
             vars.push_back(var);
-            weight += static_cast<long long>(weights[var]);
+            weight = weight_saturate_add(weight,
+                static_cast<long long>(weights[var]));
         }
     }
     std::sort(vars.begin(), vars.end());
@@ -234,11 +242,12 @@ ZddMinWeightIterator::ZddMinWeightIterator(
         return;
     }
 
-    // Validate weights size against the ZDD's top variable.
-    bddvar top = bddtop(root);
-    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
+    // Any variable number may appear below the root when var order differs
+    // from level order, so require weights.size() > bddvarused() to cover
+    // every possible descendant variable.
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            "ZddMinWeightIterator: weights.size() must be > top variable");
+            "ZddMinWeightIterator: weights.size() must be > bddvarused()");
     }
 
     // Check if any path to 1-terminal exists.
@@ -310,7 +319,8 @@ void ZddMinWeightIterator::generate_candidates(const Path& last_path) {
             if (last_path[i].choice == 1) {
                 bddp f_raw = spur_node & ~BDD_COMP_FLAG;
                 bddvar var = node_var(f_raw);
-                prefix_weight += static_cast<long long>(state_->weights[var]);
+                prefix_weight = weight_saturate_add(prefix_weight,
+                    static_cast<long long>(state_->weights[var]));
             }
             continue;
         }
@@ -331,7 +341,8 @@ void ZddMinWeightIterator::generate_candidates(const Path& last_path) {
             if (last_path[i].choice == 1) {
                 bddp f_raw = spur_node & ~BDD_COMP_FLAG;
                 bddvar var = node_var(f_raw);
-                prefix_weight += static_cast<long long>(state_->weights[var]);
+                prefix_weight = weight_saturate_add(prefix_weight,
+                    static_cast<long long>(state_->weights[var]));
             }
             continue;
         }
@@ -353,7 +364,9 @@ void ZddMinWeightIterator::generate_candidates(const Path& last_path) {
             candidate.push_back(suffix[k]);
         }
 
-        long long candidate_weight = prefix_weight + alt_edge_weight + suffix_dist;
+        long long candidate_weight = weight_saturate_add(
+            weight_saturate_add(prefix_weight, alt_edge_weight),
+            suffix_dist);
 
         WeightedPath wp;
         wp.weight = candidate_weight;
@@ -364,7 +377,8 @@ void ZddMinWeightIterator::generate_candidates(const Path& last_path) {
         if (last_path[i].choice == 1) {
             bddp f_raw = spur_node & ~BDD_COMP_FLAG;
             bddvar var = node_var(f_raw);
-            prefix_weight += static_cast<long long>(state_->weights[var]);
+            prefix_weight = weight_saturate_add(prefix_weight,
+                static_cast<long long>(state_->weights[var]));
         }
     }
 }

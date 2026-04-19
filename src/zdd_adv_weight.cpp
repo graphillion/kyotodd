@@ -8,6 +8,10 @@
 
 namespace kyotodd {
 
+// Forward declarations (definitions appear later in this file).
+static long long costbound_safe_add(long long a, long long b);
+static long long costbound_safe_sub(long long a, long long b);
+
 
 // ---- weight sum ----
 
@@ -48,10 +52,12 @@ static void bddweightsum_validate(bddp f, const std::vector<int>& weights,
         throw std::invalid_argument(std::string(name) + ": null ZDD");
     }
     if (f == bddempty || f == bddsingle) return;
-    bddvar top = bddtop(f);
-    if (weights.size() <= static_cast<size_t>(top)) {
+    // Any variable number may appear below the root when var order differs
+    // from level order, so require weights.size() > bddvarused() to cover
+    // every possible descendant variable.
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            std::string(name) + ": weights.size() must be > top variable");
+            std::string(name) + ": weights.size() must be > bddvarused()");
     }
 }
 
@@ -101,10 +107,12 @@ static void bddweight_validate(bddp f, const std::vector<int>& weights,
         throw std::invalid_argument(
             std::string(name) + ": empty family has no sets");
     }
-    bddvar top = bddtop(f);
-    if (top > 0 && weights.size() <= static_cast<size_t>(top)) {
+    // Any variable number may appear below the root when var order differs
+    // from level order, so require weights.size() > bddvarused() to cover
+    // every possible descendant variable.
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
         throw std::invalid_argument(
-            std::string(name) + ": weights.size() must be > top variable");
+            std::string(name) + ": weights.size() must be > bddvarused()");
     }
 }
 
@@ -128,7 +136,8 @@ static long long bddminweight_rec(bddp f, const std::vector<int>& weights,
 
     long long lo_val = bddminweight_rec(lo, weights, memo);
     long long hi_val = bddminweight_rec(hi, weights, memo);
-    long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+    long long hi_total = costbound_safe_add(
+        static_cast<long long>(weights[var]), hi_val);
 
     long long result = std::min(lo_val, hi_total);
     memo[f] = result;
@@ -182,7 +191,8 @@ static long long bddmaxweight_rec(bddp f, const std::vector<int>& weights,
 
     long long lo_val = bddmaxweight_rec(lo, weights, memo);
     long long hi_val = bddmaxweight_rec(hi, weights, memo);
-    long long hi_total = static_cast<long long>(weights[var]) + hi_val;
+    long long hi_total = costbound_safe_add(
+        static_cast<long long>(weights[var]), hi_val);
 
     long long result = std::max(lo_val, hi_total);
     memo[f] = result;
