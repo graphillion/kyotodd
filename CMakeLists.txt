@@ -45,6 +45,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_rank_iter.cpp
   src/zdd_random_iter.cpp
   src/mtbdd.cpp
+  src/mtbdd_iter.cpp
   src/mvdd.cpp
   src/svg_export.cpp
 )

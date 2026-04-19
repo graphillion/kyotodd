@@ -1,5 +1,6 @@
 #include "mtbdd.h"
 #include "bdd_base.h"
+#include "bdd_internal.h"
 #include <vector>
 #include <stdexcept>
 
@@ -92,7 +93,10 @@ bddp mtzdd_cofactor0(bddp f, bddvar v) {
         throw std::invalid_argument("mtzdd_cofactor0: var out of range");
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return mtzdd_cofactor0_rec(f, v); });
+    return bdd_gc_guard([&]() -> bddp {
+        if (use_iter_1op(f)) return mtzdd_cofactor0_iter(f, v, mtzdd_cofactor0_op());
+        return mtzdd_cofactor0_rec(f, v);
+    });
 }
 
 // cofactor1: fix variable v to 1 (ZDD semantics)
@@ -145,7 +149,10 @@ bddp mtzdd_cofactor1(bddp f, bddvar v) {
         throw std::invalid_argument("mtzdd_cofactor1: var out of range");
     if (f & BDD_CONST_FLAG) return BDD_CONST_FLAG;  // zero terminal
 
-    return bdd_gc_guard([&]() -> bddp { return mtzdd_cofactor1_rec(f, v); });
+    return bdd_gc_guard([&]() -> bddp {
+        if (use_iter_1op(f)) return mtzdd_cofactor1_iter(f, v, mtzdd_cofactor1_op());
+        return mtzdd_cofactor1_rec(f, v);
+    });
 }
 
 } // namespace kyotodd

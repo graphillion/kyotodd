@@ -128,6 +128,11 @@ uint8_t mtbdd_alloc_op_code();
 bddp mtzdd_cofactor0(bddp f, bddvar v);
 bddp mtzdd_cofactor1(bddp f, bddvar v);
 
+// --- Forward declarations for MTZDD cofactor iter (defined in mtbdd_iter.cpp) ---
+
+bddp mtzdd_cofactor0_iter(bddp f, bddvar v, uint8_t op_code);
+bddp mtzdd_cofactor1_iter(bddp f, bddvar v, uint8_t op_code);
+
 // --- Apply templates (BDD cofactoring) ---
 
 template<typename T, typename BinOp>

@@ -1849,3 +1849,127 @@ TEST_F(MTBDDClassTest, MTZDDThresholdBruteForce) {
     std::sort(zdd_sets.begin(), zdd_sets.end());
     EXPECT_EQ(zdd_sets, expected);
 }
+
+// ========================================================================
+//  MTZDD cofactor iter (direct call) tests
+//
+// The public wrappers dispatch to _rec for shallow DDs, so these tests
+// exercise the _iter branch directly and compare against the public API
+// output on small examples.
+// ========================================================================
+
+class MtbddIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        bddinit(256, UINT64_MAX);
+        for (int i = 0; i < 4; i++) bddnewvar();
+    }
+};
+
+TEST_F(MtbddIterTest, MtzddCofactor0IterMatchesPublic) {
+    auto t100 = MTZDD<int64_t>::terminal(100);
+    auto t200 = MTZDD<int64_t>::terminal(200);
+    auto t300 = MTZDD<int64_t>::terminal(300);
+    auto inner = MTZDD<int64_t>::ite(1, t100, t200);
+    auto f = MTZDD<int64_t>::ite(3, inner, t300);
+
+    uint8_t op_code = mtbdd_alloc_op_code();
+
+    for (bddvar v : {static_cast<bddvar>(1), static_cast<bddvar>(2),
+                     static_cast<bddvar>(3)}) {
+        bddp expected = f.cofactor0(v).id();
+        bddp iter_r = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_cofactor0_iter(f.id(), v, op_code);
+        });
+        EXPECT_EQ(iter_r, expected) << "v=" << v;
+    }
+}
+
+TEST_F(MtbddIterTest, MtzddCofactor1IterMatchesPublic) {
+    auto t100 = MTZDD<int64_t>::terminal(100);
+    auto t200 = MTZDD<int64_t>::terminal(200);
+    auto t300 = MTZDD<int64_t>::terminal(300);
+    auto inner = MTZDD<int64_t>::ite(1, t100, t200);
+    auto f = MTZDD<int64_t>::ite(3, inner, t300);
+
+    uint8_t op_code = mtbdd_alloc_op_code();
+
+    for (bddvar v : {static_cast<bddvar>(1), static_cast<bddvar>(2),
+                     static_cast<bddvar>(3)}) {
+        bddp expected = f.cofactor1(v).id();
+        bddp iter_r = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_cofactor1_iter(f.id(), v, op_code);
+        });
+        EXPECT_EQ(iter_r, expected) << "v=" << v;
+    }
+}
+
+TEST_F(MtbddIterTest, MtzddCofactorIterTerminals) {
+    auto t = MTZDD<double>::terminal(7.5);
+    uint8_t op0 = mtbdd_alloc_op_code();
+    uint8_t op1 = mtbdd_alloc_op_code();
+
+    bddp r0 = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_cofactor0_iter(t.id(), 1, op0);
+    });
+    EXPECT_EQ(r0, t.id());  // terminal is unchanged by cofactor0
+
+    bddp r1 = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_cofactor1_iter(t.id(), 1, op1);
+    });
+    EXPECT_EQ(r1, BDD_CONST_FLAG);  // terminal → zero terminal for cofactor1
+}
+
+TEST_F(MtbddIterTest, MtzddCofactor0IterZeroSuppressedVar) {
+    auto hi = MTZDD<int64_t>::terminal(10);
+    auto lo = MTZDD<int64_t>::terminal(20);
+    auto f = MTZDD<int64_t>::ite(1, hi, lo);
+
+    uint8_t op_code = mtbdd_alloc_op_code();
+
+    // v=2 above f's top level (f uses var 1, level 1; v=2 at level 2)
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_cofactor0_iter(f.id(), 2, op_code);
+    });
+    EXPECT_EQ(r, f.id());
+}
+
+TEST_F(MtbddIterTest, MtzddCofactor1IterZeroSuppressedVar) {
+    auto hi = MTZDD<int64_t>::terminal(10);
+    auto lo = MTZDD<int64_t>::terminal(20);
+    auto f = MTZDD<int64_t>::ite(1, hi, lo);
+
+    uint8_t op_code = mtbdd_alloc_op_code();
+
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_cofactor1_iter(f.id(), 2, op_code);
+    });
+    EXPECT_EQ(r, BDD_CONST_FLAG);
+}
+
+TEST_F(MtbddIterTest, MtzddCofactorIterFromZdd) {
+    // Build a moderately complex MTZDD via from_zdd and verify iter vs public.
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + x2 + (x1 * x3) + (x2 * x3);
+    auto mf = MTZDD<double>::from_zdd(f, 0.0, 1.0);
+
+    uint8_t op0 = mtbdd_alloc_op_code();
+    uint8_t op1 = mtbdd_alloc_op_code();
+
+    for (bddvar v : {static_cast<bddvar>(1), static_cast<bddvar>(2),
+                     static_cast<bddvar>(3)}) {
+        bddp e0 = mf.cofactor0(v).id();
+        bddp r0 = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_cofactor0_iter(mf.id(), v, op0);
+        });
+        EXPECT_EQ(r0, e0) << "cofactor0 v=" << v;
+
+        bddp e1 = mf.cofactor1(v).id();
+        bddp r1 = bdd_gc_guard([&]() -> bddp {
+            return mtzdd_cofactor1_iter(mf.id(), v, op1);
+        });
+        EXPECT_EQ(r1, e1) << "cofactor1 v=" << v;
+    }
+}
