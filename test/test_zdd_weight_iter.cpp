@@ -547,3 +547,15 @@ TEST_F(ZddMaxWeightIterTest, RangeBasedFor) {
     std::vector<long long> expected = {30, 20, 10, 0};
     EXPECT_EQ(ws, expected);
 }
+
+// ---- Weight validation is consistent across empty and non-empty ZDDs ----
+
+TEST_F(ZddMinWeightIterTest, EmptyFamilyWithBadWeightsThrows) {
+    // Ensure the weights-size check fires before the empty-family fast path
+    // so the error condition does not depend on the ZDD shape.
+    bddnewvar();
+    ZDD empty(0);
+    std::vector<int> too_short;  // size 0 <= bddvarused() => 1
+    EXPECT_THROW(ZddMinWeightIterator it(empty, too_short),
+                 std::invalid_argument);
+}

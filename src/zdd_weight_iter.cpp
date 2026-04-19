@@ -243,18 +243,19 @@ ZddMinWeightIterator::ZddMinWeightIterator(
             "ZddMinWeightIterator: null ZDD");
     }
 
+    // Any variable number may appear below the root when var order differs
+    // from level order, so require weights.size() > bddvarused() to cover
+    // every possible descendant variable. Validate before branching on the
+    // root so callers see a consistent error regardless of emptiness.
+    if (weights.size() <= static_cast<size_t>(bddvarused())) {
+        throw std::invalid_argument(
+            "ZddMinWeightIterator: weights.size() must be > bddvarused()");
+    }
+
     // Empty family: produce an end iterator.
     if (root == bddempty) {
         exhausted_ = true;
         return;
-    }
-
-    // Any variable number may appear below the root when var order differs
-    // from level order, so require weights.size() > bddvarused() to cover
-    // every possible descendant variable.
-    if (weights.size() <= static_cast<size_t>(bddvarused())) {
-        throw std::invalid_argument(
-            "ZddMinWeightIterator: weights.size() must be > bddvarused()");
     }
 
     // Check if any path to 1-terminal exists.

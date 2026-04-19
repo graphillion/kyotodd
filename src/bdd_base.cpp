@@ -462,22 +462,35 @@ double bddgc_getthreshold() {
 }
 
 static void bddgc_mark(bddp f, uint64_t* marks) {
-    std::vector<bddp> stack;
-    stack.push_back(f);
-    while (!stack.empty()) {
-        bddp cur = stack.back();
-        stack.pop_back();
-        if (cur == bddnull) continue;
-        if (cur & BDD_CONST_FLAG) continue;
-        bddp node_id = cur & ~BDD_COMP_FLAG;
+    // Helper: check terminal/null/OOB, test mark bit, set it, and report
+    // whether the caller needs to recurse into the children. Testing the
+    // mark bit BEFORE pushing keeps the stack bounded by the number of
+    // live nodes rather than the number of DAG edges.
+    auto visit = [marks](bddp cur, uint64_t& node_id_out) -> bool {
+        if (cur == bddnull) return false;
+        if (cur & BDD_CONST_FLAG) return false;
+        uint64_t node_id = cur & ~BDD_COMP_FLAG;
         uint64_t idx = node_id / 2 - 1;
-        if (idx >= bdd_node_used) continue;
+        if (idx >= bdd_node_used) return false;
         uint64_t word = idx / 64;
         uint64_t bit = static_cast<uint64_t>(1) << (idx % 64);
-        if (marks[word] & bit) continue;
+        if (marks[word] & bit) return false;
         marks[word] |= bit;
-        stack.push_back(node_lo(node_id));
-        stack.push_back(node_hi(node_id));
+        node_id_out = node_id;
+        return true;
+    };
+
+    uint64_t node_id;
+    if (!visit(f, node_id)) return;
+
+    std::vector<uint64_t> stack;
+    stack.push_back(node_id);
+    while (!stack.empty()) {
+        uint64_t cur = stack.back();
+        stack.pop_back();
+        uint64_t child_id;
+        if (visit(node_lo(cur), child_id)) stack.push_back(child_id);
+        if (visit(node_hi(cur), child_id)) stack.push_back(child_id);
     }
 }
 

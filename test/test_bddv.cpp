@@ -794,6 +794,23 @@ TEST_F(BDDVTest, ImportNegativeNodeCountReturnsNull) {
     EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
 }
 
+TEST_F(BDDVTest, ImportNegativeNodeIdReturnsNull) {
+    // Node IDs must be positive even integers. Negative keys would
+    // corrupt the node_map and interact badly with the "odd = negated"
+    // edge logic.
+    const char* data = "_i 1 _o 1 _n 1\n-2 1 F T\n-2\n";
+    FILE* f = fmemopen(const_cast<char*>(data), strlen(data), "r");
+    ASSERT_NE(f, nullptr);
+
+    if (BDDV_UserTopLev() < 1) BDDV_NewVar();
+
+    BDDV result = BDDV_Import(f);
+    fclose(f);
+
+    EXPECT_EQ(result.Len(), 1);
+    EXPECT_EQ(result.GetMetaBDD().GetID(), bddnull);
+}
+
 // ============================================================
 // BDDV_ImportPla
 // ============================================================

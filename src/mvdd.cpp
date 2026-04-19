@@ -1,6 +1,8 @@
 #include "bdd.h"
+#include "bdd_internal.h"
 #include "mvdd.h"
 #include <algorithm>
+#include <climits>
 #include <sstream>
 #include <unordered_set>
 
@@ -638,7 +640,7 @@ MVZDD MVZDD::from_sets(const MVZDD& base,
     bddvar n = base.var_table_->mvdd_var_count();
     int k = base.var_table_->k();
 
-    bddp f = bddempty;
+    // Validate sets up-front so argument errors don't depend on GC ordering.
     for (size_t i = 0; i < sets.size(); ++i) {
         if (sets[i].size() != static_cast<size_t>(n)) {
             throw std::invalid_argument(
@@ -646,9 +648,6 @@ MVZDD MVZDD::from_sets(const MVZDD& base,
                 " has size " + std::to_string(sets[i].size()) +
                 ", expected " + std::to_string(n));
         }
-
-        // Build a DD-level set for this assignment
-        bddp t = bddsingle;
         for (bddvar mv = 1; mv <= n; ++mv) {
             int val = sets[i][mv - 1];
             if (val < 0 || val >= k) {
@@ -658,14 +657,36 @@ MVZDD MVZDD::from_sets(const MVZDD& base,
                     " has value " + std::to_string(val) +
                     " out of range [0, " + std::to_string(k - 1) + "]");
             }
-            if (val > 0) {
-                const std::vector<bddvar>& dvars =
-                    base.var_table_->dd_vars_of(mv);
-                t = bddchange(t, dvars[val - 1]);
-            }
         }
-        f = bddunion(f, t);
     }
+
+    // Protect the two live-loop accumulators across possible GC calls.
+    // bddchange / bddunion may trigger a pre-GC via bdd_gc_guard, and the
+    // raw bddp values in this scope are not otherwise registered as roots.
+    bddp f = bddempty;
+    bddp t = bddsingle;
+    bddgc_protect(&f);
+    bddgc_protect(&t);
+    try {
+        for (size_t i = 0; i < sets.size(); ++i) {
+            t = bddsingle;
+            for (bddvar mv = 1; mv <= n; ++mv) {
+                int val = sets[i][mv - 1];
+                if (val > 0) {
+                    const std::vector<bddvar>& dvars =
+                        base.var_table_->dd_vars_of(mv);
+                    t = bddchange(t, dvars[val - 1]);
+                }
+            }
+            f = bddunion(f, t);
+        }
+    } catch (...) {
+        bddgc_unprotect(&t);
+        bddgc_unprotect(&f);
+        throw;
+    }
+    bddgc_unprotect(&t);
+    bddgc_unprotect(&f);
     return base.make_result(f);
 }
 
@@ -724,21 +745,45 @@ MVZDD MVZDD::ite(const MVZDD& base, bddvar mv,
 
     // Helper: strip all dd_vars of mv from a ZDD by projecting them out.
     // Offset(f, v) = sets without v; OnSet0(f, v) = sets with v, v removed.
-    // Union of both = all sets with v removed.
+    // Union of both = all sets with v removed. The accumulator is
+    // gc-protected because the per-iteration ZDD ops may trigger GC and
+    // the raw bddp is not otherwise a root.
     auto strip_mv_dvars = [&dvars, k](bddp f) -> bddp {
-        for (int j = 0; j < k - 1; ++j) {
-            f = bddunion(bddoffset(f, dvars[j]),
-                         bddonset0(f, dvars[j]));
+        bddgc_protect(&f);
+        try {
+            for (int j = 0; j < k - 1; ++j) {
+                f = bddunion(bddoffset(f, dvars[j]),
+                             bddonset0(f, dvars[j]));
+            }
+        } catch (...) {
+            bddgc_unprotect(&f);
+            throw;
         }
+        bddgc_unprotect(&f);
         return f;
     };
 
     bddp result = strip_mv_dvars(children[0].root);
-    for (int i = 1; i < k; ++i) {
-        bddp stripped = strip_mv_dvars(children[i].root);
-        bddp modified = bddchange(stripped, dvars[i - 1]);
-        result = bddunion(result, modified);
+    bddp stripped = bddempty;
+    bddp modified = bddempty;
+    bddgc_protect(&result);
+    bddgc_protect(&stripped);
+    bddgc_protect(&modified);
+    try {
+        for (int i = 1; i < k; ++i) {
+            stripped = strip_mv_dvars(children[i].root);
+            modified = bddchange(stripped, dvars[i - 1]);
+            result = bddunion(result, modified);
+        }
+    } catch (...) {
+        bddgc_unprotect(&modified);
+        bddgc_unprotect(&stripped);
+        bddgc_unprotect(&result);
+        throw;
     }
+    bddgc_unprotect(&modified);
+    bddgc_unprotect(&stripped);
+    bddgc_unprotect(&result);
 
     return base.make_result(result);
 }
@@ -1174,12 +1219,25 @@ void MVZDD::convert_weights(const std::vector<std::vector<int>>& weights,
     base_weight = 0;
 
     for (bddvar mv = 1; mv <= n; ++mv) {
-        base_weight += weights[mv - 1][0];
+        long long b = static_cast<long long>(weights[mv - 1][0]);
+        if ((b > 0 && base_weight > LLONG_MAX - b) ||
+            (b < 0 && base_weight < LLONG_MIN - b)) {
+            throw std::overflow_error(
+                std::string(caller) + ": base weight overflow");
+        }
+        base_weight += b;
         const std::vector<bddvar>& dvars = var_table_->dd_vars_of(mv);
         for (int idx = 0; idx < static_cast<int>(dvars.size()); ++idx) {
             bddvar dv = dvars[idx];
             if (dv < dd_weights.size()) {
-                dd_weights[dv] = weights[mv - 1][idx + 1] - weights[mv - 1][0];
+                long long diff =
+                    static_cast<long long>(weights[mv - 1][idx + 1]) -
+                    static_cast<long long>(weights[mv - 1][0]);
+                if (diff < INT_MIN || diff > INT_MAX) {
+                    throw std::overflow_error(
+                        std::string(caller) + ": dd weight overflow");
+                }
+                dd_weights[dv] = static_cast<int>(diff);
             }
         }
     }

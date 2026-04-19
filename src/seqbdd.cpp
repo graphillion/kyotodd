@@ -15,6 +15,9 @@ namespace kyotodd {
 
 SeqBDD SeqBDD::onset0(int v) const
 {
+    if (v < 1 || v > static_cast<int>(bddvarused())) {
+        throw std::invalid_argument("SeqBDD::onset0: variable out of range");
+    }
     bddvar vlev = bddlevofvar(static_cast<bddvar>(v));
     ZDD f = zdd_;
     bddvar ftop = f.Top();
@@ -31,6 +34,9 @@ SeqBDD SeqBDD::onset0(int v) const
 
 SeqBDD SeqBDD::offset(int v) const
 {
+    if (v < 1 || v > static_cast<int>(bddvarused())) {
+        throw std::invalid_argument("SeqBDD::offset: variable out of range");
+    }
     if (static_cast<int>(zdd_.Top()) == v) {
         return SeqBDD(zdd_.OffSet(static_cast<bddvar>(v)));
     }
@@ -43,6 +49,9 @@ SeqBDD SeqBDD::offset(int v) const
 
 SeqBDD SeqBDD::onset(int v) const
 {
+    if (v < 1 || v > static_cast<int>(bddvarused())) {
+        throw std::invalid_argument("SeqBDD::onset: variable out of range");
+    }
     return onset0(v).push(v);
 }
 
@@ -52,6 +61,9 @@ SeqBDD SeqBDD::onset(int v) const
 
 SeqBDD SeqBDD::push(int v) const
 {
+    if (v < 1 || v > static_cast<int>(bddvarused())) {
+        throw std::invalid_argument("SeqBDD::push: variable out of range");
+    }
     return SeqBDD(ZDD_ID(bddpush(zdd_.GetID(), static_cast<bddvar>(v))));
 }
 

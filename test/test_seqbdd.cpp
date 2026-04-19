@@ -587,3 +587,18 @@ TEST_F(SeqBDDTest, SaveSvgTerminal) {
     EXPECT_TRUE(svg.find("<svg") != std::string::npos);
     EXPECT_EQ(svg, empty.get_zdd().save_svg());
 }
+
+/* ---- Variable range validation ---- */
+TEST_F(SeqBDDTest, VarRangeValidation) {
+    bddnewvar();
+    SeqBDD eps(1);  // {ε}
+    EXPECT_THROW(eps.onset0(0), std::invalid_argument);
+    EXPECT_THROW(eps.offset(0), std::invalid_argument);
+    EXPECT_THROW(eps.onset(0), std::invalid_argument);
+    EXPECT_THROW(eps.push(0), std::invalid_argument);
+    const int too_big = static_cast<int>(bddvarused()) + 1;
+    EXPECT_THROW(eps.onset0(too_big), std::invalid_argument);
+    EXPECT_THROW(eps.offset(too_big), std::invalid_argument);
+    EXPECT_THROW(eps.onset(too_big), std::invalid_argument);
+    EXPECT_THROW(eps.push(too_big), std::invalid_argument);
+}

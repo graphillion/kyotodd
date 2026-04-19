@@ -463,6 +463,7 @@ RotPiDD RotPiDD::insert(int p, int v) const
 
 RotPiDD RotPiDD::remove_max(int k) const
 {
+    if (k <= 0) return *this;
     if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull || zdd_.GetID() == bddsingle)
         return *this;
 

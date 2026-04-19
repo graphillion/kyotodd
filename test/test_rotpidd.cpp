@@ -565,3 +565,14 @@ TEST_F(RotPiDDTest, SvgVarNameMap) {
     EXPECT_TRUE(svg.find("<svg") != std::string::npos);
     EXPECT_TRUE(svg.find("(2,1)") != std::string::npos);
 }
+
+TEST_F(RotPiDDTest, RemoveMaxNonPositiveK) {
+    // remove_max(k) with k <= 0 must return self without recursing into
+    // negative-k land where left_rot would receive invalid arguments.
+    for (int i = 1; i < 4; ++i) RotPiDD_NewVar();
+    RotPiDD p(1);
+    p = p.LeftRot(3, 1) + p.LeftRot(3, 2) + p;
+    EXPECT_EQ(p.remove_max(0), p);
+    EXPECT_EQ(p.remove_max(-1), p);
+    EXPECT_EQ(p.remove_max(-100), p);
+}

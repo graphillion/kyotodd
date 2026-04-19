@@ -565,6 +565,12 @@ BDDV BDDV_Import(FILE* strm) {
             return make_null_bddv();
         }
 
+        // Node IDs in the export format are positive even integers; odd
+        // values are reserved for signalling negation on edges. Reject
+        // anything else so malicious input cannot plant negative keys in
+        // node_map that later collide with the "odd = negated" logic.
+        if (node_num <= 0 || node_num % 2 != 0) return make_null_bddv();
+
         // Parse lo child
         BDD f0(0);
         if (strcmp(lo_str, "F") == 0) {
@@ -576,6 +582,7 @@ BDDV BDDV_Import(FILE* strm) {
             long lo_num_l = strtol(lo_str, &endptr, 10);
             if (*endptr != '\0') return make_null_bddv();
             int lo_num = static_cast<int>(lo_num_l);
+            if (lo_num <= 0 || lo_num % 2 != 0) return make_null_bddv();
             auto it = node_map.find(lo_num);
             if (it == node_map.end()) return make_null_bddv();
             f0 = it->second;
@@ -593,6 +600,7 @@ BDDV BDDV_Import(FILE* strm) {
             long hi_num_l = strtol(hi_str, &endptr, 10);
             if (*endptr != '\0') return make_null_bddv();
             int hi_num = static_cast<int>(hi_num_l);
+            if (hi_num <= 0) return make_null_bddv();
             if (hi_num % 2 != 0) {
                 hi_neg = true;
                 hi_num -= 1;
@@ -635,6 +643,7 @@ BDDV BDDV_Import(FILE* strm) {
             long out_num_l = strtol(out_str, &endptr, 10);
             if (*endptr != '\0') return make_null_bddv();
             int out_num = static_cast<int>(out_num_l);
+            if (out_num <= 0) return make_null_bddv();
             bool out_neg = false;
             if (out_num % 2 != 0) {
                 out_neg = true;
@@ -667,15 +676,15 @@ BDDV BDDV_ImportPla(FILE* strm, int sopf) {
 
         if (line[0] == '.') {
             char keyword[64];
-            sscanf(line, "%63s", keyword);
+            if (sscanf(line, "%63s", keyword) != 1) continue;
 
             if (strcmp(keyword, ".i") == 0) {
-                sscanf(line + 2, "%d", &n_in);
+                if (sscanf(line + 2, "%d", &n_in) != 1) return make_null_bddv();
             } else if (strcmp(keyword, ".o") == 0) {
-                sscanf(line + 2, "%d", &n_out);
+                if (sscanf(line + 2, "%d", &n_out) != 1) return make_null_bddv();
             } else if (strcmp(keyword, ".type") == 0) {
-                char type_str[64];
-                sscanf(line + 5, "%63s", type_str);
+                char type_str[64] = {0};
+                if (sscanf(line + 5, "%63s", type_str) != 1) continue;
                 if (strcmp(type_str, "f") == 0) type = 0;
                 else if (strcmp(type_str, "fd") == 0) type = 1;
                 else if (strcmp(type_str, "fr") == 0) type = 2;

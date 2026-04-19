@@ -1631,6 +1631,12 @@ static void graphillion_export_core(Stream& strm, bddp f, int offset) {
         bddvar v = node_var(raw);
         bddvar lev = var2level[v];
         int g_var = static_cast<int>(N) + 1 - static_cast<int>(lev) + offset;
+        if (g_var <= 0) {
+            // Graphillion reserves non-positive IDs (0 marks terminals at
+            // import time); guarantee exported files are round-trippable.
+            throw std::invalid_argument(
+                "zdd_export_graphillion: offset produces non-positive g_var");
+        }
 
         bddp lo = node_lo(raw);
         bddp hi = node_hi(raw);
