@@ -1476,6 +1476,43 @@ TEST_F(BDDTest, BinaryImport_MaxLevelExceedsLimit) {
     EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
 }
 
+TEST_F(BDDTest, BinaryImport_BitsForIdOver64Rejected) {
+    // bits_for_id > 64 previously passed the % 8 check and caused
+    // read_id_le to overrun its fixed 8-byte buffer.
+    std::string data;
+    data += std::string("\x42\x44\x44", 3);
+    uint8_t header[91] = {};
+    header[0] = 1;
+    header[1] = 2;
+    header[2] = 2; header[3] = 0;
+    header[4] = 2; header[5] = 0; header[6] = 0; header[7] = 0;
+    header[8] = 64;
+    header[9] = 72;  // > 64 but multiple of 8 — must be rejected
+    header[10] = 0;
+    // max_level = 0, num_roots = 0
+    data.append(reinterpret_cast<char*>(header), 91);
+    std::istringstream iss(data);
+    EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
+}
+
+TEST_F(BDDTest, BinaryImport_RejectsNumTerminalsNotTwo) {
+    // BDD/ZDD/QDD must have exactly 2 terminals; reject 3 to prevent
+    // allocating buffers sized from a malformed count.
+    std::string data;
+    data += std::string("\x42\x44\x44", 3);
+    uint8_t header[91] = {};
+    header[0] = 1;
+    header[1] = 2;  // BDD
+    header[2] = 2; header[3] = 0;
+    header[4] = 3; header[5] = 0; header[6] = 0; header[7] = 0;  // num_terminals = 3
+    header[8] = 64;
+    header[9] = 8;
+    header[10] = 0;
+    data.append(reinterpret_cast<char*>(header), 91);
+    std::istringstream iss(data);
+    EXPECT_THROW(bdd_import_binary(iss), std::runtime_error);
+}
+
 // --- BDD/ZDD::getnode child validation ---
 
 TEST_F(BDDTest, GetnodeRejectsInvalidChildNode) {

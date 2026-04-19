@@ -1300,12 +1300,24 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
 
     if (num_arcs < 2)
         throw std::runtime_error("binary import: number_of_arcs < 2");
-    if (bits_for_id == 0 || bits_for_id % 8 != 0)
-        throw std::runtime_error("binary import: bits_for_id must be a multiple of 8");
+    // BDD/ZDD/QDD always have exactly two terminals (0-term, 1-term).
+    // Reject early so we do not allocate buffers sized from a malformed count.
+    if ((dd_type == 1 || dd_type == 2 || dd_type == 3) && num_terminals != 2)
+        throw std::runtime_error(
+            "binary import: BDD/ZDD/QDD require num_terminals == 2");
+    if (bits_for_id == 0 || bits_for_id % 8 != 0 || bits_for_id > 64)
+        throw std::runtime_error(
+            "binary import: bits_for_id must be a multiple of 8 and at most 64");
     if (max_level > bdd_node_max)
         throw std::runtime_error("binary import: max_level exceeds node limit");
+    if (max_level > IMPORT_MAX_LEVEL_LIMIT)
+        throw std::runtime_error(
+            "binary import: max_level exceeds import safety limit");
     if (num_roots > bdd_node_max)
         throw std::runtime_error("binary import: num_roots exceeds node limit");
+    if (num_roots > IMPORT_MAX_NODE_COUNT)
+        throw std::runtime_error(
+            "binary import: num_roots exceeds import safety limit");
 
     int id_bytes = bits_for_id / 8;
     uint32_t t = num_terminals;
@@ -1325,6 +1337,9 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
             throw std::runtime_error("binary import: total_nodes overflow");
         total_nodes += level_counts[l];
     }
+    if (total_nodes > IMPORT_MAX_NODE_COUNT)
+        throw std::runtime_error(
+            "binary import: total_nodes exceeds import safety limit");
 
     // --- Read root IDs ---
     std::vector<uint64_t> root_ids(num_roots);
