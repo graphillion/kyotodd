@@ -98,11 +98,11 @@ SeqBDD operator/(const SeqBDD& f, const SeqBDD& p)
 
     /* Terminal cases */
     if (fx == bddnull || px == bddnull) return SeqBDD(-1);
-    if (px == bddsingle) return f;
-    if (fx == px) return SeqBDD(1);
     if (px == bddempty) {
         throw std::invalid_argument("SeqBDD: division by empty set");
     }
+    if (px == bddsingle) return f;
+    if (fx == px) return SeqBDD(1);
 
     /* If f's top level < p's top level, no prefix match possible */
     bddvar ftop_var = f.zdd_.Top();

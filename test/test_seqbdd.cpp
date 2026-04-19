@@ -325,6 +325,11 @@ TEST_F(SeqBDDTest, QuotientByEmpty) {
     EXPECT_THROW(s / SeqBDD(0), std::invalid_argument);
 }
 
+TEST_F(SeqBDDTest, QuotientEmptyByEmptyThrows) {
+    // ∅ / ∅ is undefined; must throw rather than silently returning {ε}.
+    EXPECT_THROW(SeqBDD(0) / SeqBDD(0), std::invalid_argument);
+}
+
 TEST_F(SeqBDDTest, QuotientSimple) {
     bddvar v1 = BDD_NewVar();
     bddvar v2 = BDD_NewVar();
