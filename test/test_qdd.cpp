@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include "bdd_internal.h"
+#include <unordered_map>
 
 using namespace kyotodd;
 
@@ -629,4 +631,173 @@ TEST_F(QDDTest, GetnodeRejectsInvalidChildNode) {
     bddp fake_node = 0x100;  // not a valid allocated node
     EXPECT_THROW(QDD::getnode(1, fake_node, bddfalse), std::invalid_argument);
     EXPECT_THROW(QDD::getnode(1, bddfalse, fake_node), std::invalid_argument);
+}
+
+// =============================================================
+// Direct-invocation tests for the iterative conversion helpers
+// (qdd_to_bdd_iter, qdd_to_zdd_iter, bdd_to_qdd_iter,
+//  zdd_to_qdd_iter, zdd_to_bdd_iter, bdd_to_zdd_iter).
+//
+// The public methods dispatch to _rec for shallow DDs, so these
+// tests exercise the _iter branch directly and compare against the
+// public API output on small examples.
+// =============================================================
+
+class QddIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+TEST_F(QddIterTest, QddToBddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+
+    // Build a range of BDDs, convert to QDD via public API, then
+    // run the iter helper directly and compare against .to_bdd().
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD bv3 = BDDvar(v3);
+    BDD cases[] = { bv1, bv2 & bv3, bv1 | ~bv2, bv1 ^ bv2 ^ bv3, ~bv3 };
+
+    for (const BDD& orig : cases) {
+        QDD q = orig.to_qdd();
+        std::unordered_map<bddp, bddp> memo;
+        bddp iter_result = qdd_to_bdd_iter(q.id(), memo);
+        EXPECT_EQ(iter_result, orig.id());
+    }
+}
+
+TEST_F(QddIterTest, QddToBddIterComplement) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    BDD orig = BDDvar(v1) & ~BDDvar(v2);
+    QDD q = (~orig).to_qdd();
+    // q represents ~orig; iter should return ~orig directly.
+    std::unordered_map<bddp, bddp> memo;
+    bddp r = qdd_to_bdd_iter(q.id(), memo);
+    EXPECT_EQ(r, (~orig).id());
+}
+
+TEST_F(QddIterTest, QddToZddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD cases[] = { z1, z2, z1 + z2, ZDD::Empty, ZDD::Single, ~z1 };
+
+    for (const ZDD& orig : cases) {
+        QDD q = orig.to_qdd();
+        std::unordered_map<bddp, bddp> memo;
+        bddp iter_result = qdd_to_zdd_iter(q.id(), memo);
+        EXPECT_EQ(iter_result, orig.id());
+    }
+}
+
+TEST_F(QddIterTest, BddToQddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD bv3 = BDDvar(v3);
+    BDD cases[] = { bv1, bv2 & bv3, bv1 | ~bv2, bv1 ^ bv2 ^ bv3, ~bv3 };
+
+    for (const BDD& orig : cases) {
+        // Reference result: the public API applies iter-core + top-level fill.
+        QDD expected = orig.to_qdd();
+
+        // Run iter core, then apply the same top-level fill the public
+        // wrapper performs.
+        std::unordered_map<bddp, bddp> memo;
+        bddp q = bdd_to_qdd_iter(orig.id(), memo);
+        bddvar q_level = bddp_level(q);
+        bddp filled = qdd_fill_levels(q, q_level, bdd_varcount);
+        EXPECT_EQ(filled, expected.id());
+    }
+}
+
+TEST_F(QddIterTest, ZddToQddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD cases[] = { z1, z2, z1 + z2, ZDD::Empty, ZDD::Single, ~z1 };
+
+    for (const ZDD& orig : cases) {
+        QDD expected = orig.to_qdd();
+        std::unordered_map<bddp, bddp> memo;
+        bddp q = zdd_to_qdd_iter(orig.id(), memo);
+        bddvar q_level = bddp_level(q);
+        bddp filled = qdd_fill_levels_zdd(q, q_level, bdd_varcount);
+        EXPECT_EQ(filled, expected.id());
+    }
+}
+
+TEST_F(QddIterTest, ZddToBddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    ZDD z1 = ZDD_ID(ZDD::getnode(v1, bddempty, bddsingle));
+    ZDD z2 = ZDD_ID(ZDD::getnode(v2, bddempty, bddsingle));
+    ZDD cases[] = { z1, z2, z1 + z2, ZDD::Empty, ZDD::Single, ~z1 };
+
+    for (const ZDD& orig : cases) {
+        BDD expected = orig.to_bdd(static_cast<int>(bdd_varcount));
+        bddvar root_src_level = bddp_level(orig.id());
+        std::unordered_map<bddp, bddp> memo;
+        bddp bdd_root = zdd_to_bdd_iter(orig.id(), memo);
+        bddp filled = fill_zdd_levels_as_bdd(
+            bdd_root, root_src_level, bdd_varcount);
+        EXPECT_EQ(filled, expected.id());
+    }
+}
+
+TEST_F(QddIterTest, BddToZddIterMatchesRec) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    BDD bv1 = BDDvar(v1);
+    BDD bv2 = BDDvar(v2);
+    BDD bv3 = BDDvar(v3);
+    BDD cases[] = { bv1, bv2 & bv3, bv1 | ~bv2, bv1 ^ bv2 ^ bv3, ~bv3 };
+
+    for (const BDD& orig : cases) {
+        ZDD expected = orig.to_zdd(static_cast<int>(bdd_varcount));
+        bddvar root_src_level = bddp_level(orig.id());
+        std::unordered_map<bddp, bddp> memo;
+        bddp zdd_root = bdd_to_zdd_iter(orig.id(), memo);
+        bddp filled = fill_bdd_levels_as_zdd(
+            zdd_root, root_src_level, bdd_varcount);
+        EXPECT_EQ(filled, expected.id());
+    }
+}
+
+TEST_F(QddIterTest, TerminalsHandledByIter) {
+    bddnewvar();  // ensure bdd_varcount > 0 for public-API paths
+    std::unordered_map<bddp, bddp> memo;
+
+    EXPECT_EQ(qdd_to_bdd_iter(bddfalse, memo), bddfalse);
+    EXPECT_EQ(qdd_to_bdd_iter(bddtrue, memo), bddtrue);
+
+    memo.clear();
+    EXPECT_EQ(qdd_to_zdd_iter(bddfalse, memo), bddempty);
+    EXPECT_EQ(qdd_to_zdd_iter(bddtrue, memo), bddsingle);
+
+    memo.clear();
+    EXPECT_EQ(bdd_to_qdd_iter(bddfalse, memo), bddfalse);
+    EXPECT_EQ(bdd_to_qdd_iter(bddtrue, memo), bddtrue);
+
+    memo.clear();
+    EXPECT_EQ(zdd_to_qdd_iter(bddempty, memo), bddfalse);
+    EXPECT_EQ(zdd_to_qdd_iter(bddsingle, memo), bddtrue);
+
+    memo.clear();
+    EXPECT_EQ(zdd_to_bdd_iter(bddempty, memo), bddfalse);
+    EXPECT_EQ(zdd_to_bdd_iter(bddsingle, memo), bddtrue);
+
+    memo.clear();
+    EXPECT_EQ(bdd_to_zdd_iter(bddfalse, memo), bddempty);
+    EXPECT_EQ(bdd_to_zdd_iter(bddtrue, memo), bddsingle);
 }

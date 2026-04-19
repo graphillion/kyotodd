@@ -40,6 +40,7 @@ BDD QDD::to_bdd() const {
     if (root == bddnull) return BDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(root)) return qdd_to_bdd_iter(root, memo);
         return qdd_to_bdd_rec(root, memo);
     });
     return BDD_ID(result);
@@ -78,6 +79,7 @@ ZDD QDD::to_zdd() const {
     if (root == bddnull) return ZDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
+        if (use_iter_1op(root)) return qdd_to_zdd_iter(root, memo);
         return qdd_to_zdd_rec(root, memo);
     });
     return ZDD_ID(result);
@@ -88,7 +90,7 @@ ZDD QDD::to_zdd() const {
 // Fill skipped levels with identity (lo==hi) nodes (for BDD conversion).
 // BDD skipped levels mean "don't care" — the function is independent of
 // the variable, so both branches lead to the same child.
-static bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level) {
+bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level) {
     if (target_level > bdd_varcount) {
         throw std::invalid_argument(
             "qdd_fill_levels: target_level exceeds bdd_varcount");
@@ -104,7 +106,7 @@ static bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level)
 // Fill skipped levels with zero-suppression nodes (for ZDD conversion).
 // ZDD zero-suppressed levels mean "variable not in set", so in BDD terms:
 // lo (var=0) = continue, hi (var=1) = false.
-static bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_level) {
+bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_level) {
     if (target_level > bdd_varcount) {
         throw std::invalid_argument(
             "qdd_fill_levels_zdd: target_level exceeds bdd_varcount");
@@ -158,7 +160,9 @@ QDD BDD::to_qdd() const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = bdd_to_qdd_rec(root, memo);
+        bddp q = use_iter_1op(root)
+            ? bdd_to_qdd_iter(root, memo)
+            : bdd_to_qdd_rec(root, memo);
         // Fill levels above the root up to the top level
         bddvar q_level = bddp_level(q);
         return qdd_fill_levels(q, q_level, bdd_varcount);
@@ -204,7 +208,9 @@ QDD ZDD::to_qdd() const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = zdd_to_qdd_rec(root, memo);
+        bddp q = use_iter_1op(root)
+            ? zdd_to_qdd_iter(root, memo)
+            : zdd_to_qdd_rec(root, memo);
         bddvar q_level = bddp_level(q);
         return qdd_fill_levels_zdd(q, q_level, bdd_varcount);
     });
@@ -218,7 +224,7 @@ QDD ZDD::to_qdd() const {
 
 // Fill ZDD-suppressed levels as BDD nodes: (var, current, bddfalse)
 // Meaning: "variable=1 → false" (ZDD zero-suppression in BDD terms)
-static bddp fill_zdd_levels_as_bdd(bddp child, bddvar child_level, bddvar target_level) {
+bddp fill_zdd_levels_as_bdd(bddp child, bddvar child_level, bddvar target_level) {
     bddp current = child;
     for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
         bddvar var = level2var[lev];
@@ -229,7 +235,7 @@ static bddp fill_zdd_levels_as_bdd(bddp child, bddvar child_level, bddvar target
 
 // Fill BDD don't-care levels as ZDD nodes: (var, current, current)
 // Meaning: "variable present or absent, same result"
-static bddp fill_bdd_levels_as_zdd(bddp child, bddvar child_level, bddvar target_level) {
+bddp fill_bdd_levels_as_zdd(bddp child, bddvar child_level, bddvar target_level) {
     bddp current = child;
     for (bddvar lev = child_level + 1; lev <= target_level; ++lev) {
         bddvar var = level2var[lev];
@@ -278,7 +284,9 @@ BDD ZDD::to_bdd(int n) const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         bddvar root_src_level = bddp_level(root);
-        bddp bdd_root = zdd_to_bdd_rec(root, memo);
+        bddp bdd_root = use_iter_1op(root)
+            ? zdd_to_bdd_iter(root, memo)
+            : zdd_to_bdd_rec(root, memo);
         return fill_zdd_levels_as_bdd(bdd_root, root_src_level, nv);
     });
     return BDD_ID(result);
@@ -327,7 +335,9 @@ ZDD BDD::to_zdd(int n) const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
         bddvar root_src_level = bddp_level(root);
-        bddp zdd_root = bdd_to_zdd_rec(root, memo);
+        bddp zdd_root = use_iter_1op(root)
+            ? bdd_to_zdd_iter(root, memo)
+            : bdd_to_zdd_rec(root, memo);
         return fill_bdd_levels_as_zdd(zdd_root, root_src_level, nv);
     });
     return ZDD_ID(result);

@@ -520,6 +520,41 @@ double ws_total_sum_iter(bddp f, const std::vector<double>& weights,
 double ws_total_prod_iter(bddp f, const std::vector<double>& weights,
                           WeightMemoMap& prod_memo);
 
+// ---------------------------------------------------------------------------
+// QDD/BDD/ZDD inter-conversion helpers (src/qdd.cpp).
+// Exposed for use by src/qdd_iter.cpp.
+// ---------------------------------------------------------------------------
+
+/** @brief Fill skipped levels with QDD identity nodes (BDD don't-care). */
+bddp qdd_fill_levels(bddp child, bddvar child_level, bddvar target_level);
+
+/** @brief Fill skipped levels with QDD zero-suppression nodes. */
+bddp qdd_fill_levels_zdd(bddp child, bddvar child_level, bddvar target_level);
+
+/** @brief Fill skipped ZDD levels with BDD "hi=false" nodes. */
+bddp fill_zdd_levels_as_bdd(bddp child, bddvar child_level, bddvar target_level);
+
+/** @brief Fill skipped BDD don't-care levels with ZDD "both-branches-same" nodes. */
+bddp fill_bdd_levels_as_zdd(bddp child, bddvar child_level, bddvar target_level);
+
+/** @brief Iterative variant of qdd_to_bdd_rec. */
+bddp qdd_to_bdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of qdd_to_zdd_rec. */
+bddp qdd_to_zdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of bdd_to_qdd_rec. */
+bddp bdd_to_qdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of zdd_to_qdd_rec. */
+bddp zdd_to_qdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of zdd_to_bdd_rec. */
+bddp zdd_to_bdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
+/** @brief Iterative variant of bdd_to_zdd_rec. */
+bddp bdd_to_zdd_iter(bddp f, std::unordered_map<bddp, bddp>& memo);
+
 } // namespace kyotodd
 
 #endif

@@ -33,6 +33,7 @@ set(KYOTODD_LIB_SOURCES
   src/seqbdd.cpp
   src/unreduced_dd.cpp
   src/qdd.cpp
+  src/qdd_iter.cpp
   src/bddv.cpp
   src/zbddv.cpp
   src/sop.cpp
