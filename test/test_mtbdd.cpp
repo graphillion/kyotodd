@@ -1973,3 +1973,236 @@ TEST_F(MtbddIterTest, MtzddCofactorIterFromZdd) {
         EXPECT_EQ(r1, e1) << "cofactor1 v=" << v;
     }
 }
+
+// ============================================================================
+// MtbddTemplateIterTest: compares template-function iter vs rec.
+// ============================================================================
+
+class MtbddTemplateIterTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        bddinit(1024, UINT64_MAX);
+        for (int i = 0; i < 5; i++) bddnewvar();
+    }
+};
+
+TEST_F(MtbddTemplateIterTest, MtbddApplyIterMatchesRec) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD c = BDD::prime(3);
+    auto ma = MTBDD<int64_t>::from_bdd(a & b, 0, 3);
+    auto mb = MTBDD<int64_t>::from_bdd(b | c, 0, 5);
+    auto adder = [](const int64_t& x, const int64_t& y) { return x + y; };
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_apply_rec<int64_t, decltype(adder)>(ma.id(), mb.id(), adder, op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_apply_iter<int64_t, decltype(adder)>(ma.id(), mb.id(), adder, op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddApplyIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD fa = x1 + x2 + (x1 * x3);
+    ZDD fb = x1 * x2 + x3;
+    auto ma = MTZDD<int64_t>::from_zdd(fa, 0, 2);
+    auto mb = MTZDD<int64_t>::from_zdd(fb, 0, 3);
+    auto adder = [](const int64_t& x, const int64_t& y) { return x + y; };
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_apply_rec<int64_t, decltype(adder)>(ma.id(), mb.id(), adder, op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_apply_iter<int64_t, decltype(adder)>(ma.id(), mb.id(), adder, op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtbddIteIterMatchesRec) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    auto cond = MTBDD<int64_t>::from_bdd(a & b, 0, 1);
+    auto then_v = MTBDD<int64_t>::terminal(100);
+    auto else_v = MTBDD<int64_t>::from_bdd(a | b, 7, 11);
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_ite_rec<int64_t>(cond.id(), then_v.id(), else_v.id(), op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_ite_iter<int64_t>(cond.id(), then_v.id(), else_v.id(), op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddIteIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    auto cond = MTZDD<int64_t>::from_zdd(x1 + x2, 0, 1);
+    auto then_v = MTZDD<int64_t>::from_zdd(x1 * x2, 0, 42);
+    auto else_v = MTZDD<int64_t>::from_zdd(x1, 0, 7);
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_ite_rec<int64_t>(cond.id(), then_v.id(), else_v.id(), op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_ite_iter<int64_t>(cond.id(), then_v.id(), else_v.id(), op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtbddFromBddIterMatchesRec) {
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD c = BDD::prime(3);
+    BDD f = (a & b) | (~c);  // exercises complement edges
+    bddp zero_t = MTBDD<int64_t>::zero_terminal();
+    auto& table = MTBDDTerminalTable<int64_t>::instance();
+    bddp one_t = MTBDDTerminalTable<int64_t>::make_terminal(table.get_or_insert(1));
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_from_bdd_rec<int64_t>(f.id(), zero_t, one_t, op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtbdd_from_bdd_iter<int64_t>(f.id(), zero_t, one_t, op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddFromZddIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + (x2 * x3) + x3;  // has empty set via complement
+    bddp zero_t = MTZDD<int64_t>::zero_terminal();
+    auto& table = MTBDDTerminalTable<int64_t>::instance();
+    bddp one_t = MTBDDTerminalTable<int64_t>::make_terminal(table.get_or_insert(1));
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_from_zdd_rec<int64_t>(f.id(), zero_t, one_t, op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_from_zdd_iter<int64_t>(f.id(), zero_t, one_t, op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddCountIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + x2 + (x1 * x3) + (x2 * x3);
+    auto m = MTZDD<int64_t>::from_zdd(f, 0, 1);
+
+    std::unordered_map<bddp, double> memo_rec, memo_iter;
+    double rec_v = mtzdd_count_rec(m.id(), memo_rec);
+    double iter_v = mtzdd_count_iter(m.id(), memo_iter);
+    EXPECT_DOUBLE_EQ(iter_v, rec_v);
+    EXPECT_GT(iter_v, 0.0);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddExactCountIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + x2 + (x1 * x3) + (x2 * x3);
+    auto m = MTZDD<int64_t>::from_zdd(f, 0, 1);
+
+    std::unordered_map<bddp, bigint::BigInt> memo_rec, memo_iter;
+    bigint::BigInt rec_v = mtzdd_exact_count_rec(m.id(), memo_rec);
+    bigint::BigInt iter_v = mtzdd_exact_count_iter(m.id(), memo_iter);
+    EXPECT_EQ(iter_v, rec_v);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddCountForTerminalIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    auto ma = MTZDD<int64_t>::from_zdd(x1 + x2, 0, 5);
+    auto mb = MTZDD<int64_t>::from_zdd(x1 * x2, 0, 7);
+    auto m = ma.apply(mb, [](const int64_t& x, const int64_t& y) { return x + y; });
+
+    auto& table = MTBDDTerminalTable<int64_t>::instance();
+    uint64_t idx;
+    ASSERT_TRUE(table.find_index(5, idx));
+    bddp target = MTBDDTerminalTable<int64_t>::make_terminal(idx);
+
+    std::unordered_map<bddp, double> memo_rec, memo_iter;
+    double rec_v = mtzdd_count_for_terminal_rec(m.id(), target, memo_rec);
+    double iter_v = mtzdd_count_for_terminal_iter(m.id(), target, memo_iter);
+    EXPECT_DOUBLE_EQ(iter_v, rec_v);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddExactCountForTerminalIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    auto ma = MTZDD<int64_t>::from_zdd(x1 + x2, 0, 5);
+    auto mb = MTZDD<int64_t>::from_zdd(x1 * x2, 0, 7);
+    auto m = ma.apply(mb, [](const int64_t& x, const int64_t& y) { return x + y; });
+
+    auto& table = MTBDDTerminalTable<int64_t>::instance();
+    uint64_t idx;
+    ASSERT_TRUE(table.find_index(5, idx));
+    bddp target = MTBDDTerminalTable<int64_t>::make_terminal(idx);
+
+    std::unordered_map<bddp, bigint::BigInt> memo_rec, memo_iter;
+    bigint::BigInt rec_v = mtzdd_exact_count_for_terminal_rec(m.id(), target, memo_rec);
+    bigint::BigInt iter_v = mtzdd_exact_count_for_terminal_iter(m.id(), target, memo_iter);
+    EXPECT_EQ(iter_v, rec_v);
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddEnumerateIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD x3 = ZDD::singleton(3);
+    ZDD f = x1 + x2 + (x1 * x3) + (x2 * x3);
+    auto m = MTZDD<int64_t>::from_zdd(f, 0, 1);
+
+    std::vector<std::pair<std::vector<bddvar>, int64_t> > rec_result, iter_result;
+    std::vector<bddvar> cur_rec, cur_iter;
+    mtzdd_enumerate_rec<int64_t>(m.id(), cur_rec, rec_result);
+    mtzdd_enumerate_iter<int64_t>(m.id(), cur_iter, iter_result);
+    ASSERT_EQ(iter_result.size(), rec_result.size());
+    for (size_t i = 0; i < rec_result.size(); ++i) {
+        EXPECT_EQ(iter_result[i].first, rec_result[i].first);
+        EXPECT_EQ(iter_result[i].second, rec_result[i].second);
+    }
+}
+
+TEST_F(MtbddTemplateIterTest, MtzddToZddIterMatchesRec) {
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    auto ma = MTZDD<int64_t>::from_zdd(x1 + x2, 0, 5);
+    auto mb = MTZDD<int64_t>::from_zdd(x1 * x2, 0, 7);
+    auto m = ma.apply(mb, [](const int64_t& x, const int64_t& y) { return x + y; });
+
+    auto& table = MTBDDTerminalTable<int64_t>::instance();
+    std::unordered_set<bddp> pred_terminals;
+    for (uint64_t i = 1; i < table.size(); ++i) {
+        pred_terminals.insert(MTBDDTerminalTable<int64_t>::make_terminal(i));
+    }
+
+    uint8_t op_rec = mtbdd_alloc_op_code();
+    uint8_t op_iter = mtbdd_alloc_op_code();
+    bddp rec_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_to_zdd_rec<int64_t>(m.id(), pred_terminals, op_rec);
+    });
+    bddp iter_r = bdd_gc_guard([&]() -> bddp {
+        return mtzdd_to_zdd_iter<int64_t>(m.id(), pred_terminals, op_iter);
+    });
+    EXPECT_EQ(iter_r, rec_r);
+}

@@ -187,6 +187,129 @@ static bddp mtbdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
     return result;
 }
 
+// Iterative counterpart to mtbdd_apply_rec. Explicit-stack implementation
+// for stack-safety on deep MTBDDs. Shares cache with _rec via cache_op.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T, typename BinOp>
+static bddp mtbdd_apply_iter(bddp root_f, bddp root_g, BinOp& op, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.g = root_g;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp g = frame.g;
+            bool f_term = (f & BDD_CONST_FLAG) != 0;
+            bool g_term = (g & BDD_CONST_FLAG) != 0;
+
+            if (f_term && g_term) {
+                auto& table = MTBDDTerminalTable<T>::instance();
+                T result_val = op(
+                    table.get_value(MTBDDTerminalTable<T>::terminal_index(f)),
+                    table.get_value(MTBDDTerminalTable<T>::terminal_index(g)));
+                result = MTBDDTerminalTable<T>::make_terminal(
+                    table.get_or_insert(result_val));
+                stack.pop_back();
+                break;
+            }
+
+            bddp cached = bddrcache(cache_op, f, g);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar f_var = f_term ? 0 : node_var(f);
+            bddvar g_var = g_term ? 0 : node_var(g);
+            bddvar f_level = f_term ? 0 : var2level[f_var];
+            bddvar g_level = g_term ? 0 : var2level[g_var];
+
+            bddvar top_var;
+            bddp f_lo, f_hi, g_lo, g_hi;
+
+            if (f_level > g_level) {
+                top_var = f_var;
+                f_lo = node_lo(f); f_hi = node_hi(f);
+                g_lo = g; g_hi = g;
+            } else if (g_level > f_level) {
+                top_var = g_var;
+                f_lo = f; f_hi = f;
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            } else {
+                top_var = f_var;
+                f_lo = node_lo(f); f_hi = node_hi(f);
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            }
+
+            frame.top_var = top_var;
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo;
+            child.g = g_lo;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi;
+            child.g = frame.g_hi;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtbdd_getnode_raw(frame.top_var, frame.lo_result, hi);
+            bddwcache(cache_op, frame.f, frame.g, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 // --- Apply templates (ZDD cofactoring) ---
 
 template<typename T, typename BinOp>
@@ -239,6 +362,129 @@ static bddp mtzdd_apply_rec(bddp f, bddp g, BinOp& op, uint8_t cache_op) {
 
     bddp result = mtzdd_getnode_raw(top_var, lo, hi);
     bddwcache(cache_op, f, g, result);
+    return result;
+}
+
+// Iterative counterpart to mtzdd_apply_rec.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T, typename BinOp>
+static bddp mtzdd_apply_iter(bddp root_f, bddp root_g, BinOp& op, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddp g;
+        bddvar top_var;
+        bddp f_hi;
+        bddp g_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.g = root_g;
+    init.top_var = 0;
+    init.f_hi = 0;
+    init.g_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp g = frame.g;
+            bool f_term = (f & BDD_CONST_FLAG) != 0;
+            bool g_term = (g & BDD_CONST_FLAG) != 0;
+
+            if (f_term && g_term) {
+                auto& table = MTBDDTerminalTable<T>::instance();
+                T result_val = op(
+                    table.get_value(MTBDDTerminalTable<T>::terminal_index(f)),
+                    table.get_value(MTBDDTerminalTable<T>::terminal_index(g)));
+                result = MTBDDTerminalTable<T>::make_terminal(
+                    table.get_or_insert(result_val));
+                stack.pop_back();
+                break;
+            }
+
+            bddp cached = bddrcache(cache_op, f, g);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar f_var = f_term ? 0 : node_var(f);
+            bddvar g_var = g_term ? 0 : node_var(g);
+            bddvar f_level = f_term ? 0 : var2level[f_var];
+            bddvar g_level = g_term ? 0 : var2level[g_var];
+
+            bddp zero_t = BDD_CONST_FLAG | 0;
+            bddvar top_var;
+            bddp f_lo, f_hi, g_lo, g_hi;
+
+            if (f_level > g_level) {
+                top_var = f_var;
+                f_lo = node_lo(f); f_hi = node_hi(f);
+                g_lo = g; g_hi = zero_t;
+            } else if (g_level > f_level) {
+                top_var = g_var;
+                f_lo = f; f_hi = zero_t;
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            } else {
+                top_var = f_var;
+                f_lo = node_lo(f); f_hi = node_hi(f);
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            }
+
+            frame.top_var = top_var;
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo;
+            child.g = g_lo;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi;
+            child.g = frame.g_hi;
+            child.top_var = 0;
+            child.f_hi = 0;
+            child.g_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtzdd_getnode_raw(frame.top_var, frame.lo_result, hi);
+            bddwcache(cache_op, frame.f, frame.g, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
     return result;
 }
 
@@ -306,6 +552,134 @@ static bddp mtbdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
 
     bddp result = mtbdd_getnode_raw(top_var, lo, hi);
     bddwcache3(cache_op, f, g, h, result);
+    return result;
+}
+
+// Iterative counterpart to mtbdd_ite_rec (BDD cofactoring, 3-operand).
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T>
+static bddp mtbdd_ite_iter(bddp root_f, bddp root_g, bddp root_h, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f, g, h;
+        bddvar top_var;
+        bddp f_hi, g_hi, h_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f; init.g = root_g; init.h = root_h;
+    init.top_var = 0;
+    init.f_hi = 0; init.g_hi = 0; init.h_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp g = frame.g;
+            bddp h = frame.h;
+            bool f_term = (f & BDD_CONST_FLAG) != 0;
+
+            if (f_term) {
+                auto& table = MTBDDTerminalTable<T>::instance();
+                T f_val = table.get_value(MTBDDTerminalTable<T>::terminal_index(f));
+                result = (f_val == T{}) ? h : g;
+                stack.pop_back();
+                break;
+            }
+            if (g == h) { result = g; stack.pop_back(); break; }
+
+            bddp cached = bddrcache3(cache_op, f, g, h);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bool g_term = (g & BDD_CONST_FLAG) != 0;
+            bool h_term = (h & BDD_CONST_FLAG) != 0;
+
+            bddvar f_var = node_var(f);
+            bddvar g_var = g_term ? 0 : node_var(g);
+            bddvar h_var = h_term ? 0 : node_var(h);
+            bddvar f_level = var2level[f_var];
+            bddvar g_level = g_term ? 0 : var2level[g_var];
+            bddvar h_level = h_term ? 0 : var2level[h_var];
+
+            bddvar top_level = f_level;
+            if (g_level > top_level) top_level = g_level;
+            if (h_level > top_level) top_level = h_level;
+            bddvar top_var = (f_level == top_level) ? f_var :
+                             (g_level == top_level) ? g_var : h_var;
+
+            bddp f_lo, f_hi;
+            if (f_level == top_level) {
+                f_lo = node_lo(f); f_hi = node_hi(f);
+            } else {
+                f_lo = f; f_hi = f;
+            }
+
+            bddp g_lo, g_hi;
+            if (g_level == top_level) {
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            } else {
+                g_lo = g; g_hi = g;
+            }
+
+            bddp h_lo, h_hi;
+            if (h_level == top_level) {
+                h_lo = node_lo(h); h_hi = node_hi(h);
+            } else {
+                h_lo = h; h_hi = h;
+            }
+
+            frame.top_var = top_var;
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.h_hi = h_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo; child.g = g_lo; child.h = h_lo;
+            child.top_var = 0;
+            child.f_hi = 0; child.g_hi = 0; child.h_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi; child.g = frame.g_hi; child.h = frame.h_hi;
+            child.top_var = 0;
+            child.f_hi = 0; child.g_hi = 0; child.h_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtbdd_getnode_raw(frame.top_var, frame.lo_result, hi);
+            bddwcache3(cache_op, frame.f, frame.g, frame.h, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
     return result;
 }
 
@@ -382,6 +756,142 @@ static bddp mtzdd_ite_rec(bddp f, bddp g, bddp h, uint8_t cache_op) {
     return result;
 }
 
+// Iterative counterpart to mtzdd_ite_rec (ZDD cofactoring, 3-operand).
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T>
+static bddp mtzdd_ite_iter(bddp root_f, bddp root_g, bddp root_h, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f, g, h;
+        bddvar top_var;
+        bddp f_hi, g_hi, h_hi;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f; init.g = root_g; init.h = root_h;
+    init.top_var = 0;
+    init.f_hi = 0; init.g_hi = 0; init.h_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp g = frame.g;
+            bddp h = frame.h;
+            bool f_term = (f & BDD_CONST_FLAG) != 0;
+
+            if (f_term) {
+                auto& table = MTBDDTerminalTable<T>::instance();
+                T f_val = table.get_value(MTBDDTerminalTable<T>::terminal_index(f));
+                if (f_val == T{}) { result = h; stack.pop_back(); break; }
+                if ((g & BDD_CONST_FLAG) && (h & BDD_CONST_FLAG)) {
+                    result = g;
+                    stack.pop_back();
+                    break;
+                }
+                // Fall through: g/h may have zero-suppressed variables
+            }
+            if (g == h) { result = g; stack.pop_back(); break; }
+
+            bddp cached = bddrcache3(cache_op, f, g, h);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bool g_term = (g & BDD_CONST_FLAG) != 0;
+            bool h_term = (h & BDD_CONST_FLAG) != 0;
+
+            bddvar f_var = f_term ? 0 : node_var(f);
+            bddvar g_var = g_term ? 0 : node_var(g);
+            bddvar h_var = h_term ? 0 : node_var(h);
+            bddvar f_level = f_term ? 0 : var2level[f_var];
+            bddvar g_level = g_term ? 0 : var2level[g_var];
+            bddvar h_level = h_term ? 0 : var2level[h_var];
+
+            bddvar top_level = f_level;
+            if (g_level > top_level) top_level = g_level;
+            if (h_level > top_level) top_level = h_level;
+            bddvar top_var = (f_level == top_level) ? f_var :
+                             (g_level == top_level) ? g_var : h_var;
+
+            bddp zero_t = BDD_CONST_FLAG | 0;
+
+            bddp f_lo, f_hi;
+            if (f_term) {
+                f_lo = f; f_hi = zero_t;
+            } else if (f_level == top_level) {
+                f_lo = node_lo(f); f_hi = node_hi(f);
+            } else {
+                f_lo = f; f_hi = zero_t;
+            }
+
+            bddp g_lo, g_hi;
+            if (g_level == top_level) {
+                g_lo = node_lo(g); g_hi = node_hi(g);
+            } else {
+                g_lo = g; g_hi = zero_t;
+            }
+
+            bddp h_lo, h_hi;
+            if (h_level == top_level) {
+                h_lo = node_lo(h); h_hi = node_hi(h);
+            } else {
+                h_lo = h; h_hi = zero_t;
+            }
+
+            frame.top_var = top_var;
+            frame.f_hi = f_hi;
+            frame.g_hi = g_hi;
+            frame.h_hi = h_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = f_lo; child.g = g_lo; child.h = h_lo;
+            child.top_var = 0;
+            child.f_hi = 0; child.g_hi = 0; child.h_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.f_hi; child.g = frame.g_hi; child.h = frame.h_hi;
+            child.top_var = 0;
+            child.f_hi = 0; child.g_hi = 0; child.h_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtzdd_getnode_raw(frame.top_var, frame.lo_result, hi);
+            bddwcache3(cache_op, frame.f, frame.g, frame.h, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 // --- from_bdd / from_zdd conversion templates ---
 
 template<typename T>
@@ -412,6 +922,101 @@ static bddp mtbdd_from_bdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op
 
     bddp result = mtbdd_getnode_raw(v, mt_lo, mt_hi);
     bddwcache3(cache_op, fn, zt, ot, result);
+    return result;
+}
+
+// Iterative counterpart to mtbdd_from_bdd_rec.
+// Absorbs BDD complement edges into terminal mapping (zt/ot swap).
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T>
+static bddp mtbdd_from_bdd_iter(bddp root_f, bddp root_zero_t, bddp root_one_t, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;          // input edge (possibly complemented); set to fn after ENTER
+        bddp zt;         // effective zero terminal
+        bddp ot;         // effective one terminal
+        bddvar v;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.zt = root_zero_t;
+    init.ot = root_one_t;
+    init.v = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            bddp zt = frame.zt;
+            bddp ot = frame.ot;
+
+            if (f == bddfalse) { result = zt; stack.pop_back(); break; }
+            if (f == bddtrue) { result = ot; stack.pop_back(); break; }
+
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp fn = f & ~BDD_COMP_FLAG;
+            bddp eff_zt = comp ? ot : zt;
+            bddp eff_ot = comp ? zt : ot;
+
+            bddp cached = bddrcache3(cache_op, fn, eff_zt, eff_ot);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar v = node_var(fn);
+            frame.f = fn;
+            frame.zt = eff_zt;
+            frame.ot = eff_ot;
+            frame.v = v;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(fn);
+            child.zt = eff_zt;
+            child.ot = eff_ot;
+            child.v = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.zt = frame.zt;
+            child.ot = frame.ot;
+            child.v = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtbdd_getnode_raw(frame.v, frame.lo_result, hi);
+            bddwcache3(cache_op, frame.f, frame.zt, frame.ot, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
     return result;
 }
 
@@ -448,6 +1053,95 @@ static bddp mtzdd_from_zdd_rec(bddp f, bddp zero_t, bddp one_t, uint8_t cache_op
     return result;
 }
 
+// Iterative counterpart to mtzdd_from_zdd_rec.
+// ZDD complement is propagated (not absorbed); cache key uses original f.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T>
+static bddp mtzdd_from_zdd_iter(bddp root_f, bddp zero_t, bddp one_t, uint8_t cache_op) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;          // original (possibly complemented) input edge
+        bddvar v;
+        bddp raw_hi;     // unchanged hi child (ZDD: complement doesn't affect hi)
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.v = 0;
+    init.raw_hi = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f == bddempty) { result = zero_t; stack.pop_back(); break; }
+            if (f == bddsingle) { result = one_t; stack.pop_back(); break; }
+
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp fn = f & ~BDD_COMP_FLAG;
+
+            bddp cached = bddrcache3(cache_op, f, zero_t, one_t);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+
+            bddvar v = node_var(fn);
+            bddp raw_lo = node_lo(fn);
+            bddp raw_hi = node_hi(fn);
+            // ZDD complement: toggle complement bit on lo only
+            bddp eff_lo = comp ? (raw_lo ^ BDD_COMP_FLAG) : raw_lo;
+
+            frame.v = v;
+            frame.raw_hi = raw_hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = eff_lo;
+            child.v = 0;
+            child.raw_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.raw_hi;
+            child.v = 0;
+            child.raw_hi = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = mtzdd_getnode_raw(frame.v, frame.lo_result, hi);
+            bddwcache3(cache_op, frame.f, zero_t, one_t, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 // --- MTZDD count helpers (non-zero path counting) ---
 // MTZDD has no complement edges, so counting is straightforward:
 // zero terminal → 0, non-zero terminal → 1, internal → count(lo) + count(hi).
@@ -470,6 +1164,75 @@ static inline double mtzdd_count_rec(
     return count;
 }
 
+// Iterative counterpart to mtzdd_count_rec.
+static inline double mtzdd_count_iter(
+    bddp root, std::unordered_map<bddp, double>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        double lo_val;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root;
+    init.lo_val = 0.0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    double result = 0.0;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                uint64_t idx = f & ~BDD_CONST_FLAG;
+                result = (idx == 0) ? 0.0 : 1.0;
+                stack.pop_back();
+                break;
+            }
+            auto it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.lo_val = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_val = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.lo_val = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            double total = frame.lo_val + result;
+            memo[frame.f] = total;
+            result = total;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 static inline bigint::BigInt mtzdd_exact_count_rec(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
     BDD_RecurGuard guard;
@@ -487,6 +1250,75 @@ static inline bigint::BigInt mtzdd_exact_count_rec(
                          + mtzdd_exact_count_rec(hi, memo);
     memo[f] = count;
     return count;
+}
+
+// Iterative counterpart to mtzdd_exact_count_rec.
+static inline bigint::BigInt mtzdd_exact_count_iter(
+    bddp root, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bigint::BigInt lo_val;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root;
+    init.lo_val = bigint::BigInt(0);
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bigint::BigInt result(0);
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                uint64_t idx = f & ~BDD_CONST_FLAG;
+                result = (idx == 0) ? bigint::BigInt(0) : bigint::BigInt(1);
+                stack.pop_back();
+                break;
+            }
+            auto it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.lo_val = bigint::BigInt(0);
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_val = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.lo_val = bigint::BigInt(0);
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bigint::BigInt total = frame.lo_val + result;
+            memo[frame.f] = total;
+            result = total;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
 }
 
 // --- MTZDD count helpers (target-specific terminal counting) ---
@@ -509,6 +1341,74 @@ static inline double mtzdd_count_for_terminal_rec(
     return count;
 }
 
+// Iterative counterpart to mtzdd_count_for_terminal_rec.
+static inline double mtzdd_count_for_terminal_iter(
+    bddp root, bddp target, std::unordered_map<bddp, double>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        double lo_val;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root;
+    init.lo_val = 0.0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    double result = 0.0;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                result = (f == target) ? 1.0 : 0.0;
+                stack.pop_back();
+                break;
+            }
+            auto it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.lo_val = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_val = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.lo_val = 0.0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            double total = frame.lo_val + result;
+            memo[frame.f] = total;
+            result = total;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 static inline bigint::BigInt mtzdd_exact_count_for_terminal_rec(
     bddp f, bddp target, std::unordered_map<bddp, bigint::BigInt>& memo) {
     BDD_RecurGuard guard;
@@ -525,6 +1425,74 @@ static inline bigint::BigInt mtzdd_exact_count_for_terminal_rec(
                          + mtzdd_exact_count_for_terminal_rec(hi, target, memo);
     memo[f] = count;
     return count;
+}
+
+// Iterative counterpart to mtzdd_exact_count_for_terminal_rec.
+static inline bigint::BigInt mtzdd_exact_count_for_terminal_iter(
+    bddp root, bddp target, std::unordered_map<bddp, bigint::BigInt>& memo) {
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bigint::BigInt lo_val;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root;
+    init.lo_val = bigint::BigInt(0);
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bigint::BigInt result(0);
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                result = (f == target) ? bigint::BigInt(1) : bigint::BigInt(0);
+                stack.pop_back();
+                break;
+            }
+            auto it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.lo_val = bigint::BigInt(0);
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_val = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.lo_val = bigint::BigInt(0);
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bigint::BigInt total = frame.lo_val + result;
+            memo[frame.f] = total;
+            result = total;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
 }
 
 // --- MTBDD<T> class (Multi-Terminal BDD) ---
@@ -576,6 +1544,9 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(bdd.id())) {
+                return mtbdd_from_bdd_iter<T>(bdd.id(), zero_t, one_t, conv_op);
+            }
             return mtbdd_from_bdd_rec<T>(bdd.id(), zero_t, one_t, conv_op);
         });
         return result;
@@ -624,6 +1595,9 @@ public:
         static uint8_t apply_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_2op(root, other.root)) {
+                return mtbdd_apply_iter<T, BinOp>(root, other.root, op, apply_op);
+            }
             return mtbdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
         });
         return result;
@@ -665,6 +1639,9 @@ public:
         static uint8_t ite_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_3op(root, then_case.root, else_case.root)) {
+                return mtbdd_ite_iter<T>(root, then_case.root, else_case.root, ite_op);
+            }
             return mtbdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
         });
         return result;
@@ -729,6 +1706,73 @@ static void mtzdd_enumerate_rec(
     current.pop_back();
 }
 
+// Iterative counterpart to mtzdd_enumerate_rec (side-effect, Template F).
+template<typename T>
+static void mtzdd_enumerate_iter(
+    bddp root,
+    std::vector<bddvar>& current,
+    std::vector<std::pair<std::vector<bddvar>, T> >& result)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar var;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root;
+    init.var = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                uint64_t idx = MTBDDTerminalTable<T>::terminal_index(f);
+                T val = MTBDDTerminalTable<T>::instance().get_value(idx);
+                if (val != T{}) {
+                    result.push_back(std::make_pair(current, val));
+                }
+                stack.pop_back();
+                break;
+            }
+            frame.var = node_var(f);
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.var = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            current.push_back(frame.var);
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.var = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            current.pop_back();
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+}
+
 // --- MTZDD to ZDD threshold conversion helper ---
 
 template<typename T>
@@ -752,6 +1796,85 @@ static bddp mtzdd_to_zdd_rec(
     bddp result = ZDD::getnode_raw(var, lo, hi);
 
     bddwcache(cache_op, f, 0, result);
+    return result;
+}
+
+// Iterative counterpart to mtzdd_to_zdd_rec.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+template<typename T>
+static bddp mtzdd_to_zdd_iter(
+    bddp root_f,
+    const std::unordered_set<bddp>& pred_terminals,
+    uint8_t cache_op)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar var;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.var = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f & BDD_CONST_FLAG) {
+                result = pred_terminals.count(f) ? bddsingle : bddempty;
+                stack.pop_back();
+                break;
+            }
+            bddp cached = bddrcache(cache_op, f, 0);
+            if (cached != bddnull) {
+                result = cached;
+                stack.pop_back();
+                break;
+            }
+            frame.var = node_var(f);
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = node_lo(f);
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = node_hi(frame.f);
+            child.var = 0;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            bddp hi = result;
+            bddp r = ZDD::getnode_raw(frame.var, frame.lo_result, hi);
+            bddwcache(cache_op, frame.f, 0, r);
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
     return result;
 }
 
@@ -804,6 +1927,9 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(zdd.id())) {
+                return mtzdd_from_zdd_iter<T>(zdd.id(), zero_t, one_t, conv_op);
+            }
             return mtzdd_from_zdd_rec<T>(zdd.id(), zero_t, one_t, conv_op);
         });
         return result;
@@ -874,6 +2000,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -891,6 +2020,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -908,6 +2040,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -925,6 +2060,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -942,6 +2080,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -959,6 +2100,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -974,6 +2118,9 @@ public:
         if (pred_terminals.empty()) return ZDD(0);
         static uint8_t op = mtbdd_alloc_op_code();
         bddp result = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_1op(root)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, op);
+            }
             return mtzdd_to_zdd_rec<T>(root, pred_terminals, op);
         });
         return ZDD_ID(result);
@@ -985,7 +2132,11 @@ public:
     std::vector<std::pair<std::vector<bddvar>, T> > enumerate() const {
         std::vector<std::pair<std::vector<bddvar>, T> > result;
         std::vector<bddvar> current;
-        mtzdd_enumerate_rec<T>(root, current, result);
+        if (use_iter_1op(root)) {
+            mtzdd_enumerate_iter<T>(root, current, result);
+        } else {
+            mtzdd_enumerate_rec<T>(root, current, result);
+        }
         for (size_t i = 0; i < result.size(); ++i) {
             std::sort(result[i].first.begin(), result[i].first.end());
         }
@@ -1009,12 +2160,18 @@ public:
     /** @brief Count the number of non-zero terminal paths (double). */
     double count() const {
         std::unordered_map<bddp, double> memo;
+        if (use_iter_1op(root)) {
+            return mtzdd_count_iter(root, memo);
+        }
         return mtzdd_count_rec(root, memo);
     }
 
     /** @brief Count the number of non-zero terminal paths (exact BigInt). */
     bigint::BigInt exact_count() const {
         std::unordered_map<bddp, bigint::BigInt> memo;
+        if (use_iter_1op(root)) {
+            return mtzdd_exact_count_iter(root, memo);
+        }
         return mtzdd_exact_count_rec(root, memo);
     }
 
@@ -1025,6 +2182,9 @@ public:
         if (!table.find_index(terminal, idx)) return 0.0;
         bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
         std::unordered_map<bddp, double> memo;
+        if (use_iter_1op(root)) {
+            return mtzdd_count_for_terminal_iter(root, target, memo);
+        }
         return mtzdd_count_for_terminal_rec(root, target, memo);
     }
 
@@ -1035,6 +2195,9 @@ public:
         if (!table.find_index(terminal, idx)) return bigint::BigInt(0);
         bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
         std::unordered_map<bddp, bigint::BigInt> memo;
+        if (use_iter_1op(root)) {
+            return mtzdd_exact_count_for_terminal_iter(root, target, memo);
+        }
         return mtzdd_exact_count_for_terminal_rec(root, target, memo);
     }
 
@@ -1045,6 +2208,9 @@ public:
         static uint8_t apply_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_2op(root, other.root)) {
+                return mtzdd_apply_iter<T, BinOp>(root, other.root, op, apply_op);
+            }
             return mtzdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
         });
         return result;
@@ -1091,6 +2257,9 @@ public:
         static uint8_t ite_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
+            if (use_iter_3op(root, then_case.root, else_case.root)) {
+                return mtzdd_ite_iter<T>(root, then_case.root, else_case.root, ite_op);
+            }
             return mtzdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
         });
         return result;
