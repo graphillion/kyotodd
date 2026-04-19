@@ -365,6 +365,43 @@ TEST_F(ZddMinWeightIterTest, FromSetsNonTrivial) {
     EXPECT_EQ(actual[3].first, 16);
 }
 
+// ---- Deep-stack smoke tests ----
+
+class ZddMinWeightIterDeepTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+    void TearDown() override {
+        bddfinal();
+    }
+};
+
+TEST_F(ZddMinWeightIterDeepTest, ComputeMinDistDeepZDDExceedsRecurLimit) {
+    // Deep chain ZDD (level > BDD_RecurLimit=8192). The iterator internally
+    // calls compute_min_dist on the root; with use_iter_1op dispatching,
+    // the iterative implementation must avoid stack overflow.
+    const int depth = 9000;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+
+    ZDD f = ZDD::Single;
+    for (int v = 1; v <= depth; ++v) {
+        f = ZDD_ID(ZDD::getnode_raw(v, bddempty, f.GetID()));
+    }
+    // f = {{1,2,...,depth}} — a single deep set.
+
+    std::vector<int> weights(depth + 1, 1);
+    weights[0] = 0;
+
+    ZddMinWeightRange range(f, weights);
+    ZddMinWeightIterator it = range.begin();
+    ASSERT_NE(it, range.end());
+    EXPECT_EQ(it->first, static_cast<long long>(depth));
+    EXPECT_EQ(it->second.size(), static_cast<size_t>(depth));
+    ++it;
+    EXPECT_EQ(it, range.end());
+}
+
 // ---- ZddMaxWeightIterator tests ----
 
 class ZddMaxWeightIterTest : public ::testing::Test {

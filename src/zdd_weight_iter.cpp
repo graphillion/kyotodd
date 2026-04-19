@@ -2,6 +2,7 @@
 #include "bdd_internal.h"
 #include "zdd_weight_iter.h"
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 
 namespace kyotodd {
@@ -41,7 +42,109 @@ static long long compute_min_dist_rec(
     return result;
 }
 
+// Iterative counterpart to compute_min_dist_rec. Stack-safe for deep ZDDs
+// (level > BDD_RecurLimit). Memo is shared with the recursive variant; key
+// is the bddp with complement bit retained (same as _rec).
+static long long compute_min_dist_iter(
+    bddp root_f,
+    const std::vector<int>& weights,
+    std::unordered_map<bddp, long long>& memo)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        bddp f;
+        bddvar var;
+        bddp hi;
+        long long lo_dist;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+
+    Frame init;
+    init.f = root_f;
+    init.var = 0;
+    init.hi = 0;
+    init.lo_dist = 0;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    long long result = 0;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            bddp f = frame.f;
+            if (f == bddempty) {
+                result = LLONG_MAX;
+                stack.pop_back();
+                break;
+            }
+            if (f == bddsingle) {
+                result = 0;
+                stack.pop_back();
+                break;
+            }
+            std::unordered_map<bddp, long long>::iterator it = memo.find(f);
+            if (it != memo.end()) {
+                result = it->second;
+                stack.pop_back();
+                break;
+            }
+            bool comp = (f & BDD_COMP_FLAG) != 0;
+            bddp f_raw = f & ~BDD_COMP_FLAG;
+            bddvar var = node_var(f_raw);
+            bddp lo = node_lo(f_raw);
+            bddp hi = node_hi(f_raw);
+            if (comp) lo = bddnot(lo);
+
+            frame.var = var;
+            frame.hi = hi;
+            frame.phase = Phase::GOT_LO;
+
+            Frame child;
+            child.f = lo;
+            child.var = 0;
+            child.hi = 0;
+            child.lo_dist = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_dist = result;
+            frame.phase = Phase::GOT_HI;
+
+            Frame child;
+            child.f = frame.hi;
+            child.var = 0;
+            child.hi = 0;
+            child.lo_dist = 0;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            long long hi_dist = result;
+            long long hi_total = (hi_dist == LLONG_MAX)
+                                     ? LLONG_MAX
+                                     : static_cast<long long>(weights[frame.var]) + hi_dist;
+            long long r = std::min(frame.lo_dist, hi_total);
+            memo[frame.f] = r;
+            result = r;
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 long long ZddMinWeightIterator::compute_min_dist(bddp f) {
+    if (use_iter_1op(f)) {
+        return compute_min_dist_iter(f, state_->weights, state_->min_dist_memo);
+    }
     return compute_min_dist_rec(f, state_->weights, state_->min_dist_memo);
 }
 
