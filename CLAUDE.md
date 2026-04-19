@@ -8,6 +8,7 @@
 - Always write tests after implementing a feature.
 - Do not remove or modify existing comments in the code unless explicitly asked to do so.
 - Keep each source file within 2000 lines. If a file exceeds 2000 lines, split it into multiple files along a natural boundary (e.g., by feature or operation category).
+- Recursive DD operations MUST be implemented in two versions: a `_rec` function (recursive) and an `_iter` function (iterative with explicit stack). The public wrapper MUST dispatch between them using the same condition as `bddand` (via `use_iter_1op` / `use_iter_2op` / `use_iter_3op` against `BDD_RecurLimit`), and MUST expose the same `BddExecMode` argument (`Auto` / `Recursive` / `Iterative`) so callers can force a specific mode. See the `_rec` / `_iter` separation pattern section for details.
 
 ## Naming conventions
 
