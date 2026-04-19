@@ -2042,3 +2042,203 @@ TEST_P(ZddAdvRankModeTest, CrossValidationLinearChain) {
                         bddproject(fam, probe));
 }
 
+// ============================================================
+// Parameterized mode tests for zdd_adv2 operations
+// (bddpermitsym / bddalways / bddsymchk / bddsymset / bddcoimplyset).
+// ============================================================
+
+#define EXPECT_ADV2_MODE_EQ(expr_mode, expr_default)          \
+    do {                                                      \
+        bdd_cache_clear();                                    \
+        auto _actual = (expr_mode);                           \
+        bdd_cache_clear();                                    \
+        auto _expected = (expr_default);                      \
+        EXPECT_EQ(_actual, _expected);                        \
+    } while (0)
+
+class ZddAdv2ModeTest : public ::testing::TestWithParam<BddExecMode> {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    ExecModes,
+    ZddAdv2ModeTest,
+    ::testing::Values(BddExecMode::Recursive, BddExecMode::Iterative, BddExecMode::Auto),
+    [](const ::testing::TestParamInfo<BddExecMode>& info) {
+        switch (info.param) {
+        case BddExecMode::Recursive: return "Recursive";
+        case BddExecMode::Iterative: return "Iterative";
+        case BddExecMode::Auto: return "Auto";
+        }
+        return "Unknown";
+    }
+);
+
+namespace {
+struct Adv2Families {
+    bddvar v1, v2, v3, v4;
+    bddp s_v1, s_v2, s_v3, s_v4;
+    bddp v1v2, v2v3, v1v2v3;
+    bddp F;       // {{v1},{v1,v2},{v2,v3}}
+    bddp G;       // {{v1,v2},{v2,v3},{v3,v4}}
+    bddp Sym;     // {{v1,v3},{v3}} — v1 and v2 not symmetric here? we'll test pairs
+    bddp pow3;    // powerset over v1..v3 (highly symmetric: all vars symmetric)
+    bddp comp_F;  // ~F (complement edge)
+};
+
+static Adv2Families make_adv2_families() {
+    Adv2Families t;
+    t.v1 = bddnewvar();
+    t.v2 = bddnewvar();
+    t.v3 = bddnewvar();
+    t.v4 = bddnewvar();
+    t.s_v1 = ZDD::getnode(t.v1, bddempty, bddsingle);
+    t.s_v2 = ZDD::getnode(t.v2, bddempty, bddsingle);
+    t.s_v3 = ZDD::getnode(t.v3, bddempty, bddsingle);
+    t.s_v4 = ZDD::getnode(t.v4, bddempty, bddsingle);
+    t.v1v2 = bddjoin(t.s_v1, t.s_v2);
+    t.v2v3 = bddjoin(t.s_v2, t.s_v3);
+    t.v1v2v3 = bddjoin(t.v1v2, t.s_v3);
+    t.F = bddunion(bddunion(t.s_v1, t.v1v2), t.v2v3);
+    bddp v3v4 = bddjoin(t.s_v3, t.s_v4);
+    t.G = bddunion(bddunion(t.v1v2, t.v2v3), v3v4);
+    t.Sym = bddunion(bddjoin(t.s_v1, t.s_v3), t.s_v3);
+    // pow3 = power_set over {v1,v2,v3}: all variables are symmetric.
+    t.pow3 = bddsingle;
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v1, bddempty, t.pow3));
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v2, bddempty, t.pow3));
+    t.pow3 = bddunion(t.pow3, ZDD::getnode(t.v3, bddempty, t.pow3));
+    t.comp_F = bddnot(t.F);
+    bdd_cache_clear();
+    return t;
+}
+} // namespace
+
+TEST_P(ZddAdv2ModeTest, PermitSymTerminals) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddpermitsym(bddempty, 3, m), bddempty);
+    EXPECT_EQ(bddpermitsym(t.F, -1, m), bddempty);
+    EXPECT_EQ(bddpermitsym(bddsingle, 5, m), bddsingle);
+}
+
+TEST_P(ZddAdv2ModeTest, PermitSymBasic) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    for (int n : {0, 1, 2, 3, 4}) {
+        EXPECT_ADV2_MODE_EQ(bddpermitsym(t.F, n, m),
+                            bddpermitsym(t.F, n));
+        EXPECT_ADV2_MODE_EQ(bddpermitsym(t.G, n, m),
+                            bddpermitsym(t.G, n));
+        EXPECT_ADV2_MODE_EQ(bddpermitsym(t.pow3, n, m),
+                            bddpermitsym(t.pow3, n));
+        EXPECT_ADV2_MODE_EQ(bddpermitsym(t.comp_F, n, m),
+                            bddpermitsym(t.comp_F, n));
+    }
+}
+
+TEST_P(ZddAdv2ModeTest, AlwaysTerminals) {
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddalways(bddempty, m), bddempty);
+    EXPECT_EQ(bddalways(bddsingle, m), bddempty);
+}
+
+TEST_P(ZddAdv2ModeTest, AlwaysBasic) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_ADV2_MODE_EQ(bddalways(t.F, m), bddalways(t.F));
+    EXPECT_ADV2_MODE_EQ(bddalways(t.G, m), bddalways(t.G));
+    EXPECT_ADV2_MODE_EQ(bddalways(t.v1v2v3, m), bddalways(t.v1v2v3));
+    EXPECT_ADV2_MODE_EQ(bddalways(t.pow3, m), bddalways(t.pow3));
+    EXPECT_ADV2_MODE_EQ(bddalways(t.comp_F, m), bddalways(t.comp_F));
+}
+
+TEST_P(ZddAdv2ModeTest, SymChkTerminals) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddsymchk(bddempty, t.v1, t.v2, m), 1);
+    EXPECT_EQ(bddsymchk(bddsingle, t.v1, t.v2, m), 1);
+    EXPECT_EQ(bddsymchk(t.F, t.v1, t.v1, m), 1);
+}
+
+TEST_P(ZddAdv2ModeTest, SymChkBasic) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    // pow3: all variables are pairwise symmetric.
+    EXPECT_EQ(bddsymchk(t.pow3, t.v1, t.v2, m), 1);
+    EXPECT_EQ(bddsymchk(t.pow3, t.v1, t.v3, m), 1);
+    EXPECT_EQ(bddsymchk(t.pow3, t.v2, t.v3, m), 1);
+    // F is asymmetric.
+    EXPECT_EQ(bddsymchk(t.F, t.v1, t.v2, m), bddsymchk(t.F, t.v1, t.v2));
+    EXPECT_EQ(bddsymchk(t.F, t.v2, t.v3, m), bddsymchk(t.F, t.v2, t.v3));
+    EXPECT_EQ(bddsymchk(t.G, t.v1, t.v4, m), bddsymchk(t.G, t.v1, t.v4));
+}
+
+TEST_P(ZddAdv2ModeTest, SymSetTerminals) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddsymset(bddempty, t.v1, m), bddempty);
+    EXPECT_EQ(bddsymset(bddsingle, t.v1, m), bddempty);
+}
+
+TEST_P(ZddAdv2ModeTest, SymSetBasic) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.F, t.v1, m), bddsymset(t.F, t.v1));
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.F, t.v2, m), bddsymset(t.F, t.v2));
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.G, t.v3, m), bddsymset(t.G, t.v3));
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.pow3, t.v1, m), bddsymset(t.pow3, t.v1));
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.pow3, t.v2, m), bddsymset(t.pow3, t.v2));
+    EXPECT_ADV2_MODE_EQ(bddsymset(t.comp_F, t.v2, m),
+                        bddsymset(t.comp_F, t.v2));
+}
+
+TEST_P(ZddAdv2ModeTest, CoImplySetTerminals) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddcoimplyset(bddempty, t.v1, m), bddempty);
+    EXPECT_EQ(bddcoimplyset(bddsingle, t.v1, m), bddempty);
+}
+
+TEST_P(ZddAdv2ModeTest, CoImplySetBasic) {
+    auto t = make_adv2_families();
+    BddExecMode m = GetParam();
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(t.F, t.v1, m),
+                        bddcoimplyset(t.F, t.v1));
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(t.F, t.v2, m),
+                        bddcoimplyset(t.F, t.v2));
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(t.G, t.v3, m),
+                        bddcoimplyset(t.G, t.v3));
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(t.pow3, t.v1, m),
+                        bddcoimplyset(t.pow3, t.v1));
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(t.comp_F, t.v2, m),
+                        bddcoimplyset(t.comp_F, t.v2));
+}
+
+// Cross-validation: linear-chain family exercising every level.
+TEST_P(ZddAdv2ModeTest, CrossValidationLinearChain) {
+    const int n = 10;
+    std::vector<bddvar> vars;
+    for (int i = 0; i < n; ++i) vars.push_back(bddnewvar());
+
+    bddp s = bddsingle;
+    bddp fam = bddempty;
+    for (int i = 0; i < n; ++i) {
+        s = bddjoin(s, ZDD::getnode(vars[i], bddempty, bddsingle));
+        fam = bddunion(fam, s);
+    }
+
+    BddExecMode m = GetParam();
+    EXPECT_ADV2_MODE_EQ(bddpermitsym(fam, 3, m), bddpermitsym(fam, 3));
+    EXPECT_ADV2_MODE_EQ(bddpermitsym(fam, 6, m), bddpermitsym(fam, 6));
+    EXPECT_ADV2_MODE_EQ(bddalways(fam, m), bddalways(fam));
+    EXPECT_EQ(bddsymchk(fam, vars[2], vars[5], m),
+              bddsymchk(fam, vars[2], vars[5]));
+    EXPECT_ADV2_MODE_EQ(bddsymset(fam, vars[3], m), bddsymset(fam, vars[3]));
+    EXPECT_ADV2_MODE_EQ(bddcoimplyset(fam, vars[4], m),
+                        bddcoimplyset(fam, vars[4]));
+}
+

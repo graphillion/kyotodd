@@ -109,7 +109,35 @@ bddp bddpermitsym(bddp f, int n) {
     if (n == 0) return bddintersec(f, bddsingle);
     if (f & BDD_CONST_FLAG) return f;
 
-    return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddpermitsym_iter(f, n); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
+    }
+}
+
+bddp bddpermitsym(bddp f, int n, BddExecMode mode) {
+    bddp_validate(f, "bddpermitsym");
+    if (f == bddnull) return bddnull;
+    if (f == bddempty) return bddempty;
+    if (n < 0) return bddempty;
+    if (f == bddsingle) return bddsingle;
+    if (n == 0) return bddintersec(f, bddsingle);
+    if (f & BDD_CONST_FLAG) return f;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddpermitsym_iter(f, n); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddpermitsym_iter(f, n); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddpermitsym_rec(f, n); });
+        }
+    }
 }
 
 static bddp bddpermitsym_rec(bddp f, int n) {
@@ -145,7 +173,31 @@ bddp bddalways(bddp f) {
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp { return bddalways_rec(f); });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp { return bddalways_iter(f); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddalways_rec(f); });
+    }
+}
+
+bddp bddalways(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddalways");
+    if (f == bddnull) return bddnull;
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp { return bddalways_iter(f); });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp { return bddalways_rec(f); });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp { return bddalways_iter(f); });
+        } else {
+            return bdd_gc_guard([&]() -> bddp { return bddalways_rec(f); });
+        }
+    }
 }
 
 static bddp bddalways_rec(bddp f) {
@@ -196,10 +248,59 @@ int bddsymchk(bddp f, bddvar v1, bddvar v2) {
         bddvar tmp = v1; v1 = v2; v2 = tmp;
     }
 
-    bddp r = bdd_gc_guard([&]() -> bddp {
-        return static_cast<bddp>(bddsymchk_rec(f, v1, v2));
-    });
-    return static_cast<int>(r);
+    if (use_iter_1op(f)) {
+        bddp r = bdd_gc_guard([&]() -> bddp {
+            return static_cast<bddp>(bddsymchk_iter(f, v1, v2));
+        });
+        return static_cast<int>(r);
+    } else {
+        bddp r = bdd_gc_guard([&]() -> bddp {
+            return static_cast<bddp>(bddsymchk_rec(f, v1, v2));
+        });
+        return static_cast<int>(r);
+    }
+}
+
+int bddsymchk(bddp f, bddvar v1, bddvar v2, BddExecMode mode) {
+    bddp_validate(f, "bddsymchk");
+    if (f == bddnull) return -1;
+    if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
+        throw std::invalid_argument("bddsymchk: variable out of range");
+    }
+    if (v1 == v2) return 1;
+    if (f & BDD_CONST_FLAG) return 1;
+
+    if (var2level[v1] < var2level[v2]) {
+        bddvar tmp = v1; v1 = v2; v2 = tmp;
+    }
+
+    switch (mode) {
+    case BddExecMode::Iterative: {
+        bddp r = bdd_gc_guard([&]() -> bddp {
+            return static_cast<bddp>(bddsymchk_iter(f, v1, v2));
+        });
+        return static_cast<int>(r);
+    }
+    case BddExecMode::Recursive: {
+        bddp r = bdd_gc_guard([&]() -> bddp {
+            return static_cast<bddp>(bddsymchk_rec(f, v1, v2));
+        });
+        return static_cast<int>(r);
+    }
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            bddp r = bdd_gc_guard([&]() -> bddp {
+                return static_cast<bddp>(bddsymchk_iter(f, v1, v2));
+            });
+            return static_cast<int>(r);
+        } else {
+            bddp r = bdd_gc_guard([&]() -> bddp {
+                return static_cast<bddp>(bddsymchk_rec(f, v1, v2));
+            });
+            return static_cast<int>(r);
+        }
+    }
 }
 
 static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
@@ -387,11 +488,58 @@ bddp bddsymset(bddp f, bddvar v) {
     }
     if (f & BDD_CONST_FLAG) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp {
-        bddp f0 = bddoffset(f, v);
-        bddp f1 = bddonset0(f, v);
-        return bddsymset_rec(f0, f1);
-    });
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            return bddsymset_iter(f0, f1);
+        });
+    } else {
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            return bddsymset_rec(f0, f1);
+        });
+    }
+}
+
+bddp bddsymset(bddp f, bddvar v, BddExecMode mode) {
+    bddp_validate(f, "bddsymset");
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddsymset: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            return bddsymset_iter(f0, f1);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            return bddsymset_rec(f0, f1);
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                bddp f0 = bddoffset(f, v);
+                bddp f1 = bddonset0(f, v);
+                return bddsymset_iter(f0, f1);
+            });
+        } else {
+            return bdd_gc_guard([&]() -> bddp {
+                bddp f0 = bddoffset(f, v);
+                bddp f1 = bddonset0(f, v);
+                return bddsymset_rec(f0, f1);
+            });
+        }
+    }
 }
 
 static bddp bddsymset_rec(bddp f0, bddp f1) {
@@ -451,15 +599,69 @@ bddp bddcoimplyset(bddp f, bddvar v) {
     }
     if (f & BDD_CONST_FLAG) return bddempty;
 
-    return bdd_gc_guard([&]() -> bddp {
-        bddp f0 = bddoffset(f, v);
-        bddp f1 = bddonset0(f, v);
-        if (f1 == bddempty) {
-            // v not in any set -> vacuous truth: all support variables
-            return support_to_singletons(f);
+    if (use_iter_1op(f)) {
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            if (f1 == bddempty) {
+                return support_to_singletons(f);
+            }
+            return bddcoimplyset_iter(f0, f1);
+        });
+    } else {
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            if (f1 == bddempty) {
+                // v not in any set -> vacuous truth: all support variables
+                return support_to_singletons(f);
+            }
+            return bddcoimplyset_rec(f0, f1);
+        });
+    }
+}
+
+bddp bddcoimplyset(bddp f, bddvar v, BddExecMode mode) {
+    bddp_validate(f, "bddcoimplyset");
+    if (f == bddnull) return bddnull;
+    if (v < 1 || v > bdd_varcount) {
+        throw std::invalid_argument("bddcoimplyset: variable out of range");
+    }
+    if (f & BDD_CONST_FLAG) return bddempty;
+
+    switch (mode) {
+    case BddExecMode::Iterative:
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            if (f1 == bddempty) return support_to_singletons(f);
+            return bddcoimplyset_iter(f0, f1);
+        });
+    case BddExecMode::Recursive:
+        return bdd_gc_guard([&]() -> bddp {
+            bddp f0 = bddoffset(f, v);
+            bddp f1 = bddonset0(f, v);
+            if (f1 == bddempty) return support_to_singletons(f);
+            return bddcoimplyset_rec(f0, f1);
+        });
+    case BddExecMode::Auto:
+    default:
+        if (use_iter_1op(f)) {
+            return bdd_gc_guard([&]() -> bddp {
+                bddp f0 = bddoffset(f, v);
+                bddp f1 = bddonset0(f, v);
+                if (f1 == bddempty) return support_to_singletons(f);
+                return bddcoimplyset_iter(f0, f1);
+            });
+        } else {
+            return bdd_gc_guard([&]() -> bddp {
+                bddp f0 = bddoffset(f, v);
+                bddp f1 = bddonset0(f, v);
+                if (f1 == bddempty) return support_to_singletons(f);
+                return bddcoimplyset_rec(f0, f1);
+            });
         }
-        return bddcoimplyset_rec(f0, f1);
-    });
+    }
 }
 
 static bddp bddcoimplyset_rec(bddp f0, bddp f1) {

@@ -26,6 +26,7 @@ set(KYOTODD_LIB_SOURCES
   src/zdd_adv_rank.cpp
   src/zdd_adv_rank_iter.cpp
   src/zdd_adv2.cpp
+  src/zdd_adv2_iter.cpp
   src/pidd.cpp
   src/rotpidd.cpp
   src/seqbdd.cpp

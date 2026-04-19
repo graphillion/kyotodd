@@ -1435,6 +1435,14 @@ int bddcoimplychk(bddp f, bddvar v1, bddvar v2);
  * @return A ZDD containing only sets with ≤ n elements.
  */
 bddp bddpermitsym(bddp f, int n);
+bddp bddpermitsym(bddp f, int n, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddpermitsym.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
+bddp bddpermitsym_iter(bddp f, int n);
 
 /**
  * @brief Find elements common to ALL sets in a ZDD family.
@@ -1443,6 +1451,14 @@ bddp bddpermitsym(bddp f, int n);
  *         For example, if f = {{1,2,3},{1,2}}, returns {{1},{2}}.
  */
 bddp bddalways(bddp f);
+bddp bddalways(bddp f, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddalways.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter.
+ */
+bddp bddalways_iter(bddp f);
 
 /**
  * @brief Check if two variables are symmetric in a ZDD family.
@@ -1452,6 +1468,15 @@ bddp bddalways(bddp f);
  * @return 1 if symmetric, 0 if not, -1 on error.
  */
 int bddsymchk(bddp f, bddvar v1, bddvar v2);
+int bddsymchk(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsymchk.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. The caller must
+ * have normalized v1, v2 so that var2level[v1] >= var2level[v2].
+ */
+int bddsymchk_iter(bddp f, bddvar v1, bddvar v2);
 
 /**
  * @brief Find all variables implied by v in a ZDD family.
@@ -1482,6 +1507,15 @@ bddp bddsymgrpnaive(bddp f);
  * @return A ZDD (single set) of variables symmetric with v.
  */
 bddp bddsymset(bddp f, bddvar v);
+bddp bddsymset(bddp f, bddvar v, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddsymset.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Takes the
+ * (f0, f1) pair that the public wrapper precomputes via bddoffset/bddonset0.
+ */
+bddp bddsymset_iter(bddp f0, bddp f1);
 
 /**
  * @brief Find all variables in co-implication relation with v.
@@ -1490,6 +1524,15 @@ bddp bddsymset(bddp f, bddvar v);
  * @return A ZDD (single set) of variables co-implied by v.
  */
 bddp bddcoimplyset(bddp f, bddvar v);
+bddp bddcoimplyset(bddp f, bddvar v, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddcoimplyset.
+ *
+ * Advanced API. Preconditions as in @ref bddunion_iter. Takes the
+ * (f0, f1) pair that the public wrapper precomputes via bddoffset/bddonset0.
+ */
+bddp bddcoimplyset_iter(bddp f0, bddp f1);
 
 /**
  * @brief Find an approximate divisor of a ZDD family (as polynomial).
