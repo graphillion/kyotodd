@@ -660,6 +660,21 @@ inline bool use_iter_3op(bddp f, bddp g, bddp h) {
 }
 
 /**
+ * @brief Internal recursive helpers for ZDD union/join.
+ *
+ * NOT part of the public API. Defined in src/zdd_ops.cpp. Shared with
+ * src/zdd_adv_filter.cpp so cross-file _rec callers can invoke them
+ * directly without going through the public wrapper (which would re-enter
+ * bddp_validate / bdd_gc_guard unnecessarily).
+ *
+ * PRECONDITION: caller holds a bdd_gc_guard scope. Inputs need not be
+ * pre-normalized (the helpers handle terminal fast-paths and operand
+ * swap), but must be valid bddp values.
+ */
+bddp bddunion_rec(bddp f, bddp g);
+bddp bddjoin_rec(bddp f, bddp g);
+
+/**
  * @brief Internal recursive helper for bddexactcount.
  *
  * NOT part of the public API. Used by multiple zdd_adv_*.cpp files.

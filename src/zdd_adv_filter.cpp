@@ -101,8 +101,8 @@ static bddp bdddisjoin_rec(bddp f, bddp g) {
         bddp lo = bdddisjoin_rec(f_lo, g_lo);
         bddp hi_a = bdddisjoin_rec(f_lo, g_hi);
         bddp hi_b = bdddisjoin_rec(f_hi, g_lo);
-        // Cross-file call: use public wrapper
-        bddp hi = bddunion(hi_a, hi_b);
+        // Cross-file _rec call: shared via bdd_internal.h
+        bddp hi = bddunion_rec(hi_a, hi_b);
         result = ZDD::getnode_raw(top_var, lo, hi);
     }
 
@@ -207,9 +207,9 @@ static bddp bddjointjoin_rec(bddp f, bddp g) {
         bddp lo = bddjointjoin_rec(f_lo, g_lo);
         bddp hi_a = bddjointjoin_rec(f_lo, g_hi);
         bddp hi_b = bddjointjoin_rec(f_hi, g_lo);
-        // Cross-file calls: use public wrappers
-        bddp hi_c = bddjoin(f_hi, g_hi);  // always qualifies
-        bddp hi = bddunion(bddunion(hi_a, hi_b), hi_c);
+        // Cross-file _rec calls: shared via bdd_internal.h
+        bddp hi_c = bddjoin_rec(f_hi, g_hi);  // always qualifies
+        bddp hi = bddunion_rec(bddunion_rec(hi_a, hi_b), hi_c);
         result = ZDD::getnode_raw(top_var, lo, hi);
     }
 

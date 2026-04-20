@@ -341,7 +341,7 @@ static bddp bddchange_rec(bddp f, bddvar var) {
     return result;
 }
 
-static bddp bddunion_rec(bddp f, bddp g);
+bddp bddunion_rec(bddp f, bddp g);
 
 bddp bddunion(bddp f, bddp g) {
     bddp_validate(f, "bddunion");
@@ -386,7 +386,7 @@ bddp bddunion(bddp f, bddp g, BddExecMode mode) {
     }
 }
 
-static bddp bddunion_rec(bddp f, bddp g) {
+bddp bddunion_rec(bddp f, bddp g) {
     BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return g;
@@ -1007,7 +1007,7 @@ static bddp bddsymdiff_rec(bddp f, bddp g) {
     return result;
 }
 
-static bddp bddjoin_rec(bddp f, bddp g);
+bddp bddjoin_rec(bddp f, bddp g);
 
 bddp bddjoin(bddp f, bddp g) {
     bddp_validate(f, "bddjoin");
@@ -1052,7 +1052,7 @@ bddp bddjoin(bddp f, bddp g, BddExecMode mode) {
     }
 }
 
-static bddp bddjoin_rec(bddp f, bddp g) {
+bddp bddjoin_rec(bddp f, bddp g) {
     BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty || g == bddempty) return bddempty;
