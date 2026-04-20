@@ -464,7 +464,7 @@ static bddp bddremove_supersets_rec(bddp f, bddp g) {
     if (f == g) return bddempty;           // A ⊆ A → none qualify
 
     // Cache lookup
-    bddp cached = bddrcache(BDD_OP_NONSUP, f, g);
+    bddp cached = bddrcache(BDD_OP_REMOVE_SUPERSETS, f, g);
     if (cached != bddnull) return cached;
 
     bool f_const = (f & BDD_CONST_FLAG) != 0;
@@ -506,7 +506,7 @@ static bddp bddremove_supersets_rec(bddp f, bddp g) {
         result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
-    bddwcache(BDD_OP_NONSUP, f, g, result);
+    bddwcache(BDD_OP_REMOVE_SUPERSETS, f, g, result);
     return result;
 }
 
@@ -562,7 +562,7 @@ static bddp bddremove_subsets_rec(bddp f, bddp g) {
     if (f == g) return bddempty;           // A ⊆ A → condition fails
 
     // Cache lookup
-    bddp cached = bddrcache(BDD_OP_NONSUB, f, g);
+    bddp cached = bddrcache(BDD_OP_REMOVE_SUBSETS, f, g);
     if (cached != bddnull) return cached;
 
     bool f_const = (f & BDD_CONST_FLAG) != 0;
@@ -604,7 +604,7 @@ static bddp bddremove_subsets_rec(bddp f, bddp g) {
         result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
-    bddwcache(BDD_OP_NONSUB, f, g, result);
+    bddwcache(BDD_OP_REMOVE_SUBSETS, f, g, result);
     return result;
 }
 

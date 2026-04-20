@@ -577,7 +577,7 @@ bddp bddremove_supersets_iter(bddp f, bddp g) {
             if (cg == bddsingle) { result = bddempty; stack.pop_back(); break; }
             if (cf == cg) { result = bddempty; stack.pop_back(); break; }
 
-            bddp cached = bddrcache(BDD_OP_NONSUP, cf, cg);
+            bddp cached = bddrcache(BDD_OP_REMOVE_SUPERSETS, cf, cg);
             if (cached != bddnull) { result = cached; stack.pop_back(); break; }
 
             bool f_const = (cf & BDD_CONST_FLAG) != 0;
@@ -629,7 +629,7 @@ bddp bddremove_supersets_iter(bddp f, bddp g) {
         }
 
         case Phase::GOT_PASS: {
-            bddwcache(BDD_OP_NONSUP, frame.f, frame.g, result);
+            bddwcache(BDD_OP_REMOVE_SUPERSETS, frame.f, frame.g, result);
             stack.pop_back();
             break;
         }
@@ -649,7 +649,7 @@ bddp bddremove_supersets_iter(bddp f, bddp g) {
 
         case Phase::GOT_HI: {
             bddp combined = ZDD::getnode_raw(frame.top_var, frame.lo_result, result);
-            bddwcache(BDD_OP_NONSUP, frame.f, frame.g, combined);
+            bddwcache(BDD_OP_REMOVE_SUPERSETS, frame.f, frame.g, combined);
             result = combined;
             stack.pop_back();
             break;
@@ -697,7 +697,7 @@ bddp bddremove_subsets_iter(bddp f, bddp g) {
             if (cf == bddsingle) { result = bddempty; stack.pop_back(); break; }
             if (cf == cg) { result = bddempty; stack.pop_back(); break; }
 
-            bddp cached = bddrcache(BDD_OP_NONSUB, cf, cg);
+            bddp cached = bddrcache(BDD_OP_REMOVE_SUBSETS, cf, cg);
             if (cached != bddnull) { result = cached; stack.pop_back(); break; }
 
             bool f_const = (cf & BDD_CONST_FLAG) != 0;
@@ -754,7 +754,7 @@ bddp bddremove_subsets_iter(bddp f, bddp g) {
         }
 
         case Phase::GOT_PASS: {
-            bddwcache(BDD_OP_NONSUB, frame.f, frame.g, result);
+            bddwcache(BDD_OP_REMOVE_SUBSETS, frame.f, frame.g, result);
             stack.pop_back();
             break;
         }
@@ -763,7 +763,7 @@ bddp bddremove_subsets_iter(bddp f, bddp g) {
             frame.lo_result = result;
             if (frame.hi_from_f) {
                 bddp combined = ZDD::getnode_raw(frame.top_var, frame.lo_result, frame.f_hi);
-                bddwcache(BDD_OP_NONSUB, frame.f, frame.g, combined);
+                bddwcache(BDD_OP_REMOVE_SUBSETS, frame.f, frame.g, combined);
                 result = combined;
                 stack.pop_back();
             } else {
@@ -781,7 +781,7 @@ bddp bddremove_subsets_iter(bddp f, bddp g) {
 
         case Phase::GOT_HI: {
             bddp combined = ZDD::getnode_raw(frame.top_var, frame.lo_result, result);
-            bddwcache(BDD_OP_NONSUB, frame.f, frame.g, combined);
+            bddwcache(BDD_OP_REMOVE_SUBSETS, frame.f, frame.g, combined);
             result = combined;
             stack.pop_back();
             break;
