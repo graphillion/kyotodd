@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include <climits>
 #include <vector>
 #include <algorithm>
 #include <set>
@@ -558,4 +559,107 @@ TEST_F(ZddMinWeightIterTest, EmptyFamilyWithBadWeightsThrows) {
     std::vector<int> too_short;  // size 0 <= bddvarused() => 1
     EXPECT_THROW(ZddMinWeightIterator it(empty, too_short),
                  std::invalid_argument);
+}
+
+// ---- negate_weights edge cases (src/zdd_weight_iter.cpp:481-491) ----
+
+TEST_F(ZddMaxWeightIterTest, IntMinWeightThrows) {
+    // negate_weights guards against INT_MIN because -INT_MIN overflows in
+    // two's complement. Any INT_MIN weight must produce invalid_argument.
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<int> weights = {0, INT_MIN};
+    EXPECT_THROW(ZddMaxWeightIterator(f, weights), std::invalid_argument);
+}
+
+TEST_F(ZddMaxWeightIterTest, IntMinWeightAtNonFirstIndex) {
+    // INT_MIN anywhere in the vector, not just at index 1, must still throw.
+    bddnewvar();
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<int> weights = {0, 3, INT_MIN};
+    EXPECT_THROW(ZddMaxWeightIterator(f, weights), std::invalid_argument);
+}
+
+TEST_F(ZddMaxWeightIterTest, IntMaxSingleWeightIsValid) {
+    // -INT_MAX == INT_MIN + 1 is representable, so INT_MAX weights are
+    // accepted and round-trip through the saturating-negate correctly.
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<int> weights = {0, INT_MAX};
+    ZddMaxWeightIterator it(f, weights);
+    ZddMaxWeightIterator end;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(it->first, static_cast<long long>(INT_MAX));
+    ++it;
+    EXPECT_EQ(it, end);
+}
+
+TEST_F(ZddMaxWeightIterTest, IntMaxWeightsSumWithoutOverflow) {
+    // Sum of k * INT_MAX fits in long long (~2^31 * k <= 2^63 for small k).
+    // Exercises sync_current's weight_saturate_negate on normal (non-sentinel)
+    // values produced by the inner saturating adder.
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD s1 = ZDD::singleton(1);
+    ZDD s2 = ZDD::singleton(2);
+    ZDD s3 = ZDD::singleton(3);
+    ZDD s123 = s1 * s2 * s3;          // {{1,2,3}}
+    ZDD f = s1 + s2 + s3 + s123;      // {{1},{2},{3},{1,2,3}}
+
+    std::vector<int> weights(4, 0);
+    weights[1] = INT_MAX;
+    weights[2] = INT_MAX;
+    weights[3] = INT_MAX;
+
+    ZddMaxWeightIterator it(f, weights);
+    ZddMaxWeightIterator end;
+    ASSERT_NE(it, end);
+    // Top-weighted set is {1,2,3} with sum 3 * INT_MAX.
+    long long expected_max = 3LL * static_cast<long long>(INT_MAX);
+    EXPECT_EQ(it->first, expected_max);
+    ASSERT_EQ(it->second.size(), 3u);
+
+    // Subsequent sets each have weight INT_MAX (singletons).
+    ++it;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(it->first, static_cast<long long>(INT_MAX));
+}
+
+TEST_F(ZddMinWeightIterTest, IntMaxWeightsSumWithoutOverflow) {
+    // Mirror coverage for ZddMinWeightIterator's saturating adder.
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    ZDD s1 = ZDD::singleton(1);
+    ZDD s2 = ZDD::singleton(2);
+    ZDD s3 = ZDD::singleton(3);
+    ZDD s123 = s1 * s2 * s3;
+    ZDD f = s1 + s2 + s3 + s123;
+
+    std::vector<int> weights(4, 0);
+    weights[1] = INT_MAX;
+    weights[2] = INT_MAX;
+    weights[3] = INT_MAX;
+
+    ZddMinWeightIterator it(f, weights);
+    ZddMinWeightIterator end;
+    ASSERT_NE(it, end);
+    // Lowest sum is a singleton with weight INT_MAX (all singletons tie).
+    EXPECT_EQ(it->first, static_cast<long long>(INT_MAX));
+    ASSERT_EQ(it->second.size(), 1u);
+}
+
+TEST_F(ZddMinWeightIterTest, IntMinWeightDirectlyUsable) {
+    // INT_MIN is rejected by ZddMaxWeightIterator's negate_weights, but
+    // ZddMinWeightIterator consumes weights directly without negation,
+    // so INT_MIN must be accepted. Verifies the guard is localized to max.
+    bddnewvar();
+    ZDD f = ZDD::singleton(1);
+    std::vector<int> weights = {0, INT_MIN};
+    ZddMinWeightIterator it(f, weights);
+    ZddMinWeightIterator end;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(it->first, static_cast<long long>(INT_MIN));
 }

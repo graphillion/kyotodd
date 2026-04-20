@@ -97,6 +97,84 @@ TEST_F(RotPiDDTest, LeftRotBasic) {
     EXPECT_EQ(r2, id);
 }
 
+/* ---- LeftRot overlapping case (src/rotpidd.cpp:121-124) ---- */
+TEST_F(RotPiDDTest, LeftRotOverlappingCase) {
+    /* Exercises the overlapping branch of left_rot where v <= y < u < x.
+     * Compute id.LeftRot(x, y).LeftRot(u, v) and compare against a
+     * brute-force cyclic-left-shift of positions.
+     *
+     * Composition convention (see from_vector reverse-order build):
+     *   r.LeftRot(a, b) = r ∘ LeftRot(a, b), so in id.LeftRot(x, y).LeftRot(u, v)
+     *   the RIGHTMOST call is applied first to the identity. */
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+
+    const int x = 5, y = 2, u = 4, v = 1;
+    ASSERT_TRUE(v <= y && y < u && u < x);  /* overlapping precondition */
+
+    RotPiDD id(1);
+    RotPiDD p = id.LeftRot(x, y).LeftRot(u, v);
+    auto perms = p.RotPiDDToVectorOfPerms();
+    ASSERT_EQ(perms.size(), 1u);
+
+    /* Brute force (LeftRot(u,v) applied first, then LeftRot(x,y)):
+     *   [1,2,3,4,5] -> LeftRot(4,1) -> [2,3,4,1,5]
+     *   [2,3,4,1,5] -> LeftRot(5,2) -> [2,4,1,5,3] */
+    std::vector<int> expected = {2, 4, 1, 5, 3};
+    EXPECT_EQ(perms[0], expected);
+}
+
+/* ---- LeftRot contained case (src/rotpidd.cpp:125-128) ---- */
+TEST_F(RotPiDDTest, LeftRotContainedCase) {
+    /* Exercises the contained branch of left_rot where y < v <= u < x.
+     * Compute id.LeftRot(x, y).LeftRot(u, v) and compare against a
+     * brute-force cyclic-left-shift of positions. */
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+
+    const int x = 5, y = 1, u = 4, v = 2;
+    ASSERT_TRUE(y < v && v <= u && u < x);  /* contained precondition */
+
+    RotPiDD id(1);
+    RotPiDD p = id.LeftRot(x, y).LeftRot(u, v);
+    auto perms = p.RotPiDDToVectorOfPerms();
+    ASSERT_EQ(perms.size(), 1u);
+
+    /* Brute force (LeftRot(u,v) applied first, then LeftRot(x,y)):
+     *   [1,2,3,4,5] -> LeftRot(4,2) -> [1,3,4,2,5]
+     *   [1,3,4,2,5] -> LeftRot(5,1) -> [3,4,2,5,1] */
+    std::vector<int> expected = {3, 4, 2, 5, 1};
+    EXPECT_EQ(perms[0], expected);
+}
+
+/* ---- LeftRot overlapping + contained algebraic identity ---- */
+TEST_F(RotPiDDTest, LeftRotOverlappingContainedCrossVerify) {
+    /* Cross-verification:
+     *   Overlapping branch uses  LeftRot(u,v) o LeftRot(x,y) =
+     *                            LeftRot(x,y+1) o LeftRot(u-1,v).
+     *   Contained   branch uses  LeftRot(u,v) o LeftRot(x,y) =
+     *                            LeftRot(x,y)   o LeftRot(u-1,v-1).
+     * The LHS path runs through one branch and the RHS path through the
+     * other, so mismatched results would reveal a branch-specific bug. */
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    RotPiDD id(1);
+
+    /* Overlapping LHS (v=1 <= y=2 < u=4 < x=5)
+     *   triggers overlapping branch.
+     * RHS (id.LeftRot(u-1, v).LeftRot(x, y+1)) applies LeftRot(x=5, y+1=3)
+     * to a RotPiDD whose top variable is LeftRot(3, 1), i.e. u'=5 > y'=1
+     * and v'=3 > y'=1 -> contained branch. */
+    RotPiDD lhs_ov = id.LeftRot(5, 2).LeftRot(4, 1);
+    RotPiDD rhs_ov = id.LeftRot(3, 1).LeftRot(5, 3);
+    EXPECT_EQ(lhs_ov, rhs_ov);
+
+    /* Contained LHS (y=1 < v=2 <= u=4 < x=5) triggers contained branch.
+     * RHS (id.LeftRot(u-1, v-1).LeftRot(x, y)) applies LeftRot(5, 1)
+     * to a RotPiDD whose top variable is LeftRot(3, 1), i.e. v'=1 <= y'=1
+     * -> overlapping branch. */
+    RotPiDD lhs_ct = id.LeftRot(5, 1).LeftRot(4, 2);
+    RotPiDD rhs_ct = id.LeftRot(3, 1).LeftRot(5, 1);
+    EXPECT_EQ(lhs_ct, rhs_ct);
+}
+
 /* ---- VECtoRotPiDD and RotPiDDToVectorOfPerms roundtrip ---- */
 TEST_F(RotPiDDTest, VecConversionRoundtrip) {
     RotPiDD_NewVar();
