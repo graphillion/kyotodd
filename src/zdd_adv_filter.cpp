@@ -412,11 +412,11 @@ static bddp bddpermit_rec(bddp f, bddp g) {
     return result;
 }
 
-static bddp bddnonsup_rec(bddp f, bddp g);
+static bddp bddremove_supersets_rec(bddp f, bddp g);
 
-bddp bddnonsup(bddp f, bddp g) {
-    bddp_validate(f, "bddnonsup");
-    bddp_validate(g, "bddnonsup");
+bddp bddremove_supersets(bddp f, bddp g) {
+    bddp_validate(f, "bddremove_supersets");
+    bddp_validate(g, "bddremove_supersets");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -425,15 +425,15 @@ bddp bddnonsup(bddp f, bddp g) {
     if (f == g) return bddempty;           // A ⊆ A → none qualify
 
     if (use_iter_2op(f, g)) {
-        return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_iter(f, g); });
     } else {
-        return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_rec(f, g); });
     }
 }
 
-bddp bddnonsup(bddp f, bddp g, BddExecMode mode) {
-    bddp_validate(f, "bddnonsup");
-    bddp_validate(g, "bddnonsup");
+bddp bddremove_supersets(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddremove_supersets");
+    bddp_validate(g, "bddremove_supersets");
     if (f == bddnull || g == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;
@@ -442,20 +442,20 @@ bddp bddnonsup(bddp f, bddp g, BddExecMode mode) {
 
     switch (mode) {
     case BddExecMode::Iterative:
-        return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_iter(f, g); });
     case BddExecMode::Recursive:
-        return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_rec(f, g); });
     case BddExecMode::Auto:
     default:
         if (use_iter_2op(f, g)) {
-            return bdd_gc_guard([&]() -> bddp { return bddnonsup_iter(f, g); });
+            return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_iter(f, g); });
         } else {
-            return bdd_gc_guard([&]() -> bddp { return bddnonsup_rec(f, g); });
+            return bdd_gc_guard([&]() -> bddp { return bddremove_supersets_rec(f, g); });
         }
     }
 }
 
-static bddp bddnonsup_rec(bddp f, bddp g) {
+static bddp bddremove_supersets_rec(bddp f, bddp g) {
     BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -483,14 +483,14 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
         // G has no f_var: B⊄A check is same for both branches
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        bddp lo = bddnonsup_rec(f_lo, g);
-        bddp hi = bddnonsup_rec(f_hi, g);
+        bddp lo = bddremove_supersets_rec(f_lo, g);
+        bddp hi = bddremove_supersets_rec(f_hi, g);
         result = ZDD::getnode_raw(f_var, lo, hi);
     } else if (g_level > f_level) {
         // F has no g_var: B with g_var can't be ⊆ A, skip to G_lo
         bddp g_lo = node_lo(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
-        result = bddnonsup_rec(f, g_lo);
+        result = bddremove_supersets_rec(f, g_lo);
     } else {
         // Same top variable v
         // F_lo: only B∈G_lo can be ⊆ A (B with v can't be ⊆ A without v)
@@ -500,9 +500,9 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
 
-        bddp lo = bddnonsup_rec(f_lo, g_lo);
+        bddp lo = bddremove_supersets_rec(f_lo, g_lo);
         // Cross-file call: use public wrapper
-        bddp hi = bddnonsup_rec(f_hi, bddunion(g_lo, g_hi));
+        bddp hi = bddremove_supersets_rec(f_hi, bddunion(g_lo, g_hi));
         result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
@@ -510,11 +510,11 @@ static bddp bddnonsup_rec(bddp f, bddp g) {
     return result;
 }
 
-static bddp bddnonsub_rec(bddp f, bddp g);
+static bddp bddremove_subsets_rec(bddp f, bddp g);
 
-bddp bddnonsub(bddp f, bddp g) {
-    bddp_validate(f, "bddnonsub");
-    bddp_validate(g, "bddnonsub");
+bddp bddremove_subsets(bddp f, bddp g) {
+    bddp_validate(f, "bddremove_subsets");
+    bddp_validate(g, "bddremove_subsets");
     if (f == bddnull || g == bddnull) return bddnull;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -523,15 +523,15 @@ bddp bddnonsub(bddp f, bddp g) {
     if (f == g) return bddempty;           // A ⊆ A → condition fails
 
     if (use_iter_2op(f, g)) {
-        return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_iter(f, g); });
     } else {
-        return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_rec(f, g); });
     }
 }
 
-bddp bddnonsub(bddp f, bddp g, BddExecMode mode) {
-    bddp_validate(f, "bddnonsub");
-    bddp_validate(g, "bddnonsub");
+bddp bddremove_subsets(bddp f, bddp g, BddExecMode mode) {
+    bddp_validate(f, "bddremove_subsets");
+    bddp_validate(g, "bddremove_subsets");
     if (f == bddnull || g == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
     if (g == bddempty) return f;
@@ -540,20 +540,20 @@ bddp bddnonsub(bddp f, bddp g, BddExecMode mode) {
 
     switch (mode) {
     case BddExecMode::Iterative:
-        return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_iter(f, g); });
     case BddExecMode::Recursive:
-        return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+        return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_rec(f, g); });
     case BddExecMode::Auto:
     default:
         if (use_iter_2op(f, g)) {
-            return bdd_gc_guard([&]() -> bddp { return bddnonsub_iter(f, g); });
+            return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_iter(f, g); });
         } else {
-            return bdd_gc_guard([&]() -> bddp { return bddnonsub_rec(f, g); });
+            return bdd_gc_guard([&]() -> bddp { return bddremove_subsets_rec(f, g); });
         }
     }
 }
 
-static bddp bddnonsub_rec(bddp f, bddp g) {
+static bddp bddremove_subsets_rec(bddp f, bddp g) {
     BDD_RecurGuard guard;
     // Terminal cases
     if (f == bddempty) return bddempty;
@@ -581,14 +581,14 @@ static bddp bddnonsub_rec(bddp f, bddp g) {
         // G has no f_var: A with f_var can't be ⊆ any B → F_hi all qualify
         bddp f_lo = node_lo(f); bddp f_hi = node_hi(f);
         if (f_comp) { f_lo = bddnot(f_lo); }
-        bddp lo = bddnonsub_rec(f_lo, g);
+        bddp lo = bddremove_subsets_rec(f_lo, g);
         result = ZDD::getnode_raw(f_var, lo, f_hi);
     } else if (g_level > f_level) {
         // F has no g_var: A⊆(T∪{g_var}) iff A⊆T → union G branches
         bddp g_lo = node_lo(g); bddp g_hi = node_hi(g);
         if (g_comp) { g_lo = bddnot(g_lo); }
         // Cross-file call: use public wrapper
-        result = bddnonsub_rec(f, bddunion(g_lo, g_hi));
+        result = bddremove_subsets_rec(f, bddunion(g_lo, g_hi));
     } else {
         // Same top variable v
         // F_lo: A⊆B for B∈G_lo or A⊆T for T∈G_hi → check both
@@ -599,8 +599,8 @@ static bddp bddnonsub_rec(bddp f, bddp g) {
         if (g_comp) { g_lo = bddnot(g_lo); }
 
         // Cross-file call: use public wrapper
-        bddp lo = bddnonsub_rec(f_lo, bddunion(g_lo, g_hi));
-        bddp hi = bddnonsub_rec(f_hi, g_hi);
+        bddp lo = bddremove_subsets_rec(f_lo, bddunion(g_lo, g_hi));
+        bddp hi = bddremove_subsets_rec(f_hi, g_hi);
         result = ZDD::getnode_raw(f_var, lo, hi);
     }
 
@@ -664,8 +664,8 @@ static bddp bddmaximal_rec(bddp f) {
     // hi: S∪{v} is maximal in F iff S is maximal in F₁
     bddp hi = bddmaximal_rec(f_hi);
     // lo: S∈F₀ is maximal in F iff S is maximal in F₀ AND S is not ⊆ any T∈F₁
-    // bddnonsub is cross-file: use public wrapper
-    bddp lo = bddnonsub(bddmaximal_rec(f_lo), f_hi);
+    // bddremove_subsets_rec is same-file: use _rec
+    bddp lo = bddremove_subsets_rec(bddmaximal_rec(f_lo), f_hi);
     bddp result = ZDD::getnode_raw(f_var, lo, hi);
 
     bddwcache(BDD_OP_MAXIMAL, f, 0, result);
@@ -729,8 +729,8 @@ static bddp bddminimal_rec(bddp f) {
     // (no T∪{v} from F₁ can be ⊊ S since v∉S)
     bddp lo = bddminimal_rec(f_lo);
     // hi: S∪{v} is minimal in F iff S is minimal in F₁ AND no S'∈F₀ with S'⊆S
-    // bddnonsup is same-file: use _rec
-    bddp hi = bddnonsup_rec(bddminimal_rec(f_hi), f_lo);
+    // bddremove_supersets_rec is same-file: use _rec
+    bddp hi = bddremove_supersets_rec(bddminimal_rec(f_hi), f_lo);
     bddp result = ZDD::getnode_raw(f_var, lo, hi);
 
     bddwcache(BDD_OP_MINIMAL, f, 0, result);
@@ -804,8 +804,8 @@ static bddp bddminhit_rec(bddp f) {
     // Q = minhit(F₀): hitting sets of F₀ (will add v)
     bddp Q = bddminhit_rec(f_lo);
     // Filter: keep T∈Q only if no S∈P with S⊆T
-    // bddnonsup is same-file: use _rec
-    bddp Q_filt = bddnonsup_rec(Q, P);
+    // bddremove_supersets_rec is same-file: use _rec
+    bddp Q_filt = bddremove_supersets_rec(Q, P);
     bddp result = ZDD::getnode_raw(f_var, P, Q_filt);
 
     bddwcache(BDD_OP_MINHIT, f, 0, result);

@@ -965,7 +965,7 @@ TEST_F(BDDTest, ZDD_RemoveSupersets) {
     // F = {{v1}, {v1,v2}}, remove supersets of {v1} → removes {v1,v2}
     ZDD F = z_v1 + z_v1v2;
     ZDD result = F.remove_supersets(z_v1);
-    EXPECT_EQ(result.id(), bddnonsup(F.id(), z_v1.id()));
+    EXPECT_EQ(result.id(), bddremove_supersets(F.id(), z_v1.id()));
 }
 
 TEST_F(BDDTest, ZDD_RemoveSubsets) {
@@ -976,7 +976,7 @@ TEST_F(BDDTest, ZDD_RemoveSubsets) {
     // F = {{v1}, {v1,v2}}, remove subsets of {v1,v2} → removes {v1}
     ZDD F = z_v1 + z_v1v2;
     ZDD result = F.remove_subsets(z_v1v2);
-    EXPECT_EQ(result.id(), bddnonsub(F.id(), z_v1v2.id()));
+    EXPECT_EQ(result.id(), bddremove_subsets(F.id(), z_v1v2.id()));
 }
 
 TEST_F(BDDTest, ZDD_LowercaseSupport) {
@@ -1590,21 +1590,21 @@ TEST_P(ZddAdvFilterModeTest, PermitFamily) {
 
 TEST_P(ZddAdvFilterModeTest, NonsupFamily) {
     auto t = make_filter_families();
-    EXPECT_EQ(bddnonsup(t.F, bddempty, GetParam()), t.F);
-    EXPECT_EQ(bddnonsup(t.F, bddsingle, GetParam()), bddempty);
-    EXPECT_FILTER_MODE_EQ(bddnonsup(t.F, t.G, GetParam()),
-                          bddnonsup(t.F, t.G));
-    EXPECT_FILTER_MODE_EQ(bddnonsup(t.H, t.v1v2, GetParam()),
-                          bddnonsup(t.H, t.v1v2));
+    EXPECT_EQ(bddremove_supersets(t.F, bddempty, GetParam()), t.F);
+    EXPECT_EQ(bddremove_supersets(t.F, bddsingle, GetParam()), bddempty);
+    EXPECT_FILTER_MODE_EQ(bddremove_supersets(t.F, t.G, GetParam()),
+                          bddremove_supersets(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddremove_supersets(t.H, t.v1v2, GetParam()),
+                          bddremove_supersets(t.H, t.v1v2));
 }
 
 TEST_P(ZddAdvFilterModeTest, NonsubFamily) {
     auto t = make_filter_families();
-    EXPECT_EQ(bddnonsub(t.F, bddempty, GetParam()), t.F);
-    EXPECT_FILTER_MODE_EQ(bddnonsub(t.F, t.G, GetParam()),
-                          bddnonsub(t.F, t.G));
-    EXPECT_FILTER_MODE_EQ(bddnonsub(t.H, t.v1v2, GetParam()),
-                          bddnonsub(t.H, t.v1v2));
+    EXPECT_EQ(bddremove_subsets(t.F, bddempty, GetParam()), t.F);
+    EXPECT_FILTER_MODE_EQ(bddremove_subsets(t.F, t.G, GetParam()),
+                          bddremove_subsets(t.F, t.G));
+    EXPECT_FILTER_MODE_EQ(bddremove_subsets(t.H, t.v1v2, GetParam()),
+                          bddremove_subsets(t.H, t.v1v2));
 }
 
 TEST_P(ZddAdvFilterModeTest, MaximalFamily) {
@@ -1673,10 +1673,10 @@ TEST_P(ZddAdvFilterModeTest, CrossValidationLinearChain) {
                           bddrestrict(fam, other));
     EXPECT_FILTER_MODE_EQ(bddpermit(fam, other, GetParam()),
                           bddpermit(fam, other));
-    EXPECT_FILTER_MODE_EQ(bddnonsup(fam, other, GetParam()),
-                          bddnonsup(fam, other));
-    EXPECT_FILTER_MODE_EQ(bddnonsub(fam, other, GetParam()),
-                          bddnonsub(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddremove_supersets(fam, other, GetParam()),
+                          bddremove_supersets(fam, other));
+    EXPECT_FILTER_MODE_EQ(bddremove_subsets(fam, other, GetParam()),
+                          bddremove_subsets(fam, other));
     EXPECT_FILTER_MODE_EQ(bddmaximal(fam, GetParam()), bddmaximal(fam));
     EXPECT_FILTER_MODE_EQ(bddminimal(fam, GetParam()), bddminimal(fam));
     EXPECT_FILTER_MODE_EQ(bddclosure(fam, GetParam()), bddclosure(fam));

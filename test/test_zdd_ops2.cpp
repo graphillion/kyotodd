@@ -569,8 +569,8 @@ TEST_F(BDDTest, BddNullPropagatesThroughZddOps) {
     EXPECT_EQ(bddjointjoin(bddnull, z), bddnull);
     EXPECT_EQ(bddrestrict(bddnull, z), bddnull);
     EXPECT_EQ(bddpermit(bddnull, z), bddnull);
-    EXPECT_EQ(bddnonsup(bddnull, z), bddnull);
-    EXPECT_EQ(bddnonsub(bddnull, z), bddnull);
+    EXPECT_EQ(bddremove_supersets(bddnull, z), bddnull);
+    EXPECT_EQ(bddremove_subsets(bddnull, z), bddnull);
 
     // ZDD binary ops with bddnull as second arg
     EXPECT_EQ(bddunion(z, bddnull), bddnull);
@@ -1217,8 +1217,8 @@ TEST_F(BDDTest, ZDDClassNonsupNonsub) {
     ZDD zf = ZDD_ID(f);
     ZDD zg = ZDD_ID(z12);
 
-    EXPECT_EQ(zf.remove_supersets(zg).GetID(), bddnonsup(f, z12));
-    EXPECT_EQ(zf.remove_subsets(zg).GetID(), bddnonsub(f, z12));
+    EXPECT_EQ(zf.remove_supersets(zg).GetID(), bddremove_supersets(f, z12));
+    EXPECT_EQ(zf.remove_subsets(zg).GetID(), bddremove_subsets(f, z12));
 }
 
 TEST_F(BDDTest, ZDDClassDisjoinJointjoin) {

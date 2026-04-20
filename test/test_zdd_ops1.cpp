@@ -1807,14 +1807,14 @@ TEST_F(BDDTest, ZDDPermitGSingletonOnly) {
     EXPECT_EQ(bddpermit(F, bddsingle), bddempty);
 }
 
-// --- bddnonsup ---
+// --- bddremove_supersets ---
 
 TEST_F(BDDTest, ZDDNonsupTerminalCases) {
-    EXPECT_EQ(bddnonsup(bddempty, bddempty), bddempty);
-    EXPECT_EQ(bddnonsup(bddempty, bddsingle), bddempty);
-    EXPECT_EQ(bddnonsup(bddsingle, bddempty), bddsingle);
+    EXPECT_EQ(bddremove_supersets(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddremove_supersets(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddremove_supersets(bddsingle, bddempty), bddsingle);
     // G={∅}: ∅⊆every A → none qualify
-    EXPECT_EQ(bddnonsup(bddsingle, bddsingle), bddempty);
+    EXPECT_EQ(bddremove_supersets(bddsingle, bddsingle), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsupEmptyG) {
@@ -1822,7 +1822,7 @@ TEST_F(BDDTest, ZDDNonsupEmptyG) {
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // G=∅ → all qualify
-    EXPECT_EQ(bddnonsup(z_v1, bddempty), z_v1);
+    EXPECT_EQ(bddremove_supersets(z_v1, bddempty), z_v1);
 }
 
 TEST_F(BDDTest, ZDDNonsupSingleG) {
@@ -1830,14 +1830,14 @@ TEST_F(BDDTest, ZDDNonsupSingleG) {
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // G={∅}: ∅⊆{v1} → none qualify
-    EXPECT_EQ(bddnonsup(z_v1, bddsingle), bddempty);
+    EXPECT_EQ(bddremove_supersets(z_v1, bddsingle), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsupSelf) {
     bddvar v1 = bddnewvar();
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
-    EXPECT_EQ(bddnonsup(z_v1, z_v1), bddempty);
+    EXPECT_EQ(bddremove_supersets(z_v1, z_v1), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsupNoSubset) {
@@ -1847,7 +1847,7 @@ TEST_F(BDDTest, ZDDNonsupNoSubset) {
     bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F={{v1}}, G={{v2}}: {v2}⊄{v1} → {{v1}} qualifies
-    EXPECT_EQ(bddnonsup(z_v1, z_v2), z_v1);
+    EXPECT_EQ(bddremove_supersets(z_v1, z_v2), z_v1);
 }
 
 TEST_F(BDDTest, ZDDNonsupPartialMatch) {
@@ -1860,7 +1860,7 @@ TEST_F(BDDTest, ZDDNonsupPartialMatch) {
     // F={{v1},{v2},{v1,v2}}, G={{v1}}
     // {v1}⊆{v1}? yes→out. {v1}⊆{v2}? no→keep. {v1}⊆{v1,v2}? yes→out.
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
-    EXPECT_EQ(bddnonsup(F, z_v1), z_v2);
+    EXPECT_EQ(bddremove_supersets(F, z_v1), z_v2);
 }
 
 TEST_F(BDDTest, ZDDNonsupEqualsSubtractRestrict) {
@@ -1876,7 +1876,7 @@ TEST_F(BDDTest, ZDDNonsupEqualsSubtractRestrict) {
     bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v3));
     bddp G = bddunion(z_v1, z_v3);
 
-    EXPECT_EQ(bddnonsup(F, G), bddsubtract(F, bddrestrict(F, G)));
+    EXPECT_EQ(bddremove_supersets(F, G), bddsubtract(F, bddrestrict(F, G)));
 }
 
 TEST_F(BDDTest, ZDDNonsupCheckEmptyInG) {
@@ -1884,35 +1884,35 @@ TEST_F(BDDTest, ZDDNonsupCheckEmptyInG) {
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
     // F={∅}, G={{v1}}: need ∀B∈G: B⊄∅. {v1}⊄∅? yes → {∅} qualifies
-    EXPECT_EQ(bddnonsup(bddsingle, z_v1), bddsingle);
+    EXPECT_EQ(bddremove_supersets(bddsingle, z_v1), bddsingle);
 
     // F={∅}, G={{v1},{∅}}: ∅⊆∅ → fails
     bddp G2 = bddunion(z_v1, bddsingle);
-    EXPECT_EQ(bddnonsup(bddsingle, G2), bddempty);
+    EXPECT_EQ(bddremove_supersets(bddsingle, G2), bddempty);
 }
 
-// --- bddnonsub ---
+// --- bddremove_subsets ---
 
 TEST_F(BDDTest, ZDDNonsubTerminalCases) {
-    EXPECT_EQ(bddnonsub(bddempty, bddempty), bddempty);
-    EXPECT_EQ(bddnonsub(bddempty, bddsingle), bddempty);
-    EXPECT_EQ(bddnonsub(bddsingle, bddempty), bddsingle);
+    EXPECT_EQ(bddremove_subsets(bddempty, bddempty), bddempty);
+    EXPECT_EQ(bddremove_subsets(bddempty, bddsingle), bddempty);
+    EXPECT_EQ(bddremove_subsets(bddsingle, bddempty), bddsingle);
     // F={∅}, G={∅}: ∅⊆∅ → fails
-    EXPECT_EQ(bddnonsub(bddsingle, bddsingle), bddempty);
+    EXPECT_EQ(bddremove_subsets(bddsingle, bddsingle), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsubEmptyG) {
     bddvar v1 = bddnewvar();
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
-    EXPECT_EQ(bddnonsub(z_v1, bddempty), z_v1);
+    EXPECT_EQ(bddremove_subsets(z_v1, bddempty), z_v1);
 }
 
 TEST_F(BDDTest, ZDDNonsubSelf) {
     bddvar v1 = bddnewvar();
     bddp z_v1 = ZDD::getnode(v1, bddempty, bddsingle);
 
-    EXPECT_EQ(bddnonsub(z_v1, z_v1), bddempty);
+    EXPECT_EQ(bddremove_subsets(z_v1, z_v1), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsubNoSuperset) {
@@ -1922,7 +1922,7 @@ TEST_F(BDDTest, ZDDNonsubNoSuperset) {
     bddp z_v2 = ZDD::getnode(v2, bddempty, bddsingle);
 
     // F={{v1}}, G={{v2}}: {v1}⊄{v2} → {{v1}} qualifies
-    EXPECT_EQ(bddnonsub(z_v1, z_v2), z_v1);
+    EXPECT_EQ(bddremove_subsets(z_v1, z_v2), z_v1);
 }
 
 TEST_F(BDDTest, ZDDNonsubPartialMatch) {
@@ -1935,7 +1935,7 @@ TEST_F(BDDTest, ZDDNonsubPartialMatch) {
     // F={{v1},{v2},{v1,v2}}, G={{v1,v2}}
     // {v1}⊆{v1,v2}? yes→out. {v2}⊆{v1,v2}? yes→out. {v1,v2}⊆{v1,v2}? yes→out.
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
-    EXPECT_EQ(bddnonsub(F, z_v1v2), bddempty);
+    EXPECT_EQ(bddremove_subsets(F, z_v1v2), bddempty);
 }
 
 TEST_F(BDDTest, ZDDNonsubStrictFilter) {
@@ -1949,7 +1949,7 @@ TEST_F(BDDTest, ZDDNonsubStrictFilter) {
     // {v1}⊆{v1}? yes→out. {v2}⊆{v1}? no→keep. {v1,v2}⊆{v1}? no→keep.
     bddp F = bddunion(bddunion(z_v1, z_v2), z_v1v2);
     bddp expected = bddunion(z_v2, z_v1v2);
-    EXPECT_EQ(bddnonsub(F, z_v1), expected);
+    EXPECT_EQ(bddremove_subsets(F, z_v1), expected);
 }
 
 TEST_F(BDDTest, ZDDNonsubEqualsSubtractPermit) {
@@ -1965,7 +1965,7 @@ TEST_F(BDDTest, ZDDNonsubEqualsSubtractPermit) {
     bddp F = bddunion(bddunion(z_v1, z_v2), bddunion(z_v1v2, z_v3));
     bddp G = bddunion(z_v1v2, z_v3);
 
-    EXPECT_EQ(bddnonsub(F, G), bddsubtract(F, bddpermit(F, G)));
+    EXPECT_EQ(bddremove_subsets(F, G), bddsubtract(F, bddpermit(F, G)));
 }
 
 TEST_F(BDDTest, ZDDNonsubFVarNotInG) {
@@ -1978,7 +1978,7 @@ TEST_F(BDDTest, ZDDNonsubFVarNotInG) {
     // F={{v1},{v1,v2}}, G={{v2}}
     // {v1}⊆{v2}? no→keep. {v1,v2}⊆{v2}? no→keep.
     bddp F = bddunion(z_v1, z_v1v2);
-    EXPECT_EQ(bddnonsub(F, z_v2), F);
+    EXPECT_EQ(bddremove_subsets(F, z_v2), F);
 }
 
 TEST_F(BDDTest, ZDDNonsubWithEmptySet) {
@@ -1990,7 +1990,19 @@ TEST_F(BDDTest, ZDDNonsubWithEmptySet) {
     // F={{v1},{∅}}, G={{v2}}
     // {v1}⊆{v2}? no→keep. ∅⊆{v2}? yes→out.
     bddp F = bddunion(z_v1, bddsingle);
-    EXPECT_EQ(bddnonsub(F, z_v2), z_v1);
+    EXPECT_EQ(bddremove_subsets(F, z_v2), z_v1);
+}
+
+// --- deprecated aliases bddnonsup / bddnonsub still forward correctly ---
+TEST_F(BDDTest, ZDDNonsupDeprecatedAliasMatches) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    (void)v1; (void)v2;
+    bddp z_v1 = bddchange(bddsingle, 1);
+    bddp z_v2 = bddchange(bddsingle, 2);
+    bddp F = bddunion(z_v1, z_v2);
+    EXPECT_EQ(bddnonsup(F, z_v1), bddremove_supersets(F, z_v1));
+    EXPECT_EQ(bddnonsub(F, z_v1), bddremove_subsets(F, z_v1));
 }
 
 // ============================================================

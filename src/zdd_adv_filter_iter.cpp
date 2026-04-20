@@ -541,7 +541,7 @@ bddp bddpermit_iter(bddp f, bddp g) {
 }
 
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bdddisjoin_iter.
-bddp bddnonsup_iter(bddp f, bddp g) {
+bddp bddremove_supersets_iter(bddp f, bddp g) {
     enum class Phase : uint8_t { ENTER, GOT_PASS, GOT_LO, GOT_HI };
     struct Frame {
         bddp f;
@@ -660,7 +660,7 @@ bddp bddnonsup_iter(bddp f, bddp g) {
 }
 
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bdddisjoin_iter.
-bddp bddnonsub_iter(bddp f, bddp g) {
+bddp bddremove_subsets_iter(bddp f, bddp g) {
     enum class Phase : uint8_t { ENTER, GOT_PASS, GOT_LO, GOT_HI };
     struct Frame {
         bddp f;
@@ -864,8 +864,8 @@ bddp bddmaximal_iter(bddp f) {
         }
 
         case Phase::GOT_LO_TMP: {
-            // lo = bddnonsub(maximal(f_lo), f_hi)
-            bddp lo = bddnonsub_iter(result, frame.f_hi);
+            // lo = bddremove_subsets(maximal(f_lo), f_hi)
+            bddp lo = bddremove_subsets_iter(result, frame.f_hi);
             bddp combined = ZDD::getnode_raw(frame.top_var, lo, frame.hi_result);
             bddwcache(BDD_OP_MAXIMAL, frame.f, 0, combined);
             result = combined;
@@ -946,8 +946,8 @@ bddp bddminimal_iter(bddp f) {
         }
 
         case Phase::GOT_HI_TMP: {
-            // hi = bddnonsup(minimal(f_hi), f_lo)
-            bddp hi = bddnonsup_iter(result, frame.f_lo);
+            // hi = bddremove_supersets(minimal(f_hi), f_lo)
+            bddp hi = bddremove_supersets_iter(result, frame.f_lo);
             bddp combined = ZDD::getnode_raw(frame.top_var, frame.lo_result, hi);
             bddwcache(BDD_OP_MINIMAL, frame.f, 0, combined);
             result = combined;
@@ -1031,7 +1031,7 @@ bddp bddminhit_iter(bddp f) {
 
         case Phase::GOT_Q: {
             bddp Q = result;
-            bddp Q_filt = bddnonsup_iter(Q, frame.P);
+            bddp Q_filt = bddremove_supersets_iter(Q, frame.P);
             bddp combined = ZDD::getnode_raw(frame.top_var, frame.P, Q_filt);
             bddwcache(BDD_OP_MINHIT, frame.f, 0, combined);
             result = combined;

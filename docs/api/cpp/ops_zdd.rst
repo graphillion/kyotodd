@@ -37,8 +37,8 @@ Filtering Operations
 
 .. doxygenfunction:: bddrestrict
 .. doxygenfunction:: bddpermit
-.. doxygenfunction:: bddnonsup
-.. doxygenfunction:: bddnonsub
+.. doxygenfunction:: bddremove_supersets
+.. doxygenfunction:: bddremove_subsets
 
 Unary Operations
 ----------------

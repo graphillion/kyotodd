@@ -760,16 +760,27 @@ bddp bddpermit_iter(bddp f, bddp g);
  * @param g The constraining family.
  * @return The resulting ZDD.
  */
-bddp bddnonsup(bddp f, bddp g);
-bddp bddnonsup(bddp f, bddp g, BddExecMode mode);
+bddp bddremove_supersets(bddp f, bddp g);
+bddp bddremove_supersets(bddp f, bddp g, BddExecMode mode);
 
 /**
- * @brief Iterative (non-recursive) implementation of bddnonsup.
+ * @brief Iterative (non-recursive) implementation of bddremove_supersets.
  *
  * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
  * sub-results via @ref bddunion_iter at same-variable cases.
  */
-bddp bddnonsup_iter(bddp f, bddp g);
+bddp bddremove_supersets_iter(bddp f, bddp g);
+
+/** @deprecated Use bddremove_supersets() instead. */
+inline bddp bddnonsup(bddp f, bddp g) { return bddremove_supersets(f, g); }
+/** @deprecated Use bddremove_supersets() instead. */
+inline bddp bddnonsup(bddp f, bddp g, BddExecMode mode) {
+    return bddremove_supersets(f, g, mode);
+}
+/** @deprecated Use bddremove_supersets_iter() instead. */
+inline bddp bddnonsup_iter(bddp f, bddp g) {
+    return bddremove_supersets_iter(f, g);
+}
 
 /**
  * @brief Remove subsets: remove sets that are subsets of some set in @p g.
@@ -777,16 +788,27 @@ bddp bddnonsup_iter(bddp f, bddp g);
  * @param g The constraining family.
  * @return The resulting ZDD.
  */
-bddp bddnonsub(bddp f, bddp g);
-bddp bddnonsub(bddp f, bddp g, BddExecMode mode);
+bddp bddremove_subsets(bddp f, bddp g);
+bddp bddremove_subsets(bddp f, bddp g, BddExecMode mode);
 
 /**
- * @brief Iterative (non-recursive) implementation of bddnonsub.
+ * @brief Iterative (non-recursive) implementation of bddremove_subsets.
  *
  * Advanced API. Preconditions as in @ref bddunion_iter. Internally combines
  * sub-results via @ref bddunion_iter.
  */
-bddp bddnonsub_iter(bddp f, bddp g);
+bddp bddremove_subsets_iter(bddp f, bddp g);
+
+/** @deprecated Use bddremove_subsets() instead. */
+inline bddp bddnonsub(bddp f, bddp g) { return bddremove_subsets(f, g); }
+/** @deprecated Use bddremove_subsets() instead. */
+inline bddp bddnonsub(bddp f, bddp g, BddExecMode mode) {
+    return bddremove_subsets(f, g, mode);
+}
+/** @deprecated Use bddremove_subsets_iter() instead. */
+inline bddp bddnonsub_iter(bddp f, bddp g) {
+    return bddremove_subsets_iter(f, g);
+}
 
 // Unary ZDD operations
 
@@ -802,7 +824,7 @@ bddp bddmaximal(bddp f, BddExecMode mode);
  * @brief Iterative (non-recursive) implementation of bddmaximal.
  *
  * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
- * @ref bddnonsub_iter.
+ * @ref bddremove_subsets_iter.
  */
 bddp bddmaximal_iter(bddp f);
 
@@ -818,7 +840,7 @@ bddp bddminimal(bddp f, BddExecMode mode);
  * @brief Iterative (non-recursive) implementation of bddminimal.
  *
  * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
- * @ref bddnonsup_iter.
+ * @ref bddremove_supersets_iter.
  */
 bddp bddminimal_iter(bddp f);
 
@@ -838,7 +860,7 @@ bddp bddminhit(bddp f, BddExecMode mode);
  * @brief Iterative (non-recursive) implementation of bddminhit.
  *
  * Advanced API. Preconditions as in @ref bddunion_iter. Internally invokes
- * @ref bddunion_iter and @ref bddnonsup_iter.
+ * @ref bddunion_iter and @ref bddremove_supersets_iter.
  */
 bddp bddminhit_iter(bddp f);
 
