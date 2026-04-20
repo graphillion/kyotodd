@@ -43,17 +43,13 @@ template<typename T>
 class MTBDDTerminalTable : public MTBDDTerminalTableBase {
 public:
     static MTBDDTerminalTable<T>& instance() {
-        static MTBDDTerminalTable<T>* inst = nullptr;
-        static bool registered = false;
-        if (inst == nullptr) {
-            inst = new MTBDDTerminalTable<T>();
-            registered = false;
-        }
-        if (!registered) {
-            mtbdd_register_terminal_table(inst);
-            registered = true;
-        }
-        return *inst;
+        // C++11 magic static: thread-safe initialization, no leak.
+        // The registration side-effect is performed exactly once via the
+        // static `reg` variable's initializer.
+        static MTBDDTerminalTable<T> inst;
+        static int reg = (mtbdd_register_terminal_table(&inst), 0);
+        (void)reg;
+        return inst;
     }
 
     uint64_t get_or_insert(const T& value) {
