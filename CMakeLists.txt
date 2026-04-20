@@ -14,6 +14,10 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_class.cpp
   src/bdd_class_iter.cpp
   src/bdd_io.cpp
+  src/bdd_io_knuth.cpp
+  src/bdd_io_binary.cpp
+  src/bdd_io_graphillion.cpp
+  src/bdd_io_graphviz.cpp
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp
   src/zdd_ops.cpp
