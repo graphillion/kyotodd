@@ -93,6 +93,12 @@ void enumerate_iter(bddp root, std::vector<bddvar>& current,
 //   lo = rec(idx+1, k)     (skip this variable)
 //   hi = rec(idx+1, k-1)   (take this variable)
 // then result = ZDD::getnode_raw(v, lo, hi).
+//
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. This helper
+// creates new ZDD nodes via ZDD::getnode_raw / bddchange, and the per-frame
+// `lo` value is held as a raw bddp on the iteration stack without being
+// registered as a GC root. The public wrapper ZDD::combination() already
+// calls combination_iter inside a bdd_gc_guard lambda.
 // =====================================================================
 bddp combination_iter(const std::vector<bddvar>& sorted_vars,
                       size_t idx, bddvar k) {
@@ -178,6 +184,9 @@ bddp combination_iter(const std::vector<bddvar>& sorted_vars,
 // Same traversal shape as enumerate_iter: lo-first DFS with the top
 // variable pushed before descending into hi. Each bddsingle reached
 // emits the current path using (delim1, delim2, var_name_map).
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 void print_sets_iter(std::ostream& os, bddp root,
                      std::vector<bddvar>& current,
@@ -266,6 +275,11 @@ void print_sets_iter(std::ostream& os, bddp root,
 // lev down to 0. At each level: set cube[lev-1]='1' and recurse on
 // bddonset0(f, var); then cube[lev-1]='0' and recurse on bddoffset.
 // Returns false if any bddnull is encountered (propagated eagerly).
+//
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. Per-frame
+// sub-results from bddonset0 / bddoffset may create new DD nodes, and
+// the returned bddp values are carried on the iteration stack without
+// being registered as GC roots.
 // =====================================================================
 bool print_pla_iter(bddp root, bddvar root_lev, std::string& cube) {
     enum class Phase : uint8_t { ENTER, GOT_FIRST, GOT_SECOND };
@@ -358,6 +372,9 @@ bool print_pla_iter(bddp root, bddvar root_lev, std::string& cube) {
 // Memoized count of sets reachable from f. Memo keyed on f_raw
 // (complement stripped) so that both f and ~f share the memo entry;
 // complement adjustment is applied per-call using bddhasempty(f_raw).
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 double ws_count_iter(bddp root,
                      std::unordered_map<bddp, double>& memo) {
@@ -453,6 +470,9 @@ double ws_count_iter(bddp root,
 // Sum of (sum-of-weights) over all sets of F(f). Complement-invariant
 // (sum_memo is keyed on f_raw with the raw value stored directly).
 // Uses ws_count_iter to obtain c_hi per node.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 double ws_total_sum_iter(bddp root,
                          const std::vector<double>& weights,
@@ -540,6 +560,9 @@ double ws_total_sum_iter(bddp root,
 // complement-invariant: prod_memo stores the raw value (as if f had
 // no complement); callers with complement receive the stored value
 // plus a ±1 adjustment depending on bddhasempty(f_raw).
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 double ws_total_prod_iter(bddp root,
                           const std::vector<double>& weights,

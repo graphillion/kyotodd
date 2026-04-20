@@ -8,6 +8,11 @@ namespace kyotodd {
 namespace {
 
 // Same helper as the static support_to_singletons in zdd_adv2.cpp.
+//
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. The intermediate
+// `result` accumulator holds an unprotected bddp across bddunion / bddchange
+// calls, so GC must be deferred. All callers (bddsymset_iter in this file)
+// already satisfy this precondition.
 bddp support_to_singletons_iter(bddp f) {
     std::vector<bddvar> vars = bddsupport_vec(f);
     bddp result = bddempty;

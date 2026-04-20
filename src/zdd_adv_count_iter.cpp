@@ -127,6 +127,9 @@ bddp bddchoose_iter(bddp f, int k) {
 //
 // Mirrors bddminsize_rec: the cache key is the full bddp (including the
 // complement bit), matching the recursive implementation.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 uint64_t bddminsize_iter(bddp f) {
     enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
@@ -215,6 +218,9 @@ uint64_t bddminsize_iter(bddp f) {
 // Mirrors bddcount_rec's structure: memo stores the non-complement count
 // indexed by f_raw, and complement adjustment is re-applied after each
 // lookup (it toggles ∅ membership, which changes the count by ±1).
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 double bddcount_iter(bddp f, std::unordered_map<bddp, double>& memo) {
     enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
@@ -310,6 +316,9 @@ double bddcount_iter(bddp f, std::unordered_map<bddp, double>& memo) {
 //
 // Exposed via bdd_internal.h (non-static) so zdd_adv_count_iter.cpp's
 // bddelmfreq_iter / bddcountintersec_iter can share the memo table.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 bigint::BigInt bddexactcount_iter(
     bddp f, std::unordered_map<bddp, bigint::BigInt>& memo) {
@@ -406,6 +415,9 @@ bigint::BigInt bddexactcount_iter(
 // The memo stores the uncomplemented profile at f_raw. Complement
 // adjustment (toggle ∅ membership ↔ profile[0] ± 1) is applied after
 // every memo read and after fresh computation.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 std::vector<bigint::BigInt> bddprofile_iter(
     bddp f,
@@ -527,6 +539,9 @@ std::vector<bigint::BigInt> bddprofile_iter(
 // Complement edges only toggle ∅ membership which has no elements, so
 // the frequency is identical for f and ~f. The recursive body therefore
 // does not branch on the complement bit; we simply key the memo on f_raw.
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 std::vector<bigint::BigInt> bddelmfreq_iter(
     bddp f,
@@ -630,6 +645,9 @@ std::vector<bigint::BigInt> bddelmfreq_iter(
 //
 // Structure is Template A-ish (binary DD walk, commutative normalization,
 // pair memo) but the return value is a BigInt (Template D).
+//
+// PRECONDITION: Caller holds bdd_gc_guard (no new nodes are created so
+// this is a conservative requirement that matches other _iter helpers).
 // =====================================================================
 bigint::BigInt bddcountintersec_iter(
     bddp f, bddp g,

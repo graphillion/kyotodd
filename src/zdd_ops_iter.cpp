@@ -941,6 +941,8 @@ const bool* memo_get(const BoolMemoMap& memo, bddp f, bddp g) {
 
 } // anonymous namespace
 
+// PRECONDITION: No bdd_gc_guard required. See Group C header above — this
+// predicate traverses the existing DAG without creating new DD nodes.
 bool bddissubset_iter(bddp f, bddp g) {
     // Short-circuit trivial cases up-front (same as public wrapper).
     if (f == bddempty) return true;
@@ -1077,6 +1079,8 @@ bool bddissubset_iter(bddp f, bddp g) {
     return result;
 }
 
+// PRECONDITION: No bdd_gc_guard required. See Group C header above — this
+// predicate traverses the existing DAG without creating new DD nodes.
 bool bddisdisjoint_iter(bddp f, bddp g) {
     if (f == bddempty || g == bddempty) return true;
     if (f == g) return false;
