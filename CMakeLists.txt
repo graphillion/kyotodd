@@ -53,6 +53,8 @@ set(KYOTODD_LIB_SOURCES
   src/mvdd.cpp
   src/mvzdd_iter.cpp
   src/svg_export.cpp
+  src/svg_export_mt.cpp
+  src/svg_export_mvdd.cpp
 )
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
