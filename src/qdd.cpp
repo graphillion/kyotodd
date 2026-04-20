@@ -281,9 +281,18 @@ static bddp zdd_to_bdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 BDD ZDD::to_bdd(int n) const {
     if (root == bddnull) return BDD::Null;
     bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
+    bddvar root_src_level = bddp_level(root);
+    if (nv < root_src_level) {
+        // Target variable space smaller than the root's level means the
+        // fill loop can't cover the top variable; the result would drop
+        // real structure instead of being a valid conversion.
+        throw std::invalid_argument(
+            "ZDD::to_bdd: n (" + std::to_string(nv) +
+            ") is smaller than the ZDD's top level (" +
+            std::to_string(root_src_level) + ")");
+    }
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddvar root_src_level = bddp_level(root);
         bddp bdd_root = use_iter_1op(root)
             ? zdd_to_bdd_iter(root, memo)
             : zdd_to_bdd_rec(root, memo);
@@ -332,9 +341,18 @@ static bddp bdd_to_zdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 ZDD BDD::to_zdd(int n) const {
     if (root == bddnull) return ZDD::Null;
     bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
+    bddvar root_src_level = bddp_level(root);
+    if (nv < root_src_level) {
+        // Target variable space smaller than the root's level means the
+        // fill loop can't cover the top variable; the result would drop
+        // real structure instead of being a valid conversion.
+        throw std::invalid_argument(
+            "BDD::to_zdd: n (" + std::to_string(nv) +
+            ") is smaller than the BDD's top level (" +
+            std::to_string(root_src_level) + ")");
+    }
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddvar root_src_level = bddp_level(root);
         bddp zdd_root = use_iter_1op(root)
             ? bdd_to_zdd_iter(root, memo)
             : bdd_to_zdd_rec(root, memo);

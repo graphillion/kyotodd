@@ -473,6 +473,32 @@ TEST_F(BDDTest, ZDD_ToBdd_WithN) {
     EXPECT_EQ(bdd2, x1 & ~x2);
 }
 
+TEST_F(BDDTest, ZDD_ToBdd_NSmallerThanTopLevel_Throws) {
+    // Top level is v3 (level 3) but caller asks for n = 2 variables.
+    // The fill loop cannot cover variable 3, so the result would be a
+    // silent structural drop. Must throw instead.
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    (void)v1; (void)v2;
+    ZDD f = ZDD::singleton(v3);
+    EXPECT_THROW(f.to_bdd(2), std::invalid_argument);
+    EXPECT_THROW(f.to_bdd(1), std::invalid_argument);
+    // n = top level must succeed.
+    EXPECT_NO_THROW(f.to_bdd(3));
+}
+
+TEST_F(BDDTest, BDD_ToZdd_NSmallerThanTopLevel_Throws) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    (void)v1; (void)v2;
+    BDD f = BDD::prime(v3);
+    EXPECT_THROW(f.to_zdd(2), std::invalid_argument);
+    EXPECT_THROW(f.to_zdd(1), std::invalid_argument);
+    EXPECT_NO_THROW(f.to_zdd(3));
+}
+
 // --- ZDD::sample_k ---
 
 TEST_F(BDDTest, ZDD_SampleK_EmptyFamily) {
