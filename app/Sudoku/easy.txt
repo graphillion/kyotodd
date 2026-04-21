@@ -1,0 +1,5 @@
+c A simple 4x4 puzzle with a unique solution.
+1.3.
+.4.2
+.1.3
+4.2.

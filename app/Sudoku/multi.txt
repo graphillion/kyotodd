@@ -1,0 +1,6 @@
+c Under-constrained 4x4 puzzle with many solutions.
+c Used to demonstrate sampling with ZDD::sample_k.
+1...
+.2..
+..3.
+...4
