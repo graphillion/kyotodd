@@ -1,0 +1,6 @@
+c Example CNF for cnfsample
+c 3 variables, 2 clauses
+c   (x1 OR NOT x2 OR x3) AND (NOT x1 OR x2)
+p cnf 3 2
+1 -2 3 0
+-1 2 0

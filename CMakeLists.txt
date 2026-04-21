@@ -79,6 +79,9 @@ target_link_libraries(bddqueen_ZDD kyotodd_lib)
 add_executable(svg_examples app/SvgExamples/svg_examples.cpp)
 target_link_libraries(svg_examples kyotodd_lib)
 
+add_executable(cnfsample app/CNFSample/cnfsample.cpp)
+target_link_libraries(cnfsample kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
