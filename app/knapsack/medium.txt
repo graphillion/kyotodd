@@ -1,0 +1,14 @@
+c Medium 0/1 knapsack instance (N=10, capacity=50).
+c Values are roughly proportional to weights but with some outliers,
+c so "greedy by value/weight ratio" does NOT give the optimum.
+10 50
+10 60
+7  40
+6  30
+5  25
+3  20
+12 55
+8  45
+4  30
+9  50
+11 65

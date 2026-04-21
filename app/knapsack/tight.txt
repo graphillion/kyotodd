@@ -1,0 +1,11 @@
+c Tight 0/1 knapsack instance: capacity only admits a handful of subsets.
+c N=8, capacity=5 — several items have weight > 5 on their own.
+8 5
+2 10
+3 15
+1 5
+4 25
+6 40
+7 50
+2 12
+3 18
