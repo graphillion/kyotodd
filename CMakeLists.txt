@@ -88,6 +88,9 @@ target_link_libraries(sudoku kyotodd_lib)
 add_executable(knapsack app/knapsack/knapsack.cpp)
 target_link_libraries(knapsack kyotodd_lib)
 
+add_executable(setcover app/setcover/setcover.cpp)
+target_link_libraries(setcover kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)

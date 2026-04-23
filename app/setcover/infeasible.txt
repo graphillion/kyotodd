@@ -1,0 +1,6 @@
+c Infeasible instance: element 5 is not contained in any subset,
+c so no combination of subsets can cover the universe.
+3 5
+1 1 2
+1 3 4
+1 1 4

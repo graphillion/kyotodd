@@ -1,0 +1,15 @@
+c Small weighted set cover instance (m=4 subsets, n=5 elements).
+c Header: "m n"; then m lines of "cost elem1 elem2 ...".
+c
+c   S_1 = {1,2,3}, cost=2
+c   S_2 = {2,4},   cost=3
+c   S_3 = {3,4,5}, cost=4
+c   S_4 = {1,5},   cost=1
+c
+c Hand check: 6 feasible covers, minimum cost = 6 ({S_1,S_3} and {S_1,S_2,S_4}),
+c 3 subset-minimal covers ({S_1,S_3}, {S_1,S_2,S_4}, {S_2,S_3,S_4}).
+4 5
+2 1 2 3
+3 2 4
+4 3 4 5
+1 1 5
