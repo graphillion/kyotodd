@@ -1,0 +1,20 @@
+c Petersen graph (n=10, m=15). k=3.
+c Vertices 1..5 form the outer 5-cycle; 6..10 form the inner 5-star
+c (pentagram); edges 1-6, 2-7, 3-8, 4-9, 5-10 connect outer to inner.
+c Expected: 3-colorable. Chromatic number = 3.
+10 15 3
+1 2
+2 3
+3 4
+4 5
+5 1
+6 8
+8 10
+10 7
+7 9
+9 6
+1 6
+2 7
+3 8
+4 9
+5 10

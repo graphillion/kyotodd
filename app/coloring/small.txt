@@ -1,0 +1,9 @@
+c Triangle with a pendant vertex (n=4, m=4). k=3.
+c   Edges: (1,2), (2,3), (1,3) forming a triangle, plus (1,4) as pendant.
+c Expected: 3-colorable with 12 proper 3-colorings (3! * 2 = 12).
+c           Not 2-colorable (triangle). Chromatic number = 3.
+4 4 3
+1 2
+2 3
+1 3
+1 4

@@ -1,0 +1,9 @@
+c 5-cycle (odd cycle). n=5, m=5, k=3.
+c Expected: not 2-colorable (odd cycle). Chromatic number = 3.
+c           Number of proper 3-colorings = (k-1)^n + (-1)^n (k-1) = 2^5 - 2 = 30.
+5 5 3
+1 2
+2 3
+3 4
+4 5
+5 1
