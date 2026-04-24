@@ -94,6 +94,9 @@ target_link_libraries(setcover kyotodd_lib)
 add_executable(coloring app/coloring/coloring.cpp)
 target_link_libraries(coloring kyotodd_lib)
 
+add_executable(regex_seqbdd app/RegexSeqBDD/regex_seqbdd.cpp)
+target_link_libraries(regex_seqbdd kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
