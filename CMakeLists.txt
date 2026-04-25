@@ -100,6 +100,9 @@ target_link_libraries(regex_seqbdd kyotodd_lib)
 add_executable(swapbound app/swapbound/swapbound.cpp)
 target_link_libraries(swapbound kyotodd_lib)
 
+add_executable(wmc app/wmc/wmc.cpp)
+target_link_libraries(wmc kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)

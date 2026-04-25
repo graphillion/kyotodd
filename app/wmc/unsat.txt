@@ -1,0 +1,8 @@
+c UNSAT instance: x1 AND -x1 contradiction.
+c Expected WMC = 0 regardless of weights.
+p cnf 2 3
+1 0
+-1 0
+2 0
+w 1 0.7 0.3
+w 2 0.5 0.5
