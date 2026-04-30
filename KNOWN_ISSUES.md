@@ -5,8 +5,8 @@ left unfixed. This document exists to prevent re-flagging in future reviews.
 
 ## Architecture: GC Root Management Performance
 
-- **`gc_roots()` uses `std::unordered_set` — hash set insert/erase on every BDD/ZDD construct/destruct** (`include/bdd_types.h`)
-- **Move constructors cannot be `noexcept`** because `bddgc_protect` calls `unordered_set::insert` which may throw (`include/bdd_types.h`)
+- **`gc_roots()` uses `std::unordered_set` — hash set insert/erase on every BDD/ZDD construct/destruct** (`src/bdd_base.cpp`)
+- **Move constructors cannot be `noexcept`** because `bddgc_protect` calls `unordered_set::insert` which may throw (`include/dd_base.h`)
 
 These two issues share the same root cause. Fixing requires replacing the
 GC root data structure (e.g. with an intrusive linked list), which changes
@@ -14,17 +14,13 @@ the BDD/ZDD class layout and is a significant architectural change.
 
 ## Legacy API Compatibility
 
-- **`ZDD_LCM_A/C/M` take `char*` instead of `const char*`** (`include/bdd_ops.h`).
+- **`ZDD_LCM_A/C/M` take `char*` instead of `const char*`** (`include/zdd_ops.h`).
   These are unimplemented stubs retained for API compatibility. Changing the
   signature would break source compatibility for existing callers.
 
-- **`CardMP16` returns `malloc`-allocated `char*`** (`include/bdd_types.h`).
+- **`CardMP16` returns `malloc`-allocated `char*`** (`include/zdd_class.h`).
   Legacy C-style API. The safe alternative `bddexactcount()` returning
   `BigInt` already exists.
-
-- **`ZDD::PrintPla()`, `ZDD::ZLev()`, `ZDD::SetZSkip()` are declared but unimplemented** (`include/bdd_types.h`).
-  Retained intentionally for future implementation. They throw
-  `std::logic_error` if called.
 
 ## Design Decisions (Accepted)
 
@@ -35,9 +31,9 @@ the BDD/ZDD class layout and is a significant architectural change.
   Would require ~70 trillion allocated nodes to collide. Not practically
   reachable.
 
-- **`BDD(42)` / `ZDD(42)` accept arbitrary integer values without validation** (`python/src/kyotodd/_binding.cpp`).
-  The C++ constructors map any non-negative value to true/single. This is
-  consistent with C-style boolean semantics.
+- **`BDD(42)` / `ZDD(42)` accept arbitrary integer values without validation** (`include/dd_base.h`, `python/src/kyotodd/_binding.cpp`).
+  The C++ `DDBase(int val)` constructor maps any non-negative value to
+  true/single. This is consistent with C-style boolean semantics.
 
 - **`bddprime` family of APIs is limited to 65536 (2^16) variables**
   (`src/bdd_base.cpp`, `src/bdd_class.cpp`, `src/bdd_ops.cpp`).
@@ -99,7 +95,7 @@ binding.
 ## MTBDD / MTZDD Limitations
 
 - **`MTBDD::apply` / `MTZDD::apply` cache key does not include functor state**
-  (`include/mtbdd.h`).
+  (`include/mtbdd_core.h`).
   The operation cache is keyed on `(cache_op, f, g)` where `cache_op` is a
   `static uint8_t` per `BinOp` type. Stateful functors (e.g. structs with
   different member values but the same type) share the same op code, so the
@@ -109,7 +105,7 @@ binding.
   template parameters or separate lambdas) for functors with different state.
 
 - **MTZDD terminal condition loses zero-suppressed variable information in ITE**
-  (`include/mtbdd.h`).
+  (`include/mtbdd_core.h`).
   When an MTZDD condition is reduced to a terminal by zero-suppression (e.g.
   `MTZDD::ite(v, zero, x)` reduces to `terminal(x)`), the `cond.ite(then,
   else)` wrapper's terminal fast path cannot recover the lost variable. The
