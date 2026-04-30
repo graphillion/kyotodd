@@ -8,6 +8,7 @@ dist/
 *.so
 *.pyd
 .codex
+.claude/
 review*.md
 functions.md
 ZDD_plan.md
