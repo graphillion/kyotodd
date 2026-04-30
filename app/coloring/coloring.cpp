@@ -242,7 +242,7 @@ static void print_sample(const std::vector<int>& assign) {
 // To keep each solve independent we bddinit / bddfinal around every call.
 static Result solve_k_isolated(const Graph& g, int k_colors,
                                int max_samples) {
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     std::exit(1);
   }

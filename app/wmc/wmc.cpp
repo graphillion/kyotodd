@@ -30,6 +30,7 @@
  *  Usage: wmc <file.txt> [svg_output]                            *
  ***************************************************************/
 
+#include <cassert>
 #include <cinttypes>
 #include <cmath>
 #include <cstdint>
@@ -55,6 +56,7 @@ struct WMCInstance {
   std::vector<std::vector<int> > clauses;
   // weights[v] = (w_pos, w_neg). Size = num_vars+1; index 0 is unused.
   std::vector<std::pair<double, double> > weights;
+  std::vector<bool> weight_set;  // true if weights[v] was explicitly assigned
   int weight_overrides = 0;
 };
 
@@ -96,6 +98,7 @@ static bool parse_input(const std::string& path, WMCInstance& inst) {
       }
       inst.weights.assign((std::size_t)inst.num_vars + 1,
                           std::make_pair(0.5, 0.5));
+      inst.weight_set.assign((std::size_t)inst.num_vars + 1, false);
       header_seen = true;
       continue;
     }
@@ -124,7 +127,14 @@ static bool parse_input(const std::string& path, WMCInstance& inst) {
                   << ")." << std::endl;
         return false;
       }
+      if (inst.weight_set[v]) {
+        std::cerr << "Warning: duplicate weight line for var " << v
+                  << "; previous value (" << inst.weights[v].first << ", "
+                  << inst.weights[v].second << ") overwritten by ("
+                  << wp << ", " << wn << ")." << std::endl;
+      }
       inst.weights[v] = std::make_pair(wp, wn);
+      inst.weight_set[v] = true;
       inst.weight_overrides++;
       continue;
     }
@@ -238,6 +248,11 @@ static double sum_rec(bddp f, std::unordered_map<bddp, double>& memo) {
   int level_hi = (hi & BDD_CONST_FLAG) ? 0 : (int)bddlevofvar(node_var(hi));
   int skip_lo = (int)k - 1 - level_lo;
   int skip_hi = (int)k - 1 - level_hi;
+  // MTBDD reduction guarantees children are at strictly lower level than the
+  // parent, so skip counts are non-negative. Assert as a safety net against
+  // ill-formed inputs (e.g., manually constructed nodes that violate the
+  // canonical level ordering).
+  assert(skip_lo >= 0 && skip_hi >= 0);
 
   double s_lo = sum_rec(lo, memo);
   double s_hi = sum_rec(hi, memo);
@@ -281,7 +296,7 @@ int main(int argc, char* argv[]) {
   if (!parse_input(path, inst)) return 1;
   print_instance(inst);
 
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }

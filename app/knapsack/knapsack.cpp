@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
 
   print_item_table(N, weights, values, C);
 
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }

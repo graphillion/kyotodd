@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
   std::printf("Seed       : %" PRIu64 "\n", seed);
 
   // Initialize BDD package.
-  if (bddinit(256, bddnull)) {
+  if (bddinit(256)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }

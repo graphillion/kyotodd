@@ -220,8 +220,10 @@ int main() {
     PiDD_NewVar();  // element 4
     PiDD_NewVar();  // element 5
 
-    // Helper: generate S_n from identity by repeated transposition closure
-    auto make_sn = [](int n) {
+    // Helper: generate S_n from identity by repeated transposition closure.
+    // Explicit -> PiDD return type for strict C++11 conformance (return-type
+    // deduction for multi-statement lambdas is a C++14 feature).
+    auto make_sn = [](int n) -> PiDD {
         PiDD id(1);
         PiDD all = id;
         for (int round = 0; round < 10; ++round) {

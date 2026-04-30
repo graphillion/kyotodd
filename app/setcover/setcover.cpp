@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
 
   print_instance(m, n, costs, subsets);
 
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }

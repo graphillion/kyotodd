@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
   std::printf("Input puzzle (4x4):\n");
   print_grid(puzzle);
 
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }

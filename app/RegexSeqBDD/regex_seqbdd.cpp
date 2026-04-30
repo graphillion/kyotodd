@@ -348,7 +348,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  if (bddinit(1024, bddnull)) {
+  if (bddinit(1024)) {
     std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
     return 1;
   }
