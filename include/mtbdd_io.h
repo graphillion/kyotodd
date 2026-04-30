@@ -8,6 +8,8 @@
 
 #include "mtbdd_class.h"
 
+#include <type_traits>
+
 namespace kyotodd {
 
 // ========================================================================
@@ -49,6 +51,12 @@ inline void mb_write_id_le(std::ostream& strm, uint64_t id, int bytes) {
     mb_write_bytes(strm, buf, bytes);
 }
 inline uint64_t mb_read_id_le(std::istream& strm, int bytes) {
+    // Defense-in-depth: writers only emit bytes ∈ {1, 2, 4, 8}, but a
+    // crafted file could still set bits_for_id to an unsupported value.
+    // The header validation already rejects such files, but guard the
+    // 8-byte stack buffer here as well.
+    if (bytes < 1 || bytes > 8)
+        throw std::runtime_error("mtbdd binary import: invalid id byte width");
     uint8_t buf[8] = {0};
     if (!mb_read_bytes(strm, buf, bytes))
         throw std::runtime_error("mtbdd binary import: unexpected end of input");
@@ -63,8 +71,15 @@ inline uint8_t mb_bits_for_max_id(uint64_t max_id) {
     return 64;
 }
 
+// Binary I/O is restricted to trivially-copyable terminal types that fit in
+// 8 bytes. Larger or non-trivial T (e.g. std::string) would overflow the
+// 8-byte scratch buffer or copy invalid object representations.
 template<typename T>
 inline void mb_write_value_le(std::ostream& strm, const T& val) {
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "MTBDD binary I/O requires a trivially-copyable terminal type");
+    static_assert(sizeof(T) <= sizeof(uint64_t),
+                  "MTBDD binary I/O requires sizeof(T) <= 8");
     uint64_t bits = 0;
     std::memcpy(&bits, &val, sizeof(T));
     uint8_t buf[8];
@@ -74,6 +89,10 @@ inline void mb_write_value_le(std::ostream& strm, const T& val) {
 
 template<typename T>
 inline T mb_read_value_le(std::istream& strm) {
+    static_assert(std::is_trivially_copyable<T>::value,
+                  "MTBDD binary I/O requires a trivially-copyable terminal type");
+    static_assert(sizeof(T) <= sizeof(uint64_t),
+                  "MTBDD binary I/O requires sizeof(T) <= 8");
     uint8_t buf[8] = {0};
     if (!mb_read_bytes(strm, buf, sizeof(T)))
         throw std::runtime_error("mtbdd binary import: truncated terminal values");
@@ -267,7 +286,11 @@ inline bddp mtbdd_import_binary_impl(std::istream& strm,
     uint64_t num_roots = mb_decode_le64(header + 19);
     uint8_t terminal_value_size = header[27];
 
-    if (bits_for_id == 0 || bits_for_id % 8 != 0)
+    // Restrict to the writer-supported set {8, 16, 32, 64}. Other values
+    // (including 72+) would otherwise overflow the 8-byte stack buffer
+    // used by mb_read_id_le.
+    if (bits_for_id != 8 && bits_for_id != 16 &&
+        bits_for_id != 32 && bits_for_id != 64)
         throw std::runtime_error("mtbdd binary import: invalid bits_for_id");
     if (num_roots < 1)
         throw std::runtime_error("mtbdd binary import: number_of_roots < 1");
@@ -409,8 +432,11 @@ inline void MTBDD<T>::export_binary(const char* filename) const {
 
 template<typename T>
 inline MTBDD<T> MTBDD<T>::import_binary(std::istream& strm) {
+    // Use the validating getnode (not _raw) so that a malformed binary
+    // referencing a child at >= the parent's level is rejected instead of
+    // creating a non-canonical node.
     bddp p = mtbdd_binary_detail::mtbdd_import_binary_impl<T>(
-        strm, mtbdd_getnode_raw, mtbdd_binary_detail::DD_TYPE_MTBDD);
+        strm, mtbdd_getnode, mtbdd_binary_detail::DD_TYPE_MTBDD);
     MTBDD result;
     result.root = p;
     return result;
@@ -442,8 +468,11 @@ inline void MTZDD<T>::export_binary(const char* filename) const {
 
 template<typename T>
 inline MTZDD<T> MTZDD<T>::import_binary(std::istream& strm) {
+    // Use the validating getnode (not _raw) so that a malformed binary
+    // referencing a child at >= the parent's level is rejected instead of
+    // creating a non-canonical node.
     bddp p = mtbdd_binary_detail::mtbdd_import_binary_impl<T>(
-        strm, mtzdd_getnode_raw, mtbdd_binary_detail::DD_TYPE_MTZDD);
+        strm, mtzdd_getnode, mtbdd_binary_detail::DD_TYPE_MTZDD);
     MTZDD result;
     result.root = p;
     return result;

@@ -3951,6 +3951,23 @@ class MTBDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def save_svg_str(self, draw_zero: bool = True) -> str:
+        """Export this MTBDD as an SVG string."""
+        ...
+
+    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
+        """Export this MTBDD as SVG to a text stream."""
+        ...
+
+    def export_binary_bytes(self) -> bytes:
+        """Export this MTBDD as binary bytes."""
+        ...
+
+    @staticmethod
+    def import_binary_bytes(data: bytes) -> "MTBDDFloat":
+        """Import an MTBDD from binary bytes."""
+        ...
+
     def show(self) -> None:
         """Display the DD as an SVG diagram."""
         ...
@@ -4027,6 +4044,23 @@ class MTBDDInt:
     def __eq__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
+
+    def save_svg_str(self, draw_zero: bool = True) -> str:
+        """Export this MTBDD as an SVG string."""
+        ...
+
+    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
+        """Export this MTBDD as SVG to a text stream."""
+        ...
+
+    def export_binary_bytes(self) -> bytes:
+        """Export this MTBDD as binary bytes."""
+        ...
+
+    @staticmethod
+    def import_binary_bytes(data: bytes) -> "MTBDDInt":
+        """Import an MTBDD from binary bytes."""
+        ...
 
     def show(self) -> None:
         """Display the DD as an SVG diagram."""
@@ -4105,6 +4139,23 @@ class MTZDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
+    def save_svg_str(self, draw_zero: bool = True) -> str:
+        """Export this MTZDD as an SVG string."""
+        ...
+
+    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
+        """Export this MTZDD as SVG to a text stream."""
+        ...
+
+    def export_binary_bytes(self) -> bytes:
+        """Export this MTZDD as binary bytes."""
+        ...
+
+    @staticmethod
+    def import_binary_bytes(data: bytes) -> "MTZDDFloat":
+        """Import an MTZDD from binary bytes."""
+        ...
+
     def show(self) -> None:
         """Display the DD as an SVG diagram."""
         ...
@@ -4181,6 +4232,23 @@ class MTZDDInt:
     def __eq__(self, other: object) -> bool: ...
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
+
+    def save_svg_str(self, draw_zero: bool = True) -> str:
+        """Export this MTZDD as an SVG string."""
+        ...
+
+    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
+        """Export this MTZDD as SVG to a text stream."""
+        ...
+
+    def export_binary_bytes(self) -> bytes:
+        """Export this MTZDD as binary bytes."""
+        ...
+
+    @staticmethod
+    def import_binary_bytes(data: bytes) -> "MTZDDInt":
+        """Import an MTZDD from binary bytes."""
+        ...
 
     def show(self) -> None:
         """Display the DD as an SVG diagram."""

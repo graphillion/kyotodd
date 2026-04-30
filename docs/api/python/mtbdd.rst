@@ -172,6 +172,39 @@ MTBDDFloat Class
 
       DAG node count.
 
+   I/O
+   ~~~
+
+   .. py:method:: save_svg_str(draw_zero=True)
+
+      Export this MTBDD as an SVG string.
+
+      :param bool draw_zero: If ``True``, draw the zero-value terminal.
+      :rtype: str
+
+   .. py:method:: save_svg_file(stream, draw_zero=True)
+
+      Export this MTBDD as SVG to a text stream.
+
+      :param IO stream: A text stream to write SVG to.
+      :param bool draw_zero: If ``True``, draw the zero-value terminal.
+
+   .. py:method:: export_binary_bytes()
+
+      Export this MTBDD as binary bytes. Only float (``MTBDDFloat``) and
+      int64 (``MTBDDInt``) terminal types are supported; the underlying
+      C++ I/O requires a trivially-copyable terminal type fitting in 8
+      bytes.
+
+      :rtype: bytes
+
+   .. py:staticmethod:: import_binary_bytes(data)
+
+      Import an MTBDD from binary bytes.
+
+      :param bytes data: Binary data produced by ``export_binary_bytes``.
+      :rtype: MTBDDFloat
+
 MTBDDInt Class
 --------------
 
@@ -260,6 +293,12 @@ MTBDDInt Class
 
    ``node_id``, ``is_terminal``, ``is_zero``, ``is_one``, ``top_var``, ``raw_size``
    — same as :py:class:`MTBDDFloat`.
+
+   I/O
+   ~~~
+
+   ``save_svg_str``, ``save_svg_file``, ``export_binary_bytes``,
+   ``import_binary_bytes`` — same semantics as :py:class:`MTBDDFloat`.
 
 MTZDDFloat Class
 ----------------
@@ -356,6 +395,12 @@ MTZDDFloat Class
    ``node_id``, ``is_terminal``, ``is_zero``, ``is_one``, ``top_var``, ``raw_size``
    — same as :py:class:`MTBDDFloat`.
 
+   I/O
+   ~~~
+
+   ``save_svg_str``, ``save_svg_file``, ``export_binary_bytes``,
+   ``import_binary_bytes`` — same semantics as :py:class:`MTBDDFloat`.
+
 MTZDDInt Class
 --------------
 
@@ -444,6 +489,12 @@ MTZDDInt Class
 
    ``node_id``, ``is_terminal``, ``is_zero``, ``is_one``, ``top_var``, ``raw_size``
    — same as :py:class:`MTBDDFloat`.
+
+   I/O
+   ~~~
+
+   ``save_svg_str``, ``save_svg_file``, ``export_binary_bytes``,
+   ``import_binary_bytes`` — same semantics as :py:class:`MTBDDFloat`.
 
 Example
 -------

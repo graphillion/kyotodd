@@ -123,3 +123,17 @@ binding.
   `bddtrue`. If the first non-zero value registered in an MTBDD terminal
   table is the only non-standard terminal alive, `bddfinal()` will not reject
   it and the terminal will be silently invalidated.
+
+- **`MTBDD::terminals().clear()` invalidates live MTBDD/MTZDD objects**
+  (`include/mtbdd_class.h`, `include/mtbdd_core.h`).
+  `MTBDD<T>::terminals()` and `MTZDD<T>::terminals()` return a mutable
+  reference to the per-type singleton `MTBDDTerminalTable<T>`. The public
+  `clear()` method on that table resets all terminal values, but does not
+  check for live MTBDD/MTZDD objects holding terminal indices. Calling
+  `clear()` while live objects exist leaves their terminal indices pointing
+  at empty or different values, breaking `terminal_value()`, `evaluate()`,
+  and any binary export. `clear()` is intended to be invoked only by
+  `bddfinal()` / `mtbdd_clear_all_terminal_tables()` during library
+  finalization; user code should not call it directly. The `clear()` method
+  must remain public because `mtbdd_clear_all_terminal_tables()` accesses
+  it polymorphically through the `MTBDDTerminalTableBase` virtual interface.

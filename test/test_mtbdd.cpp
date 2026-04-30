@@ -1111,6 +1111,55 @@ TEST_F(MTBDDClassTest, MTZDDImportTruncatedThrows) {
     EXPECT_THROW(MTZDD<double>::import_binary(ss), std::runtime_error);
 }
 
+// Helper: write a magic + 91-byte header with the given bits_for_id.
+// The remaining trailing bytes are not written, but the header check
+// runs before any further reads.
+static std::string make_mtbdd_header_with_bits(uint8_t bits_for_id,
+                                               uint8_t dd_type) {
+    std::string buf;
+    buf.append("BDD", 3);
+    char header[91];
+    std::memset(header, 0, sizeof(header));
+    header[0] = 1;             // version
+    header[1] = static_cast<char>(dd_type);
+    header[2] = 2; header[3] = 0;  // number_of_arcs = 2
+    header[4] = 1; header[5] = 0; header[6] = 0; header[7] = 0;  // num_terminals = 1
+    header[8] = 0;             // bits_for_level
+    header[9] = static_cast<char>(bits_for_id);
+    header[10] = 0;            // use_negative_arcs
+    // max_level (8 bytes from header+11) = 0
+    header[19] = 1;            // num_roots = 1 (LE u64 first byte)
+    header[27] = 8;            // terminal_value_size (double = 8)
+    buf.append(header, 91);
+    return buf;
+}
+
+TEST_F(MTBDDClassTest, MTBDDImportInvalidBitsForIdOversized) {
+    // bits_for_id = 72 was previously accepted (divisible by 8, non-zero)
+    // and would overflow the 8-byte stack buffer in mb_read_id_le.
+    std::string s = make_mtbdd_header_with_bits(72, /*MTBDD*/ 4);
+    std::stringstream ss(s, std::ios::binary | std::ios::in | std::ios::out);
+    EXPECT_THROW(MTBDD<double>::import_binary(ss), std::runtime_error);
+}
+
+TEST_F(MTBDDClassTest, MTBDDImportInvalidBitsForIdNonPowerOf8) {
+    std::string s = make_mtbdd_header_with_bits(24, /*MTBDD*/ 4);
+    std::stringstream ss(s, std::ios::binary | std::ios::in | std::ios::out);
+    EXPECT_THROW(MTBDD<double>::import_binary(ss), std::runtime_error);
+}
+
+TEST_F(MTBDDClassTest, MTBDDImportInvalidBitsForIdNotMultipleOf8) {
+    std::string s = make_mtbdd_header_with_bits(7, /*MTBDD*/ 4);
+    std::stringstream ss(s, std::ios::binary | std::ios::in | std::ios::out);
+    EXPECT_THROW(MTBDD<double>::import_binary(ss), std::runtime_error);
+}
+
+TEST_F(MTBDDClassTest, MTZDDImportInvalidBitsForIdOversized) {
+    std::string s = make_mtbdd_header_with_bits(128, /*MTZDD*/ 5);
+    std::stringstream ss(s, std::ios::binary | std::ios::in | std::ios::out);
+    EXPECT_THROW(MTZDD<double>::import_binary(ss), std::runtime_error);
+}
+
 // ========================================================================
 //  MTZDD cofactor tests
 // ========================================================================

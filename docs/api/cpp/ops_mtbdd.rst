@@ -178,6 +178,32 @@ MTBDD Class
    .. cpp:function:: bool operator==(const MTBDD& other) const
    .. cpp:function:: bool operator!=(const MTBDD& other) const
 
+   **Binary I/O**
+
+   .. cpp:function:: void export_binary(std::ostream& strm) const
+   .. cpp:function:: void export_binary(const char* filename) const
+
+      Serialize this MTBDD to a binary stream/file (dd_type=4). The
+      template argument *T* must be trivially copyable and at most 8
+      bytes; this is enforced at compile time.
+
+   .. cpp:function:: static MTBDD import_binary(std::istream& strm)
+   .. cpp:function:: static MTBDD import_binary(const char* filename)
+
+      Reconstruct an MTBDD from a binary stream/file. Malformed input
+      (invalid magic, mismatched ``dd_type``, unsupported
+      ``bits_for_id``, or out-of-order child references) is rejected
+      with ``std::runtime_error`` / ``std::invalid_argument``.
+
+   **SVG export**
+
+   .. cpp:function:: void save_svg(const char* filename, const SvgParams& params = SvgParams()) const
+   .. cpp:function:: void save_svg(std::ostream& strm, const SvgParams& params = SvgParams()) const
+   .. cpp:function:: std::string save_svg(const SvgParams& params = SvgParams()) const
+
+      Write or return an SVG visualization. Terminal values are stringified
+      and used as terminal labels.
+
 MTZDD Class
 -----------
 
@@ -286,6 +312,29 @@ MTZDD Class
 
    .. cpp:function:: bool operator==(const MTZDD& other) const
    .. cpp:function:: bool operator!=(const MTZDD& other) const
+
+   **Binary I/O**
+
+   .. cpp:function:: void export_binary(std::ostream& strm) const
+   .. cpp:function:: void export_binary(const char* filename) const
+
+      Serialize this MTZDD to a binary stream/file (dd_type=5). Terminal
+      type *T* must be trivially copyable and at most 8 bytes; enforced
+      at compile time.
+
+   .. cpp:function:: static MTZDD import_binary(std::istream& strm)
+   .. cpp:function:: static MTZDD import_binary(const char* filename)
+
+      Reconstruct an MTZDD from a binary stream/file. Malformed input is
+      rejected with ``std::runtime_error`` / ``std::invalid_argument``.
+
+   **SVG export**
+
+   .. cpp:function:: void save_svg(const char* filename, const SvgParams& params = SvgParams()) const
+   .. cpp:function:: void save_svg(std::ostream& strm, const SvgParams& params = SvgParams()) const
+   .. cpp:function:: std::string save_svg(const SvgParams& params = SvgParams()) const
+
+      Write or return an SVG visualization with terminal labels.
 
 Free Functions
 --------------
