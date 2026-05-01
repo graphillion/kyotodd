@@ -364,6 +364,51 @@ TEST_F(BDDTest, GetnodeReduction) {
     EXPECT_EQ(result, bddfalse);
 }
 
+// Regression: BDD::getnode used to accept any constant terminal, including
+// MTBDD multi-terminals (idx >= 2). A non-Boolean terminal would later be
+// read as a node ID by BDD algorithms.
+TEST_F(BDDTest, GetnodeRejectsNonBooleanTerminal) {
+    bddvar v = BDD_NewVar();
+    bddp fake_terminal = BDD_CONST_FLAG | 7;  // MTBDD-style terminal idx=7
+    EXPECT_THROW(BDD::getnode(v, fake_terminal, bddtrue), std::invalid_argument);
+    EXPECT_THROW(BDD::getnode(v, bddfalse, fake_terminal), std::invalid_argument);
+}
+
+// Regression: BDD::cache_get/cache_put now reject op codes that overlap
+// built-in operations. Without this, BDD::cache_put(BDD_OP_AND, a, b, true_)
+// could falsify a subsequent (a & b).
+TEST_F(BDDTest, CachePutRejectsBuiltinOpCode) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    EXPECT_THROW(BDD::cache_put(BDD_OP_AND, a, b, BDD::True),
+                 std::invalid_argument);
+    EXPECT_THROW(BDD::cache_get(BDD_OP_AND, a, b), std::invalid_argument);
+    // a & b must remain mathematically correct
+    BDD r = a & b;
+    EXPECT_NE(r.GetID(), bddtrue);
+}
+
+TEST_F(BDDTest, CachePutAcceptsUserOpCode) {
+    bddvar v1 = BDD_NewVar();
+    bddvar v2 = BDD_NewVar();
+    BDD a = BDDvar(v1);
+    BDD b = BDDvar(v2);
+    EXPECT_NO_THROW(BDD::cache_put(200, a, b, BDD::True));
+    EXPECT_EQ(BDD::cache_get(200, a, b).GetID(), bddtrue);
+}
+
+// Regression: ZDD::getnode used to accept MTZDD multi-terminals as children.
+TEST_F(BDDTest, ZddGetnodeRejectsNonBooleanTerminal) {
+    bddvar v = BDD_NewVar();
+    bddp fake_terminal = BDD_CONST_FLAG | 7;
+    EXPECT_THROW(ZDD::getnode(v, fake_terminal, bddtrue),
+                 std::invalid_argument);
+    EXPECT_THROW(ZDD::getnode(v, bddfalse, fake_terminal),
+                 std::invalid_argument);
+}
+
 // --- BDD operator& and operator&= ---
 
 TEST_F(BDDTest, OperatorAnd) {

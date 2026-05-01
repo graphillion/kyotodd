@@ -812,12 +812,14 @@ public:
     static ZDD random_family(bddvar n, RNG& rng);
 
     /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss.
-     *  @param op Operation code.
+     *  @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
+     *            for built-in operations; passing one throws std::invalid_argument.
      *  @param f First operand.
      *  @param g Second operand. */
     static ZDD cache_get(uint8_t op, const ZDD& f, const ZDD& g);
     /** @brief Write 2-operand cache entry.
-     *  @param op Operation code.
+     *  @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
+     *            for built-in operations; passing one throws std::invalid_argument.
      *  @param f First operand.
      *  @param g Second operand.
      *  @param result The result to cache. */

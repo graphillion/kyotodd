@@ -325,7 +325,9 @@ PYBIND11_MODULE(_core, m) {
         .def("__repr__", [](const BDD& a) {
             std::ostringstream oss;
             oss << "BDD: id=" << a.GetID();
-            if (a.is_terminal()) {
+            if (a.GetID() == bddnull) {
+                oss << " (null)";
+            } else if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (false)";
                 else oss << " (true)";
             } else {
@@ -354,21 +356,20 @@ PYBIND11_MODULE(_core, m) {
              "Left shift: rename variable i to i+shift.")
         .def("__rshift__", [](const BDD& a, bddvar s) { return a >> s; },
              "Right shift: rename variable i to i-shift.")
-        .def("__iand__",   [](BDD& a, const BDD& b) -> BDD& { a &= b; return a; },
-             py::return_value_policy::reference_internal,
-             "In-place logical AND.")
-        .def("__ior__",    [](BDD& a, const BDD& b) -> BDD& { a |= b; return a; },
-             py::return_value_policy::reference_internal,
-             "In-place logical OR.")
-        .def("__ixor__",   [](BDD& a, const BDD& b) -> BDD& { a ^= b; return a; },
-             py::return_value_policy::reference_internal,
-             "In-place logical XOR.")
-        .def("__ilshift__",[](BDD& a, bddvar s) -> BDD& { a <<= s; return a; },
-             py::return_value_policy::reference_internal,
-             "In-place left shift.")
-        .def("__irshift__",[](BDD& a, bddvar s) -> BDD& { a >>= s; return a; },
-             py::return_value_policy::reference_internal,
-             "In-place right shift.")
+        // In-place dunders return a NEW BDD instead of mutating self. BDD is
+        // hashable by node_id, so mutating self under an existing dict/set key
+        // would silently invalidate the entry; returning a new value lets
+        // Python rebind the name and keeps the original key intact.
+        .def("__iand__",   [](const BDD& a, const BDD& b) -> BDD { return a & b; },
+             "Logical AND. Returns a new BDD; does not mutate self.")
+        .def("__ior__",    [](const BDD& a, const BDD& b) -> BDD { return a | b; },
+             "Logical OR. Returns a new BDD; does not mutate self.")
+        .def("__ixor__",   [](const BDD& a, const BDD& b) -> BDD { return a ^ b; },
+             "Logical XOR. Returns a new BDD; does not mutate self.")
+        .def("__ilshift__",[](const BDD& a, bddvar s) -> BDD { return a << s; },
+             "Left shift. Returns a new BDD; does not mutate self.")
+        .def("__irshift__",[](const BDD& a, bddvar s) -> BDD { return a >> s; },
+             "Right shift. Returns a new BDD; does not mutate self.")
 
         // Named binary operations
         .def("nand", [](const BDD& a, const BDD& b) {
@@ -683,7 +684,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"),
            "Read a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand BDD.\n"
            "    g: Second operand BDD.\n\n"
            "Returns:\n"
@@ -693,7 +695,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
            "Write a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand BDD.\n"
            "    g: Second operand BDD.\n"
            "    result: The result BDD to cache.\n")
@@ -2285,7 +2288,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"),
            "Read a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand ZDD.\n"
            "    g: Second operand ZDD.\n\n"
            "Returns:\n"
@@ -2295,7 +2299,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
            "Write a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand ZDD.\n"
            "    g: Second operand ZDD.\n"
            "    result: The result ZDD to cache.\n")
@@ -3112,7 +3117,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"),
            "Read a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand QDD.\n"
            "    g: Second operand QDD.\n\n"
            "Returns:\n"
@@ -3122,7 +3128,8 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("op"), py::arg("f"), py::arg("g"), py::arg("result"),
            "Write a 2-operand cache entry.\n\n"
            "Args:\n"
-           "    op: Operation code (0-255).\n"
+           "    op: Operation code (128-255). Codes 0-127 are reserved for\n"
+           "        built-in BDD/ZDD operations and raise ValueError.\n"
            "    f: First operand QDD.\n"
            "    g: Second operand QDD.\n"
            "    result: The result QDD to cache.\n")

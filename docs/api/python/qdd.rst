@@ -125,7 +125,8 @@ QDD Class
 
       Read a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param QDD f: First operand QDD.
       :param QDD g: Second operand QDD.
       :return: The cached QDD result, or ``QDD.null`` on miss.
@@ -135,7 +136,8 @@ QDD Class
 
       Write a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param QDD f: First operand QDD.
       :param QDD g: Second operand QDD.
       :param QDD result: The result QDD to cache.

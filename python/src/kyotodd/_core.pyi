@@ -621,7 +621,8 @@ class BDD:
         """Read a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand BDD.
             g: Second operand BDD.
 
@@ -635,7 +636,8 @@ class BDD:
         """Write a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand BDD.
             g: Second operand BDD.
             result: The result BDD to cache.
@@ -2127,7 +2129,8 @@ class ZDD:
         """Read a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand ZDD.
             g: Second operand ZDD.
 
@@ -2141,7 +2144,8 @@ class ZDD:
         """Write a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand ZDD.
             g: Second operand ZDD.
             result: The result ZDD to cache.
@@ -3018,7 +3022,8 @@ class QDD:
         """Read a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand QDD.
             g: Second operand QDD.
 
@@ -3032,7 +3037,8 @@ class QDD:
         """Write a 2-operand cache entry.
 
         Args:
-            op: Operation code (0-255).
+            op: Operation code (128-255). Codes 0-127 are reserved for
+                built-in BDD/ZDD operations and raise ValueError.
             f: First operand QDD.
             g: Second operand QDD.
             result: The result QDD to cache.

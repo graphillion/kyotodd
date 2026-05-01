@@ -377,9 +377,18 @@ public:
     /** @brief Return the disjunction of literals (DIMACS sign convention: positive = var, negative = ¬var). */
     static BDD clause(const std::vector<int>& lits);
 
-    /** @brief Read 2-operand cache and return as BDD. Returns BDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as BDD. Returns BDD::Null on miss.
+     *
+     * @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
+     *           for built-in operations and would let cached entries collide with
+     *           internal algorithms; passing one throws std::invalid_argument.
+     */
     static BDD cache_get(uint8_t op, const BDD& f, const BDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     *
+     * @param op Operation code in [BDD_OP_USER_MIN, 255]. See cache_get for the
+     *           rationale; passing a reserved code throws std::invalid_argument.
+     */
     static void cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result);
 
     // --- Node creation ---

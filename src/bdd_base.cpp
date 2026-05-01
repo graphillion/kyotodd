@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -780,14 +781,27 @@ bddp BDD::getnode(bddvar var, bddp lo, bddp hi) {
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("BDD::getnode: var out of range");
     bddvar var_level = var2level[var];
-    if (!(lo & BDD_CONST_FLAG)) {
+    if (lo & BDD_CONST_FLAG) {
+        // Reject MTBDD/MTZDD multi-terminals: a Boolean BDD has only the
+        // constants false (idx 0) and true (idx 1). A non-Boolean terminal
+        // would be read as a node ID by downstream BDD algorithms.
+        uint64_t lo_idx = lo & ~BDD_CONST_FLAG;
+        if (lo_idx > 1)
+            throw std::invalid_argument(
+                "BDD::getnode: lo child must be bddfalse or bddtrue");
+    } else {
         bddp lo_phys = lo & ~BDD_COMP_FLAG;
         if (lo_phys < 2 || lo_phys / 2 - 1 >= bdd_node_used)
             throw std::invalid_argument("BDD::getnode: lo child is not a valid node");
         if (var2level[node_var(lo_phys)] >= var_level)
             throw std::invalid_argument("BDD::getnode: lo child level >= var level");
     }
-    if (!(hi & BDD_CONST_FLAG)) {
+    if (hi & BDD_CONST_FLAG) {
+        uint64_t hi_idx = hi & ~BDD_CONST_FLAG;
+        if (hi_idx > 1)
+            throw std::invalid_argument(
+                "BDD::getnode: hi child must be bddfalse or bddtrue");
+    } else {
         bddp hi_phys = hi & ~BDD_COMP_FLAG;
         if (hi_phys < 2 || hi_phys / 2 - 1 >= bdd_node_used)
             throw std::invalid_argument("BDD::getnode: hi child is not a valid node");
@@ -850,14 +864,26 @@ bddp ZDD::getnode(bddvar var, bddp lo, bddp hi) {
     if (var < 1 || var > bdd_varcount)
         throw std::invalid_argument("ZDD::getnode: var out of range");
     bddvar var_level = var2level[var];
-    if (!(lo & BDD_CONST_FLAG)) {
+    if (lo & BDD_CONST_FLAG) {
+        // Reject MTBDD/MTZDD multi-terminals: a ZDD over sets has only the
+        // constants empty (idx 0) and single (idx 1).
+        uint64_t lo_idx = lo & ~BDD_CONST_FLAG;
+        if (lo_idx > 1)
+            throw std::invalid_argument(
+                "ZDD::getnode: lo child must be bddempty or bddsingle");
+    } else {
         bddp lo_phys = lo & ~BDD_COMP_FLAG;
         if (lo_phys < 2 || lo_phys / 2 - 1 >= bdd_node_used)
             throw std::invalid_argument("ZDD::getnode: lo child is not a valid node");
         if (var2level[node_var(lo_phys)] >= var_level)
             throw std::invalid_argument("ZDD::getnode: lo child level >= var level");
     }
-    if (!(hi & BDD_CONST_FLAG)) {
+    if (hi & BDD_CONST_FLAG) {
+        uint64_t hi_idx = hi & ~BDD_CONST_FLAG;
+        if (hi_idx > 1)
+            throw std::invalid_argument(
+                "ZDD::getnode: hi child must be bddempty or bddsingle");
+    } else {
         bddp hi_phys = hi & ~BDD_COMP_FLAG;
         if (hi_phys < 2 || hi_phys / 2 - 1 >= bdd_node_used)
             throw std::invalid_argument("ZDD::getnode: hi child is not a valid node");
@@ -1139,19 +1165,37 @@ ZDD BDD_CacheZDD(uint8_t op, bddp f, bddp g) {
     return ZDD_ID(r);
 }
 
+// Reject op codes that overlap the built-in operation cache range. A poisoned
+// entry written under (op, f, g) where op < BDD_OP_USER_MIN would otherwise be
+// read back by core algorithms (e.g. bddand_rec) and silently falsify their
+// result.
+static void validate_user_op(uint8_t op, const char* fn) {
+    if (op < BDD_OP_USER_MIN) {
+        std::ostringstream oss;
+        oss << fn << ": op must be >= " << static_cast<int>(BDD_OP_USER_MIN)
+            << " (codes 0.." << static_cast<int>(BDD_OP_USER_MIN - 1)
+            << " are reserved for built-in operations)";
+        throw std::invalid_argument(oss.str());
+    }
+}
+
 BDD BDD::cache_get(uint8_t op, const BDD& f, const BDD& g) {
+    validate_user_op(op, "BDD::cache_get");
     return BDD_ID(bddrcache(op, f.id(), g.id()));
 }
 
 void BDD::cache_put(uint8_t op, const BDD& f, const BDD& g, const BDD& result) {
+    validate_user_op(op, "BDD::cache_put");
     bddwcache(op, f.id(), g.id(), result.id());
 }
 
 ZDD ZDD::cache_get(uint8_t op, const ZDD& f, const ZDD& g) {
+    validate_user_op(op, "ZDD::cache_get");
     return ZDD_ID(bddrcache(op, f.id(), g.id()));
 }
 
 void ZDD::cache_put(uint8_t op, const ZDD& f, const ZDD& g, const ZDD& result) {
+    validate_user_op(op, "ZDD::cache_put");
     bddwcache(op, f.id(), g.id(), result.id());
 }
 

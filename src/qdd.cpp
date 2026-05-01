@@ -1,5 +1,6 @@
 #include "bdd.h"
 #include "bdd_internal.h"
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -372,11 +373,25 @@ QDD QDD_ID(bddp p) {
     return q;
 }
 
+// Reject op codes that overlap the built-in operation cache range. See the
+// matching guard in src/bdd_base.cpp for why this is required.
+static void qdd_validate_user_op(uint8_t op, const char* fn) {
+    if (op < BDD_OP_USER_MIN) {
+        std::ostringstream oss;
+        oss << fn << ": op must be >= " << static_cast<int>(BDD_OP_USER_MIN)
+            << " (codes 0.." << static_cast<int>(BDD_OP_USER_MIN - 1)
+            << " are reserved for built-in operations)";
+        throw std::invalid_argument(oss.str());
+    }
+}
+
 QDD QDD::cache_get(uint8_t op, const QDD& f, const QDD& g) {
+    qdd_validate_user_op(op, "QDD::cache_get");
     return QDD_ID(bddrcache(op, f.id(), g.id()));
 }
 
 void QDD::cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result) {
+    qdd_validate_user_op(op, "QDD::cache_put");
     bddwcache(op, f.id(), g.id(), result.id());
 }
 

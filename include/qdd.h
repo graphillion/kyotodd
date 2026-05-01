@@ -171,9 +171,17 @@ public:
     /** @brief Convert QDD to canonical ZDD. */
     ZDD to_zdd() const;
 
-    /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss. */
+    /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss.
+     *
+     * @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
+     *           for built-in operations; passing one throws std::invalid_argument.
+     */
     static QDD cache_get(uint8_t op, const QDD& f, const QDD& g);
-    /** @brief Write 2-operand cache entry. */
+    /** @brief Write 2-operand cache entry.
+     *
+     * @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
+     *           for built-in operations; passing one throws std::invalid_argument.
+     */
     static void cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result);
 
     static const QDD False;  /**< @brief Constant false QDD. */

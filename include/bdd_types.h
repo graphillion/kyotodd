@@ -143,6 +143,13 @@ static const uint8_t BDD_OP_PRODUCT = 49;
 static const uint8_t BDD_OP_CHOOSE  = 68;
 static const uint8_t BDD_OP_MINSIZE = 69;
 
+// Lowest op code reserved for user-supplied BDD/ZDD/QDD::cache_get/cache_put
+// entries. Op codes [0, BDD_OP_USER_MIN) are reserved for built-in operations
+// and must never collide with cache entries written by external callers; if
+// they did, a poisoned entry could be read back by a subsequent core
+// algorithm and falsify its result. See BDD::cache_get/put validation.
+static const uint8_t BDD_OP_USER_MIN = 128;
+
 /// @cond INTERNAL
 // Forward declarations for GC root registration (defined in bdd_base.h)
 void bddgc_protect(bddp* p);

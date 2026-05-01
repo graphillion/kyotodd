@@ -473,7 +473,8 @@ BDD Class
 
       Read a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param BDD f: First operand BDD.
       :param BDD g: Second operand BDD.
       :return: The cached BDD result, or ``BDD.null`` on miss.
@@ -483,7 +484,8 @@ BDD Class
 
       Write a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param BDD f: First operand BDD.
       :param BDD g: Second operand BDD.
       :param BDD result: The result BDD to cache.

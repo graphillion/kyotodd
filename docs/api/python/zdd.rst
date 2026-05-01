@@ -839,7 +839,8 @@ ZDD Class
 
       Read a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param ZDD f: First operand ZDD.
       :param ZDD g: Second operand ZDD.
       :return: The cached ZDD result, or ``ZDD.null`` on miss.
@@ -849,7 +850,8 @@ ZDD Class
 
       Write a 2-operand cache entry.
 
-      :param int op: Operation code (0-255).
+      :param int op: Operation code in 128–255. Codes 0–127 are reserved for
+                     built-in BDD/ZDD operations and raise ``ValueError``.
       :param ZDD f: First operand ZDD.
       :param ZDD g: Second operand ZDD.
       :param ZDD result: The result ZDD to cache.

@@ -92,6 +92,67 @@ class TestBDDRepr:
         r = repr(x)
         assert r.startswith("BDD: id=")
 
+    def test_repr_null(self):
+        # Regression: __repr__ used to call top() unconditionally and raise
+        # ValueError when the BDD was null.
+        r = repr(BDD.null)
+        assert "BDD: id=" in r
+        assert "(null)" in r
+
+
+class TestBDDInPlaceOps:
+    def test_iand_does_not_invalidate_dict_key(self):
+        # Regression: BDD.__hash__ is by node_id; if __iand__ mutated self,
+        # an existing dict entry keyed on a became unfindable. The fix is
+        # to make __iand__ return a new BDD so a is rebound.
+        kyotodd.new_var()
+        kyotodd.new_var()
+        a = BDD.var(1)
+        b = BDD.var(2)
+        original_a = a
+        d = {a: "value"}
+        a &= b
+        assert d[original_a] == "value"
+
+    def test_inplace_ops_return_new_object(self):
+        kyotodd.new_var()
+        kyotodd.new_var()
+        a = BDD.var(1)
+        b = BDD.var(2)
+        original = a
+        a &= b
+        # original BDD object is unchanged; a is rebound to a new value
+        assert original == BDD.var(1)
+        assert a == BDD.var(1) & BDD.var(2)
+
+
+class TestBDDCacheGuard:
+    def test_cache_put_rejects_internal_op(self):
+        # Regression: cache_put used to accept op codes that overlap built-in
+        # operations (e.g. op 0 = BDD_OP_AND), which could falsify a & b.
+        kyotodd.new_var()
+        kyotodd.new_var()
+        a = BDD.var(1)
+        b = BDD.var(2)
+        with pytest.raises(ValueError):
+            BDD.cache_put(0, a, b, BDD.true_)
+        # core operation must remain unaffected
+        assert (a & b) != BDD.true_
+
+    def test_cache_get_rejects_internal_op(self):
+        kyotodd.new_var()
+        a = BDD.var(1)
+        with pytest.raises(ValueError):
+            BDD.cache_get(0, a, a)
+
+    def test_cache_put_accepts_user_op(self):
+        kyotodd.new_var()
+        kyotodd.new_var()
+        a = BDD.var(1)
+        b = BDD.var(2)
+        BDD.cache_put(200, a, b, BDD.true_)
+        assert BDD.cache_get(200, a, b) == BDD.true_
+
 
 class TestBDDBool:
     def test_bool_raises(self):
