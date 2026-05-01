@@ -232,7 +232,11 @@ void bddfinal() {
     bdd_free_list = 0;
     bdd_free_count = 0;
     bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
-    gc_roots().clear();
+    // Do NOT clear gc_roots(). The loop above verified every entry holds
+    // a safe value (bddnull, bddfalse/bddtrue, or null-out below for MTBDD
+    // index 0/1). Static constants like ZDD::Empty and user-held terminal
+    // ZDDs must keep their &root registered so that any later assignment
+    // to a non-terminal value remains GC-protected after re-initialization.
 }
 
 int bddinit(uint64_t node_count, uint64_t node_max) {

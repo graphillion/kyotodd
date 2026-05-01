@@ -101,6 +101,12 @@ TEST_F(BDDTest, ZDDStaticConsts) {
     EXPECT_EQ(ZDD::Null.GetID(), bddnull);
 }
 
+// Regression: ZDD::Print must not throw for null (was calling Top()
+// which raises on bddnull).
+TEST_F(BDDTest, ZDD_PrintNullDoesNotThrow) {
+    EXPECT_NO_THROW(ZDD::Null.Print());
+}
+
 // --- BDD_NewVar ---
 
 TEST_F(BDDTest, NewVar) {

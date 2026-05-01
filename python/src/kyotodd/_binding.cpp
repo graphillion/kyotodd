@@ -25,6 +25,23 @@ struct CoutRedirectGuard {
 };
 
 static bool g_initialized = false;
+// Number of GC roots present at module load time. Static C++ constants
+// (BDD::True/False/Null, ZDD::Empty/Single/Null, etc.) are registered
+// at static-init and persist across bddfinal/bddinit. The Python
+// init/finalize wrappers must subtract this baseline to detect only
+// user-created BDD/ZDD objects.
+static uint64_t g_gc_roots_baseline = 0;
+static bool g_gc_roots_baseline_set = false;
+
+static uint64_t user_gc_rootcount() {
+    if (!g_gc_roots_baseline_set) {
+        g_gc_roots_baseline = bddgc_rootcount();
+        g_gc_roots_baseline_set = true;
+        return 0;
+    }
+    uint64_t cur = bddgc_rootcount();
+    return cur > g_gc_roots_baseline ? cur - g_gc_roots_baseline : 0;
+}
 
 static void reset_pidd_globals() {
     if (PiDD_XOfLev) { delete[] PiDD_XOfLev; PiDD_XOfLev = 0; }
@@ -44,6 +61,9 @@ static void ensure_init() {
         reset_pidd_globals();
         reset_rotpidd_globals();
         g_initialized = true;
+        // Capture baseline on first auto-init, so subsequent init/finalize
+        // checks subtract C++ static-constant roots.
+        (void)user_gc_rootcount();
     }
 }
 
@@ -75,7 +95,7 @@ PYBIND11_MODULE(_core, m) {
 
     // Initialization
     m.def("init", [](uint64_t node_count, uint64_t node_max) {
-        if (g_initialized && bddgc_rootcount() > 0) {
+        if (g_initialized && user_gc_rootcount() > 0) {
             throw std::runtime_error(
                 "init(): cannot re-initialize while BDD/ZDD objects exist. "
                 "Delete all BDD/ZDD objects first.");
@@ -84,6 +104,9 @@ PYBIND11_MODULE(_core, m) {
         reset_pidd_globals();
         reset_rotpidd_globals();
         g_initialized = true;
+        // Capture the baseline on first init, after static constants
+        // have been registered.
+        (void)user_gc_rootcount();
     }, py::arg("node_count") = 256, py::arg("node_max") = UINT64_MAX,
        "Initialize the BDD library.\n\n"
        "If not called explicitly, the library is auto-initialized with default\n"
@@ -95,7 +118,7 @@ PYBIND11_MODULE(_core, m) {
        "    node_max: Maximum number of node slots allowed (default: unlimited).\n");
 
     m.def("finalize", []() {
-        if (g_initialized && bddgc_rootcount() > 0) {
+        if (g_initialized && user_gc_rootcount() > 0) {
             throw std::runtime_error(
                 "finalize(): cannot finalize while BDD/ZDD objects exist. "
                 "Delete all BDD/ZDD objects first.");
@@ -929,7 +952,9 @@ PYBIND11_MODULE(_core, m) {
         .def("__repr__", [](const ZDD& a) {
             std::ostringstream oss;
             oss << "ZDD: id=" << a.GetID();
-            if (a.is_terminal()) {
+            if (a.GetID() == bddnull) {
+                oss << " (null)";
+            } else if (a.is_terminal()) {
                 if (a.is_zero()) oss << " (empty)";
                 else oss << " (unit)";
             } else {

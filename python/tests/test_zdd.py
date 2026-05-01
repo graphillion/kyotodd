@@ -78,6 +78,17 @@ class TestZDDRepr:
         r = repr(ZDD.empty)
         assert r.startswith("ZDD: id=")
 
+    def test_repr_null_does_not_raise(self):
+        # Regression: __repr__ used to call top() unconditionally for non-
+        # standard-terminal values, which raised on bddnull.
+        r = repr(ZDD.null)
+        assert "null" in r
+
+    def test_print_null_does_not_raise(self):
+        # Regression: ZDD::Print() used to call Top() which raised on null.
+        out = ZDD.null.print()
+        assert isinstance(out, str)
+
 
 class TestZDDOperators:
     def _setup(self):

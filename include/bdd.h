@@ -1473,16 +1473,20 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
     std::sort(sorted_vars.begin(), sorted_vars.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
     std::uniform_int_distribution<int> coin(0, 1);
-    // Recursive lambda: build random family over sorted variables
-    std::function<bddp(size_t)> build = [&](size_t idx) -> bddp {
-        if (idx >= sorted_vars.size()) {
-            return coin(rng) ? bddsingle : bddempty;
-        }
-        bddp lo = build(idx + 1);
-        bddp hi = build(idx + 1);
-        return ZDD::getnode_raw(sorted_vars[idx], lo, hi);
-    };
-    return ZDD_ID(build(0));
+    // Wrap the entire build in bdd_gc_guard so raw bddp intermediates
+    // (lo built before hi at each level) survive across getnode_raw calls.
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        std::function<bddp(size_t)> build = [&](size_t idx) -> bddp {
+            if (idx >= sorted_vars.size()) {
+                return coin(rng) ? bddsingle : bddempty;
+            }
+            bddp lo = build(idx + 1);
+            bddp hi = build(idx + 1);
+            return ZDD::getnode_raw(sorted_vars[idx], lo, hi);
+        };
+        return build(0);
+    });
+    return ZDD_ID(r);
 }
 
 // --- QDD binary format inline definitions ---

@@ -16,10 +16,15 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/bdd_class.cpp
     ${KYOTODD_ROOT}/src/bdd_class_iter.cpp
     ${KYOTODD_ROOT}/src/bdd_io.cpp
+    ${KYOTODD_ROOT}/src/bdd_io_binary.cpp
+    ${KYOTODD_ROOT}/src/bdd_io_graphillion.cpp
+    ${KYOTODD_ROOT}/src/bdd_io_graphviz.cpp
+    ${KYOTODD_ROOT}/src/bdd_io_knuth.cpp
     ${KYOTODD_ROOT}/src/bdd_ops.cpp
     ${KYOTODD_ROOT}/src/bdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_ops.cpp
     ${KYOTODD_ROOT}/src/zdd_ops_iter.cpp
+    ${KYOTODD_ROOT}/src/zdd_ops_iter_algebra.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_filter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_filter_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_adv_count.cpp
@@ -41,9 +46,12 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/zdd_rank_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_random_iter.cpp
     ${KYOTODD_ROOT}/src/mvdd.cpp
+    ${KYOTODD_ROOT}/src/mvzdd_iter.cpp
     ${KYOTODD_ROOT}/src/mtbdd.cpp
     ${KYOTODD_ROOT}/src/mtbdd_iter.cpp
     ${KYOTODD_ROOT}/src/svg_export.cpp
+    ${KYOTODD_ROOT}/src/svg_export_mt.cpp
+    ${KYOTODD_ROOT}/src/svg_export_mvdd.cpp
 )
 
 pybind11_add_module(_core

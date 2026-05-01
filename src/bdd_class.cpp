@@ -405,50 +405,64 @@ ZDD ZDD::singleton(bddvar v) {
 }
 
 ZDD ZDD::power_set(bddvar n) {
-    bddp f = bddsingle;
-    for (bddvar v = 1; v <= n; ++v) {
-        f = bddunion(f, bddchange(f, v));
-    }
-    return ZDD_ID(f);
+    // Wrap entire build in bdd_gc_guard so the in-flight raw bddp `f`
+    // is shielded from GC triggered by inner bddunion/bddchange calls.
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        bddp f = bddsingle;
+        for (bddvar v = 1; v <= n; ++v) {
+            f = bddunion(f, bddchange(f, v));
+        }
+        return f;
+    });
+    return ZDD_ID(r);
 }
 
 ZDD ZDD::power_set(const std::vector<bddvar>& vars) {
-    bddp f = bddsingle;
-    for (bddvar v : vars) {
-        f = bddunion(f, bddchange(f, v));
-    }
-    return ZDD_ID(f);
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        bddp f = bddsingle;
+        for (bddvar v : vars) {
+            f = bddunion(f, bddchange(f, v));
+        }
+        return f;
+    });
+    return ZDD_ID(r);
 }
 
 ZDD ZDD::single_set(const std::vector<bddvar>& vars) {
-    bddp f = bddsingle;
     // Deduplicate: bddchange toggles, so applying it twice cancels out.
     // Use sorted unique to ensure each variable is toggled exactly once.
     std::vector<bddvar> unique_vars(vars);
     std::sort(unique_vars.begin(), unique_vars.end());
     unique_vars.erase(std::unique(unique_vars.begin(), unique_vars.end()),
                       unique_vars.end());
-    for (bddvar v : unique_vars) {
-        f = bddchange(f, v);
-    }
-    return ZDD_ID(f);
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        bddp f = bddsingle;
+        for (bddvar v : unique_vars) {
+            f = bddchange(f, v);
+        }
+        return f;
+    });
+    return ZDD_ID(r);
 }
 
 ZDD ZDD::from_sets(const std::vector<std::vector<bddvar>>& sets) {
-    bddp f = bddempty;
-    for (const auto& s : sets) {
-        bddp t = bddsingle;
-        // Deduplicate each set
-        std::vector<bddvar> unique_s(s);
-        std::sort(unique_s.begin(), unique_s.end());
-        unique_s.erase(std::unique(unique_s.begin(), unique_s.end()),
-                       unique_s.end());
-        for (bddvar v : unique_s) {
-            t = bddchange(t, v);
+    bddp r = bdd_gc_guard([&]() -> bddp {
+        bddp f = bddempty;
+        for (const auto& s : sets) {
+            bddp t = bddsingle;
+            // Deduplicate each set
+            std::vector<bddvar> unique_s(s);
+            std::sort(unique_s.begin(), unique_s.end());
+            unique_s.erase(std::unique(unique_s.begin(), unique_s.end()),
+                           unique_s.end());
+            for (bddvar v : unique_s) {
+                t = bddchange(t, v);
+            }
+            f = bddunion(f, t);
         }
-        f = bddunion(f, t);
-    }
-    return ZDD_ID(f);
+        return f;
+    });
+    return ZDD_ID(r);
 }
 
 // Recursive helper: all k-element subsets from sorted_vars[idx..end).
@@ -664,6 +678,11 @@ std::string ZDD::to_dnf(
 }
 
 void ZDD::print() const {
+    if (root == bddnull) {
+        std::cout << "[ null ZDD ]" << std::endl;
+        std::cout.flush();
+        return;
+    }
     bddvar v = Top();
     std::cout << "[ " << GetID()
               << " Var:" << v << "(" << bddlevofvar(v) << ")"

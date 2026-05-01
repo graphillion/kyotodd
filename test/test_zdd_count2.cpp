@@ -859,13 +859,17 @@ TEST_F(BDDTest, GCManualCallReducesNodes) {
 TEST_F(BDDTest, GCProtectUnprotect) {
     bddvar v1 = bddnewvar();
     bddp node = bddand(BDDvar(v1).GetID(), bddtrue);
+    // gc_roots() persists across bddfinal/bddinit, so static BDD/ZDD
+    // constants remain registered. Test the delta from baseline rather
+    // than the absolute count.
+    uint64_t baseline = bddgc_rootcount();
     bddgc_protect(&node);
-    EXPECT_EQ(bddgc_rootcount(), 1u);
+    EXPECT_EQ(bddgc_rootcount(), baseline + 1);
     bddgc();
     // node should still be valid after GC
     EXPECT_EQ(bddtop(node), v1);
     bddgc_unprotect(&node);
-    EXPECT_EQ(bddgc_rootcount(), 0u);
+    EXPECT_EQ(bddgc_rootcount(), baseline);
 }
 
 TEST_F(BDDTest, GCThreshold) {
@@ -958,6 +962,52 @@ TEST_F(BDDTest, BddinitWithLiveObjectsThrows) {
         EXPECT_THROW(bddinit(256, UINT64_MAX), std::runtime_error);
         (void)x;
     }
+}
+
+// Regression: factory builders must protect their raw bddp intermediates
+// against GC triggered by inner ops. Run under a small node-cap so the
+// pre-op GC pre-check inside bdd_gc_guard actually fires.
+TEST_F(BDDTest, FactoryBuildersProtectIntermediatesUnderGC) {
+    bddfinal();
+    bddinit(16, 64);
+    bddgc_setthreshold(0.1);  // aggressive GC
+    for (int i = 0; i < 6; ++i) bddnewvar();
+
+    ZDD ps = ZDD::power_set(6);
+    EXPECT_EQ(ps.exact_count(), bigint::BigInt(64));
+
+    std::vector<bddvar> vs = {1, 2, 3, 4, 5};
+    ZDD ss = ZDD::single_set(vs);
+    EXPECT_EQ(ss.exact_count(), bigint::BigInt(1));
+
+    std::vector<std::vector<bddvar>> sets = {{1, 2}, {3}, {1, 3}, {}, {2, 4}};
+    ZDD fs = ZDD::from_sets(sets);
+    EXPECT_EQ(fs.exact_count(), bigint::BigInt(5));
+
+    std::mt19937_64 rng(42);
+    ZDD rf = ZDD::random_family(4, rng);
+    EXPECT_NO_THROW((void)rf.exact_count());
+
+    bddgc_setthreshold(0.9);
+}
+
+// Regression: a terminal-valued ZDD that survives bddfinal/bddinit must
+// keep its &root registered as a GC root, so that a later assignment to
+// a non-terminal node remains protected against subsequent GC.
+TEST_F(BDDTest, TerminalZDDSurvivesReinitAndStaysProtected) {
+    ZDD z(0);  // bddempty terminal
+    bddfinal();
+    bddinit(256, UINT64_MAX);
+    bddvar v = bddnewvar();
+    // Reassign to a non-terminal ZDD
+    z = ZDD::singleton(v);
+    EXPECT_FALSE(z.is_terminal());
+    bddp before = z.GetID();
+    // Force GC; the node behind z must still be valid because &z.root
+    // remained in gc_roots() across the reinit.
+    bddgc();
+    EXPECT_EQ(z.GetID(), before);
+    EXPECT_NO_THROW({ (void)bddtop(z.GetID()); });
 }
 
 // --- bddplainsize / plain_size ---
