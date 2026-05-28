@@ -17,6 +17,8 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "bdd.h"
@@ -118,6 +120,154 @@ static Grid build_grid(int H, int W) {
   return g;
 }
 
+// -----------------------------------------------------------------------------
+// Frontier 法による単純閉路 ZDD の構築
+// -----------------------------------------------------------------------------
+//
+// 状態 (State): 各頂点 v に対して mate[v] を保持。エンコーディング:
+//   NOT_PRESENT (= -1): フロンティアに居ない (未到来 or 既に去った、deg 0 相当)
+//   SATURATED   (= -2): フロンティアに居て deg 2。これ以上接続辺を取れない。
+//   それ以外 (>= 0):  フロンティアに居て deg 1。path のもう一方の端点 index。
+//
+// さらに cycle_closed (bool): 既に閉路を 1 本作ったか。閉路は本問題では 1 本のみ許可。
+//
+// 単純閉路条件:
+//   - すべての頂点について最終的に deg ∈ {0, 2}。
+//   - 閉路が「ちょうど 1 つ」存在 (cycle_closed が真で、その後新規辺は取らない)。
+//   - 連結性は「閉路 1 本」=連結 1 成分なので、cycle_closed の制約のみで担保される
+//     (cycle_closed=true 状態で別の新規パスを開始すると、それは 2 本目の閉路を要求
+//      してしまい cycle_closed=false 経由でしか取れない=矛盾、したがって弾かれる)。
+
+static constexpr int NOT_PRESENT = -1;
+static constexpr int SATURATED   = -2;
+
+struct State {
+  std::vector<int> mate;
+  bool cycle_closed;
+
+  bool operator==(const State& other) const {
+    return cycle_closed == other.cycle_closed && mate == other.mate;
+  }
+};
+
+struct StateHash {
+  size_t operator()(const State& s) const {
+    size_t h = static_cast<size_t>(s.cycle_closed ? 1 : 0);
+    for (int x : s.mate) {
+      h ^= static_cast<size_t>(x + 3);
+      h *= 1099511628211ULL;
+    }
+    return h;
+  }
+};
+
+static inline int degree_of(const State& s, int w) {
+  int m = s.mate[w];
+  if (m == NOT_PRESENT) return 0;
+  if (m == SATURATED)   return 2;
+  return 1;
+}
+
+// edge (u,v) を「選択」したときの状態遷移。状態 s を破壊的に変更する。
+// 不可能な遷移なら false を返し、s の内容は未定義。
+static bool apply_select(State& s, int u, int v) {
+  if (s.cycle_closed) return false;            // 既に閉路があるので新規辺は取れない
+  int du = degree_of(s, u), dv = degree_of(s, v);
+  if (du == 2 || dv == 2) return false;        // 飽和頂点には辺を足せない
+
+  if (du == 0 && dv == 0) {
+    // 新規 path u-v
+    s.mate[u] = v;
+    s.mate[v] = u;
+  } else if (du == 0 && dv == 1) {
+    int mv = s.mate[v];
+    s.mate[u]  = mv;
+    s.mate[mv] = u;
+    s.mate[v]  = SATURATED;
+  } else if (du == 1 && dv == 0) {
+    int mu = s.mate[u];
+    s.mate[v]  = mu;
+    s.mate[mu] = v;
+    s.mate[u]  = SATURATED;
+  } else {
+    // du == 1 && dv == 1
+    int mu = s.mate[u], mv = s.mate[v];
+    if (mu == v) {
+      // u と v は同じ path の両端: 閉路化
+      s.cycle_closed = true;
+      s.mate[u] = SATURATED;
+      s.mate[v] = SATURATED;
+    } else {
+      // 異なる path 同士をマージ
+      s.mate[mu] = mv;
+      s.mate[mv] = mu;
+      s.mate[u]  = SATURATED;
+      s.mate[v]  = SATURATED;
+    }
+  }
+  return true;
+}
+
+// edge_idx の処理直後、頂点 w がフロンティアから退去する場合の検査と片付け。
+// deg 1 で退去なら dangling path なので invalid (false)。
+// deg 0 はそのまま、deg 2 は SATURATED→NOT_PRESENT へ戻す (同等状態の正規化)。
+static bool apply_leave_frontier(State& s, int w, int edge_idx, const Grid& g) {
+  if (g.last_edge[w] != edge_idx) return true;
+  int m = s.mate[w];
+  if (m == NOT_PRESENT) return true;
+  if (m == SATURATED) {
+    s.mate[w] = NOT_PRESENT;
+    return true;
+  }
+  return false;  // deg 1 で去る = 不正
+}
+
+struct CycleBuilder {
+  const Grid& g;
+  std::vector<std::unordered_map<State, ZDD, StateHash>> memos;
+
+  explicit CycleBuilder(const Grid& g_) : g(g_), memos(g_.n_edges + 1) {}
+
+  ZDD build(int i, const State& s) {
+    if (i == g.n_edges) {
+      return s.cycle_closed ? ZDD::Single : ZDD::Empty;
+    }
+    auto it = memos[i].find(s);
+    if (it != memos[i].end()) return it->second;
+
+    int u = g.edge_endpoints[i].first;
+    int v = g.edge_endpoints[i].second;
+
+    // no-select 遷移
+    State s_no = s;
+    bool ok_no = apply_leave_frontier(s_no, u, i, g)
+              && apply_leave_frontier(s_no, v, i, g);
+    ZDD f_no = ok_no ? build(i + 1, s_no) : ZDD::Empty;
+
+    // select 遷移
+    State s_yes = s;
+    bool ok_yes = apply_select(s_yes, u, v);
+    if (ok_yes) {
+      ok_yes = apply_leave_frontier(s_yes, u, i, g)
+            && apply_leave_frontier(s_yes, v, i, g);
+    }
+    ZDD f_yes = ok_yes ? build(i + 1, s_yes) : ZDD::Empty;
+    ZDD f_yes_with_edge = f_yes.Change(g.edge_var[i]);
+
+    ZDD result = f_no + f_yes_with_edge;
+    memos[i][s] = result;
+    return result;
+  }
+};
+
+static ZDD build_cycle_zdd(const Grid& g) {
+  CycleBuilder builder(g);
+  State init;
+  init.mate.assign(g.n_vertices, NOT_PRESENT);
+  init.cycle_closed = false;
+  return builder.build(0, init);
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     std::fprintf(stderr, "Usage: %s <H> <W>\n", argv[0]);
@@ -130,7 +280,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (bddinit(1ULL << 20, 0)) {
+  // node_count: 初期割当, node_max: デフォルト (UINT64_MAX)。
+  if (bddinit(1024)) {
     std::fprintf(stderr, "bddinit failed\n");
     return 1;
   }
@@ -147,7 +298,13 @@ int main(int argc, char *argv[]) {
               g.edge_var.front(),
               g.n_edges - 1,
               g.edge_var.back());
-  std::printf("(grid set up; cycle ZDD not yet implemented)\n");
+
+  std::printf("Building simple-cycle ZDD over edge variables ...\n");
+  ZDD F_E = build_cycle_zdd(g);
+  std::printf("  F_E.raw_size() = %llu\n",
+              static_cast<unsigned long long>(F_E.raw_size()));
+  std::printf("  number of simple cycles = %s\n",
+              F_E.exact_count().to_string().c_str());
 
   return 0;
 }
