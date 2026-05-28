@@ -103,6 +103,9 @@ target_link_libraries(swapbound kyotodd_lib)
 add_executable(wmc app/wmc/wmc.cpp)
 target_link_libraries(wmc kyotodd_lib)
 
+add_executable(hamilton_black app/HamiltonBlack/hamilton_black.cpp)
+target_link_libraries(hamilton_black kyotodd_lib)
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
