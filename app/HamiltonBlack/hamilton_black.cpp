@@ -268,6 +268,46 @@ static ZDD build_cycle_zdd(const Grid& g) {
   return builder.build(0, init);
 }
 
+// -----------------------------------------------------------------------------
+// 辺変数 ZDD → 頂点変数 ZDD への変換
+// -----------------------------------------------------------------------------
+//
+// F_E: 各集合が辺の部分集合で、単純閉路を成すもの (頂点変数は含まない)。
+//
+// 各頂点 v について:
+//   v ∈ V(E)  ⇔  E に「v に接続する辺」がひとつでもある。
+// したがって、F_E の各集合 E に対し以下のように v を追加して拡張する:
+//   - E のうち v 接続辺を 1 つも含まないもの → v を追加しない。
+//   - E のうち v 接続辺を少なくとも 1 つ含むもの → v を追加する。
+// 全頂点について行ったあと、辺変数を全て射影で消す (OffSet + OnSet0)。
+//
+// 結果として、各集合が頂点集合のみからなる F_V が得られる。
+
+static ZDD edges_to_vertices(const Grid& g, ZDD F_E) {
+  ZDD G = F_E;
+
+  for (int v = 0; v < g.n_vertices; ++v) {
+    // v に接続する辺を 1 つも持たない集合
+    ZDD G_no_inc = G;
+    for (int e : g.incident_edges[v]) {
+      G_no_inc = G_no_inc.OffSet(g.edge_var[e]);
+    }
+    // v に接続する辺を少なくとも 1 つ持つ集合 (差集合)
+    ZDD G_with_inc = G - G_no_inc;
+    // それらに v を追加
+    G_with_inc = G_with_inc.Change(g.vertex_var[v]);
+    G = G_no_inc + G_with_inc;
+  }
+
+  // 辺変数を全て射影で消す: F(e=0) ∪ F(e=1) [いずれも e を含まない]
+  for (int i = 0; i < g.n_edges; ++i) {
+    bddvar ev = g.edge_var[i];
+    G = G.OffSet(ev) + G.OnSet0(ev);
+  }
+
+  return G;
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     std::fprintf(stderr, "Usage: %s <H> <W>\n", argv[0]);
@@ -305,6 +345,13 @@ int main(int argc, char *argv[]) {
               static_cast<unsigned long long>(F_E.raw_size()));
   std::printf("  number of simple cycles = %s\n",
               F_E.exact_count().to_string().c_str());
+
+  std::printf("Converting edge-variable ZDD to vertex-variable ZDD ...\n");
+  ZDD F_V = edges_to_vertices(g, F_E);
+  std::printf("  F_V.raw_size() = %llu\n",
+              static_cast<unsigned long long>(F_V.raw_size()));
+  std::printf("  number of distinct cycle vertex-sets = %s\n",
+              F_V.exact_count().to_string().c_str());
 
   return 0;
 }
