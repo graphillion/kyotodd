@@ -283,6 +283,30 @@ static ZDD build_cycle_zdd(const Grid& g) {
 //
 // 結果として、各集合が頂点集合のみからなる F_V が得られる。
 
+// 全頂点について Change(v) を順に適用することで、F_V の各集合 S を全頂点集合との
+// per-set 差 V \ S に置き換える。
+static ZDD per_set_complement(const Grid& g, ZDD F_V) {
+  ZDD G = F_V;
+  for (int v = 0; v < g.n_vertices; ++v) {
+    G = G.Change(g.vertex_var[v]);
+  }
+  return G;
+}
+
+// 「隣接する 2 マスを同時に含まない」頂点部分集合の族 ZDD を構築する。
+// 全頂点の power set から、各辺 (u,v) について u と v を両方含む集合を除外する。
+static ZDD build_independent_sets(const Grid& g) {
+  std::vector<bddvar> vs = g.vertex_var;
+  ZDD I = ZDD::power_set(vs);
+  for (int i = 0; i < g.n_edges; ++i) {
+    int u = g.edge_endpoints[i].first;
+    int v = g.edge_endpoints[i].second;
+    ZDD both = I.OnSet(g.vertex_var[u]).OnSet(g.vertex_var[v]);
+    I = I - both;
+  }
+  return I;
+}
+
 static ZDD edges_to_vertices(const Grid& g, ZDD F_E) {
   ZDD G = F_E;
 
@@ -352,6 +376,37 @@ int main(int argc, char *argv[]) {
               static_cast<unsigned long long>(F_V.raw_size()));
   std::printf("  number of distinct cycle vertex-sets = %s\n",
               F_V.exact_count().to_string().c_str());
+
+  std::printf("Computing per-set complement (black-cell candidates) ...\n");
+  ZDD F_B = per_set_complement(g, F_V);
+  std::printf("  F_B.raw_size() = %llu\n",
+              static_cast<unsigned long long>(F_B.raw_size()));
+
+  std::printf("Building independent-set ZDD ...\n");
+  ZDD I_V = build_independent_sets(g);
+  std::printf("  I_V.raw_size() = %llu  (count=%s)\n",
+              static_cast<unsigned long long>(I_V.raw_size()),
+              I_V.exact_count().to_string().c_str());
+
+  std::printf("Intersecting F_B & I_V ...\n");
+  ZDD R = F_B & I_V;
+  std::printf("  R.raw_size() = %llu  (count=%s)\n",
+              static_cast<unsigned long long>(R.raw_size()),
+              R.exact_count().to_string().c_str());
+
+  // 小規模グリッドでは全配置を列挙して確認
+  if (g.n_vertices <= 16) {
+    auto sets = R.enumerate();
+    std::printf("All valid black-cell configurations (%zu):\n", sets.size());
+    for (const auto& s : sets) {
+      std::printf("  size=%zu cells:", s.size());
+      for (bddvar var : s) {
+        int v = static_cast<int>(var) - 1;  // vertex_var[v] = v + 1
+        std::printf(" (%d,%d)", v / g.W, v % g.W);
+      }
+      std::printf("\n");
+    }
+  }
 
   return 0;
 }
