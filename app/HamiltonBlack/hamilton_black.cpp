@@ -354,6 +354,13 @@ int main(int argc, char *argv[]) {
 
   std::printf("HamiltonBlack: %d x %d grid\n", H, W);
   std::printf("  vertices: %d, edges: %d\n", g.n_vertices, g.n_edges);
+  if (g.n_edges == 0) {
+    std::printf("No edges -> no simple cycle exists.\n");
+    std::printf("\n=== Result ===\n");
+    std::printf("No valid configuration: the white cells cannot form a "
+                "Hamiltonian cycle for any choice of black cells.\n");
+    return 0;
+  }
   std::printf("  vertex_var[0..%d] -> bddvar [%u..%u]\n",
               g.n_vertices - 1,
               g.vertex_var.front(),
@@ -394,18 +401,39 @@ int main(int argc, char *argv[]) {
               static_cast<unsigned long long>(R.raw_size()),
               R.exact_count().to_string().c_str());
 
-  // 小規模グリッドでは全配置を列挙して確認
-  if (g.n_vertices <= 16) {
-    auto sets = R.enumerate();
-    std::printf("All valid black-cell configurations (%zu):\n", sets.size());
-    for (const auto& s : sets) {
-      std::printf("  size=%zu cells:", s.size());
-      for (bddvar var : s) {
-        int v = static_cast<int>(var) - 1;  // vertex_var[v] = v + 1
-        std::printf(" (%d,%d)", v / g.W, v % g.W);
-      }
-      std::printf("\n");
+  std::printf("\n=== Result ===\n");
+  if (R == ZDD::Empty) {
+    std::printf("No valid configuration: the white cells cannot form a "
+                "Hamiltonian cycle for any choice of black cells.\n");
+    return 0;
+  }
+
+  // 頂点変数 v に重み 1 を設定し、max_weight / max_weight_set で最大黒マス数と達成配置を取得。
+  // weights のサイズは bddvar の最大値より大きく取る必要がある (edge_var も含めるため大きめに)。
+  std::vector<int> weights(static_cast<size_t>(g.edge_var.front()) + 1, 0);
+  for (int v = 0; v < g.n_vertices; ++v) {
+    weights[g.vertex_var[v]] = 1;
+  }
+  long long max_black = R.max_weight(weights);
+  std::vector<bddvar> best = R.max_weight_set(weights);
+
+  std::printf("max black cells = %lld (out of %d total)\n",
+              max_black, g.n_vertices);
+  std::printf("one optimal configuration (B = black, . = white):\n");
+
+  // bddvar -> グリッド座標 で 'B' を立てた grid を作る
+  std::vector<std::vector<char>> ascii(H, std::vector<char>(W, '.'));
+  for (bddvar var : best) {
+    int v = static_cast<int>(var) - 1;  // vertex_var[v] = v + 1
+    ascii[v / W][v % W] = 'B';
+  }
+  for (int i = 0; i < H; ++i) {
+    std::printf("  ");
+    for (int j = 0; j < W; ++j) {
+      std::putchar(ascii[i][j]);
+      if (j + 1 < W) std::putchar(' ');
     }
+    std::printf("\n");
   }
 
   return 0;
