@@ -360,6 +360,9 @@ static int run_pattern(const Instance& inst, const std::vector<int>& pattern) {
 }
 
 int main(int argc, char* argv[]) {
+    // Line-buffer stdout even when piped, so that progress lines from the
+    // long-running MVZDD phases appear as they are produced.
+    std::setvbuf(stdout, NULL, _IOLBF, 0);
     bool analyze = false, component = false, check = false;
     std::vector<std::string> args;
     for (int i = 1; i < argc; ++i) {
