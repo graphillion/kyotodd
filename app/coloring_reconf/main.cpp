@@ -66,6 +66,15 @@ static int run(const Instance& inst) {
                 space.mvzdd_node_count());
     std::printf("  Underlying ZDD size  : %" PRIu64 "\n", space.size());
 
+    std::printf("\n=== Reconfiguration BFS (single-vertex recoloring) ===\n");
+    std::vector<MVZDD> layers;
+    int steps = reconfigure(space, inst.start, inst.goal, &layers, &std::cout);
+    if (steps < 0) {
+        std::printf("  => NOT REACHABLE (the goal is in another component).\n");
+        return 0;
+    }
+    std::printf("  => REACHABLE, shortest length = %d step%s.\n", steps,
+                steps == 1 ? "" : "s");
     return 0;
 }
 

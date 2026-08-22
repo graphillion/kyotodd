@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -28,6 +29,7 @@ namespace coloring_reconf {
 using kyotodd::BDD;
 using kyotodd::ZDD;
 using kyotodd::MVBDD;
+using kyotodd::MVDDVarTable;
 using kyotodd::MVZDD;
 using kyotodd::bddvar;
 
@@ -334,6 +336,114 @@ inline MVZDD build_solution_space(const Instance& inst) {
 
     ZDD zdd = f.to_bdd().to_zdd(top_dd_var);
     return MVZDD(base.var_table(), zdd);
+}
+
+// ============================================================
+//  One-step neighborhood
+// ============================================================
+
+/**
+ * @brief Family of all assignments obtained from a member of f by
+ *        recoloring exactly one vertex.
+ *
+ * This is the multi-valued counterpart of the swap_element operation
+ * used by ddreconf (https://github.com/junkawahara/ddreconf) for the
+ * token jumping model. The result is not intersected with the solution
+ * space, so improper colorings may appear; the BFS filters them out.
+ *
+ * Implemented on the one-hot encoded ZDD. For MVDD variable mv with
+ * internal DD variables d_0, ..., d_{k-2}, color 0 means no d_j is
+ * present and color c > 0 means exactly d_{c-1} is present. So the
+ * subfamily with color(mv) == c, with mv's bits stripped, is obtained
+ * with one onset0 plus offsets; putting color b back is one change.
+ *
+ * @param f A family over the one-hot canonical encoding.
+ * @return The family of assignments at Hamming distance exactly 1 from f.
+ */
+inline MVZDD recolor_one(const MVZDD& f) {
+    std::shared_ptr<MVDDVarTable> table = f.var_table();
+    const int k = table->k();
+    const bddvar n = table->mvdd_var_count();
+    const ZDD z = f.to_zdd();
+
+    ZDD result = ZDD::Empty;
+    for (bddvar mv = 1; mv <= n; ++mv) {
+        const std::vector<bddvar>& dvars = table->dd_vars_of(mv);
+
+        // sel[c] = members whose color of mv is c, with mv's one-hot bits
+        // removed, so any color can be written back afterwards.
+        std::vector<ZDD> sel(k);
+        sel[0] = z;
+        for (int j = 0; j < k - 1; ++j) sel[0] = sel[0].offset(dvars[j]);
+        for (int c = 1; c < k; ++c) {
+            ZDD sc = z.onset0(dvars[c - 1]);
+            for (int j = 0; j < k - 1; ++j) {
+                if (j != c - 1) sc = sc.offset(dvars[j]);
+            }
+            sel[c] = sc;
+        }
+
+        for (int b = 0; b < k; ++b) {
+            // Members currently colored anything but b; recoloring mv to b
+            // is then a genuine one-vertex change.
+            ZDD others = ZDD::Empty;
+            for (int c = 0; c < k; ++c) {
+                if (c != b) others = others + sel[c];
+            }
+            if (b > 0) others = others.change(dvars[b - 1]);
+            result = result + others;
+        }
+    }
+    return MVZDD(table, result);
+}
+
+// ============================================================
+//  Breadth-first search over the reconfiguration graph
+// ============================================================
+
+/**
+ * @brief BFS from the start coloring over the reconfiguration graph.
+ *
+ * F_0 = {start} and F_i = (space & recolor_one(F_{i-1})) - F_{i-1} - F_{i-2}.
+ * Subtracting only the two previous layers is enough: an edge of the
+ * reconfiguration graph changes the BFS distance by at most one, so every
+ * neighbor of F_{i-1} lies in F_{i-2}, F_{i-1} or F_i.
+ *
+ * @param space The family of all proper colorings.
+ * @param start Start coloring (must be in space).
+ * @param goal Goal coloring (must be in space).
+ * @param layers Receives F_0, ..., F_last. Never null.
+ * @param log If not null, one progress line per step is written here.
+ * @return The shortest number of recoloring steps, or -1 when the goal
+ *         is not reachable.
+ */
+inline int reconfigure(const MVZDD& space, const std::vector<int>& start,
+                       const std::vector<int>& goal,
+                       std::vector<MVZDD>* layers, std::ostream* log) {
+    std::shared_ptr<MVDDVarTable> table = space.var_table();
+    const MVZDD empty = MVZDD::zero(table);
+
+    layers->clear();
+    layers->push_back(MVZDD::from_sets(
+        empty, std::vector<std::vector<int> >(1, start)));
+    if (start == goal) return 0;
+
+    for (int step = 1; ; ++step) {
+        // Copies, not references: push_back below may reallocate.
+        const MVZDD cur = (*layers)[step - 1];
+        const MVZDD prev = (step >= 2) ? (*layers)[step - 2] : empty;
+
+        MVZDD next = (space & recolor_one(cur)) - cur - prev;
+        layers->push_back(next);
+
+        if (log) {
+            *log << "  step " << step << ": |F_" << step << "| = "
+                 << next.exact_count() << ", ZDD nodes = " << next.size()
+                 << std::endl;
+        }
+        if (next.contains(goal)) return step;
+        if (next.is_zero()) return -1;
+    }
 }
 
 }  // namespace coloring_reconf
