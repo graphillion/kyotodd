@@ -336,6 +336,13 @@ if(KYOTODD_BUILD_TESTS)
   endif()
   gtest_discover_tests(color_count_test)
 
+  add_executable(pattern_search_test test/test_pattern_search.cpp)
+  target_link_libraries(pattern_search_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(pattern_search_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(pattern_search_test)
+
   add_executable(coloring_reconf_test test/test_coloring_reconf.cpp)
   target_link_libraries(coloring_reconf_test kyotodd_lib GTest::gtest_main)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
