@@ -1,6 +1,9 @@
 c Petersen graph (n=10, m=15) with k=3. Vertices 1..5 form the outer
 c 5-cycle, 6..10 the inner pentagram, and 1-6, ..., 5-10 are the spokes.
 c Delta = 3, so k = 3 is below the k >= Delta+2 connectivity threshold.
+c The 120 proper 3-colorings split into 60 components of 2 colorings
+c each, so almost every pair is unreachable.
+c Expected: NOT REACHABLE.
 10 15 3
 1 2
 2 3

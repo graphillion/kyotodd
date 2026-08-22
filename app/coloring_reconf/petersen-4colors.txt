@@ -1,0 +1,22 @@
+c The Petersen graph with k=4. Unlike the k=3 case (see petersen.txt),
+c the whole solution space of 12960 proper 4-colorings forms a single
+c connected component, and this pair is far apart in it.
+c Expected: REACHABLE in 13 steps.
+10 15 4
+1 2
+2 3
+3 4
+4 5
+5 1
+6 8
+8 10
+10 7
+7 9
+9 6
+1 6
+2 7
+3 8
+4 9
+5 10
+s 0 3 2 1 2 2 2 0 3 1
+t 2 0 1 3 1 0 3 3 2 2

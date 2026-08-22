@@ -75,6 +75,31 @@ static int run(const Instance& inst) {
     }
     std::printf("  => REACHABLE, shortest length = %d step%s.\n", steps,
                 steps == 1 ? "" : "s");
+
+    std::vector<std::vector<int> > sequence;
+    if (!backtrack(inst.start, inst.goal, layers, &sequence)) {
+        std::fprintf(stderr, "Error: backtrack failed.\n");
+        return 1;
+    }
+    if (!verify_sequence(inst, sequence, &std::cerr)) {
+        std::fprintf(stderr, "Error: the reconstructed sequence is invalid.\n");
+        return 1;
+    }
+
+    std::printf("\n  Reconfiguration sequence (colors numbered 0..%d):\n",
+                inst.k - 1);
+    for (std::size_t i = 0; i < sequence.size(); ++i) {
+        std::printf("  [%zu] ", i);
+        print_coloring(sequence[i]);
+        if (i > 0) {
+            int v = changed_vertex(sequence[i - 1], sequence[i]);
+            if (v >= 0) {
+                std::printf("   (recolor v%d: %d -> %d)", v + 1,
+                            sequence[i - 1][v], sequence[i][v]);
+            }
+        }
+        std::printf("\n");
+    }
     return 0;
 }
 

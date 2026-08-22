@@ -446,6 +446,119 @@ inline int reconfigure(const MVZDD& space, const std::vector<int>& start,
     }
 }
 
+// ============================================================
+//  Sequence reconstruction
+// ============================================================
+
+/**
+ * @brief Reconstruct one shortest reconfiguration sequence from BFS layers.
+ *
+ * Walks backwards from the goal: at layer i the predecessor is any
+ * coloring obtained by recoloring a single vertex that is a member of
+ * F_i. Such a member always exists because F_{i+1} was built from the
+ * one-step neighborhood of F_i.
+ *
+ * @param start Start coloring.
+ * @param goal Goal coloring, which must lie in the last layer.
+ * @param layers F_0, ..., F_last as produced by reconfigure().
+ * @param sequence Receives layers.size() colorings, start first.
+ * @return false if no predecessor was found at some layer (should not
+ *         happen for layers produced by reconfigure()).
+ */
+inline bool backtrack(const std::vector<int>& start,
+                      const std::vector<int>& goal,
+                      const std::vector<MVZDD>& layers,
+                      std::vector<std::vector<int> >* sequence) {
+    if (layers.empty()) return false;
+    const int k = layers[0].var_table()->k();
+    const int last = static_cast<int>(layers.size()) - 1;
+
+    sequence->assign(layers.size(), std::vector<int>());
+    (*sequence)[last] = goal;
+
+    for (int i = last - 1; i >= 1; --i) {
+        const std::vector<int>& cur = (*sequence)[i + 1];
+        std::vector<int> cand = cur;
+        bool found = false;
+        for (std::size_t v = 0; v < cur.size() && !found; ++v) {
+            const int orig = cand[v];
+            for (int c = 0; c < k && !found; ++c) {
+                if (c == orig) continue;
+                cand[v] = c;
+                if (layers[i].contains(cand)) {
+                    (*sequence)[i] = cand;
+                    found = true;
+                }
+            }
+            cand[v] = orig;
+        }
+        if (!found) return false;
+    }
+    (*sequence)[0] = start;
+    return true;
+}
+
+/**
+ * @brief Check that a sequence is a valid reconfiguration sequence.
+ *
+ * Verifies that it starts at inst.start, ends at inst.goal, that every
+ * coloring is proper, and that consecutive colorings differ in exactly
+ * one vertex.
+ *
+ * @param inst The instance.
+ * @param sequence The sequence to check.
+ * @param err If not null, the reason for a rejection is written here.
+ */
+inline bool verify_sequence(const Instance& inst,
+                            const std::vector<std::vector<int> >& sequence,
+                            std::ostream* err) {
+    if (sequence.empty()) {
+        if (err) *err << "sequence is empty" << std::endl;
+        return false;
+    }
+    if (sequence.front() != inst.start) {
+        if (err) *err << "sequence does not start at 's'" << std::endl;
+        return false;
+    }
+    if (sequence.back() != inst.goal) {
+        if (err) *err << "sequence does not end at 't'" << std::endl;
+        return false;
+    }
+    for (std::size_t i = 0; i < sequence.size(); ++i) {
+        if (!is_proper(inst, sequence[i])) {
+            if (err) *err << "coloring " << i << " is not proper" << std::endl;
+            return false;
+        }
+        if (i == 0) continue;
+        int diff = 0;
+        for (int v = 0; v < inst.n; ++v) {
+            if (sequence[i - 1][v] != sequence[i][v]) ++diff;
+        }
+        if (diff != 1) {
+            if (err) {
+                *err << "colorings " << (i - 1) << " and " << i
+                     << " differ in " << diff << " vertices, expected 1"
+                     << std::endl;
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
+/** @brief Index of the single vertex where two colorings differ, or -1. */
+inline int changed_vertex(const std::vector<int>& a,
+                          const std::vector<int>& b) {
+    int found = -1;
+    for (std::size_t v = 0; v < a.size() && v < b.size(); ++v) {
+        if (a[v] != b[v]) {
+            if (found >= 0) return -1;
+            found = static_cast<int>(v);
+        }
+    }
+    return found;
+}
+
 }  // namespace coloring_reconf
 
 #endif  // COLORING_RECONF_HPP
