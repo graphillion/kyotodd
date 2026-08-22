@@ -329,6 +329,13 @@ if(KYOTODD_BUILD_TESTS)
   endif()
   gtest_discover_tests(mvdd2_test)
 
+  add_executable(coloring_reconf_test test/test_coloring_reconf.cpp)
+  target_link_libraries(coloring_reconf_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(coloring_reconf_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(coloring_reconf_test)
+
   add_executable(svg_export_test test/test_svg_export.cpp)
   target_link_libraries(svg_export_test kyotodd_lib GTest::gtest_main)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
