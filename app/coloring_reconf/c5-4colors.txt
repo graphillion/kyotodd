@@ -1,0 +1,11 @@
+c The same 5-cycle but with k=4. Since k >= Delta+2 = 4, the
+c reconfiguration graph is guaranteed to be connected.
+c Expected: REACHABLE.
+5 5 4
+1 2
+2 3
+3 4
+4 5
+5 1
+s 2 1 0 1 0
+t 3 0 3 1 2

@@ -1,0 +1,21 @@
+c Petersen graph (n=10, m=15) with k=3. Vertices 1..5 form the outer
+c 5-cycle, 6..10 the inner pentagram, and 1-6, ..., 5-10 are the spokes.
+c Delta = 3, so k = 3 is below the k >= Delta+2 connectivity threshold.
+10 15 3
+1 2
+2 3
+3 4
+4 5
+5 1
+6 8
+8 10
+10 7
+7 9
+9 6
+1 6
+2 7
+3 8
+4 9
+5 10
+s 0 2 0 2 1 2 1 1 0 0
+t 1 0 2 1 2 2 1 1 0 0

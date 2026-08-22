@@ -1,0 +1,9 @@
+c Path 1-2-3-4 with k=3. A tree, so the reconfiguration graph is
+c connected whenever k >= 3 (k >= tw+2 = 3).
+c Expected: REACHABLE.
+4 3 3
+1 2
+2 3
+3 4
+s 0 1 0 1
+t 2 0 2 0
