@@ -161,3 +161,23 @@ TEST_F(PatternSearchTest, PatternImpossible) {
     EXPECT_EQ(pattern_reconfigure(space, exact, pat(2, 3), inst.start,
                                   exact[3], &layers), -1);
 }
+
+TEST_F(PatternSearchTest, ReadSequence) {
+    std::istringstream in(
+        "c comment\n"
+        "0 1 0 1\n"
+        "\n"
+        "2 1 0 1\n");
+    std::vector<std::vector<int> > seq;
+    std::ostringstream err;
+    ASSERT_TRUE(read_sequence(in, 4, &seq, err)) << err.str();
+    ASSERT_EQ(seq.size(), 2u);
+    EXPECT_EQ(seq[0], std::vector<int>({0, 1, 0, 1}));
+    EXPECT_EQ(seq[1], std::vector<int>({2, 1, 0, 1}));
+
+    // Wrong width and empty input are rejected.
+    std::istringstream bad("0 1 0\n");
+    EXPECT_FALSE(read_sequence(bad, 4, &seq, err));
+    std::istringstream empty("c nothing\n");
+    EXPECT_FALSE(read_sequence(empty, 4, &seq, err));
+}

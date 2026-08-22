@@ -278,6 +278,55 @@ inline bool verify_pattern_sequence(
     return true;
 }
 
+/**
+ * @brief Read a sequence of colorings from a stream.
+ *
+ * One coloring per line: n integers, the color of each vertex 1..n.
+ * Comment and blank lines follow the instance-file conventions.
+ *
+ * @param in The input stream.
+ * @param n Number of vertices; every line must have exactly n colors.
+ * @param sequence Receives the parsed colorings, in file order.
+ * @param err Stream for error messages.
+ * @return true iff parsing succeeded and at least one coloring was read.
+ */
+inline bool read_sequence(std::istream& in, int n,
+                          std::vector<std::vector<int> >* sequence,
+                          std::ostream& err) {
+    sequence->clear();
+    std::string line;
+    while (next_data_line(in, line)) {
+        std::istringstream ls(line);
+        std::vector<int> col;
+        int c;
+        while (ls >> c) col.push_back(c);
+        if ((int)col.size() != n) {
+            err << "Error: sequence line " << (sequence->size() + 1)
+                << " has " << col.size() << " colors, expected " << n
+                << "." << std::endl;
+            return false;
+        }
+        sequence->push_back(col);
+    }
+    if (sequence->empty()) {
+        err << "Error: no colorings in the sequence." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+/** @brief read_sequence() from a file path. */
+inline bool read_sequence_file(const std::string& path, int n,
+                               std::vector<std::vector<int> >* sequence,
+                               std::ostream& err) {
+    std::ifstream in(path.c_str());
+    if (!in) {
+        err << "Error: cannot open file: " << path << std::endl;
+        return false;
+    }
+    return read_sequence(in, n, sequence, err);
+}
+
 }  // namespace coloring_reconf
 
 #endif  // COLORING_RECONF_PATTERN_SEARCH_HPP

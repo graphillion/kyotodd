@@ -154,30 +154,77 @@ static int run_analyze(const Instance& inst) {
 }
 
 // ------------------------------------------------------------
-//  pattern mode
+//  --component mode
 // ------------------------------------------------------------
-static int run_pattern(const Instance& inst, const std::vector<int>& pattern) {
+static int run_component(const Instance& inst) {
     const int K = inst.k;
     const int k = K - 1;
-    if (!is_proper(inst, inst.start) || !is_proper(inst, inst.goal)) {
-        std::fprintf(stderr, "Error: s or t is not a proper coloring.\n");
+    if (!is_proper(inst, inst.start)) {
+        std::fprintf(stderr, "Error: s is not a proper coloring.\n");
         return 1;
     }
-    std::printf("pattern:");
-    for (std::size_t i = 0; i < pattern.size(); ++i) {
-        std::printf(" %d", pattern[i]);
-    }
-    std::printf("\n");
-    std::printf("count(s) = %d, count(t) = %d\n",
-                count_used_colors(inst.start), count_used_colors(inst.goal));
-
     MVZDD space = build_solution_space(inst);
     std::vector<MVZDD> exact = exact_color_count_families(space);
     MVZDD empty = MVZDD::zero(space.var_table());
-    MVZDD goal_f = MVZDD::from_sets(
-        empty, std::vector<std::vector<int> >(1, inst.goal));
+    MVZDD seed = MVZDD::from_sets(
+        empty, std::vector<std::vector<int> >(1, inst.start));
 
-    // --- Restricted-reachability checks ---------------------------------
+    unsigned smask = 0;
+    for (int v = 0; v < inst.n; ++v) smask |= 1u << inst.start[v];
+    std::printf("count(s) = %d\n", count_used_colors(inst.start));
+
+    // Component of s in the capped (count <= k) reconfiguration graph.
+    {
+        std::printf("\n=== Component of s, used-color count <= %d ===\n", k);
+        MVZDD capped = at_most_color_count(exact, k);
+        MVZDD comp = reach_closure(capped, seed, &std::cout);
+        std::cout << "  component size: " << comp.exact_count() << std::endl;
+        for (int c = 1; c <= k; ++c) {
+            bigint::BigInt cnt = (comp & exact[c]).exact_count();
+            if (!(cnt == bigint::BigInt(0))) {
+                std::cout << "    with " << c << " colors: " << cnt
+                          << std::endl;
+            }
+        }
+        bool has_goal = inst.goal.size() == (std::size_t)inst.n &&
+                        comp.contains(inst.goal);
+        std::printf("  contains t: %s\n", has_goal ? "YES" : "no");
+    }
+
+    // Component of s in each fixed k-color palette containing s's colors.
+    for (int d = 0; d < K; ++d) {
+        if (smask & (1u << d)) continue;
+        std::printf("\n=== Component of s, fixed palette minus {%d} ===\n", d);
+        MVZDD space_d = avoid_color(space, d);
+        MVZDD comp = reach_closure(space_d, seed, &std::cout);
+        std::cout << "  component size: " << comp.exact_count() << std::endl;
+        for (int c = 1; c <= k; ++c) {
+            bigint::BigInt cnt = (comp & exact[c]).exact_count();
+            if (!(cnt == bigint::BigInt(0))) {
+                std::cout << "    with " << c << " colors: " << cnt
+                          << std::endl;
+            }
+        }
+        bool has_goal = inst.goal.size() == (std::size_t)inst.n &&
+                        comp.contains(inst.goal);
+        std::printf("  contains t: %s\n", has_goal ? "YES" : "no");
+    }
+    return 0;
+}
+
+// ------------------------------------------------------------
+//  restricted-reachability checks (shared by pattern / check modes)
+// ------------------------------------------------------------
+
+/**
+ * @brief Fixed-palette and capped-count reachability checks for s -> t.
+ * @return true iff t is unreachable from s under every k-color palette
+ *         that contains the colors of both (and at least one exists).
+ */
+static bool restricted_checks(const Instance& inst, const MVZDD& space,
+                              const std::vector<MVZDD>& exact) {
+    const int K = inst.k;
+    const int k = K - 1;
     unsigned used_mask = 0;
     for (int v = 0; v < inst.n; ++v) {
         used_mask |= 1u << inst.start[v];
@@ -212,6 +259,65 @@ static int run_pattern(const Instance& inst, const std::vector<int>& pattern) {
         std::printf("  %s\n", steps < 0 ? "NOT reachable"
                                         : "REACHABLE (weaker condition only)");
     }
+    return all_unreachable;
+}
+
+// ------------------------------------------------------------
+//  --check mode
+// ------------------------------------------------------------
+
+static int run_check(const Instance& inst, const std::string& seq_path,
+                     const std::vector<int>& pattern) {
+    std::vector<std::vector<int> > sequence;
+    if (!read_sequence_file(seq_path, inst.n, &sequence, std::cerr)) return 1;
+    std::printf("sequence: %zu colorings\n", sequence.size());
+    std::ostringstream err;
+    if (!verify_pattern_sequence(inst, sequence, pattern, &err)) {
+        std::printf("INVALID sequence: %s\n", err.str().c_str());
+        return 1;
+    }
+    std::printf("sequence VALID: proper colorings, one vertex per step, "
+                "collapsed count profile matches the pattern:");
+    for (std::size_t i = 0; i < pattern.size(); ++i) {
+        std::printf(" %d", pattern[i]);
+    }
+    std::printf("\n");
+
+    MVZDD space = build_solution_space(inst);
+    std::vector<MVZDD> exact = exact_color_count_families(space);
+    bool ok = restricted_checks(inst, space, exact);
+    std::printf("\n=> %s\n",
+                ok ? "sequence valid AND t unreachable under any k-color "
+                     "palette."
+                   : "sequence valid, but the restricted problem can reach "
+                     "t.");
+    return 0;
+}
+
+// ------------------------------------------------------------
+//  pattern mode
+// ------------------------------------------------------------
+static int run_pattern(const Instance& inst, const std::vector<int>& pattern) {
+    const int K = inst.k;
+    if (!is_proper(inst, inst.start) || !is_proper(inst, inst.goal)) {
+        std::fprintf(stderr, "Error: s or t is not a proper coloring.\n");
+        return 1;
+    }
+    std::printf("pattern:");
+    for (std::size_t i = 0; i < pattern.size(); ++i) {
+        std::printf(" %d", pattern[i]);
+    }
+    std::printf("\n");
+    std::printf("count(s) = %d, count(t) = %d\n",
+                count_used_colors(inst.start), count_used_colors(inst.goal));
+
+    MVZDD space = build_solution_space(inst);
+    std::vector<MVZDD> exact = exact_color_count_families(space);
+    MVZDD empty = MVZDD::zero(space.var_table());
+    MVZDD goal_f = MVZDD::from_sets(
+        empty, std::vector<std::vector<int> >(1, inst.goal));
+
+    bool all_unreachable = restricted_checks(inst, space, exact);
 
     // --- Pattern path ---------------------------------------------------
     std::printf("\n=== Pattern-profile search (full palette of %d) ===\n", K);
@@ -254,10 +360,12 @@ static int run_pattern(const Instance& inst, const std::vector<int>& pattern) {
 }
 
 int main(int argc, char* argv[]) {
-    bool analyze = false;
+    bool analyze = false, component = false, check = false;
     std::vector<std::string> args;
     for (int i = 1; i < argc; ++i) {
         if (std::string(argv[i]) == "--analyze") analyze = true;
+        else if (std::string(argv[i]) == "--component") component = true;
+        else if (std::string(argv[i]) == "--check") check = true;
         else args.push_back(argv[i]);
     }
     if (args.empty()) {
@@ -274,20 +382,30 @@ int main(int argc, char* argv[]) {
         if (!read_instance_file(args[0], inst, std::cerr)) return 1;
     }
 
+    std::size_t pattern_from = check ? 2 : 1;
     std::vector<int> pattern;
-    if (args.size() > 1) {
-        for (std::size_t i = 1; i < args.size(); ++i) {
+    if (args.size() > pattern_from) {
+        for (std::size_t i = pattern_from; i < args.size(); ++i) {
             pattern.push_back(std::atoi(args[i].c_str()));
         }
     } else {
         pattern = default_pattern(inst.k - 1);
+    }
+    if (check && args.size() < 2) {
+        std::fprintf(stderr,
+                     "Usage: coloring_reconf_pattern --check <instance.txt> "
+                     "<sequence.txt> [pattern...]\n");
+        return 1;
     }
 
     if (bddinit(1024)) {
         std::fprintf(stderr, "Error: BDD memory allocation failed.\n");
         return 1;
     }
-    int rc = analyze ? run_analyze(inst) : run_pattern(inst, pattern);
+    int rc = analyze ? run_analyze(inst)
+             : component ? run_component(inst)
+             : check ? run_check(inst, args[1], pattern)
+                     : run_pattern(inst, pattern);
     bddfinal();
     return rc;
 }
