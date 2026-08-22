@@ -126,3 +126,58 @@ Notes
 * Layer sizes and shortest lengths of every sample instance above were
   checked against an independent brute-force BFS over the explicit
   reconfiguration graph.
+
+Count-profile pattern search (coloring_reconf_pattern)
+------------------------------------------------------
+The second driver, coloring_reconf_pattern, studies how the number of
+DISTINCT colors used changes along a reconfiguration sequence. Its core
+routines live in color_count.hpp (subfamilies of the solution space by
+used-color count) and pattern_search.hpp (a layered MVZDD BFS over the
+product of the solution space with a prescribed count profile).
+
+    coloring_reconf_pattern <instance.txt> [c0 c1 ...]
+        Search a sequence from s to t whose collapsed used-color-count
+        profile equals the given pattern (with K the palette size and
+        k = K-1, the default pattern is k-1 k k-1 k-2 k-1 k k+1 k k-1
+        k-2 k-3), and check whether t is unreachable from s when the
+        palette is restricted to any k of the K colors, or when the
+        number of simultaneously used colors must stay <= k.
+
+    coloring_reconf_pattern --check <instance.txt> <sequence.txt> [pattern...]
+        Verify a given sequence (one coloring per line) against the
+        instance and the pattern, then run the same restriction checks.
+
+    coloring_reconf_pattern --component <instance.txt>
+        Size and per-count breakdown of the component of s in the
+        capped (used-color count <= k) and fixed-palette reconfiguration
+        graphs, via MVZDD closure.
+
+    coloring_reconf_pattern --analyze <graph.txt>
+        For a bare graph (header + edges only), report the (k-1)-count
+        colorings that cannot reach any (k-3)-count coloring under the
+        restrictions.
+
+Sample instance:
+
+    ./coloring_reconf_pattern ../app/coloring_reconf/tcrown5-pattern.txt \
+        5 6 5 6 7 6 5 4 3
+        K_{5,5,5} minus a 3-dimensional perfect matching, palette of 7
+        colors (k = 6). s is the "rainbow" coloring (each non-adjacent
+        triple {a_i, b_i, c_i} monochromatic, 5 colors); t is the
+        3-coloring by parts. t is NOT reachable from s when only 6 of
+        the 7 colors may be used (in either sense above), yet with the
+        full palette a sequence realizing the profile 5 6 5 6 7 6 5 4 3
+        exists; tcrown5-pattern-seq.txt holds one with 18 recolorings,
+        checkable with --check.
+
+A note on which profiles are realizable: requiring in addition that t
+be unreachable with k colors forces every pre-peak count to be at least
+k-1. If the profile dipped to k-2 before the k+1 peak, that prefix
+would use at most k simultaneous colors; relabeling each color's live
+intervals (an interval graph, hence k-colorable) turns it into a
+fixed-k-palette sequence, and from a (k-2)-count coloring two palette
+colors are free, so repainting the parts of a proper (k-3)-partition
+one by one reaches a (k-3)-count coloring — contradicting the
+unreachability. Hence profiles such as k-1 k k-1 k-2 k-1 k k+1 ... are
+impossible for every graph and every k, and the sample's profile keeps
+the pre-peak counts in {k-1, k}.
