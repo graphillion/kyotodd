@@ -97,6 +97,9 @@ target_link_libraries(coloring kyotodd_lib)
 add_executable(coloring_reconf app/coloring_reconf/main.cpp)
 target_link_libraries(coloring_reconf kyotodd_lib)
 
+add_executable(coloring_reconf_pattern app/coloring_reconf/pattern_main.cpp)
+target_link_libraries(coloring_reconf_pattern kyotodd_lib)
+
 add_executable(regex_seqbdd app/RegexSeqBDD/regex_seqbdd.cpp)
 target_link_libraries(regex_seqbdd kyotodd_lib)
 
