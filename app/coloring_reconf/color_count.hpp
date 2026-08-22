@@ -88,10 +88,13 @@ inline std::vector<MVZDD> exact_color_count_families(const MVZDD& space) {
     std::vector<MVZDD> d(k + 1, empty);
     d[0] = space;
     for (int c = 0; c < k; ++c) {
+        // avoid_color is a selection, so applying it once to the whole
+        // space and intersecting is equivalent to (and much cheaper than)
+        // running the offset chain on every DP family.
+        MVZDD avoid = avoid_color(space, c);
         for (int j = k; j >= 0; --j) {
-            MVZDD keep = avoid_color(d[j], c);
-            MVZDD gain = (j > 0) ? (d[j - 1] - avoid_color(d[j - 1], c))
-                                 : empty;
+            MVZDD keep = d[j] & avoid;
+            MVZDD gain = (j > 0) ? (d[j - 1] - avoid) : empty;
             d[j] = keep + gain;
         }
     }
