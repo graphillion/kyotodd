@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -192,51 +193,19 @@ enum EntryKind {
 };
 
 /**
- * @brief The whole build for one spec copy. Lives inside bdd_gc_guard.
+ * @brief Parts shared by the builders (construct / zdd_subset).
  *
- * Returns the root node id (or a terminal).
+ * Owns the spec copy, the padding memo and the 1-terminal state, and
+ * implements the per-level deduplication (phase (a) of a level). Lives
+ * inside bdd_gc_guard; everything is released by RAII.
  */
 template<typename SPEC>
-class SpecBuilder {
-public:
-    SpecBuilder(const SPEC& spec_in, SkipPadding pad, int level_offset)
-        : spec_(spec_in), pad_(pad), offset_(level_offset),
+class BuilderBase {
+protected:
+    BuilderBase(const SPEC& spec_in, SkipPadding pad, int level_offset,
+                const char* name)
+        : spec_(spec_in), pad_(pad), offset_(level_offset), name_(name),
           words_(compute_words(spec_)), one_(spec_, words_) {}
-
-    bddp run() {
-        // --- root ---
-        TempState<SPEC> tmp(spec_, words_);
-        int n = spec_.get_root(tmp.data());
-        tmp.set_live(true);
-        if (n == 0) return bddfalse;
-        if (n < 0)  return bddtrue;
-
-        ensure_variables(n);
-
-        buckets_.reserve(static_cast<size_t>(n) + 1);
-        for (int i = 0; i <= n; ++i) {
-            buckets_.push_back(std::unique_ptr<LevelBucket<SPEC> >(new LevelBucket<SPEC>()));
-            buckets_.back()->states.init(&spec_, words_);
-        }
-        {
-            LevelBucket<SPEC>& b = *buckets_[n];
-            void* p = b.states.push_uninit();
-            spec_.get_copy(p, tmp.data());
-            b.states.commit();
-            PendingEdge e = { bddnull, 0, 0 };
-            b.edges.push_back(e);
-        }
-
-        bddp root = bddnull;
-        for (int i = n; i >= 1; --i) {
-            process_level(i, root);
-        }
-        return root;
-    }
-
-private:
-    SpecBuilder(const SpecBuilder&);
-    SpecBuilder& operator=(const SpecBuilder&);
 
     static size_t compute_words(SPEC& spec) {
         int ds = spec.datasize();
@@ -244,17 +213,10 @@ private:
         return (static_cast<size_t>(ds) + sizeof(size_t) - 1) / sizeof(size_t);
     }
 
-    void ensure_variables(int n) {
-        uint64_t top = static_cast<uint64_t>(n) + static_cast<uint64_t>(offset_);
-        if (top > static_cast<uint64_t>(UINT32_MAX))
-            throw std::invalid_argument("UnreducedDD::construct: level + level_offset too large");
-        while (static_cast<uint64_t>(bddvarused()) < top) bddnewvar();
-    }
-
     bddvar var_of(int tdzdd_level) const {
         // Add in 64 bits: tdzdd_level + offset_ could overflow int when
-        // offset_ is near INT_MAX. ensure_variables() has already checked
-        // that n + offset_ fits in bddvar, and tdzdd_level <= n. Padding
+        // offset_ is near INT_MAX. The caller has already checked that
+        // n + offset_ fits in bddvar, and tdzdd_level <= n. Padding
         // nodes below the spec's range use tdzdd_level in [1 - offset_, 0],
         // so the sum is always >= 1.
         int64_t lev = static_cast<int64_t>(tdzdd_level) + static_cast<int64_t>(offset_);
@@ -335,27 +297,35 @@ private:
         else patch_child(e.parent, e.branch, target);
     }
 
-    void process_level(int i, bddp& root) {
-        LevelBucket<SPEC>& cur = *buckets_[i];
-        size_t m = cur.states.size();
+    /**
+     * @brief Phase (a) of one level: deduplicate the m pending entries,
+     *        allocate one placeholder node per unique entry and patch
+     *        the incoming edges.
+     *
+     * `hasher` / `equal` define entry equality over indices 0..m-1;
+     * `states` gives the spec states for merge_states. Fills `node`
+     * (edge target per entry) and `kind` (EntryKind per entry).
+     *
+     * The loop runs in DESCENDING index order to reproduce the exact
+     * processing order of tdzdd::DdBuilder: it pushes pending states to
+     * the front of a list (MyList::alloc_front) and then iterates from
+     * the front, i.e. newest first. Our buckets are filled with
+     * push_back, so iterating from the back gives the same order,
+     * including the order in which children are queued at lower levels.
+     * This matters only for specs whose merge_states (or 1-terminal
+     * handling) depends on which equal state comes first, but it makes
+     * such specs behave exactly as in TdZdd.
+     */
+    template<typename H, typename E>
+    void dedup_level(int i, size_t m, const StateArena<SPEC>& states,
+                     const std::vector<PendingEdge>& edges,
+                     const H& hasher, const E& equal,
+                     std::vector<bddp>& node, std::vector<unsigned char>& kind,
+                     bddp& root) {
+        node.assign(m, bddnull);
+        kind.assign(m, ENTRY_SKIP);
+        std::unordered_set<size_t, H, E> uniq(m * 2 + 1, hasher, equal);
 
-        // --- (a) deduplicate, allocate nodes, patch incoming edges ---
-        std::vector<bddp> node(m, bddnull);
-        std::vector<unsigned char> kind(m, ENTRY_SKIP);
-        IndexHasher<SPEC> hasher = { &spec_, &cur.states, i };
-        IndexEqual<SPEC>  equal  = { &spec_, &cur.states, i };
-        std::unordered_set<size_t, IndexHasher<SPEC>, IndexEqual<SPEC> >
-            uniq(m * 2 + 1, hasher, equal);
-
-        // Both loops below run in DESCENDING index order to reproduce the
-        // exact processing order of tdzdd::DdBuilder: it pushes pending
-        // states to the front of a list (MyList::alloc_front) and then
-        // iterates from the front, i.e. newest first. Our buckets are
-        // filled with push_back, so iterating from the back gives the
-        // same order, including the order in which children are queued
-        // at lower levels. This matters only for specs whose merge_states
-        // (or 1-terminal handling) depends on which equal state comes
-        // first, but it makes such specs behave exactly as in TdZdd.
         bddvar var = var_of(i);
         for (size_t j = m; j-- > 0; ) {
             auto ins = uniq.insert(j);
@@ -367,7 +337,7 @@ private:
                 // decide (see DdSpecBase: 0 = merge into the first,
                 // 1 = forward the first to 0, 2 = forward the second to 0).
                 size_t j0 = *ins.first;
-                switch (spec_.merge_states(cur.states.at(j0), cur.states.at(j))) {
+                switch (spec_.merge_states(states.at(j0), states.at(j))) {
                 case 1:
                     kind[j0] = ENTRY_DEAD;
                     uniq.erase(ins.first);
@@ -385,14 +355,111 @@ private:
                     break;
                 }
             }
-            const PendingEdge& e = cur.edges[j];
+            const PendingEdge& e = edges[j];
             bddp target = (node[j] == bddfalse)
                 ? bddfalse
                 : edge_target(node[j], i, e.parent_level);
             write_edge(e, target, root);
         }
+    }
 
-        // --- (b) expand live nodes ---
+    /** @brief Throw for a get_child result that is not below `level`. */
+    void bad_child_level() const {
+        throw std::logic_error(std::string(name_) +
+            ": get_child returned a level not lower than the current level");
+    }
+
+    SPEC spec_;
+    SkipPadding pad_;
+    int offset_;
+    const char* name_;
+    size_t words_;
+    std::unordered_map<bddp, PadChain> pad_memo_;
+
+    // The state kept for the 1-terminal, and the edges that point to it.
+    TempState<SPEC> one_;
+    bool one_live_ = false;
+    std::vector<std::pair<bddp, int> > one_src_;
+
+private:
+    BuilderBase(const BuilderBase&);
+    BuilderBase& operator=(const BuilderBase&);
+};
+
+/**
+ * @brief The whole build for one spec copy (UnreducedDD::construct).
+ *        Lives inside bdd_gc_guard.
+ *
+ * Returns the root node id (or a terminal).
+ */
+template<typename SPEC>
+class SpecBuilder : private BuilderBase<SPEC> {
+    typedef BuilderBase<SPEC> Base;
+    using Base::spec_;
+    using Base::offset_;
+    using Base::words_;
+    using Base::var_of;
+    using Base::edge_target;
+    using Base::one_terminal_edge;
+    using Base::dedup_level;
+    using Base::bad_child_level;
+
+public:
+    SpecBuilder(const SPEC& spec_in, SkipPadding pad, int level_offset)
+        : Base(spec_in, pad, level_offset, "UnreducedDD::construct") {}
+
+    bddp run() {
+        // --- root ---
+        TempState<SPEC> tmp(spec_, words_);
+        int n = spec_.get_root(tmp.data());
+        tmp.set_live(true);
+        if (n == 0) return bddfalse;
+        if (n < 0)  return bddtrue;
+
+        ensure_variables(n);
+
+        buckets_.reserve(static_cast<size_t>(n) + 1);
+        for (int i = 0; i <= n; ++i) {
+            buckets_.push_back(std::unique_ptr<LevelBucket<SPEC> >(new LevelBucket<SPEC>()));
+            buckets_.back()->states.init(&spec_, words_);
+        }
+        {
+            LevelBucket<SPEC>& b = *buckets_[n];
+            void* p = b.states.push_uninit();
+            spec_.get_copy(p, tmp.data());
+            b.states.commit();
+            PendingEdge e = { bddnull, 0, 0 };
+            b.edges.push_back(e);
+        }
+
+        bddp root = bddnull;
+        for (int i = n; i >= 1; --i) {
+            process_level(i, root);
+        }
+        return root;
+    }
+
+private:
+    void ensure_variables(int n) {
+        uint64_t top = static_cast<uint64_t>(n) + static_cast<uint64_t>(offset_);
+        if (top > static_cast<uint64_t>(UINT32_MAX))
+            throw std::invalid_argument("UnreducedDD::construct: level + level_offset too large");
+        while (static_cast<uint64_t>(bddvarused()) < top) bddnewvar();
+    }
+
+    void process_level(int i, bddp& root) {
+        LevelBucket<SPEC>& cur = *buckets_[i];
+        size_t m = cur.states.size();
+
+        // --- (a) deduplicate, allocate nodes, patch incoming edges ---
+        std::vector<bddp> node;
+        std::vector<unsigned char> kind;
+        IndexHasher<SPEC> hasher = { &spec_, &cur.states, i };
+        IndexEqual<SPEC>  equal  = { &spec_, &cur.states, i };
+        dedup_level(i, m, cur.states, cur.edges, hasher, equal, node, kind, root);
+
+        // --- (b) expand live nodes (same order as phase (a): newest first) ---
+        bddvar var = var_of(i);
         LevelBucket<SPEC>& next = *buckets_[i - 1];
         for (size_t j = m; j-- > 0; ) {
             if (kind[j] == ENTRY_SKIP) continue;
@@ -423,8 +490,7 @@ private:
                     PendingEdge e = { node[j], i, b };
                     tgt.edges.push_back(e);
                 } else {
-                    throw std::logic_error(
-                        "UnreducedDD::construct: get_child returned a level not lower than the current level");
+                    bad_child_level();
                 }
             }
         }
@@ -435,17 +501,7 @@ private:
         spec_.destructLevel(i);
     }
 
-    SPEC spec_;
-    SkipPadding pad_;
-    int offset_;
-    size_t words_;
     std::vector<std::unique_ptr<LevelBucket<SPEC> > > buckets_;
-    std::unordered_map<bddp, PadChain> pad_memo_;
-
-    // The state kept for the 1-terminal, and the edges that point to it.
-    TempState<SPEC> one_;
-    bool one_live_ = false;
-    std::vector<std::pair<bddp, int> > one_src_;
 };
 
 } // namespace tdzdd_detail
