@@ -2,6 +2,7 @@
 #include "bdd.h"
 #include "unreduced_dd_tdzdd.h"
 #include <tdzdd/DdStructure.hpp>
+#include <unordered_map>
 
 using namespace kyotodd;
 
@@ -178,6 +179,68 @@ public:
     int getRoot() const { return 3; }
     int getChild(int level, int) const { return level; }
 };
+
+// Order-dependent merging: states compare equal by `key` only, and
+// mergeStates always keeps the state that was presented FIRST (return 2).
+// Which state survives therefore depends on the order in which equal
+// states are visited, so the result must match tdzdd::DdBuilder's order
+// exactly. Transitions are a fixed pseudo-random table so that paths with
+// the same key carry different costs.
+struct KeyCost { int key; int cost; };
+class KeepFirst : public tdzdd::DdSpec<KeepFirst, KeyCost, 2> {
+    int const n;
+    int const nkeys;
+    unsigned seed;
+    // (level, key, value) -> (next level, next key, cost added)
+    int next_level(int level, int key, int value) const {
+        unsigned h = mix(level, key, value);
+        if (level == 1) return (h % 2) ? -1 : 0;
+        if (h % 10 == 0) return (h / 10 % 2) ? -1 : 0;      // terminal
+        if (level >= 3 && h % 10 < 3) return 1 + (int)(h / 10 % (level - 1)); // skip
+        return level - 1;
+    }
+    int next_key(int level, int key, int value) const {
+        return (int)(mix(level, key, value) / 100 % nkeys);
+    }
+    int add_cost(int level, int key, int value) const {
+        return (int)(mix(level, key, value) / 1000 % 3);
+    }
+    unsigned mix(int level, int key, int value) const {
+        unsigned h = seed ^ (unsigned)level * 2654435761u;
+        h ^= (unsigned)key * 40503u + (unsigned)value * 97u;
+        h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+        return h;
+    }
+public:
+    KeepFirst(int n, int nkeys, unsigned seed) : n(n), nkeys(nkeys), seed(seed) {}
+    int getRoot(KeyCost& s) const { s.key = 0; s.cost = 0; return n; }
+    int getChild(KeyCost& s, int level, int value) const {
+        int lv = next_level(level, s.key, value);
+        s.cost += add_cost(level, s.key, value);
+        s.key = next_key(level, s.key, value);
+        return lv;
+    }
+    size_t hashCode(KeyCost const& s) const { return (size_t)s.key; }
+    bool equalTo(KeyCost const& a, KeyCost const& b) const { return a.key == b.key; }
+    int mergeStates(KeyCost& a, KeyCost& b) const {
+        return (a.cost == b.cost) ? 0 : 2;   // keep the first one presented
+    }
+};
+
+// Convert a tdzdd::DdStructure into an UnreducedDD of the same shape
+// (level i -> bddvaroflev(i)), for comparing reductions. The result and
+// every memoized node are UnreducedDD objects, hence GC-protected.
+static UnreducedDD from_tdzdd(const tdzdd::DdStructure<2>& dd, tdzdd::NodeId f,
+                              std::unordered_map<uint64_t, UnreducedDD>& memo) {
+    if (f.row() == 0) return UnreducedDD(f.col() ? 1 : 0);
+    auto it = memo.find(f.code());
+    if (it != memo.end()) return it->second;
+    UnreducedDD lo = from_tdzdd(dd, dd.child(f, 0), memo);
+    UnreducedDD hi = from_tdzdd(dd, dd.child(f, 1), memo);
+    UnreducedDD r = UnreducedDD::getnode(bddvaroflev(f.row()), lo, hi);
+    memo.insert(std::make_pair(f.code(), r));
+    return r;
+}
 
 static uint64_t binom(int n, int k) {
     if (k < 0 || k > n) return 0;
@@ -393,12 +456,23 @@ TEST_F(UnreducedDDTdZddTest, Skip_EdgeToZeroIsNotPadded) {
 // merge_states (internal levels and the 1-terminal state)
 // =============================================================
 
-TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMin_ForwardsSecondToZero) {
-    // Case 2 at internal levels and at the 1-terminal: only the all-0
-    // path survives.
+// Note on the order: like tdzdd::DdBuilder, equal states at a level are
+// visited newest first, so the hi child (larger cost) of a node is
+// presented to mergeStates BEFORE its lo child (smaller cost).
+
+TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMin_ForwardsFirstToZero) {
+    // Case 1: the first state seen (hi child, larger cost) was already
+    // turned into a node; it is forwarded to 0 (dead node with both
+    // children 0) and the later, smaller state becomes the live node.
     const int n = 4;
     UnreducedDD u = UnreducedDD::construct(KeepExtreme<false>(n));
-    EXPECT_EQ(u.raw_size(), static_cast<size_t>(n));   // no dead nodes
+    // n live nodes + (n-1) dead nodes
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>(2 * n - 1));
+
+    UnreducedDD dead = u.raw_child1();
+    EXPECT_FALSE(dead.is_terminal());
+    EXPECT_EQ(dead.raw_child0().id(), bddfalse);
+    EXPECT_EQ(dead.raw_child1().id(), bddfalse);
 
     BDD expected = BDD(1);
     for (int lev = 1; lev <= n; ++lev) expected &= ~BDDvar(bddvaroflev(lev));
@@ -411,18 +485,13 @@ TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMin_ForwardsSecondToZero) {
     EXPECT_EQ(dd.zddCardinality(), "1");
 }
 
-TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMax_ForwardsFirstToZero) {
-    // Case 1: the previously created node is forwarded to 0 (dead node
-    // with both children 0), and the later state becomes the live node.
+TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMax_ForwardsSecondToZero) {
+    // Case 2 at internal levels and at the 1-terminal: the later state
+    // (lo child, smaller cost) is sent straight to 0, so no dead nodes.
     const int n = 4;
     UnreducedDD u = UnreducedDD::construct(KeepExtreme<true>(n));
-    // n live nodes + (n-1) dead nodes
-    EXPECT_EQ(u.raw_size(), static_cast<size_t>(2 * n - 1));
-
-    UnreducedDD dead = u.raw_child0();
-    EXPECT_FALSE(dead.is_terminal());
-    EXPECT_EQ(dead.raw_child0().id(), bddfalse);
-    EXPECT_EQ(dead.raw_child1().id(), bddfalse);
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>(n));   // no dead nodes
+    EXPECT_EQ(u.raw_child0().id(), bddfalse);
 
     BDD expected = BDD(1);
     for (int lev = 1; lev <= n; ++lev) expected &= BDDvar(bddvaroflev(lev));
@@ -445,6 +514,31 @@ TEST_F(UnreducedDDTdZddTest, MergeStates_OneTerminal_RewritesEarlierEdges) {
     UnreducedDD v = UnreducedDD::construct(KeepExtreme<false>(1));
     EXPECT_EQ(v.raw_child0().id(), bddtrue);
     EXPECT_EQ(v.raw_child1().id(), bddfalse);
+}
+
+TEST_F(UnreducedDDTdZddTest, MergeStates_OrderDependent_MatchesTdZdd) {
+    // The processing order of equal states follows tdzdd::DdBuilder
+    // (newest first), so a "keep the first" merge yields the same
+    // function as TdZdd, for both BDD and ZDD interpretations.
+    int checked = 0;
+    for (unsigned seed = 1; seed <= 60; ++seed) {
+        BDD_Init(1024, UINT64_MAX);
+        int n = 3 + seed % 7;
+        bddnewvar(n);
+        KeepFirst spec(n, 1 + seed % 3, seed);
+
+        tdzdd::DdStructure<2> dd(spec);
+        std::unordered_map<uint64_t, UnreducedDD> memo;
+        UnreducedDD ref = from_tdzdd(dd, dd.root(), memo);
+        BDD b_ref = ref.reduce_as_bdd();
+        ZDD z_ref = ref.reduce_as_zdd();
+
+        UnreducedDD u = UnreducedDD::construct(spec);
+        EXPECT_EQ(u.reduce_as_bdd().id(), b_ref.id()) << "seed=" << seed;
+        EXPECT_EQ(u.reduce_as_zdd().id(), z_ref.id()) << "seed=" << seed;
+        if (!b_ref.is_zero() && !b_ref.is_one()) ++checked;
+    }
+    EXPECT_GT(checked, 10);
 }
 
 // =============================================================

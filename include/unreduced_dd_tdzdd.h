@@ -17,6 +17,8 @@
  *      deduplicated with hash_code / equal_to (and merge_states), each
  *      unique state becomes one unreduced node with bddnull placeholder
  *      children, and the parent's edge is patched to point to it.
+ *      States are visited in the same order as tdzdd::DdBuilder (newest
+ *      first), so order-dependent merge_states give identical results.
  *   3. Each live node is expanded with get_child(state, i, 0/1); the
  *      resulting child states are queued at their target level.
  *
@@ -336,8 +338,17 @@ private:
         std::unordered_set<size_t, IndexHasher<SPEC>, IndexEqual<SPEC> >
             uniq(m * 2 + 1, hasher, equal);
 
+        // Both loops below run in DESCENDING index order to reproduce the
+        // exact processing order of tdzdd::DdBuilder: it pushes pending
+        // states to the front of a list (MyList::alloc_front) and then
+        // iterates from the front, i.e. newest first. Our buckets are
+        // filled with push_back, so iterating from the back gives the
+        // same order, including the order in which children are queued
+        // at lower levels. This matters only for specs whose merge_states
+        // (or 1-terminal handling) depends on which equal state comes
+        // first, but it makes such specs behave exactly as in TdZdd.
         bddvar var = var_of(i);
-        for (size_t j = 0; j < m; ++j) {
+        for (size_t j = m; j-- > 0; ) {
             auto ins = uniq.insert(j);
             if (ins.second) {
                 node[j] = UnreducedDD::getnode_raw(var, bddnull, bddnull);
@@ -374,7 +385,7 @@ private:
 
         // --- (b) expand live nodes ---
         LevelBucket<SPEC>& next = *buckets_[i - 1];
-        for (size_t j = 0; j < m; ++j) {
+        for (size_t j = m; j-- > 0; ) {
             if (kind[j] == ENTRY_SKIP) continue;
             if (kind[j] == ENTRY_DEAD) {
                 node_write(node[j], var, bddfalse, bddfalse);

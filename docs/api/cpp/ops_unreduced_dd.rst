@@ -212,7 +212,10 @@ Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
    level are merged via the spec's ``hash_code`` / ``equal_to`` /
    ``merge_states`` (including TdZdd's handling of states that reach the
    1-terminal), so the result has the same shape as an unreduced
-   ``DdStructure``. Reduce it afterwards with :cpp:func:`reduce_as_bdd`,
+   ``DdStructure``. States at a level are visited in the same order as
+   ``tdzdd::DdBuilder`` (newest first), so even a ``merge_states`` whose
+   outcome depends on which of two equal states is presented first gives
+   the same result as TdZdd. Reduce it afterwards with :cpp:func:`reduce_as_bdd`,
    :cpp:func:`reduce_as_zdd` or :cpp:func:`reduce_as_qdd`.
 
    TdZdd level ``i`` is mapped to KyotoDD level ``i + level_offset``
