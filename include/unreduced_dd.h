@@ -146,7 +146,11 @@ public:
      * TdZdd's DdBuilder, but allocates nodes directly in KyotoDD's node
      * array (no tdzdd::DdStructure is created). States at the same level
      * are merged via the spec's hash_code / equal_to / merge_states, so
-     * the result has the same shape as an unreduced tdzdd::DdStructure.
+     * the result represents the same function as an unreduced
+     * tdzdd::DdStructure and reduces to the same BDD / ZDD. (The exact
+     * node layout may differ: DdStructure lazily sweeps dead nodes,
+     * i.e. nodes whose children are all 0, while construct() keeps them;
+     * they disappear on reduction.)
      * The result can then be reduced with reduce_as_bdd() /
      * reduce_as_zdd() / reduce_as_qdd().
      *

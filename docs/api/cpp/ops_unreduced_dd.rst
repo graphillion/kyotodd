@@ -211,8 +211,13 @@ Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
    node array; no ``tdzdd::DdStructure`` is created. States at the same
    level are merged via the spec's ``hash_code`` / ``equal_to`` /
    ``merge_states`` (including TdZdd's handling of states that reach the
-   1-terminal), so the result has the same shape as an unreduced
-   ``DdStructure``. States at a level are visited in the same order as
+   1-terminal), so the result represents the same function as an
+   unreduced ``DdStructure`` and reduces to the same BDD / ZDD. The
+   node-level shape may differ: ``DdStructure`` lazily sweeps dead nodes
+   (nodes whose children are all the 0-terminal, as produced by
+   ``merge_states`` returning 1) once they exceed a fraction of the
+   table, whereas ``construct()`` keeps every dead node; they disappear
+   on reduction. States at a level are visited in the same order as
    ``tdzdd::DdBuilder`` (newest first), so even a ``merge_states`` whose
    outcome depends on which of two equal states is presented first gives
    the same result as TdZdd. Reduce it afterwards with :cpp:func:`reduce_as_bdd`,
