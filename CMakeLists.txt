@@ -203,7 +203,7 @@ if(KYOTODD_BUILD_TESTS)
   gtest_discover_tests(unreduced_dd_test)
 
   if(KYOTODD_HAS_TDZDD)
-    add_executable(unreduced_dd_tdzdd_test test/test_unreduced_dd_tdzdd.cpp)
+    add_executable(unreduced_dd_tdzdd_test test/test_unreduced_dd_tdzdd.cpp test/test_tdzdd_subset.cpp)
     target_link_libraries(unreduced_dd_tdzdd_test kyotodd_lib GTest::gtest_main)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
       target_compile_options(unreduced_dd_tdzdd_test PRIVATE -Wall -Wextra)
