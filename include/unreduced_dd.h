@@ -5,10 +5,27 @@
 #include "svg_export.h"
 #include <functional>
 
+namespace tdzdd {
+template<typename S, int AR> class DdSpecBase;
+}
+
 namespace kyotodd {
 
 struct SvgParams;
 class QDD;
+
+/**
+ * @brief How UnreducedDD::construct() treats edges that skip levels.
+ *
+ * A TdZdd spec may return a child level lower than (current level - 1).
+ * TdZdd stores such edges as-is; their meaning (don't-care vs. must-be-0)
+ * is decided only when the DD is later reduced as a BDD or a ZDD.
+ */
+enum class SkipPadding {
+    None, ///< Store the skipping edge as-is (same as TdZdd's DdStructure).
+    Bdd,  ///< Insert chain nodes with lo == hi == child (BDD don't-care).
+    Zdd   ///< Insert chain nodes with lo == child, hi == 0-terminal (ZDD).
+};
 
 /**
  * @brief A type-agnostic unreduced Decision Diagram.
@@ -121,6 +138,46 @@ public:
      */
     static UnreducedDD getnode(bddvar var, const UnreducedDD& lo,
                                const UnreducedDD& hi);
+
+    /**
+     * @brief Build an UnreducedDD top-down from a TdZdd spec.
+     *
+     * Runs a breadth-first, level-by-level construction equivalent to
+     * TdZdd's DdBuilder, but allocates nodes directly in KyotoDD's node
+     * array (no tdzdd::DdStructure is created). States at the same level
+     * are merged via the spec's hash_code / equal_to / merge_states, so
+     * the result has the same shape as an unreduced tdzdd::DdStructure.
+     * The result can then be reduced with reduce_as_bdd() /
+     * reduce_as_zdd() / reduce_as_qdd().
+     *
+     * TdZdd level i is mapped to KyotoDD level (i + level_offset), i.e.
+     * variable bddvaroflev(i + level_offset). Missing variables are
+     * created automatically with bddnewvar().
+     *
+     * Edges whose child level is lower than (parent level - 1) are
+     * stored as-is by default; see SkipPadding for the padding options.
+     * Edges to the 0-terminal are never padded.
+     *
+     * The implementation is an iterative level loop (no recursion), so
+     * it has no _rec/_iter variants and no BddExecMode argument.
+     *
+     * @note Defined in unreduced_dd_tdzdd.h; include that header to use
+     *       this function. Requires the TdZdd submodule
+     *       (third_party/TdZdd). Binary specs only (arity 2).
+     *
+     * @tparam SPEC The concrete spec type (CRTP parameter of DdSpecBase).
+     * @param spec         The TdZdd spec.
+     * @param pad          How to treat level-skipping edges.
+     * @param level_offset Non-negative offset added to every TdZdd level.
+     * @return The constructed UnreducedDD (0-/1-terminal if the root is).
+     * @throws std::invalid_argument If level_offset is negative.
+     * @throws std::logic_error If the spec returns a child level that is
+     *         not lower than the current level.
+     */
+    template<typename SPEC>
+    static UnreducedDD construct(const tdzdd::DdSpecBase<SPEC, 2>& spec,
+                                 SkipPadding pad = SkipPadding::None,
+                                 int level_offset = 0);
 
     /**
      * @brief Create an unreduced node from raw bddp values.

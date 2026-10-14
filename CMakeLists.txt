@@ -60,6 +60,18 @@ set(KYOTODD_LIB_SOURCES
 
 add_library(kyotodd_lib STATIC ${KYOTODD_LIB_SOURCES})
 target_include_directories(kyotodd_lib PUBLIC include)
+
+# TdZdd (header-only, git submodule). Used by UnreducedDD::construct(spec)
+# (include/unreduced_dd_tdzdd.h). SYSTEM keeps -Wall -Wextra from applying
+# to TdZdd headers in consumers.
+set(KYOTODD_TDZDD_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/TdZdd/include")
+if(EXISTS "${KYOTODD_TDZDD_INCLUDE_DIR}/tdzdd/DdSpec.hpp")
+  set(KYOTODD_HAS_TDZDD ON)
+  target_include_directories(kyotodd_lib SYSTEM PUBLIC "${KYOTODD_TDZDD_INCLUDE_DIR}")
+else()
+  set(KYOTODD_HAS_TDZDD OFF)
+  message(WARNING "TdZdd submodule not found; UnreducedDD::construct(spec) and its tests are disabled. Run: git submodule update --init")
+endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(kyotodd_lib PRIVATE -Wall -Wextra)
 endif()
