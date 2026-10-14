@@ -15,8 +15,9 @@ KyotoDD uses CMake as its build system and requires a C++11 compiler.
    cmake --build .
 
 ``--recursive`` fetches the `TdZdd <https://github.com/kunisura/TdZdd>`_
-submodule (``third_party/TdZdd``), which is needed only by
-``UnreducedDD::construct(spec)``. If you cloned without it, run
+submodule (``third_party/TdZdd``), which is needed only by the TdZdd
+bridge (``UnreducedDD::construct(spec)``, ``UnreducedDD::zdd_subset(spec)``,
+``ZDD::subset(spec)``). If you cloned without it, run
 ``git submodule update --init``.
 
 This produces:

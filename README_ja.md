@@ -71,7 +71,8 @@ cmake --build .
 ```
 
 `--recursive` は [TdZdd](https://github.com/kunisura/TdZdd) submodule
-（`third_party/TdZdd`）を取得します。これは `UnreducedDD::construct(spec)` でのみ必要です。
+（`third_party/TdZdd`）を取得します。これは TdZdd 連携機能（`UnreducedDD::construct(spec)`、
+`UnreducedDD::zdd_subset(spec)`、`ZDD::subset(spec)`）でのみ必要です。
 `--recursive` なしでクローンした場合は `git submodule update --init` を実行してください。
 
 ### Python

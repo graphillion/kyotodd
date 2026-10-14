@@ -179,12 +179,15 @@ Construction from a TdZdd spec
 Header: ``#include "unreduced_dd_tdzdd.h"`` (not included by ``bdd.h``).
 Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
 (``third_party/TdZdd``, fetched with ``git clone --recursive`` or
-``git submodule update --init``).
+``git submodule update --init``). The header provides
+``UnreducedDD::construct()`` (build a DD from a spec),
+``UnreducedDD::zdd_subset()`` and ``ZDD::subset()`` (TdZdd's
+``zddSubset``: restrict a family to the sets a spec accepts).
 
 .. cpp:enum-class:: SkipPadding
 
-   How ``UnreducedDD::construct()`` treats edges whose child level is
-   lower than (parent level - 1). TdZdd stores such edges as-is; their
+   How ``UnreducedDD::construct()`` and ``UnreducedDD::zdd_subset()``
+   treat edges whose child level is lower than (parent level - 1). TdZdd stores such edges as-is; their
    meaning (don't-care vs. must-be-0) is decided only when the DD is
    reduced as a BDD or a ZDD.
 
@@ -267,3 +270,72 @@ Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
 
       UnreducedDD u = UnreducedDD::construct(Combination(10, 4));
       ZDD z = u.reduce_as_zdd();      // z.card() == 210
+
+ZDD subsetting with a TdZdd spec
+--------------------------------
+
+.. cpp:function:: template<typename SPEC> UnreducedDD UnreducedDD::zdd_subset(const tdzdd::DdSpecBase<SPEC, 2>& spec, SkipPadding pad = SkipPadding::None, int level_offset = 0) const
+
+   Port of TdZdd's ``DdStructure::zddSubset``: restrict this DD, read as
+   a ZDD, to the sets the spec accepts, without building the spec's own
+   ZDD. The result is unreduced; reduce it with :cpp:func:`reduce_as_zdd`.
+
+   The construction is breadth-first and level-by-level, like
+   :cpp:func:`construct`, but each pending state is a pair (input node,
+   spec state). When the two sides sit at different levels, the 0-edge of
+   the higher one is followed until the levels agree (ZDD semantics: a
+   skipped level means the variable is 0), exactly as
+   ``tdzdd::ZddSubsetter`` does. Only branches on which both sides reach
+   the 1-terminal lead to the 1-terminal. Consequently, input variables
+   outside the spec's level range (above the spec's root or below
+   ``level_offset``) are forced to 0: sets containing them are dropped.
+
+   This DD is read with ZDD complement semantics (a complement edge
+   toggles the empty set) and may be unreduced (dead or duplicate nodes
+   are fine), but must not contain ``bddnull`` children. The spec's
+   level ``i`` corresponds to KyotoDD level ``i + level_offset``; no
+   variables are created. ``merge_states`` and the 1-terminal state are
+   handled as in :cpp:func:`construct`, but equal states are merged per
+   input node, and the order in which equal states are presented is not
+   identical to TdZdd's (which groups states by its internal node
+   numbering).
+
+   :param spec: The TdZdd spec.
+   :param pad: How to treat level-skipping edges in the result.
+   :param level_offset: Non-negative offset added to every TdZdd level.
+   :return: The unreduced subset DD (a terminal if it collapses).
+   :throws std\:\:invalid_argument: If ``level_offset`` is negative, or
+      this DD is ``bddnull`` or contains ``bddnull`` children.
+   :throws std\:\:logic_error: If the spec returns a child level that is
+      not lower than the current level.
+
+.. cpp:function:: template<typename SPEC> ZDD ZDD::subset(const tdzdd::DdSpecBase<SPEC, 2>& spec, int level_offset = 0) const
+
+   Convenience wrapper (declared in ``zdd_class.h``, defined in
+   ``unreduced_dd_tdzdd.h``): equivalent to
+   ``UnreducedDD::wrap_raw(*this).zdd_subset(spec, SkipPadding::None,
+   level_offset).reduce_as_zdd()``. The result equals the intersection of
+   this family with the ZDD the spec describes, computed top-down in one
+   pass.
+
+   Example (sets of size 2 to 4 that contain item 3):
+
+   .. code-block:: cpp
+
+      // ChooseItem: accept exactly the sets that contain `item`.
+      class ChooseItem : public tdzdd::DdSpec<ChooseItem, int, 2> {
+          int const n, item;
+      public:
+          ChooseItem(int n, int item) : n(n), item(item) {}
+          int getRoot(int& found) const { found = 0; return n; }
+          int getChild(int& found, int level, int value) const {
+              if (level == item && value) found = 1;
+              if (--level == 0) return found ? -1 : 0;
+              return level;
+          }
+      };
+
+      ZDD fam = ZDD::combination(6, 2) + ZDD::combination(6, 3)
+              + ZDD::combination(6, 4);
+      ZDD with3 = fam.subset(ChooseItem(6, 3));
+      // with3 == fam & UnreducedDD::construct(ChooseItem(6, 3)).reduce_as_zdd()
