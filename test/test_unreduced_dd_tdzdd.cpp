@@ -107,6 +107,78 @@ public:
     }
 };
 
+// Combination written as a PodArrayDdSpec with a one-element array.
+class PodCombination : public tdzdd::PodArrayDdSpec<PodCombination, int, 2> {
+    int const n;
+    int const k;
+public:
+    PodCombination(int n, int k) : n(n), k(k) { setArraySize(1); }
+    int getRoot(int* a) const { a[0] = 0; return n; }
+    int getChild(int* a, int level, int value) const {
+        a[0] += value;
+        if (--level == 0) return (a[0] == k) ? -1 : 0;
+        if (a[0] > k || a[0] + level < k) return 0;
+        return level;
+    }
+};
+
+// State that counts live instances, to check construct/destruct balance.
+struct Counted {
+    static int live;
+    int v;
+    Counted() : v(0) { ++live; }
+    Counted(const Counted& o) : v(o.v) { ++live; }
+    ~Counted() { --live; }
+    bool operator==(const Counted& o) const { return v == o.v; }
+};
+int Counted::live = 0;
+
+class CountedCombination : public tdzdd::DdSpec<CountedCombination, Counted, 2> {
+    int const n;
+    int const k;
+    int const throw_at;   // level at which getChild throws (0 = never)
+public:
+    CountedCombination(int n, int k, int throw_at = 0)
+        : n(n), k(k), throw_at(throw_at) {}
+    int getRoot(Counted& s) const { s.v = 0; return n; }
+    int getChild(Counted& s, int level, int value) const {
+        if (level == throw_at) throw std::runtime_error("boom");
+        s.v += value;
+        if (--level == 0) return (s.v == k) ? -1 : 0;
+        if (s.v > k || s.v + level < k) return 0;
+        return level;
+    }
+    size_t hashCode(Counted const& s) const { return static_cast<size_t>(s.v); }
+};
+
+// State is a std::string of the chosen bits: every path has a distinct
+// state (no sharing), and the state must survive arena growth without
+// being relocated.
+class StringPaths : public tdzdd::DdSpec<StringPaths, std::string, 2> {
+    int const n;
+    int const k;
+public:
+    StringPaths(int n, int k) : n(n), k(k) {}
+    int getRoot(std::string& s) const { s.clear(); return n; }
+    int getChild(std::string& s, int level, int value) const {
+        s.push_back(value ? '1' : '0');
+        if (--level == 0) {
+            int ones = 0;
+            for (size_t i = 0; i < s.size(); ++i) ones += (s[i] == '1');
+            return (ones == k) ? -1 : 0;
+        }
+        return level;
+    }
+    size_t hashCode(std::string const& s) const { return std::hash<std::string>()(s); }
+};
+
+// getChild returns the current level (not lower): must be rejected.
+class BadLevel : public tdzdd::StatelessDdSpec<BadLevel, 2> {
+public:
+    int getRoot() const { return 3; }
+    int getChild(int level, int) const { return level; }
+};
+
 static uint64_t binom(int n, int k) {
     if (k < 0 || k > n) return 0;
     uint64_t r = 1;
@@ -373,4 +445,70 @@ TEST_F(UnreducedDDTdZddTest, MergeStates_OneTerminal_RewritesEarlierEdges) {
     UnreducedDD v = UnreducedDD::construct(KeepExtreme<false>(1));
     EXPECT_EQ(v.raw_child0().id(), bddtrue);
     EXPECT_EQ(v.raw_child1().id(), bddfalse);
+}
+
+// =============================================================
+// Other spec kinds, offsets, robustness
+// =============================================================
+
+TEST_F(UnreducedDDTdZddTest, PodArraySpec_MatchesTdZdd) {
+    PodCombination spec(9, 4);
+    UnreducedDD u = UnreducedDD::construct(spec);
+    EXPECT_EQ(u.reduce_as_zdd().card(), binom(9, 4));
+
+    tdzdd::DdStructure<2> dd(spec);
+    EXPECT_EQ(u.raw_size(), dd.size());
+}
+
+TEST_F(UnreducedDDTdZddTest, LevelOffset_ShiftsVariables) {
+    UnreducedDD u = UnreducedDD::construct(Combination(5, 2), SkipPadding::None, 3);
+    EXPECT_EQ(bddvarused(), 8u);
+    EXPECT_EQ(bddlevofvar(u.top()), 8u);
+    EXPECT_EQ(u.reduce_as_zdd().card(), binom(5, 2));
+
+    // Same spec at offset 0 lives in levels 1..5 and is a different DD.
+    UnreducedDD v = UnreducedDD::construct(Combination(5, 2));
+    EXPECT_EQ(bddlevofvar(v.top()), 5u);
+    EXPECT_NE(u.reduce_as_zdd().id(), v.reduce_as_zdd().id());
+}
+
+TEST_F(UnreducedDDTdZddTest, LevelOffset_NegativeThrows) {
+    EXPECT_THROW(UnreducedDD::construct(Combination(3, 1), SkipPadding::None, -1),
+                 std::invalid_argument);
+}
+
+TEST_F(UnreducedDDTdZddTest, States_AreDestructed) {
+    Counted::live = 0;
+    {
+        UnreducedDD u = UnreducedDD::construct(CountedCombination(8, 3));
+        EXPECT_EQ(u.reduce_as_zdd().card(), binom(8, 3));
+    }
+    EXPECT_EQ(Counted::live, 0);
+}
+
+TEST_F(UnreducedDDTdZddTest, States_AreDestructedWhenSpecThrows) {
+    Counted::live = 0;
+    EXPECT_THROW(UnreducedDD::construct(CountedCombination(8, 3, 4)),
+                 std::runtime_error);
+    EXPECT_EQ(Counted::live, 0);
+}
+
+TEST_F(UnreducedDDTdZddTest, StringState_SurvivesArenaGrowth) {
+    const int n = 12, k = 5;
+    UnreducedDD u = UnreducedDD::construct(StringPaths(n, k));
+    // Every path has its own state: a full binary tree minus pruned leaves.
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>((1 << n) - 1));
+    EXPECT_EQ(u.reduce_as_zdd().card(), binom(n, k));
+}
+
+TEST_F(UnreducedDDTdZddTest, DeepChain_NoRecursion) {
+    const int n = 20000;
+    UnreducedDD u = UnreducedDD::construct(AllSubsets(n));
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>(n));
+    EXPECT_EQ(bddvarused(), static_cast<bddvar>(n));
+    EXPECT_TRUE(u.reduce_as_bdd().is_one());
+}
+
+TEST_F(UnreducedDDTdZddTest, BadChildLevel_Throws) {
+    EXPECT_THROW(UnreducedDD::construct(BadLevel()), std::logic_error);
 }
