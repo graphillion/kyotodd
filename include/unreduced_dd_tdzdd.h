@@ -198,11 +198,8 @@ template<typename SPEC>
 class SpecBuilder {
 public:
     SpecBuilder(const SPEC& spec_in, SkipPadding pad, int level_offset)
-        : spec_(spec_in), pad_(pad), offset_(level_offset), words_(1) {
-        int ds = spec_.datasize();
-        if (ds > 0)
-            words_ = (static_cast<size_t>(ds) + sizeof(size_t) - 1) / sizeof(size_t);
-    }
+        : spec_(spec_in), pad_(pad), offset_(level_offset),
+          words_(compute_words(spec_)), one_(spec_, words_) {}
 
     bddp run() {
         // --- root ---
@@ -238,6 +235,12 @@ public:
 private:
     SpecBuilder(const SpecBuilder&);
     SpecBuilder& operator=(const SpecBuilder&);
+
+    static size_t compute_words(SPEC& spec) {
+        int ds = spec.datasize();
+        if (ds <= 0) return 1;
+        return (static_cast<size_t>(ds) + sizeof(size_t) - 1) / sizeof(size_t);
+    }
 
     void ensure_variables(int n) {
         uint64_t top = static_cast<uint64_t>(n) + static_cast<uint64_t>(offset_);
@@ -276,6 +279,46 @@ private:
         return chain.nodes[need - 1];
     }
 
+    /**
+     * @brief Handle a child state that reached the 1-terminal.
+     *
+     * Like tdzdd::DdBuilder, the first such state is kept as the "one"
+     * state and every later one is offered to merge_states(one, state)
+     * (without an equal_to check). Return 1 rewrites every edge recorded
+     * so far to the 0-terminal and makes `state` the new one-state;
+     * return 2 sends this edge to the 0-terminal; otherwise the edge goes
+     * to the 1-terminal.
+     *
+     * @return The (possibly padded) edge target for the parent's slot.
+     */
+    bddp one_terminal_edge(void* state, bddp parent, int branch, int parent_level) {
+        if (!one_live_) {
+            spec_.get_copy(one_.data(), state);
+            one_live_ = true;
+            one_.set_live(true);
+        } else {
+            switch (spec_.merge_states(one_.data(), state)) {
+            case 1:
+                for (size_t k = 0; k < one_src_.size(); ++k)
+                    patch_child(one_src_[k].first, one_src_[k].second, bddfalse);
+                one_src_.clear();
+                spec_.destruct(one_.data());
+                one_live_ = false;
+                one_.set_live(false);
+                spec_.get_copy(one_.data(), state);
+                one_live_ = true;
+                one_.set_live(true);
+                break;
+            case 2:
+                return bddfalse;
+            default:
+                break;
+            }
+        }
+        one_src_.push_back(std::make_pair(parent, branch));
+        return edge_target(bddtrue, 0, parent_level);
+    }
+
     void write_edge(const PendingEdge& e, bddp target, bddp& root) {
         if (e.parent == bddnull) root = target;
         else patch_child(e.parent, e.branch, target);
@@ -300,10 +343,27 @@ private:
                 node[j] = UnreducedDD::getnode_raw(var, bddnull, bddnull);
                 kind[j] = ENTRY_LIVE;
             } else {
+                // Equal state already seen at this level: let the spec
+                // decide (see DdSpecBase: 0 = merge into the first,
+                // 1 = forward the first to 0, 2 = forward the second to 0).
                 size_t j0 = *ins.first;
-                // merge_states handling (cases 1 / 2) is added in a later step.
-                node[j] = node[j0];
-                kind[j] = ENTRY_SKIP;
+                switch (spec_.merge_states(cur.states.at(j0), cur.states.at(j))) {
+                case 1:
+                    kind[j0] = ENTRY_DEAD;
+                    uniq.erase(ins.first);
+                    uniq.insert(j);
+                    node[j] = UnreducedDD::getnode_raw(var, bddnull, bddnull);
+                    kind[j] = ENTRY_LIVE;
+                    break;
+                case 2:
+                    node[j] = bddfalse;
+                    kind[j] = ENTRY_SKIP;
+                    break;
+                default:
+                    node[j] = node[j0];
+                    kind[j] = ENTRY_SKIP;
+                    break;
+                }
             }
             const PendingEdge& e = cur.edges[j];
             bddp target = (node[j] == bddfalse)
@@ -329,7 +389,7 @@ private:
                     patch_child(node[j], b, bddfalse);
                     next.states.pop_back();
                 } else if (ii < 0) {
-                    patch_child(node[j], b, edge_target(bddtrue, 0, i));
+                    patch_child(node[j], b, one_terminal_edge(pp, node[j], b, i));
                     next.states.pop_back();
                 } else if (ii == i - 1) {
                     PendingEdge e = { node[j], i, b };
@@ -361,6 +421,11 @@ private:
     size_t words_;
     std::vector<std::unique_ptr<LevelBucket<SPEC> > > buckets_;
     std::unordered_map<bddp, PadChain> pad_memo_;
+
+    // The state kept for the 1-terminal, and the edges that point to it.
+    TempState<SPEC> one_;
+    bool one_live_ = false;
+    std::vector<std::pair<bddp, int> > one_src_;
 };
 
 } // namespace tdzdd_detail

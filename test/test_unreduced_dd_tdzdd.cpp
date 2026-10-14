@@ -84,6 +84,29 @@ public:
     int getChild(int /*level*/, int value) const { return value ? -1 : 0; }
 };
 
+// Keep only the path with the minimum (KeepMax: maximum) number of 1s.
+// All states at a level compare equal; mergeStates decides which to keep.
+// Every path of length n is accepted, so without merging the result
+// would be the constant-1 function.
+template<bool KeepMax>
+class KeepExtreme : public tdzdd::DdSpec<KeepExtreme<KeepMax>, int, 2> {
+    int const n;
+public:
+    explicit KeepExtreme(int n) : n(n) {}
+    int getRoot(int& state) const { state = 0; return n; }
+    int getChild(int& state, int level, int value) const {
+        state += value;
+        return (level == 1) ? -1 : level - 1;
+    }
+    size_t hashCode(int const&) const { return 0; }
+    bool equalTo(int const&, int const&) const { return true; }
+    int mergeStates(int& s1, int& s2) const {
+        if (s1 == s2) return 0;
+        bool keep_first = KeepMax ? (s1 > s2) : (s1 < s2);
+        return keep_first ? 2 : 1;
+    }
+};
+
 static uint64_t binom(int n, int k) {
     if (k < 0 || k > n) return 0;
     uint64_t r = 1;
@@ -292,4 +315,62 @@ TEST_F(UnreducedDDTdZddTest, Skip_EdgeToZeroIsNotPadded) {
     // Skip3 level 1 lo -> 0: with padding there is still no node below.
     UnreducedDD u = UnreducedDD::construct(SkipToOne(), SkipPadding::Bdd);
     EXPECT_EQ(u.raw_child0().id(), bddfalse);
+}
+
+// =============================================================
+// merge_states (internal levels and the 1-terminal state)
+// =============================================================
+
+TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMin_ForwardsSecondToZero) {
+    // Case 2 at internal levels and at the 1-terminal: only the all-0
+    // path survives.
+    const int n = 4;
+    UnreducedDD u = UnreducedDD::construct(KeepExtreme<false>(n));
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>(n));   // no dead nodes
+
+    BDD expected = BDD(1);
+    for (int lev = 1; lev <= n; ++lev) expected &= ~BDDvar(bddvaroflev(lev));
+    EXPECT_EQ(u.reduce_as_bdd().id(), expected.id());
+    EXPECT_EQ(u.reduce_as_zdd().card(), 1u);
+
+    KeepExtreme<false> spec(n);
+    tdzdd::DdStructure<2> dd(spec);
+    dd.zddReduce();
+    EXPECT_EQ(dd.zddCardinality(), "1");
+}
+
+TEST_F(UnreducedDDTdZddTest, MergeStates_KeepMax_ForwardsFirstToZero) {
+    // Case 1: the previously created node is forwarded to 0 (dead node
+    // with both children 0), and the later state becomes the live node.
+    const int n = 4;
+    UnreducedDD u = UnreducedDD::construct(KeepExtreme<true>(n));
+    // n live nodes + (n-1) dead nodes
+    EXPECT_EQ(u.raw_size(), static_cast<size_t>(2 * n - 1));
+
+    UnreducedDD dead = u.raw_child0();
+    EXPECT_FALSE(dead.is_terminal());
+    EXPECT_EQ(dead.raw_child0().id(), bddfalse);
+    EXPECT_EQ(dead.raw_child1().id(), bddfalse);
+
+    BDD expected = BDD(1);
+    for (int lev = 1; lev <= n; ++lev) expected &= BDDvar(bddvaroflev(lev));
+    EXPECT_EQ(u.reduce_as_bdd().id(), expected.id());
+    EXPECT_EQ(u.reduce_as_zdd().card(), 1u);
+
+    KeepExtreme<true> spec(n);
+    tdzdd::DdStructure<2> dd(spec);
+    dd.zddReduce();
+    EXPECT_EQ(dd.zddCardinality(), "1");
+}
+
+TEST_F(UnreducedDDTdZddTest, MergeStates_OneTerminal_RewritesEarlierEdges) {
+    // n = 1: both children reach the 1-terminal directly. KeepMax must
+    // rewrite the earlier lo edge (cost 0) to 0 when hi (cost 1) arrives.
+    UnreducedDD u = UnreducedDD::construct(KeepExtreme<true>(1));
+    EXPECT_EQ(u.raw_child0().id(), bddfalse);
+    EXPECT_EQ(u.raw_child1().id(), bddtrue);
+
+    UnreducedDD v = UnreducedDD::construct(KeepExtreme<false>(1));
+    EXPECT_EQ(v.raw_child0().id(), bddtrue);
+    EXPECT_EQ(v.raw_child1().id(), bddfalse);
 }
