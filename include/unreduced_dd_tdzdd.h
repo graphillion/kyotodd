@@ -180,7 +180,7 @@ private:
  * lo child is nodes[k-1] (or the child itself for k == 0).
  */
 struct PadChain {
-    int base_level;             ///< TdZdd level of the child (0 for terminals).
+    int base_level;             ///< TdZdd level of the child (-level_offset for the 1-terminal).
     std::vector<bddp> nodes;
 };
 
@@ -254,8 +254,10 @@ private:
     bddvar var_of(int tdzdd_level) const {
         // Add in 64 bits: tdzdd_level + offset_ could overflow int when
         // offset_ is near INT_MAX. ensure_variables() has already checked
-        // that n + offset_ fits in bddvar, and tdzdd_level <= n.
-        uint64_t lev = static_cast<uint64_t>(tdzdd_level) + static_cast<uint64_t>(offset_);
+        // that n + offset_ fits in bddvar, and tdzdd_level <= n. Padding
+        // nodes below the spec's range use tdzdd_level in [1 - offset_, 0],
+        // so the sum is always >= 1.
+        int64_t lev = static_cast<int64_t>(tdzdd_level) + static_cast<int64_t>(offset_);
         return bddvaroflev(static_cast<bddvar>(lev));
     }
 
@@ -266,6 +268,9 @@ private:
      * Padding nodes are created lazily, bottom-up, and memoized per child
      * so that every parent skipping to the same child shares them. Edges
      * to the 0-terminal are never padded (same as tdzdd::Unreduction).
+     * The 1-terminal is treated as sitting at TdZdd level -level_offset,
+     * i.e. KyotoDD level 0, so with level_offset > 0 the chain also
+     * covers the KyotoDD levels 1..level_offset below the spec's range.
      */
     bddp edge_target(bddp child, int child_level, int parent_level) {
         int target_level = parent_level - 1;
@@ -322,7 +327,7 @@ private:
             }
         }
         one_src_.push_back(std::make_pair(parent, branch));
-        return edge_target(bddtrue, 0, parent_level);
+        return edge_target(bddtrue, -offset_, parent_level);
     }
 
     void write_edge(const PendingEdge& e, bddp target, bddp& root) {

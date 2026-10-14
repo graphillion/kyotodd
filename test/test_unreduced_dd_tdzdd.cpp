@@ -566,6 +566,41 @@ TEST_F(UnreducedDDTdZddTest, LevelOffset_ShiftsVariables) {
     EXPECT_NE(u.reduce_as_zdd().id(), v.reduce_as_zdd().id());
 }
 
+TEST_F(UnreducedDDTdZddTest, LevelOffset_PaddingCoversOffsetLevels) {
+    // SkipToOne at offset 1: spec levels 2,1 -> KyotoDD levels 3,2;
+    // KyotoDD level 1 is below the spec's range. The hi edge to the
+    // 1-terminal must be padded down to level 1, not just to level 2.
+    bddnewvar(3);
+    bddvar v1 = bddvaroflev(1), v2 = bddvaroflev(2), v3 = bddvaroflev(3);
+    BDD x1 = BDDvar(v1), x2 = BDDvar(v2), x3 = BDDvar(v3);
+
+    UnreducedDD zpad = UnreducedDD::construct(SkipToOne(), SkipPadding::Zdd, 1);
+    EXPECT_EQ(zpad.raw_size(), 3u);
+    EXPECT_TRUE(is_quasi_reduced(zpad));
+    EXPECT_EQ(zpad.reduce_as_bdd().id(), (x3 & ~x2 & ~x1).id());
+    EXPECT_EQ(zpad.reduce_as_zdd().card(), 1u);   // {3}
+
+    UnreducedDD bpad = UnreducedDD::construct(SkipToOne(), SkipPadding::Bdd, 1);
+    EXPECT_EQ(bpad.raw_size(), 3u);
+    EXPECT_TRUE(is_quasi_reduced(bpad));
+    EXPECT_EQ(bpad.reduce_as_bdd().id(), x3.id());
+    EXPECT_EQ(bpad.reduce_as_zdd().card(), 4u);   // {3},{1,3},{2,3},{1,2,3}
+
+    // Without padding the offset level is simply skipped.
+    UnreducedDD none = UnreducedDD::construct(SkipToOne(), SkipPadding::None, 1);
+    EXPECT_EQ(none.raw_size(), 1u);
+    EXPECT_EQ(none.reduce_as_bdd().id(), x3.id());
+    EXPECT_EQ(none.reduce_as_zdd().card(), 1u);
+
+    // A larger offset on a spec whose level-1 nodes reach the 1-terminal.
+    UnreducedDD c = UnreducedDD::construct(Combination(5, 2), SkipPadding::Zdd, 3);
+    EXPECT_TRUE(is_quasi_reduced(c));
+    EXPECT_EQ(c.reduce_as_zdd().card(), binom(5, 2));
+    // Pad nodes to the 1-terminal are shared: exactly 3 of them.
+    EXPECT_EQ(c.raw_size(),
+              UnreducedDD::construct(Combination(5, 2), SkipPadding::None, 3).raw_size() + 3);
+}
+
 TEST_F(UnreducedDDTdZddTest, LevelOffset_NegativeThrows) {
     EXPECT_THROW(UnreducedDD::construct(Combination(3, 1), SkipPadding::None, -1),
                  std::invalid_argument);

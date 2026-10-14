@@ -227,7 +227,11 @@ Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
    (variable ``bddvaroflev(i + level_offset)``). Missing variables are
    created automatically with ``bddnewvar()``.
 
-   Edges to the 0-terminal are never padded. The root is never padded
+   Edges to the 0-terminal are never padded. Edges to the 1-terminal are
+   padded down to KyotoDD level 1, so with ``level_offset > 0`` the
+   KyotoDD levels ``1 .. level_offset`` below the spec's range are
+   covered too (``SkipPadding::Zdd`` forces those variables to 0,
+   ``SkipPadding::Bdd`` makes them don't-care). The root is never padded
    above its own level. The implementation is an iterative level loop
    (no recursion), so there are no ``_rec`` / ``_iter`` variants and no
    ``BddExecMode`` argument.

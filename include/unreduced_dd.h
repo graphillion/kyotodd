@@ -160,7 +160,10 @@ public:
      *
      * Edges whose child level is lower than (parent level - 1) are
      * stored as-is by default; see SkipPadding for the padding options.
-     * Edges to the 0-terminal are never padded.
+     * Edges to the 0-terminal are never padded. Edges to the 1-terminal
+     * are padded down to KyotoDD level 1, so with level_offset > 0 the
+     * levels below the spec's range are covered as well; the root is
+     * never padded above its own level.
      *
      * The implementation is an iterative level loop (no recursion), so
      * it has no _rec/_iter variants and no BddExecMode argument.
