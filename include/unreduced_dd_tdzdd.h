@@ -171,6 +171,17 @@ private:
     bool live_;
 };
 
+/**
+ * @brief Chain of padding nodes above one child, shared by all parents.
+ *
+ * nodes[k] is the padding node at TdZdd level (base_level + 1 + k); its
+ * lo child is nodes[k-1] (or the child itself for k == 0).
+ */
+struct PadChain {
+    int base_level;             ///< TdZdd level of the child (0 for terminals).
+    std::vector<bddp> nodes;
+};
+
 /** @brief Per-entry outcome of deduplication at one level. */
 enum EntryKind {
     ENTRY_LIVE = 0,   ///< Fresh node; expand it.
@@ -239,11 +250,30 @@ private:
         return bddvaroflev(static_cast<bddvar>(tdzdd_level + offset_));
     }
 
-    /** @brief Resolve an edge from (parent, parent_level) to `child` at `child_level`. */
+    /**
+     * @brief Resolve the edge target for a child at `child_level` seen
+     *        from a parent at `parent_level`, applying padding if needed.
+     *
+     * Padding nodes are created lazily, bottom-up, and memoized per child
+     * so that every parent skipping to the same child shares them. Edges
+     * to the 0-terminal are never padded (same as tdzdd::Unreduction).
+     */
     bddp edge_target(bddp child, int child_level, int parent_level) {
-        (void)child_level; (void)parent_level;
-        // Padding of level-skipping edges is added in a later step.
-        return child;
+        int target_level = parent_level - 1;
+        if (pad_ == SkipPadding::None || target_level <= child_level)
+            return child;
+        if (child == bddfalse) return child;
+
+        PadChain& chain = pad_memo_[child];
+        if (chain.nodes.empty()) chain.base_level = child_level;
+        size_t need = static_cast<size_t>(target_level - chain.base_level);
+        while (chain.nodes.size() < need) {
+            int level = chain.base_level + 1 + static_cast<int>(chain.nodes.size());
+            bddp below = chain.nodes.empty() ? child : chain.nodes.back();
+            bddp hi = (pad_ == SkipPadding::Bdd) ? below : bddfalse;
+            chain.nodes.push_back(UnreducedDD::getnode_raw(var_of(level), below, hi));
+        }
+        return chain.nodes[need - 1];
     }
 
     void write_edge(const PendingEdge& e, bddp target, bddp& root) {
@@ -330,6 +360,7 @@ private:
     int offset_;
     size_t words_;
     std::vector<std::unique_ptr<LevelBucket<SPEC> > > buckets_;
+    std::unordered_map<bddp, PadChain> pad_memo_;
 };
 
 } // namespace tdzdd_detail
