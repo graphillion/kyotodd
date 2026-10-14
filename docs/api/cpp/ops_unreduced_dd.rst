@@ -172,3 +172,86 @@ UnreducedDD Class
    .. cpp:function:: static UnreducedDD import_binary(std::istream& strm)
 
       Import an UnreducedDD from binary format.
+
+Construction from a TdZdd spec
+------------------------------
+
+Header: ``#include "unreduced_dd_tdzdd.h"`` (not included by ``bdd.h``).
+Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
+(``third_party/TdZdd``, fetched with ``git clone --recursive`` or
+``git submodule update --init``).
+
+.. cpp:enum-class:: SkipPadding
+
+   How ``UnreducedDD::construct()`` treats edges whose child level is
+   lower than (parent level - 1). TdZdd stores such edges as-is; their
+   meaning (don't-care vs. must-be-0) is decided only when the DD is
+   reduced as a BDD or a ZDD.
+
+   .. cpp:enumerator:: None
+
+      Store the skipping edge as-is (same as TdZdd's ``DdStructure``).
+
+   .. cpp:enumerator:: Bdd
+
+      Insert chain nodes with ``lo == hi == child`` (BDD don't-care).
+
+   .. cpp:enumerator:: Zdd
+
+      Insert chain nodes with ``lo == child``, ``hi == 0-terminal`` (ZDD).
+
+.. cpp:function:: template<typename SPEC> static UnreducedDD UnreducedDD::construct(const tdzdd::DdSpecBase<SPEC, 2>& spec, SkipPadding pad = SkipPadding::None, int level_offset = 0)
+
+   Build an UnreducedDD top-down from a TdZdd spec (``tdzdd::DdSpec``,
+   ``StatelessDdSpec``, ``PodArrayDdSpec`` or ``HybridDdSpec``; binary
+   specs only).
+
+   The construction is breadth-first and level-by-level, equivalent to
+   ``tdzdd::DdBuilder``, but nodes are allocated directly in KyotoDD's
+   node array; no ``tdzdd::DdStructure`` is created. States at the same
+   level are merged via the spec's ``hash_code`` / ``equal_to`` /
+   ``merge_states`` (including TdZdd's handling of states that reach the
+   1-terminal), so the result has the same shape as an unreduced
+   ``DdStructure``. Reduce it afterwards with :cpp:func:`reduce_as_bdd`,
+   :cpp:func:`reduce_as_zdd` or :cpp:func:`reduce_as_qdd`.
+
+   TdZdd level ``i`` is mapped to KyotoDD level ``i + level_offset``
+   (variable ``bddvaroflev(i + level_offset)``). Missing variables are
+   created automatically with ``bddnewvar()``.
+
+   Edges to the 0-terminal are never padded. The root is never padded
+   above its own level. The implementation is an iterative level loop
+   (no recursion), so there are no ``_rec`` / ``_iter`` variants and no
+   ``BddExecMode`` argument.
+
+   :param spec: The TdZdd spec.
+   :param pad: How to treat level-skipping edges.
+   :param level_offset: Non-negative offset added to every TdZdd level.
+   :return: The constructed UnreducedDD (a terminal if the root is).
+   :throws std\:\:invalid_argument: If ``level_offset`` is negative.
+   :throws std\:\:logic_error: If the spec returns a child level that is
+      not lower than the current level.
+
+   Example (choose exactly ``k`` of ``n`` items, from the TdZdd user guide):
+
+   .. code-block:: cpp
+
+      #include "bdd.h"
+      #include "unreduced_dd_tdzdd.h"
+
+      class Combination : public tdzdd::DdSpec<Combination, int, 2> {
+          int const n, k;
+      public:
+          Combination(int n, int k) : n(n), k(k) {}
+          int getRoot(int& state) const { state = 0; return n; }
+          int getChild(int& state, int level, int value) const {
+              state += value;
+              if (--level == 0) return (state == k) ? -1 : 0;
+              if (state > k) return 0;
+              if (state + level < k) return 0;
+              return level;
+          }
+      };
+
+      UnreducedDD u = UnreducedDD::construct(Combination(10, 4));
+      ZDD z = u.reduce_as_zdd();      // z.card() == 210

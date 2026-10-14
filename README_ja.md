@@ -63,12 +63,16 @@ h = ~a      # NOT
 ### C++（CMake）
 
 ```bash
-git clone https://github.com/graphillion/kyotodd.git
+git clone --recursive https://github.com/graphillion/kyotodd.git
 cd kyotodd
 mkdir build && cd build
 cmake ..
 cmake --build .
 ```
+
+`--recursive` は [TdZdd](https://github.com/kunisura/TdZdd) submodule
+（`third_party/TdZdd`）を取得します。これは `UnreducedDD::construct(spec)` でのみ必要です。
+`--recursive` なしでクローンした場合は `git submodule update --init` を実行してください。
 
 ### Python
 

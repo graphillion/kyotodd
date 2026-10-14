@@ -63,12 +63,16 @@ h = ~a      # NOT
 ### C++ (CMake)
 
 ```bash
-git clone https://github.com/graphillion/kyotodd.git
+git clone --recursive https://github.com/graphillion/kyotodd.git
 cd kyotodd
 mkdir build && cd build
 cmake ..
 cmake --build .
 ```
+
+`--recursive` fetches the [TdZdd](https://github.com/kunisura/TdZdd) submodule
+(`third_party/TdZdd`), which is needed only by `UnreducedDD::construct(spec)`.
+If you cloned without it, run `git submodule update --init`.
 
 ### Python
 
