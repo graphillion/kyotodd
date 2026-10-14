@@ -187,6 +187,45 @@ public:
                                  int level_offset = 0);
 
     /**
+     * @brief ZDD subsetting with a TdZdd spec (tdzdd's zddSubset).
+     *
+     * Builds, top-down and breadth-first, the unreduced DD of the
+     * family "this DD interpreted as a ZDD" restricted to the sets the
+     * spec accepts. This is the same algorithm as tdzdd::ZddSubsetter:
+     * states are (input node, spec state) pairs, and when one side sits
+     * at a higher level than the other its 0-edge is followed (ZDD
+     * semantics: a skipped level means the variable is 0). Input
+     * variables outside the spec's level range (above the spec's root
+     * or below level_offset) are therefore forced to 0: sets containing
+     * them are dropped.
+     *
+     * This DD is read with ZDD semantics (complement edge toggles the
+     * empty set; level-skipping edges mean 0); it need not be reduced,
+     * but must not contain bddnull children. The result is unreduced;
+     * reduce it with reduce_as_zdd(). The spec's level i corresponds to
+     * KyotoDD level (i + level_offset); no variables are created.
+     *
+     * @note Defined in unreduced_dd_tdzdd.h; requires the TdZdd
+     *       submodule. Binary specs only. Unlike construct(), the
+     *       order in which equal states reach merge_states is not
+     *       identical to TdZdd's (TdZdd groups states by its internal
+     *       node numbering).
+     *
+     * @param spec         The TdZdd spec.
+     * @param pad          How to treat level-skipping edges in the result.
+     * @param level_offset Non-negative offset added to every TdZdd level.
+     * @return The unreduced subset DD (0-/1-terminal if it collapses).
+     * @throws std::invalid_argument If level_offset is negative, or this
+     *         DD is bddnull or contains bddnull children.
+     * @throws std::logic_error If the spec returns a child level that is
+     *         not lower than the current level.
+     */
+    template<typename SPEC>
+    UnreducedDD zdd_subset(const tdzdd::DdSpecBase<SPEC, 2>& spec,
+                           SkipPadding pad = SkipPadding::None,
+                           int level_offset = 0) const;
+
+    /**
      * @brief Create an unreduced node from raw bddp values.
      *
      * Always allocates a new unreduced node. No complement

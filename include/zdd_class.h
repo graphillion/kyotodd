@@ -7,6 +7,10 @@
 
 #include "bdd_types.h"
 
+namespace tdzdd {
+template<typename S, int AR> class DdSpecBase;
+}
+
 namespace kyotodd {
 
 /**
@@ -857,6 +861,31 @@ public:
     // Use with extreme caution. Incorrect usage may create invalid ZDDs.
     // C++ only. Not available in the Python binding.
     static bddp getnode_raw(bddvar var, bddp lo, bddp hi);
+
+    /**
+     * @brief Restrict this family to the sets accepted by a TdZdd spec
+     *        (tdzdd's zddSubset).
+     *
+     * Equivalent to intersecting this family with the ZDD the spec
+     * describes, computed top-down without building the spec's ZDD:
+     * UnreducedDD::wrap_raw(*this).zdd_subset(spec, SkipPadding::None,
+     * level_offset).reduce_as_zdd(). Variables outside the spec's level
+     * range (above its root or below level_offset) are forced to 0, so
+     * sets containing them are dropped. The spec's level i corresponds
+     * to KyotoDD level (i + level_offset).
+     *
+     * @note Defined in unreduced_dd_tdzdd.h; include that header to use
+     *       this function. Requires the TdZdd submodule. Binary specs
+     *       only. C++ only (not available in the Python binding).
+     *
+     * @param spec         The TdZdd spec.
+     * @param level_offset Non-negative offset added to every TdZdd level.
+     * @return The reduced ZDD of the subset.
+     * @throws std::invalid_argument If level_offset is negative or this
+     *         ZDD is null.
+     */
+    template<typename SPEC>
+    ZDD subset(const tdzdd::DdSpecBase<SPEC, 2>& spec, int level_offset = 0) const;
 
     /**
      * @brief Compute the total weight sum over all sets in the family.

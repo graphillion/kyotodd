@@ -3,7 +3,8 @@
 
 /**
  * @file unreduced_dd_tdzdd.h
- * @brief UnreducedDD::construct(): build an UnreducedDD from a TdZdd spec.
+ * @brief UnreducedDD::construct() / zdd_subset() and ZDD::subset():
+ *        build or subset DDs with a TdZdd spec.
  *
  * This header depends on TdZdd (third_party/TdZdd, header-only). It is
  * NOT included by the umbrella header bdd.h; include it explicitly.
@@ -504,6 +505,228 @@ private:
     std::vector<std::unique_ptr<LevelBucket<SPEC> > > buckets_;
 };
 
+/** @brief Pending entries at one level of a subset build (parallel arrays). */
+template<typename SPEC>
+struct SubsetBucket {
+    StateArena<SPEC> states;
+    std::vector<PendingEdge> edges;
+    std::vector<bddp> inputs;   ///< Input edge paired with each state (ZDD semantics).
+};
+
+/** @brief Hash / equality over (input edge, spec state) pairs at one level. */
+template<typename SPEC>
+struct SubsetHasher {
+    const SPEC* spec;
+    const StateArena<SPEC>* arena;
+    const std::vector<bddp>* inputs;
+    int level;
+    size_t operator()(size_t i) const {
+        size_t h = spec->hash_code(arena->at(i), level);
+        uint64_t f = (*inputs)[i];
+        return h ^ static_cast<size_t>(f * 0x9E3779B97F4A7C15ULL) ^ static_cast<size_t>(f >> 32);
+    }
+};
+
+template<typename SPEC>
+struct SubsetEqual {
+    const SPEC* spec;
+    const StateArena<SPEC>* arena;
+    const std::vector<bddp>* inputs;
+    int level;
+    bool operator()(size_t a, size_t b) const {
+        return (*inputs)[a] == (*inputs)[b]
+            && spec->equal_to(arena->at(a), arena->at(b), level);
+    }
+};
+
+/**
+ * @brief Child of an input edge under ZDD complement semantics.
+ *
+ * A complement edge toggles membership of the empty set, which
+ * propagates along the 0-edge only (same as ZDD::child0 / child1, but
+ * without the validity checks, and also valid for UnreducedDD nodes).
+ */
+inline bddp zdd_edge_child(bddp f, int b) {
+    bddp base = f & ~BDD_COMP_FLAG;
+    if (b == 0) {
+        bddp lo = node_lo(base);
+        return (f & BDD_COMP_FLAG) ? bddnot(lo) : lo;
+    }
+    return node_hi(base);
+}
+
+/**
+ * @brief ZDD subsetting (tdzdd::ZddSubsetter) against a KyotoDD input DD.
+ *        Lives inside bdd_gc_guard.
+ *
+ * The pending states are pairs (input edge, spec state). The input DD is
+ * read with ZDD semantics: a complement edge toggles the empty set, and
+ * an edge that skips levels means those variables are 0. The spec and
+ * the input are kept at the same level by following the 0-edge of
+ * whichever side is higher (the skipped variables must be 0 on that
+ * side), exactly as tdzdd::ZddSubsetter::downTable / downSpec do.
+ * Input variables outside the spec's level range (above the root or
+ * below level_offset) are therefore forced to 0 as well.
+ *
+ * Returns the root node id (or a terminal).
+ */
+template<typename SPEC>
+class SubsetBuilder : private BuilderBase<SPEC> {
+    typedef BuilderBase<SPEC> Base;
+    using Base::spec_;
+    using Base::offset_;
+    using Base::words_;
+    using Base::var_of;
+    using Base::edge_target;
+    using Base::one_terminal_edge;
+    using Base::dedup_level;
+    using Base::bad_child_level;
+
+    enum SyncResult { SYNC_ZERO, SYNC_ONE, SYNC_NODE };
+
+public:
+    SubsetBuilder(const SPEC& spec_in, SkipPadding pad, int level_offset, bddp input)
+        : Base(spec_in, pad, level_offset, "UnreducedDD::zdd_subset"), input_(input) {}
+
+    bddp run() {
+        // --- root ---
+        TempState<SPEC> tmp(spec_, words_);
+        int s = spec_.get_root(tmp.data());
+        tmp.set_live(true);
+        bddp f = input_;
+        SyncResult r = sync(tmp.data(), s, f);
+        if (r == SYNC_ZERO) return bddfalse;
+        if (r == SYNC_ONE)  return bddtrue;
+
+        int n = s;
+        buckets_.reserve(static_cast<size_t>(n) + 1);
+        for (int i = 0; i <= n; ++i) {
+            buckets_.push_back(std::unique_ptr<SubsetBucket<SPEC> >(new SubsetBucket<SPEC>()));
+            buckets_.back()->states.init(&spec_, words_);
+        }
+        {
+            SubsetBucket<SPEC>& b = *buckets_[n];
+            void* p = b.states.push_uninit();
+            spec_.get_copy(p, tmp.data());
+            b.states.commit();
+            PendingEdge e = { bddnull, 0, 0 };
+            b.edges.push_back(e);
+            b.inputs.push_back(f);
+        }
+
+        bddp root = bddnull;
+        for (int i = n; i >= 1; --i) {
+            process_level(i, root);
+        }
+        return root;
+    }
+
+private:
+    /** @brief KyotoDD level of a non-terminal input edge (throws on bddnull). */
+    static int64_t input_level(bddp f) {
+        if (f == bddnull)
+            throw std::invalid_argument("UnreducedDD::zdd_subset: null node encountered in the input DD");
+        return static_cast<int64_t>(bddlevofvar(node_var(f)));
+    }
+
+    /**
+     * @brief Bring the spec (level code `s`, state `state`) and the input
+     *        edge `f` to the same level, following 0-edges on the higher
+     *        side. On SYNC_NODE, s >= 1 and f is a non-terminal at
+     *        KyotoDD level s + level_offset.
+     */
+    SyncResult sync(void* state, int& s, bddp& f) {
+        for (;;) {
+            if (f == bddnull)
+                throw std::invalid_argument("UnreducedDD::zdd_subset: null node encountered in the input DD");
+            bool f_term = (f & BDD_CONST_FLAG) != 0;
+            if (s == 0 || (f_term && f != bddtrue)) return SYNC_ZERO;
+            bool s_one = (s < 0);
+            if (s_one && f_term) return SYNC_ONE;
+
+            int64_t S = s_one ? 0 : static_cast<int64_t>(s) + offset_;
+            int64_t K = f_term ? 0 : input_level(f);
+            if (S == K) return SYNC_NODE;
+
+            if (S < K) {
+                // The input is higher: its variables above S must be 0.
+                do {
+                    f = zdd_edge_child(f, 0);
+                } while (!(f & BDD_CONST_FLAG) && input_level(f) > S);
+            } else {
+                // The spec is higher: its variables above K must be 0.
+                do {
+                    int t = spec_.get_child(state, s, 0);
+                    if (t >= s) bad_child_level();
+                    s = t;
+                } while (s > 0 && static_cast<int64_t>(s) + offset_ > K);
+            }
+        }
+    }
+
+    void process_level(int i, bddp& root) {
+        SubsetBucket<SPEC>& cur = *buckets_[i];
+        size_t m = cur.states.size();
+
+        // --- (a) deduplicate, allocate nodes, patch incoming edges ---
+        std::vector<bddp> node;
+        std::vector<unsigned char> kind;
+        SubsetHasher<SPEC> hasher = { &spec_, &cur.states, &cur.inputs, i };
+        SubsetEqual<SPEC>  equal  = { &spec_, &cur.states, &cur.inputs, i };
+        dedup_level(i, m, cur.states, cur.edges, hasher, equal, node, kind, root);
+
+        // --- (b) expand live nodes (same order as phase (a): newest first) ---
+        bddvar var = var_of(i);
+        SubsetBucket<SPEC>& next = *buckets_[i - 1];
+        for (size_t j = m; j-- > 0; ) {
+            if (kind[j] == ENTRY_SKIP) continue;
+            if (kind[j] == ENTRY_DEAD) {
+                node_write(node[j], var, bddfalse, bddfalse);
+                continue;
+            }
+            bddp f = cur.inputs[j];
+            for (int b = 0; b < 2; ++b) {
+                void* pp = next.states.push_uninit();
+                spec_.get_copy(pp, cur.states.at(j));
+                next.states.commit();
+                int s = spec_.get_child(pp, i, b);
+                if (s >= i) bad_child_level();
+                bddp g = zdd_edge_child(f, b);
+                SyncResult r = sync(pp, s, g);
+                if (r == SYNC_ZERO) {
+                    patch_child(node[j], b, bddfalse);
+                    next.states.pop_back();
+                } else if (r == SYNC_ONE) {
+                    patch_child(node[j], b, one_terminal_edge(pp, node[j], b, i));
+                    next.states.pop_back();
+                } else if (s == i - 1) {
+                    PendingEdge e = { node[j], i, b };
+                    next.edges.push_back(e);
+                    next.inputs.push_back(g);
+                } else {
+                    SubsetBucket<SPEC>& tgt = *buckets_[s];
+                    void* q = tgt.states.push_uninit();
+                    spec_.get_copy(q, pp);
+                    tgt.states.commit();
+                    next.states.pop_back();
+                    PendingEdge e = { node[j], i, b };
+                    tgt.edges.push_back(e);
+                    tgt.inputs.push_back(g);
+                }
+            }
+        }
+
+        // --- (c) release this level ---
+        cur.states.clear();
+        cur.edges.clear();
+        cur.inputs.clear();
+        spec_.destructLevel(i);
+    }
+
+    bddp input_;
+    std::vector<std::unique_ptr<SubsetBucket<SPEC> > > buckets_;
+};
+
 } // namespace tdzdd_detail
 
 template<typename SPEC>
@@ -523,6 +746,33 @@ UnreducedDD UnreducedDD::construct(const tdzdd::DdSpecBase<SPEC, 2>& spec,
     UnreducedDD r(0);
     r.root = result;
     return r;
+}
+
+template<typename SPEC>
+UnreducedDD UnreducedDD::zdd_subset(const tdzdd::DdSpecBase<SPEC, 2>& spec,
+                                    SkipPadding pad, int level_offset) const {
+    static_assert(SPEC::ARITY == 2,
+                  "UnreducedDD::zdd_subset supports binary specs only");
+    if (level_offset < 0)
+        throw std::invalid_argument("UnreducedDD::zdd_subset: level_offset must be non-negative");
+    if (root == bddnull)
+        throw std::invalid_argument("UnreducedDD::zdd_subset: null DD");
+
+    bddp input = root;
+    bddp result = bdd_gc_guard([&]() -> bddp {
+        tdzdd_detail::SubsetBuilder<SPEC> builder(spec.entity(), pad, level_offset, input);
+        return builder.run();
+    });
+    UnreducedDD r(0);
+    r.root = result;
+    return r;
+}
+
+template<typename SPEC>
+ZDD ZDD::subset(const tdzdd::DdSpecBase<SPEC, 2>& spec, int level_offset) const {
+    return UnreducedDD::wrap_raw(*this)
+        .zdd_subset(spec, SkipPadding::None, level_offset)
+        .reduce_as_zdd();
 }
 
 } // namespace kyotodd
