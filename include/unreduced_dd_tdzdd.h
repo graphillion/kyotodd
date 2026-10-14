@@ -252,7 +252,11 @@ private:
     }
 
     bddvar var_of(int tdzdd_level) const {
-        return bddvaroflev(static_cast<bddvar>(tdzdd_level + offset_));
+        // Add in 64 bits: tdzdd_level + offset_ could overflow int when
+        // offset_ is near INT_MAX. ensure_variables() has already checked
+        // that n + offset_ fits in bddvar, and tdzdd_level <= n.
+        uint64_t lev = static_cast<uint64_t>(tdzdd_level) + static_cast<uint64_t>(offset_);
+        return bddvaroflev(static_cast<bddvar>(lev));
     }
 
     /**
