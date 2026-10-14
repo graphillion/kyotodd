@@ -1,0 +1,4 @@
+[submodule "third_party/TdZdd"]
+	path = third_party/TdZdd
+	url = https://github.com/kunisura/TdZdd.git
+	branch = jkawahara-fix
