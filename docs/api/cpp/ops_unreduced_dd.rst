@@ -337,5 +337,4 @@ ZDD subsetting with a TdZdd spec
 
       ZDD fam = ZDD::combination(6, 2) + ZDD::combination(6, 3)
               + ZDD::combination(6, 4);
-      ZDD with3 = fam.subset(ChooseItem(6, 3));
-      // with3 == fam & UnreducedDD::construct(ChooseItem(6, 3)).reduce_as_zdd()
+      ZDD with3 = fam.subset(ChooseItem(6, 3));   // same as fam.onset(3)
