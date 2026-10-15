@@ -124,6 +124,11 @@ target_link_libraries(wmc kyotodd_lib)
 add_executable(hamilton_black app/HamiltonBlack/hamilton_black.cpp)
 target_link_libraries(hamilton_black kyotodd_lib)
 
+if(KYOTODD_HAS_TDZDD)
+  add_executable(tdzdd_sample app/TdZddSample/tdzdd_sample.cpp)
+  target_link_libraries(tdzdd_sample kyotodd_lib)
+endif()
+
 option(KYOTODD_BUILD_TESTS "Build tests (requires GoogleTest via FetchContent)" ON)
 
 if(KYOTODD_BUILD_TESTS)
