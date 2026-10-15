@@ -8,3 +8,4 @@ Tutorials
    getting_started
    bdd_basics
    zdd_basics
+   tdzdd_specs
