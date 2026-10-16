@@ -18,19 +18,19 @@ Enumerations
 Memo Classes
 ------------
 
-.. doxygenclass:: ZddCountMemo
+.. doxygenclass:: kyotodd::ZddCountMemo
    :members:
 
-.. doxygenclass:: BddCountMemo
+.. doxygenclass:: kyotodd::BddCountMemo
    :members:
 
-.. doxygenclass:: CostBoundMemo
+.. doxygenclass:: kyotodd::CostBoundMemo
    :members:
 
 DDBase Class
 ------------
 
-.. doxygenclass:: DDBase
+.. doxygenclass:: kyotodd::DDBase
    :members:
 
 Node ID Encoding Constants
@@ -56,13 +56,13 @@ Terminal Constants
 BDD Class
 ---------
 
-.. doxygenclass:: BDD
+.. doxygenclass:: kyotodd::BDD
    :members:
 
 ZDD Class
 ---------
 
-.. doxygenclass:: ZDD
+.. doxygenclass:: kyotodd::ZDD
    :members:
 
 QDD Class

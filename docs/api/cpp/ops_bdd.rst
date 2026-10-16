@@ -5,9 +5,11 @@ Logical Operations
 ------------------
 
 .. doxygenfunction:: bddnot
-.. doxygenfunction:: bddand
+.. doxygenfunction:: bddand(bddp f, bddp g)
+.. doxygenfunction:: bddand(bddp f, bddp g, BddExecMode mode)
 .. doxygenfunction:: bddor
-.. doxygenfunction:: bddxor
+.. doxygenfunction:: bddxor(bddp f, bddp g)
+.. doxygenfunction:: bddxor(bddp f, bddp g, BddExecMode mode)
 .. doxygenfunction:: bddnand
 .. doxygenfunction:: bddnor
 .. doxygenfunction:: bddxnor
@@ -15,14 +17,18 @@ Logical Operations
 Cofactoring
 -----------
 
-.. doxygenfunction:: bddat0
-.. doxygenfunction:: bddat1
-.. doxygenfunction:: bddcofactor
+.. doxygenfunction:: bddat0(bddp f, bddvar v)
+.. doxygenfunction:: bddat0(bddp f, bddvar v, BddExecMode mode)
+.. doxygenfunction:: bddat1(bddp f, bddvar v)
+.. doxygenfunction:: bddat1(bddp f, bddvar v, BddExecMode mode)
+.. doxygenfunction:: bddcofactor(bddp f, bddp g)
+.. doxygenfunction:: bddcofactor(bddp f, bddp g, BddExecMode mode)
 
 If-Then-Else
 -------------
 
-.. doxygenfunction:: bddite
+.. doxygenfunction:: bddite(bddp f, bddp g, bddp h)
+.. doxygenfunction:: bddite(bddp f, bddp g, bddp h, BddExecMode mode)
 
 Implication
 -----------
@@ -54,17 +60,20 @@ Variable Shifting
 Variable Swapping
 -----------------
 
-.. doxygenfunction:: bddswap
+.. doxygenfunction:: bddswap(bddp f, bddvar v1, bddvar v2)
+.. doxygenfunction:: bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode)
 
 Smoothing
 ---------
 
-.. doxygenfunction:: bddsmooth
+.. doxygenfunction:: bddsmooth(bddp f, bddvar v)
+.. doxygenfunction:: bddsmooth(bddp f, bddvar v, BddExecMode mode)
 
 Spreading
 ---------
 
-.. doxygenfunction:: bddspread
+.. doxygenfunction:: bddspread(bddp f, int k)
+.. doxygenfunction:: bddspread(bddp f, int k, BddExecMode mode)
 
 Satisfiability Counting
 -----------------------
