@@ -34,7 +34,10 @@ struct SvgParams {
     bool skip_unused_levels = false; ///< Skip levels that have no nodes (compact layout).
     const char* node_fill = "#deebf7";   ///< Node background fill color.
     const char* node_stroke = "#1b3966"; ///< Node border stroke color.
-    int font_size = 24;         ///< Font size for node labels.
+    /** Font size for node labels. Labels are drawn at this size as given;
+     *  keep it below terminal_y and 2 * node_radius, otherwise the text
+     *  overflows the terminal rectangles / node circles. */
+    int font_size = 24;
     /** Optional variable name map. If non-empty, var numbers are replaced by names. */
     std::map<bddvar, std::string> var_name_map;
     /** Terminal node labels for MTBDD/MTZDD. Maps terminal bddp to display string. */
