@@ -248,8 +248,8 @@ static std::string mvdd_svg_generate_expanded(
 
     // Scale horizontal spacing for k-way
     int hscale = (k > 2) ? k / 2 + 1 : 1;
-    int canvas_w = (2 * node_radius + 1) * max_nodes * hscale
-                   + node_interval_x * (max_nodes + 1) * hscale;
+    // node_interval_x is the minimum gap between circles on the fullest level.
+    int canvas_w = (2 * node_radius + 1 + node_interval_x) * (max_nodes + 1) * hscale;
 
     std::map<size_t, Point> pos_map;
     int y = node_radius;

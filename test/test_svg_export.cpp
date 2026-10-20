@@ -7,6 +7,8 @@
 #include <sstream>
 #include <fstream>
 #include <cstdio>
+#include <cmath>
+#include <vector>
 
 using namespace kyotodd;
 
@@ -485,4 +487,83 @@ TEST_F(SvgExportTest, MVZDD_NullTable_Throws) {
     ZDD z = ZDD::singleton(v);
     MVZDD mv(std::shared_ptr<MVDDVarTable>(), z);
     EXPECT_THROW(mv.save_svg(), std::runtime_error);
+}
+
+// --- Horizontal node spacing: node_interval_x is the minimum gap ---
+
+// Collect (cx, cy, r) of every <circle> in the SVG body (markers in <defs>
+// are excluded because they have no cx/cy attributes with large values).
+static std::vector<std::vector<double>> svg_circles(const std::string& svg) {
+    std::vector<std::vector<double>> out;
+    size_t body = svg.find("</defs>");
+    size_t pos = (body == std::string::npos) ? 0 : body;
+    while ((pos = svg.find("<circle cx=\"", pos)) != std::string::npos) {
+        double cx, cy; int r;
+        if (std::sscanf(svg.c_str() + pos, "<circle cx=\"%lf\" cy=\"%lf\" r=\"%d\"", &cx, &cy, &r) == 3) {
+            out.push_back({cx, cy, static_cast<double>(r)});
+        }
+        pos += 8;
+    }
+    return out;
+}
+
+// Every pair of circles on the same level must be at least
+// 2 * node_radius + node_interval_x apart (center to center).
+static void expect_min_gap(const std::string& svg, int node_radius, int node_interval_x) {
+    auto cs = svg_circles(svg);
+    ASSERT_GE(cs.size(), 2u);
+    bool same_level_pair = false;
+    for (size_t i = 0; i < cs.size(); ++i) {
+        for (size_t j = i + 1; j < cs.size(); ++j) {
+            if (cs[i][1] != cs[j][1]) continue;
+            same_level_pair = true;
+            double dx = std::fabs(cs[i][0] - cs[j][0]);
+            EXPECT_GE(dx, 2 * node_radius + node_interval_x)
+                << "circles " << i << " and " << j << " on y=" << cs[i][1];
+        }
+    }
+    EXPECT_TRUE(same_level_pair);
+}
+
+TEST_F(SvgExportTest, ZDD_NodeSpacing_LargeRadiusSmallInterval) {
+    std::vector<bddvar> vs = bddnewvar(4);
+    ZDD z = ZDD::combination(4, 2);   // several nodes per level
+    SvgParams p;
+    p.node_radius = 30;
+    p.node_interval_x = 5;            // old formula produced overlapping circles here
+    expect_min_gap(z.save_svg(p), p.node_radius, p.node_interval_x);
+}
+
+TEST_F(SvgExportTest, BDD_NodeSpacing_DefaultParams) {
+    std::vector<bddvar> vs = bddnewvar(3);
+    BDD f = BDD::prime(vs[0]) ^ BDD::prime(vs[1]) ^ BDD::prime(vs[2]);
+    SvgParams p;
+    expect_min_gap(f.save_svg(p), p.node_radius, p.node_interval_x);
+}
+
+TEST_F(SvgExportTest, MTBDD_NodeSpacing_LargeRadiusSmallInterval) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    auto t0 = MTBDD<double>::terminal(0.0);
+    auto t1 = MTBDD<double>::terminal(1.5);
+    auto a = MTBDD<double>::ite(v1, t1, t0);
+    auto b = MTBDD<double>::ite(v1, t0, t1);
+    auto mt = MTBDD<double>::ite(v2, a, b);   // two nodes on the v1 level, two terminals
+    SvgParams p;
+    p.node_radius = 30;
+    p.node_interval_x = 5;
+    expect_min_gap(mt.save_svg(p), p.node_radius, p.node_interval_x);
+}
+
+TEST_F(SvgExportTest, MVBDD_NodeSpacing_LargeRadiusSmallInterval) {
+    MVBDD base(2);   // k = 2: no extra horizontal scaling
+    bddvar a = base.new_var();
+    bddvar b = base.new_var();
+    // Two distinct nodes on the level of b: value-dependent functions of b
+    auto f = (MVBDD::singleton(base, a, 0) & MVBDD::singleton(base, b, 1)) |
+             (MVBDD::singleton(base, a, 1) & MVBDD::singleton(base, b, 0));
+    SvgParams p;
+    p.node_radius = 30;
+    p.node_interval_x = 5;
+    expect_min_gap(f.save_svg(p), p.node_radius, p.node_interval_x);
 }

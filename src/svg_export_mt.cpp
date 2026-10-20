@@ -171,7 +171,8 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
     int node_w = 2 * node_radius + 1;
     int term_w = term_rect_w + 1;
     int elem_w = (node_w > term_w) ? node_w : term_w;
-    int canvas_w = elem_w * max_nodes + node_interval_x * (max_nodes + 1);
+    // node_interval_x is the minimum gap between elements on the fullest level.
+    int canvas_w = (elem_w + node_interval_x) * (max_nodes + 1);
 
     // Position internal nodes
     std::map<size_t, Point> pos_map;

@@ -705,7 +705,10 @@ private:
         }
         if (max_nodes < 2) max_nodes = 2;
 
-        node_x = (2 * node_radius + 1) * max_nodes + node_interval_x * (max_nodes + 1);
+        // Center-to-center spacing on the fullest level is exactly
+        // (2r + 1) + node_interval_x, so node_interval_x is the minimum
+        // horizontal gap between circles and nodes never overlap.
+        node_x = (2 * node_radius + 1 + node_interval_x) * (max_nodes + 1);
 
         // Iterate levels from root_level down to 1
         for (int level = root_level; level >= 1; --level) {
