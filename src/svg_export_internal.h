@@ -1252,16 +1252,16 @@ public:
         double vy = min_y - margin_y;
         double vw = max_x - min_x + 2 * margin_x;
         double vh = max_y - min_y + 2 * margin_y;
-        int w = static_cast<int>(vw);
-        int h = static_cast<int>(vh);
-        if (w < 10) w = 10;
-        if (h < 10) h = 10;
+        if (vw < 10) vw = 10;
+        if (vh < 10) vh = 10;
 
+        // width/height equal the viewBox size exactly (no integer truncation),
+        // so viewers render user units 1:1 without rescaling or letterboxing.
         std::string result;
         result += "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"";
-        result += std::to_string(w);
+        result += fmt_double(vw);
         result += "\" height=\"";
-        result += std::to_string(h);
+        result += fmt_double(vh);
         result += "\" viewBox=\"";
         result += fmt_double(vx) + " " + fmt_double(vy) + " " +
                   fmt_double(vw) + " " + fmt_double(vh);

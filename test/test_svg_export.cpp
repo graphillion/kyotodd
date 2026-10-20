@@ -567,3 +567,28 @@ TEST_F(SvgExportTest, MVBDD_NodeSpacing_LargeRadiusSmallInterval) {
     p.node_interval_x = 5;
     expect_min_gap(f.save_svg(p), p.node_radius, p.node_interval_x);
 }
+
+// --- width/height must equal the viewBox size exactly ---
+
+static void expect_size_matches_viewbox(const std::string& svg) {
+    double w, h, vx, vy, vw, vh;
+    size_t pos = svg.find("<svg ");
+    ASSERT_NE(pos, std::string::npos);
+    ASSERT_EQ(std::sscanf(svg.c_str() + pos,
+                          "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%lf\" height=\"%lf\" "
+                          "viewBox=\"%lf %lf %lf %lf\"", &w, &h, &vx, &vy, &vw, &vh), 6);
+    EXPECT_DOUBLE_EQ(w, vw);
+    EXPECT_DOUBLE_EQ(h, vh);
+}
+
+TEST_F(SvgExportTest, SizeMatchesViewBox_FractionalBounds) {
+    std::vector<bddvar> vs = bddnewvar(3);
+    BDD f = BDD::prime(vs[0]) ^ BDD::prime(vs[1]) ^ BDD::prime(vs[2]);
+    SvgParams p;
+    p.arc_width = 3;   // odd stroke width gives half-unit bounds (x.5)
+    std::string svg = f.save_svg(p);
+    EXPECT_NE(svg.find(".5 "), std::string::npos);   // the viewBox really is fractional
+    expect_size_matches_viewbox(svg);
+    expect_size_matches_viewbox(ZDD::combination(4, 2).save_svg(p));
+    expect_size_matches_viewbox(BDD(1).save_svg(p));
+}
