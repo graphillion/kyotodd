@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="122.5" height="963" viewBox="0 -21.5 122.5 963">
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="243" viewBox="14.5 -21.5 108 243">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
-    <circle cx="56" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="187" font-size="24" text-anchor="middle" fill="black">(2,1)</text>
-    <path d="M 46,197 L 46,204.5 Q 46,207 46.6685,236.993 L 60.3315,850.007 L 61,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,197 L 66,204.5 Q 66,207 65.7771,236.999 L 61.2229,850.001 L 61,880" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="56" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="56" y="105" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(2,1)</text>
+    <path d="M 46,117 L 46,124.5 Q 46,127 48,135.25 L 52,151.75 L 54,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,117 L 66,124.5 Q 66,127 64.5,135.25 L 61.5,151.75 L 60,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="27" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
-    <path d="M 46,37 L 46,44.5 Q 46,47 48.5,75.25 L 53.5,131.75 L 56,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,37 L 66,44.5 Q 66,47 74.75,50.25 L 92.25,56.75 Q 101,60 101,90 L 101,830 Q 101,860 91,865 L 71,875 L 61,880" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <rect x="46" y="880" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="61" y="907" font-size="24" text-anchor="middle" fill="black">1</text>
+    <text x="56" y="25" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(3,1)</text>
+    <path d="M 46,37 L 46,44.5 Q 46,47 47.75,55.5 L 51.25,72.5 L 53,81" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,37 L 66,54.25 Q 66,60 74.75,60 L 92.25,60 Q 101,60 101,80 L 101,120 Q 101,140 92.25,140 L 74.75,140 Q 66,140 66,145 L 66,155 L 66,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="41" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="56" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
 </svg>

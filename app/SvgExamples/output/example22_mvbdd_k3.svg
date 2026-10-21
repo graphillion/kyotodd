@@ -1,27 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="215" height="243" viewBox="60.5 -21.5 215 243">
+<svg xmlns="http://www.w3.org/2000/svg" width="215" height="243" viewBox="55.5 -21.5 215 243">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
     <circle cx="163" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="163" y="27" font-size="24" text-anchor="middle" fill="black">shape</text>
+    <text x="163" y="24" font-size="12" font-family="sans-serif" text-anchor="middle" fill="black">shape</text>
     <path d="M 168.91,39.1067 L 163,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="155.556" y="47.6135" font-size="16" text-anchor="middle" fill="#1b3966">0</text>
+    <text x="155.556" y="47.6135" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#1b3966">0</text>
     <path d="M 163,40 L 163,80" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="151" y="50" font-size="16" text-anchor="middle" fill="#c0392b">1</text>
-    <path d="M 165.859,39.7946 L 239,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="173.893" y="76.0836" font-size="16" text-anchor="middle" fill="#27ae60">2</text>
+    <text x="151" y="50" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#c0392b">1</text>
+    <path d="M 165.347,39.8618 L 234,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="172.092" y="75.8501" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#27ae60">2</text>
     <circle cx="163" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="163" y="107" font-size="24" text-anchor="middle" fill="black">color</text>
-    <path d="M 155.4,118.5 L 97,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="133.849" y="119.093" font-size="16" text-anchor="middle" fill="#1b3966">0</text>
-    <path d="M 176.775,114.5 L 239,160" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="185.248" y="135.562" font-size="16" text-anchor="middle" fill="#c0392b">1</text>
-    <path d="M 146.282,110.977 L 97,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
-    <text x="125.498" y="114.725" font-size="16" text-anchor="middle" fill="#27ae60">2</text>
-    <rect x="82" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="97" y="187" font-size="24" text-anchor="middle" fill="black">0</text>
-    <rect x="224" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="239" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
+    <text x="163" y="104" font-size="13" font-family="sans-serif" text-anchor="middle" fill="black">color</text>
+    <path d="M 154.738,118.214 L 92,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="132.401" y="118.673" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#1b3966">0</text>
+    <path d="M 176.276,114.958 L 234,160" fill="none" stroke="#c0392b" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="183.325" y="135.68" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#c0392b">1</text>
+    <path d="M 145.897,110.367 L 92,160" fill="none" stroke="#27ae60" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="124.294" y="113.948" font-size="16" font-family="sans-serif" text-anchor="middle" fill="#27ae60">2</text>
+    <rect x="77" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">0</text>
+    <rect x="219" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="234" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
 </svg>

@@ -5,27 +5,27 @@
     </marker>
 </defs>
     <circle cx="21" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
-    <path d="M 11,197 L 11,204.5 Q 11,207 14.75,215.25 L 22.25,231.75 L 26,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,197 L 97,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
+    <path d="M 11,197 L 11,204.5 Q 11,207 13.25,215.25 L 17.75,231.75 L 20,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,197 L 88,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
-    <path d="M 82,197 L 82,204.5 Q 82,207 85.75,215.25 L 93.25,231.75 L 97,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,197 L 102,204.5 Q 102,207 83,215.25 L 45,231.75 L 26,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
+    <path d="M 82,197 L 82,204.5 Q 82,207 85,215.25 L 91,231.75 L 94,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,197 L 102,214.25 Q 102,220 83,220 L 45,220 Q 26,220 26,225 L 26,235 L 26,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="21" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="107" font-size="24" text-anchor="middle" fill="black">2</text>
-    <path d="M 11,117 L 11,124.5 Q 11,127 11.25,136 L 11.75,154 L 12,163" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,117 L 83,163" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="107" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">2</text>
+    <path d="M 11,117 L 11,124.5 Q 11,127 12.75,135.5 L 16.25,152.5 L 18,161" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,117 L 79,166" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="107" font-size="24" text-anchor="middle" fill="black">2</text>
-    <path d="M 82,117 L 82,124.5 Q 82,127 87,136 L 97,154 L 102,163" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,117 L 102,124.5 Q 102,127 84.25,136 L 48.75,154 L 31,163" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="107" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">2</text>
+    <path d="M 82,117 L 82,124.5 Q 82,127 83.75,135.5 L 87.25,152.5 L 89,161" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,117 L 102,124.5 Q 102,127 85.5,137.25 L 52.5,157.75 L 36,168" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="27" font-size="24" text-anchor="middle" fill="black">3</text>
-    <path d="M 46,37 L 21,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,37 L 92,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <rect x="11" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="26" y="267" font-size="24" text-anchor="middle" fill="black">0</text>
-    <rect x="82" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="97" y="267" font-size="24" text-anchor="middle" fill="black">1</text>
+    <text x="56" y="27" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">3</text>
+    <path d="M 46,37 L 28,82" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,37 L 85,82" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="6" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="21" y="267" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">0</text>
+    <rect x="77" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="267" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
 </svg>

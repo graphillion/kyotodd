@@ -1,21 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="215" height="243" viewBox="-10.5 -21.5 215 243">
+<svg xmlns="http://www.w3.org/2000/svg" width="215" height="243" viewBox="-15.5 -21.5 215 243">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
     <circle cx="92" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="107" font-size="24" text-anchor="middle" fill="black">x</text>
-    <path d="M 93.2476,119.961 L 97,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 105.775,114.5 L 168,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="107" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">x</text>
+    <path d="M 92,120 L 92,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 105.276,114.958 L 163,160" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="27" font-size="24" text-anchor="middle" fill="black">y</text>
-    <path d="M 84.3734,38.4888 L 26,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <text x="92" y="27" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">y</text>
+    <path d="M 83.8878,38.2809 L 21,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
     <path d="M 92,40 L 92,80" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <rect x="11" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="26" y="187" font-size="24" text-anchor="middle" fill="black">0</text>
-    <rect x="82" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="97" y="187" font-size="24" text-anchor="middle" fill="black">1</text>
-    <rect x="153" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="168" y="187" font-size="24" text-anchor="middle" fill="black">5</text>
+    <rect x="6" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="21" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">0</text>
+    <rect x="77" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
+    <rect x="148" y="160" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="163" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">5</text>
 </svg>

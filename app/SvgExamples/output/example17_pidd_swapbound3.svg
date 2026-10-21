@@ -1,69 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="193.5" height="1523" viewBox="-35 -21.5 193.5 1523">
+<svg xmlns="http://www.w3.org/2000/svg" width="186" height="883" viewBox="-20.5 -21.5 186 883">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
-    <circle cx="56" cy="980" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="987" font-size="24" text-anchor="middle" fill="black">(2,1)</text>
-    <path d="M 46,997 L 46,1004.5 Q 46,1007 47.0386,1036.98 L 59.9614,1410.02 L 61,1440" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,997 L 66,1004.5 Q 66,1007 65.6536,1037 L 61.3464,1410 L 61,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <circle cx="21" cy="900" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="907" font-size="24" text-anchor="middle" fill="black">(3,2)</text>
-    <path d="M 11,917 L 11,924.5 Q 11,927 21.5,935.5 L 42.5,952.5 L 53,961" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,917 L 59,961" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <circle cx="92" cy="900" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="907" font-size="24" text-anchor="middle" fill="black">(3,2)</text>
-    <path d="M 82,917 L 66,963" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,917 L 102,924.5 Q 102,927 99.61,956.905 L 63.39,1410.1 L 61,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <circle cx="21" cy="820" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="827" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
-    <path d="M 11,837 L 11,844.5 Q 11,847 13.5,855.25 L 18.5,871.75 L 21,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,837 L 50.5,854.25 Q 57,860 57,880 L 57,920 Q 57,940 54.5,945.75 L 49.5,957.25 L 47,963" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <circle cx="92" cy="820" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="827" font-size="24" text-anchor="middle" fill="black">(3,1)</text>
-    <path d="M 82,837 L 82,844.5 Q 82,847 84.5,855.25 L 89.5,871.75 L 92,880" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,837 L 102,844.5 Q 102,847 110.75,850.25 L 128.25,856.75 Q 137,860 137,890 L 137,1390 Q 137,1420 118,1425 L 80,1435 L 61,1440" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="56" cy="740" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="56" y="745" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(2,1)</text>
+    <path d="M 46,757 L 46,764.5 Q 46,767 46.5,775.25 L 47.5,791.75 L 48,800" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,757 L 66,764.5 Q 66,767 63,775.25 L 57,791.75 L 54,800" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="21" cy="660" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="21" y="665" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(3,2)</text>
+    <path d="M 11,677 L 11,684.5 Q 11,687 19.5,696.25 L 36.5,714.75 L 45,724" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,677 L 51,721" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="92" cy="660" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="665" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(3,2)</text>
+    <path d="M 82,677 L 64,722" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,677 L 102,694.25 Q 102,700 110.75,700 L 128.25,700 Q 137,700 137,719.25 L 137,757.75 Q 137,777 119.25,777 L 83.75,777 Q 66,777 66,782.75 L 66,794.25 L 66,800" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="21" cy="580" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="21" y="585" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(3,1)</text>
+    <path d="M 11,597 L 11,604.5 Q 11,607 12.75,615.5 L 16.25,632.5 L 18,641" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,597 L 31,614.25 Q 31,620 37.5,620 L 50.5,620 Q 57,620 57,640 L 57,680 Q 57,700 57,705.25 L 57,715.75 L 57,721" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <circle cx="92" cy="580" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="585" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(3,1)</text>
+    <path d="M 82,597 L 82,604.5 Q 82,607 83.75,615.5 L 87.25,632.5 L 89,641" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,597 L 102,614.25 Q 102,620 112.5,620 L 133.5,620 Q 144,620 144,650 L 144,754 Q 144,784 123,784 L 81,784 Q 60,784 60,788 L 60,796 L 60,800" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="21" cy="500" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="507" font-size="24" text-anchor="middle" fill="black">(4,3)</text>
-    <path d="M 11,517 L 11,524.5 Q 11,527 12.0982,556.98 L 19.9018,770.02 L 21,800" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,517 L 31,524.5 Q 31,527 30.4526,556.995 L 26.5474,771.005 L 26,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="505" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,3)</text>
+    <path d="M 11,517 L 11,524.5 Q 11,527 12,535.75 L 14,553.25 L 15,562" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,517 L 33,565" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="500" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="507" font-size="24" text-anchor="middle" fill="black">(4,3)</text>
-    <path d="M 82,517 L 30,803" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,517 L 102,524.5 Q 102,527 101.891,557 L 101.109,773 L 101,803" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="505" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,3)</text>
+    <path d="M 82,517 L 38,571" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,517 L 105,566" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="21" cy="420" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="427" font-size="24" text-anchor="middle" fill="black">(4,2)</text>
-    <path d="M 11,437 L 11,444.5 Q 11,447 13.5,455.25 L 18.5,471.75 L 21,480" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,437 L 31,444.5 Q 31,447 37.5,450.25 L 50.5,456.75 Q 57,460 57,480 L 57,520 Q 57,540 52.3444,569.637 L 20.6556,771.363 L 16,801" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="425" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,2)</text>
+    <path d="M 11,437 L 11,444.5 Q 11,447 12.75,455.5 L 16.25,472.5 L 18,481" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,437 L 31,454.25 Q 31,460 36.5,460 L 47.5,460 Q 53,460 53,479.25 L 53,517.75 Q 53,537 46.5,537 L 33.5,537 Q 27,537 27,543.25 L 27,555.75 L 27,562" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="420" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="427" font-size="24" text-anchor="middle" fill="black">(4,2)</text>
-    <path d="M 82,437 L 82,444.5 Q 82,447 84.5,455.25 L 89.5,471.75 L 92,480" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,437 L 102,444.5 Q 102,447 109.5,450.25 L 124.5,456.75 Q 132,460 132,480 L 132,520 Q 132,540 127.438,569.651 L 96.5617,770.349 L 92,800" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="425" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,2)</text>
+    <path d="M 82,437 L 82,444.5 Q 82,447 83.75,455.5 L 87.25,472.5 L 89,481" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,437 L 102,454.25 Q 102,460 108.5,460 L 121.5,460 Q 128,460 128,479.25 L 128,517.75 Q 128,537 120.75,537 L 106.25,537 Q 99,537 99,543.25 L 99,555.75 L 99,562" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="21" cy="340" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="347" font-size="24" text-anchor="middle" fill="black">(4,1)</text>
-    <path d="M 11,357 L 11,364.5 Q 11,367 13.5,375.25 L 18.5,391.75 L 21,400" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,357 L 31,364.5 Q 31,367 37.5,370.25 L 50.5,376.75 Q 57,380 57,400 L 57,440 Q 57,460 58,460 L 60,460 Q 61,460 61,480 L 61,520 Q 61,540 55.5052,569.492 L 17.4948,773.508 L 12,803" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="345" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,1)</text>
+    <path d="M 11,357 L 11,364.5 Q 11,367 12.75,375.5 L 16.25,392.5 L 18,401" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,357 L 31,374.25 Q 31,380 37.5,380 L 50.5,380 Q 57,380 57,400 L 57,440 Q 57,460 58,460 L 60,460 Q 61,460 61,481 L 61,523 Q 61,544 51,544 L 31,544 Q 21,544 21,548 L 21,556 L 21,560" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="340" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="347" font-size="24" text-anchor="middle" fill="black">(4,1)</text>
-    <path d="M 82,357 L 82,364.5 Q 82,367 84.5,375.25 L 89.5,391.75 L 92,400" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,357 L 102,364.5 Q 102,367 109.5,370.25 L 124.5,376.75 Q 132,380 132,400 L 132,440 Q 132,460 133,460 L 135,460 Q 136,460 136,480 L 136,520 Q 136,540 130.074,569.409 L 88.9265,773.591 L 83,803" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="345" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(4,1)</text>
+    <path d="M 82,357 L 82,364.5 Q 82,367 83.75,375.5 L 87.25,392.5 L 89,401" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,357 L 102,374.25 Q 102,380 109.5,380 L 124.5,380 Q 132,380 132,400 L 132,440 Q 132,460 133,460 L 135,460 Q 136,460 136,481 L 136,523 Q 136,544 125,544 L 103,544 Q 92,544 92,548.25 L 92,556.75 L 92,561" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="260" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="267" font-size="24" text-anchor="middle" fill="black">(5,4)</text>
-    <path d="M 46,277 L 21,320" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,277 L 102,323" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="56" y="265" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(5,4)</text>
+    <path d="M 46,277 L 28,322" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,277 L 85,322" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="187" font-size="24" text-anchor="middle" fill="black">(5,3)</text>
-    <path d="M 46,197 L 46,204.5 Q 46,207 48.5,215.25 L 53.5,231.75 L 56,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,197 L 95,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="56" y="185" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(5,3)</text>
+    <path d="M 46,197 L 46,204.5 Q 46,207 47.75,215.5 L 51.25,232.5 L 53,241" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,197 L 66,217.25 Q 66,224 71.75,224 L 83.25,224 Q 89,224 89,244 L 89,284 Q 89,304 89.75,304 L 91.25,304 Q 92,304 92,308.25 L 92,316.75 L 92,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="107" font-size="24" text-anchor="middle" fill="black">(5,2)</text>
-    <path d="M 46,117 L 46,124.5 Q 46,127 48.5,135.25 L 53.5,151.75 L 56,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,117 L 88.5,134.25 Q 96,140 96,160 L 96,200 Q 96,220 97,220 L 99,220 Q 100,220 100,240 L 100,280 Q 100,300 97.25,305.25 L 91.75,315.75 L 89,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="56" y="105" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(5,2)</text>
+    <path d="M 46,117 L 46,124.5 Q 46,127 47.75,135.5 L 51.25,152.5 L 53,161" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,117 L 66,134.25 Q 66,140 72.5,140 L 85.5,140 Q 92,140 92,161 L 92,203 Q 92,224 94.75,224 L 100.25,224 Q 103,224 103,242.25 L 103,278.75 Q 103,297 101.75,297 L 99.25,297 Q 98,297 98,303 L 98,315 L 98,321" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="27" font-size="24" text-anchor="middle" fill="black">(5,1)</text>
-    <path d="M 46,37 L 46,44.5 Q 46,47 48.5,55.25 L 53.5,71.75 L 56,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,37 L 88.5,54.25 Q 96,60 96,80 L 96,120 Q 96,140 97,140 L 99,140 Q 100,140 100,160 L 100,200 Q 100,220 99,220 L 97,220 Q 96,220 96,240 L 96,280 Q 96,300 92.75,305.75 L 86.25,317.25 L 83,323" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <rect x="46" y="1440" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="61" y="1467" font-size="24" text-anchor="middle" fill="black">1</text>
+    <text x="56" y="25" font-size="15" font-family="sans-serif" text-anchor="middle" fill="black">(5,1)</text>
+    <path d="M 46,37 L 46,44.5 Q 46,47 47.75,55.5 L 51.25,72.5 L 53,81" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,37 L 66,54.25 Q 66,60 73.5,60 L 88.5,60 Q 96,60 96,80 L 96,120 Q 96,140 97,140 L 99,140 Q 100,140 100,159.25 L 100,197.75 Q 100,217 99,217 L 97,217 Q 96,217 96,238.75 L 96,282.25 Q 96,304 98,304 L 102,304 Q 104,304 104,309.25 L 104,319.75 L 104,325" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="41" y="800" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="56" y="827" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
 </svg>

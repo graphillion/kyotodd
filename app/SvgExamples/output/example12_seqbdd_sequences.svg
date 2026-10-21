@@ -1,27 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="179" height="323" viewBox="-20.5 -21.5 179 323">
+<svg xmlns="http://www.w3.org/2000/svg" width="186" height="323" viewBox="-20.5 -21.5 186 323">
 <defs>
     <marker id="arrow" viewBox="-10 -4 20 8" markerWidth="10" markerHeight="10" orient="auto">
         <polygon points="-10,-4 0,0 -10,4" fill="#1b3966" stroke="none" />
     </marker>
 </defs>
     <circle cx="56" cy="180" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="187" font-size="24" text-anchor="middle" fill="black">a</text>
+    <text x="56" y="187" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">a</text>
     <path d="M 46,197 L 26,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,197 L 66,204.5 Q 66,207 64.5524,177.035 L 57.4476,29.9651 L 56,0" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <path d="M 66,197 L 73,11" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="21" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="21" y="107" font-size="24" text-anchor="middle" fill="black">b</text>
-    <path d="M 11,117 L 11,124.5 Q 11,127 14.75,155.25 L 22.25,211.75 L 26,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 31,117 L 83.5,134.25 Q 101,140 101,160 L 101,200 Q 101,220 100,225 L 98,235 L 97,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="21" y="107" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">b</text>
+    <path d="M 11,117 L 11,124.5 Q 11,127 13.25,155.25 L 17.75,211.75 L 20,240" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 31,117 L 31,134.25 Q 31,140 57.5,140 L 110.5,140 Q 137,140 137,159.25 L 137,197.75 Q 137,217 126.75,217 L 106.25,217 Q 96,217 96,222.75 L 96,234.25 L 96,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="92" cy="100" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="92" y="107" font-size="24" text-anchor="middle" fill="black">b</text>
-    <path d="M 82,117 L 56,160" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 102,117 L 102,124.5 Q 102,127 100.75,155.25 L 98.25,211.75 L 97,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <text x="92" y="107" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">b</text>
+    <path d="M 82,117 L 63,162" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 102,117 L 102,124.5 Q 102,127 99,155.25 L 93,211.75 L 90,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
     <circle cx="56" cy="20" r="20" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="56" y="27" font-size="24" text-anchor="middle" fill="black">c</text>
-    <path d="M 46,37 L 21,80" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
-    <path d="M 66,37 L 119.25,54.25 Q 137,60 137,90 L 137,190 Q 137,220 127,225 L 107,235 L 97,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
-    <rect x="11" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="26" y="267" font-size="24" text-anchor="middle" fill="black">0</text>
-    <rect x="82" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
-    <text x="97" y="267" font-size="24" text-anchor="middle" fill="black">1</text>
+    <text x="56" y="27" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">c</text>
+    <path d="M 46,37 L 28,82" fill="none" stroke="#1b3966" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrow)" />
+    <path d="M 66,37 L 66,54.25 Q 66,60 85.5,60 L 124.5,60 Q 144,60 144,90 L 144,194 Q 144,224 133.5,224 L 112.5,224 Q 102,224 102,228 L 102,236 L 102,240" fill="none" stroke="#1b3966" stroke-width="3" marker-end="url(#arrow)" />
+    <rect x="6" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="21" y="267" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">0</text>
+    <rect x="77" y="240" width="30" height="40" fill="#deebf7" stroke="#1b3966" stroke-width="3" />
+    <text x="92" y="267" font-size="24" font-family="sans-serif" text-anchor="middle" fill="black">1</text>
 </svg>
