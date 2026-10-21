@@ -132,12 +132,24 @@ bddp bddor(bddp f, bddp g) {
     return bddnot(bddand(bddnot(f), bddnot(g)));
 }
 
+bddp bddor(bddp f, bddp g, BddExecMode mode) {
+    return bddnot(bddand(bddnot(f), bddnot(g), mode));
+}
+
 bddp bddnand(bddp f, bddp g) {
     return bddnot(bddand(f, g));
 }
 
+bddp bddnand(bddp f, bddp g, BddExecMode mode) {
+    return bddnot(bddand(f, g, mode));
+}
+
 bddp bddnor(bddp f, bddp g) {
     return bddand(bddnot(f), bddnot(g));
+}
+
+bddp bddnor(bddp f, bddp g, BddExecMode mode) {
+    return bddand(bddnot(f), bddnot(g), mode);
 }
 
 static bddp bddxor_rec(bddp f, bddp g);
@@ -255,6 +267,10 @@ static bddp bddxor_rec(bddp f, bddp g) {
 
 bddp bddxnor(bddp f, bddp g) {
     return bddnot(bddxor(f, g));
+}
+
+bddp bddxnor(bddp f, bddp g, BddExecMode mode) {
+    return bddnot(bddxor(f, g, mode));
 }
 
 static bddp bddite_rec(bddp f, bddp g, bddp h);
@@ -828,6 +844,10 @@ bddp bddexistvar(bddp f, bddvar v) {
     return bddexist(f, bddprime(v));
 }
 
+bddp bddexistvar(bddp f, bddvar v, BddExecMode mode) {
+    return bddexist(f, bddprime(v), mode);
+}
+
 static bddp bdduniv_rec(bddp f, bddp g);
 
 bddp bdduniv(bddp f, bddp g) {
@@ -944,6 +964,10 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
 
 bddp bddunivvar(bddp f, bddvar v) {
     return bdduniv(f, bddprime(v));
+}
+
+bddp bddunivvar(bddp f, bddvar v, BddExecMode mode) {
+    return bdduniv(f, bddprime(v), mode);
 }
 
 bddp bddlshiftb(bddp f, bddvar shift) {

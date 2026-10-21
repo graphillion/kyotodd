@@ -60,6 +60,13 @@ bddp bddand_iter(bddp f, bddp g);
 bddp bddor(bddp f, bddp g);
 
 /**
+ * @brief Logical OR of two BDDs with execution mode selection.
+ *
+ * Thin wrapper over bddand(); @p mode is forwarded to it.
+ */
+bddp bddor(bddp f, bddp g, BddExecMode mode);
+
+/**
  * @brief Logical XOR of two BDDs.
  * @param f First operand.
  * @param g Second operand.
@@ -99,6 +106,13 @@ bddp bddxor_iter(bddp f, bddp g);
 bddp bddnand(bddp f, bddp g);
 
 /**
+ * @brief Logical NAND of two BDDs with execution mode selection.
+ *
+ * Thin wrapper over bddand(); @p mode is forwarded to it.
+ */
+bddp bddnand(bddp f, bddp g, BddExecMode mode);
+
+/**
  * @brief Logical NOR of two BDDs.
  * @param f First operand.
  * @param g Second operand.
@@ -107,12 +121,26 @@ bddp bddnand(bddp f, bddp g);
 bddp bddnor(bddp f, bddp g);
 
 /**
+ * @brief Logical NOR of two BDDs with execution mode selection.
+ *
+ * Thin wrapper over bddand(); @p mode is forwarded to it.
+ */
+bddp bddnor(bddp f, bddp g, BddExecMode mode);
+
+/**
  * @brief Logical XNOR of two BDDs.
  * @param f First operand.
  * @param g Second operand.
  * @return The BDD for NOT(f XOR g), i.e. f ↔ g.
  */
 bddp bddxnor(bddp f, bddp g);
+
+/**
+ * @brief Logical XNOR of two BDDs with execution mode selection.
+ *
+ * Thin wrapper over bddxor(); @p mode is forwarded to it.
+ */
+bddp bddxnor(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Cofactor: restrict variable @p v to 0.
@@ -258,6 +286,13 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars, BddExecMode mode);
 bddp bddexistvar(bddp f, bddvar v);
 
 /**
+ * @brief Existential quantification of a single variable with execution mode selection.
+ *
+ * Thin wrapper over bddexist(); @p mode is forwarded to it.
+ */
+bddp bddexistvar(bddp f, bddvar v, BddExecMode mode);
+
+/**
  * @brief Universal quantification by a variable-set BDD.
  *
  * Eliminates the variables in @p g from @p f by computing
@@ -302,6 +337,13 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars, BddExecMode mode);
  * @return The resulting BDD.
  */
 bddp bddunivvar(bddp f, bddvar v);
+
+/**
+ * @brief Universal quantification of a single variable with execution mode selection.
+ *
+ * Thin wrapper over bdduniv(); @p mode is forwarded to it.
+ */
+bddp bddunivvar(bddp f, bddvar v, BddExecMode mode);
 
 /**
  * @brief BDD left shift: rename variable i to variable i+shift for all variables.

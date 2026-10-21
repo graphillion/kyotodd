@@ -1371,6 +1371,30 @@ TEST_F(BddExistVectorDeepTest, VectorFormHonoursExecMode) {
     EXPECT_EQ(u, BDD_ID(bdduniv(f.id(), vars3(), BDD_EXEC_AUTO)));
 }
 
+TEST_F(BddExistVectorDeepTest, ThinWrappersHonourExecMode) {
+    // Deep operands: forced Recursive mode must propagate the recursion
+    // limit failure through every thin wrapper; Iterative must succeed.
+    // g is the parity of all variables, so both cofactors stay non-terminal
+    // at every level and the binary operations really recurse to the bottom
+    // (AND-ing the chain with a single literal would stop at the root).
+    BDD f = build_chain();
+    BDD g(0);
+    for (int i = 1; i <= kDepth; ++i) g ^= BDD::prime(static_cast<bddvar>(i));
+    EXPECT_THROW(bddor(f.id(), g.id(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddnand(f.id(), g.id(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddnor(f.id(), g.id(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddxnor(f.id(), g.id(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddexistvar(f.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddunivvar(f.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+
+    EXPECT_EQ(BDD_ID(bddor(f.id(), g.id(), BDD_EXEC_ITERATIVE)), f | g);
+    EXPECT_EQ(BDD_ID(bddnand(f.id(), g.id(), BDD_EXEC_ITERATIVE)), ~(f & g));
+    EXPECT_EQ(BDD_ID(bddnor(f.id(), g.id(), BDD_EXEC_ITERATIVE)), ~(f | g));
+    EXPECT_EQ(BDD_ID(bddxnor(f.id(), g.id(), BDD_EXEC_ITERATIVE)), ~(f ^ g));
+    EXPECT_EQ(BDD_ID(bddexistvar(f.id(), 1, BDD_EXEC_ITERATIVE)), f.exist(1));
+    EXPECT_EQ(BDD_ID(bddunivvar(f.id(), 1, BDD_EXEC_ITERATIVE)), f.univ(1));
+}
+
 TEST_F(BddExistVectorDeepTest, ClassVectorMatchesCube) {
     BDD f = build_chain();
     BDD cube = cube3();

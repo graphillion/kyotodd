@@ -543,6 +543,33 @@ TEST_P(BddAndModeTest, WithNot) {
     EXPECT_EQ(bddand_mode(bddnot(p1), bddnot(p1)), bddnot(p1));
 }
 
+TEST_P(BddAndModeTest, DerivedWrappersForwardMode) {
+    // bddor / bddnand / bddnor forward the mode to bddand; bddxnor to bddxor.
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    bddp g = bddfalse;
+    for (int i = 1; i <= n; ++i) {
+        f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+        g = bddor(g, bddand(bddprime(i), bddnot(bddprime(((i % n) + 1)))));
+    }
+    BddExecMode m = GetParam();
+    EXPECT_EQ(bddor(f, g, m), bddor(f, g));
+    EXPECT_EQ(bddor(f, g, m), bddnot(bddand(bddnot(f), bddnot(g))));
+    EXPECT_EQ(bddnand(f, g, m), bddnand(f, g));
+    EXPECT_EQ(bddnand(f, g, m), bddnot(bddand(f, g)));
+    EXPECT_EQ(bddnor(f, g, m), bddnor(f, g));
+    EXPECT_EQ(bddnor(f, g, m), bddnot(bddor(f, g)));
+    EXPECT_EQ(bddxnor(f, g, m), bddxnor(f, g));
+    EXPECT_EQ(bddxnor(f, g, m), bddnot(bddxor(f, g)));
+    // Terminals and null propagate as in the no-mode form.
+    EXPECT_EQ(bddor(bddfalse, f, m), f);
+    EXPECT_EQ(bddnor(bddfalse, bddfalse, m), bddtrue);
+    EXPECT_EQ(bddnand(bddtrue, bddtrue, m), bddfalse);
+    EXPECT_EQ(bddxnor(f, f, m), bddtrue);
+    EXPECT_EQ(bddor(bddnull, f, m), bddnull);
+}
+
 TEST_P(BddAndModeTest, CrossValidation) {
     // Build a moderately complex BDD and verify both modes produce the same result
     const int n = 10;
@@ -989,6 +1016,17 @@ TEST_P(BddExistModeTest, CrossValidation) {
     }
 }
 
+TEST_P(BddExistModeTest, SingleVarFormForwardsMode) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (bddvar v = 1; v <= n; ++v) {
+        EXPECT_EQ(bddexistvar(f, v, GetParam()), bddexistvar(f, v));
+        EXPECT_EQ(bddexistvar(f, v, GetParam()), bddexist_mode(f, bddprime(v)));
+    }
+}
+
 TEST_P(BddExistModeTest, VectorFormMatchesCube) {
     const int n = 6;
     for (int i = 0; i < n; ++i) BDD_NewVar();
@@ -1070,6 +1108,17 @@ TEST_P(BddUnivModeTest, CrossValidation) {
     for (bddvar v = 1; v <= n; ++v) {
         bddp g = bddprime(v);
         EXPECT_EQ(bdduniv_mode(f, g), bdduniv(f, g));
+    }
+}
+
+TEST_P(BddUnivModeTest, SingleVarFormForwardsMode) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    for (bddvar v = 1; v <= n; ++v) {
+        EXPECT_EQ(bddunivvar(f, v, GetParam()), bddunivvar(f, v));
+        EXPECT_EQ(bddunivvar(f, v, GetParam()), bdduniv_mode(f, bddprime(v)));
     }
 }
 
