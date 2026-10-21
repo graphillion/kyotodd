@@ -1028,9 +1028,14 @@ private:
                     arc_pos.push_back(Point(adjusted_x,
                         level_y_map[lev] - (node_radius + node_interval_y / 2)));
                     // Find lev-1 in level_y_map; if not present, use closest
-                    auto lym = level_y_map.find(lev - 1);
+                    // drawn level below lev (lev-1 is absent when
+                    // skip_unused_levels drops it). Level 0 (terminals) is
+                    // always present, so the lane always reaches the next
+                    // drawn row instead of collapsing to zero length.
+                    auto lym = level_y_map.lower_bound(lev);
                     int y_below;
-                    if (lym != level_y_map.end()) {
+                    if (lym != level_y_map.begin()) {
+                        --lym;
                         y_below = lym->second;
                     } else {
                         y_below = level_y_map[lev]; // fallback
@@ -1164,11 +1169,23 @@ public:
     // --- emit_smooth_path ---
     // Implements draw_smooth_line from mysvg.py:
     // M -> L (interpolated) -> Q (bezier) -> L -> ... -> L (end)
-    void emit_smooth_path(const std::vector<Point>& points,
+    void emit_smooth_path(const std::vector<Point>& points_in,
                           const char* stroke, int stroke_width,
                           const char* dash, const char* marker_end,
                           const char* marker_start = NULL)
     {
+        // Drop consecutive duplicate waypoints: a repeated point would turn
+        // into zero-length L/Q commands, which some renderers draw as a
+        // small hook at the corner.
+        std::vector<Point> points;
+        points.reserve(points_in.size());
+        for (size_t i = 0; i < points_in.size(); ++i) {
+            if (points.empty() ||
+                std::fabs(points.back().first - points_in[i].first) > 1e-9 ||
+                std::fabs(points.back().second - points_in[i].second) > 1e-9) {
+                points.push_back(points_in[i]);
+            }
+        }
         if (points.size() < 2) return;
 
         std::string d;
