@@ -825,6 +825,13 @@ bddp bddproject_iter(bddp f, const std::vector<bddvar>& vars);
 bddp bddcoalesce(bddp f, bddvar v1, bddvar v2);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddcoalesce(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
+
+/**
  * @brief Check if the empty set (∅) is a member of a ZDD family.
  *
  * Returns true if ∅ ∈ F, i.e. the family represented by @p f
@@ -880,6 +887,13 @@ bool bddissubset_iter(bddp f, bddp g);
  * @return A ZDD node ID representing {{union of all sets}}.
  */
 bddp bddflatten(bddp f);
+
+/**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddflatten(bddp f, BddExecMode mode);
 
 /**
  * @brief Filter to sets of exactly k elements.
@@ -1104,6 +1118,13 @@ int bddispoly(bddp f);
 bddp bddswapz(bddp f, bddvar v1, bddvar v2);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddswapz(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
+
+/**
  * @brief Check if v1 implies v2 in a ZDD family.
  * @param f A ZDD node ID.
  * @param v1 First variable number.
@@ -1180,6 +1201,13 @@ int bddsymchk_iter(bddp f, bddvar v1, bddvar v2);
 bddp bddimplyset(bddp f, bddvar v);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddimplyset(bddp f, bddvar v, BddExecMode mode);
+
+/**
  * @brief Find all symmetry groups (size ≥ 2) in a ZDD family.
  * @param f A ZDD node ID.
  * @return A ZDD family where each set is a symmetry group.
@@ -1187,11 +1215,25 @@ bddp bddimplyset(bddp f, bddvar v);
 bddp bddsymgrp(bddp f);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddsymgrp(bddp f, BddExecMode mode);
+
+/**
  * @brief Find all symmetry groups (naive method, includes size 1).
  * @param f A ZDD node ID.
  * @return A ZDD family where each set is a symmetry group.
  */
 bddp bddsymgrpnaive(bddp f);
+
+/**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddsymgrpnaive(bddp f, BddExecMode mode);
 
 /**
  * @brief Find all variables symmetric with v in a ZDD family.
@@ -1237,6 +1279,13 @@ bddp bddcoimplyset_iter(bddp f0, bddp f1);
  * @return A ZDD representing a divisor, or bddsingle if f is monomial.
  */
 bddp bdddivisor(bddp f);
+
+/**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bdddivisor(bddp f, BddExecMode mode);
 
 /**
  * @brief Compute the total weight sum over all sets in a ZDD family.
@@ -1550,6 +1599,15 @@ bddp bddgetklightest(bddp f, int64_t k,
                       const std::vector<int>& weights, int strict);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddgetklightest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict,
+                      BddExecMode mode);
+
+/**
  * @brief Return the k lightest sets from a ZDD family (BigInt).
  *
  * @param f A ZDD node ID.
@@ -1561,6 +1619,15 @@ bddp bddgetklightest(bddp f, int64_t k,
  */
 bddp bddgetklightest(bddp f, const bigint::BigInt& k,
                       const std::vector<int>& weights, int strict);
+
+/**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddgetklightest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict,
+                      BddExecMode mode);
 
 /**
  * @brief Return the k heaviest sets from a ZDD family (int64_t).
@@ -1578,6 +1645,15 @@ bddp bddgetkheaviest(bddp f, int64_t k,
                       const std::vector<int>& weights, int strict);
 
 /**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddgetkheaviest(bddp f, int64_t k,
+                      const std::vector<int>& weights, int strict,
+                      BddExecMode mode);
+
+/**
  * @brief Return the k heaviest sets from a ZDD family (BigInt).
  *
  * @param f A ZDD node ID.
@@ -1589,6 +1665,15 @@ bddp bddgetkheaviest(bddp f, int64_t k,
  */
 bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
                       const std::vector<int>& weights, int strict);
+
+/**
+ * @brief Same as above with execution mode selection.
+ *
+ * Composite operation: @p mode is forwarded to every underlying operation.
+ */
+bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
+                      const std::vector<int>& weights, int strict,
+                      BddExecMode mode);
 
 /** @brief LCM algorithm (all frequent itemsets). */
 ZDD ZDD_LCM_A(char* filename, int threshold);

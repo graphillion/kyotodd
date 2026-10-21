@@ -324,6 +324,10 @@ std::vector<bigint::BigInt> bddelmfreq(bddp f, BddExecMode mode) {
 }
 
 bddp bddflatten(bddp f) {
+    return bddflatten(f, BddExecMode::Auto);
+}
+
+bddp bddflatten(bddp f, BddExecMode mode) {
     bddp_validate(f, "bddflatten");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
@@ -332,13 +336,17 @@ bddp bddflatten(bddp f) {
     return bdd_gc_guard([&]() -> bddp {
         bddp result = bddsingle;
         for (bddvar v : vars) {
-            result = bddchange(result, v);
+            result = bddchange(result, v, mode);
         }
         return result;
     });
 }
 
 bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
+    return bddcoalesce(f, v1, v2, BddExecMode::Auto);
+}
+
+bddp bddcoalesce(bddp f, bddvar v1, bddvar v2, BddExecMode mode) {
     bddp_validate(f, "bddcoalesce");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
@@ -354,18 +362,18 @@ bddp bddcoalesce(bddp f, bddvar v1, bddvar v2) {
 
     return bdd_gc_guard([&]() -> bddp {
         // A = sets not containing v2 (unchanged)
-        bddp a = bddoffset(f, v2);
+        bddp a = bddoffset(f, v2, mode);
         // B = sets containing v2, with v2 removed
-        bddp b = bddonset0(f, v2);
+        bddp b = bddonset0(f, v2, mode);
 
         // Ensure v1 is present in every set of B:
         // - sets already having v1: keep as is
         // - sets without v1: add v1
-        bddp b_has_v1 = bddonset(b, v1);
-        bddp b_no_v1 = bddoffset(b, v1);
-        bddp b_merged = bddunion(b_has_v1, bddchange(b_no_v1, v1));
+        bddp b_has_v1 = bddonset(b, v1, mode);
+        bddp b_no_v1 = bddoffset(b, v1, mode);
+        bddp b_merged = bddunion(b_has_v1, bddchange(b_no_v1, v1, mode), mode);
 
-        return bddunion(a, b_merged);
+        return bddunion(a, b_merged, mode);
     });
 }
 

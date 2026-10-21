@@ -28,6 +28,10 @@ int bddispoly(bddp f) {
 // --- bddswapz ---
 
 bddp bddswapz(bddp f, bddvar v1, bddvar v2) {
+    return bddswapz(f, v1, v2, BddExecMode::Auto);
+}
+
+bddp bddswapz(bddp f, bddvar v1, bddvar v2, BddExecMode mode) {
     bddp_validate(f, "bddswapz");
     if (f == bddnull) return bddnull;
     if (v1 < 1 || v1 > bdd_varcount || v2 < 1 || v2 > bdd_varcount) {
@@ -38,17 +42,17 @@ bddp bddswapz(bddp f, bddvar v1, bddvar v2) {
 
     return bdd_gc_guard([&]() -> bddp {
         // f00: sets containing neither v1 nor v2
-        bddp f00 = bddoffset(bddoffset(f, v1), v2);
+        bddp f00 = bddoffset(bddoffset(f, v1, mode), v2, mode);
         // f11_raw: sets containing both v1 and v2 (with v1 and v2 removed)
-        bddp f11_raw = bddonset0(bddonset0(f, v1), v2);
+        bddp f11_raw = bddonset0(bddonset0(f, v1, mode), v2, mode);
         // f11: restore v1 and v2
-        bddp f11 = bddchange(bddchange(f11_raw, v1), v2);
+        bddp f11 = bddchange(bddchange(f11_raw, v1, mode), v2, mode);
         // h: sets containing exactly one of v1, v2
-        bddp h = bddsubtract(bddsubtract(f, f00), f11);
+        bddp h = bddsubtract(bddsubtract(f, f00, mode), f11, mode);
         // Swap v1 and v2 in h by toggling both
-        bddp h_swapped = bddchange(bddchange(h, v1), v2);
+        bddp h_swapped = bddchange(bddchange(h, v1, mode), v2, mode);
         // Result: f00 + f11 + h_swapped
-        return bddunion(bddunion(f00, f11), h_swapped);
+        return bddunion(bddunion(f00, f11, mode), h_swapped, mode);
     });
 }
 
@@ -365,6 +369,10 @@ static int bddsymchk_rec(bddp f, bddvar v1, bddvar v2) {
 // --- bddimplyset ---
 
 bddp bddimplyset(bddp f, bddvar v) {
+    return bddimplyset(f, v, BddExecMode::Auto);
+}
+
+bddp bddimplyset(bddp f, bddvar v, BddExecMode mode) {
     bddp_validate(f, "bddimplyset");
     if (f == bddnull) return bddnull;
     if (v < 1 || v > bdd_varcount) {
@@ -373,18 +381,22 @@ bddp bddimplyset(bddp f, bddvar v) {
     if (f & BDD_CONST_FLAG) return bddempty;
 
     return bdd_gc_guard([&]() -> bddp {
-        bddp f1 = bddonset0(f, v);
+        bddp f1 = bddonset0(f, v, mode);
         if (f1 == bddempty) {
             // v not in any set -> vacuous truth: all support variables implied
             return bddsupport(f);
         }
-        return bddalways(f1);
+        return bddalways(f1, mode);
     });
 }
 
 // --- bddsymgrp ---
 
 bddp bddsymgrp(bddp f) {
+    return bddsymgrp(f, BddExecMode::Auto);
+}
+
+bddp bddsymgrp(bddp f, BddExecMode mode) {
     bddp_validate(f, "bddsymgrp");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
@@ -400,14 +412,14 @@ bddp bddsymgrp(bddp f) {
             remaining.erase(t);
 
             // Start group with {t}
-            bddp group = bddchange(bddsingle, t);
+            bddp group = bddchange(bddsingle, t, mode);
             int group_size = 1;
 
             for (size_t j = i + 1; j < vars.size(); j++) {
                 bddvar t2 = vars[j];
                 if (remaining.count(t2) == 0) continue;
-                if (bddsymchk(f, t, t2) == 1) {
-                    group = bddchange(group, t2);
+                if (bddsymchk(f, t, t2, mode) == 1) {
+                    group = bddchange(group, t2, mode);
                     group_size++;
                     remaining.erase(t2);
                 }
@@ -415,7 +427,7 @@ bddp bddsymgrp(bddp f) {
 
             // Only include groups of size >= 2
             if (group_size >= 2) {
-                result = bddunion(result, group);
+                result = bddunion(result, group, mode);
             }
         }
         return result;
@@ -425,6 +437,10 @@ bddp bddsymgrp(bddp f) {
 // --- bddsymgrpnaive ---
 
 bddp bddsymgrpnaive(bddp f) {
+    return bddsymgrpnaive(f, BddExecMode::Auto);
+}
+
+bddp bddsymgrpnaive(bddp f, BddExecMode mode) {
     bddp_validate(f, "bddsymgrpnaive");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return bddempty;
@@ -439,17 +455,17 @@ bddp bddsymgrpnaive(bddp f) {
             if (remaining.count(t) == 0) continue;
             remaining.erase(t);
 
-            bddp f0 = bddoffset(f, t);
-            bddp f1 = bddonset0(f, t);
+            bddp f0 = bddoffset(f, t, mode);
+            bddp f1 = bddonset0(f, t, mode);
 
-            bddp group = bddchange(bddsingle, t);
+            bddp group = bddchange(bddsingle, t, mode);
             std::vector<bddvar> to_remove;
 
             for (size_t j = i + 1; j < vars.size(); j++) {
                 bddvar t2 = vars[j];
                 if (remaining.count(t2) == 0) continue;
-                if (bddonset0(f0, t2) == bddoffset(f1, t2)) {
-                    group = bddchange(group, t2);
+                if (bddonset0(f0, t2, mode) == bddoffset(f1, t2, mode)) {
+                    group = bddchange(group, t2, mode);
                     to_remove.push_back(t2);
                 }
             }
@@ -459,7 +475,7 @@ bddp bddsymgrpnaive(bddp f) {
             }
 
             // Include all groups (even size 1)
-            result = bddunion(result, group);
+            result = bddunion(result, group, mode);
         }
         return result;
     });
@@ -710,6 +726,10 @@ static bddp bddcoimplyset_rec(bddp f0, bddp f1) {
 // --- bdddivisor ---
 
 bddp bdddivisor(bddp f) {
+    return bdddivisor(f, BddExecMode::Auto);
+}
+
+bddp bdddivisor(bddp f, BddExecMode mode) {
     bddp_validate(f, "bdddivisor");
     if (f == bddnull) return bddnull;
     if (f == bddempty) return bddempty;
@@ -720,15 +740,15 @@ bddp bdddivisor(bddp f) {
         bddp cur = f;
 
         for (bddvar t : vars) {
-            bddp f1 = bddonset0(cur, t);
+            bddp f1 = bddonset0(cur, t, mode);
             if (bddispoly(f1)) {
                 cur = f1;
             }
         }
 
         // Verify the candidate actually divides f
-        bddp q = bdddiv(f, cur);
-        if (bddjoin(q, cur) != f) return bddsingle;
+        bddp q = bdddiv(f, cur, mode);
+        if (bddjoin(q, cur, mode) != f) return bddsingle;
 
         return cur;
     });

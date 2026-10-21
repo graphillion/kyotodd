@@ -302,3 +302,105 @@ TEST_F(ExecModeTest, DumpDeep) {
         EXPECT_NO_THROW(bdddump(f.id()));
     });
 }
+
+// --- composite ZDD wrappers (group C) ----------------------------------
+
+TEST_F(ExecModeTest, CompositeWrappersModesAgree) {
+    for (int i = 0; i < 4; ++i) bddnewvar();
+    ZDD a = ZDD::singleton(1), b = ZDD::singleton(2), c = ZDD::singleton(3), d = ZDD::singleton(4);
+    // f is symmetric in {1, 2}; 3 implies 4 in every set containing 3.
+    ZDD f = (a * c * d) + (b * c * d) + (a * b) + d;
+    std::vector<int> w(bdd_varcount + 1, 0);
+    w[1] = 1; w[2] = 2; w[3] = 4; w[4] = 8;
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        EXPECT_EQ(bddswapz(f.id(), 1, 2, m), bddswapz(f.id(), 1, 2));
+        EXPECT_EQ(bddswapz(f.id(), 1, 2, m), f.id());   // symmetric in 1, 2
+        EXPECT_EQ(bddswapz(f.id(), 1, 3, m), bddswapz(f.id(), 1, 3));
+        EXPECT_NE(bddswapz(f.id(), 1, 3, m), f.id());
+        EXPECT_EQ(bddimplyset(f.id(), 3, m), bddimplyset(f.id(), 3));
+        EXPECT_EQ(bddimplyset(f.id(), 3, m), d.id());
+        EXPECT_EQ(bddsymgrp(f.id(), m), bddsymgrp(f.id()));
+        EXPECT_EQ(bddsymgrp(f.id(), m), (a * b).id());
+        EXPECT_EQ(bddsymgrpnaive(f.id(), m), bddsymgrpnaive(f.id()));
+        EXPECT_EQ(bdddivisor(f.id(), m), bdddivisor(f.id()));
+        EXPECT_EQ(bddflatten(f.id(), m), bddflatten(f.id()));
+        EXPECT_EQ(bddflatten(f.id(), m), (a * b * c * d).id());
+        EXPECT_EQ(bddcoalesce(f.id(), 1, 2, m), bddcoalesce(f.id(), 1, 2));
+        EXPECT_EQ(bddcoalesce(f.id(), 1, 2, m), ((a * c * d) + a + d).id());
+        for (int64_t k = 0; k <= 4; ++k) {
+            EXPECT_EQ(bddgetklightest(f.id(), k, w, 0, m), bddgetklightest(f.id(), k, w, 0));
+            EXPECT_EQ(bddgetklightest(f.id(), bigint::BigInt(k), w, 0, m),
+                      bddgetklightest(f.id(), bigint::BigInt(k), w, 0));
+            EXPECT_EQ(bddgetkheaviest(f.id(), k, w, 0, m), bddgetkheaviest(f.id(), k, w, 0));
+            EXPECT_EQ(bddgetkheaviest(f.id(), bigint::BigInt(k), w, 0, m),
+                      bddgetkheaviest(f.id(), bigint::BigInt(k), w, 0));
+        }
+        EXPECT_EQ(bddgetklightest(f.id(), static_cast<int64_t>(1), w, 0, m), (a * b).id());
+        EXPECT_EQ(bddgetkheaviest(f.id(), static_cast<int64_t>(1), w, 0, m), (b * c * d).id());
+        // Terminal / error paths are mode-independent.
+        EXPECT_EQ(bddswapz(bddnull, 1, 2, m), bddnull);
+        EXPECT_EQ(bddflatten(bddempty, m), bddempty);
+        EXPECT_EQ(bddcoalesce(bddsingle, 1, 2, m), bddsingle);
+        EXPECT_EQ(bdddivisor(bddempty, m), bddempty);
+        EXPECT_THROW(bddimplyset(f.id(), 99, m), std::invalid_argument);
+        EXPECT_THROW(bddgetklightest(f.id(), static_cast<int64_t>(-1), w, 0, m), std::invalid_argument);
+    }
+}
+
+TEST_F(ExecModeTest, CompositeWrappersDeep) {
+    // Power set of {1..n}: offset / onset0 on variable 1 recurse to the
+    // bottom, so forced Recursive mode must fail through the wrappers.
+    ZDD ps = deep_power_set(kDeep);
+    EXPECT_THROW(bddswapz(ps.id(), 1, 2, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddimplyset(ps.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bddcoalesce(ps.id(), 2, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(ZDD_ID(bddswapz(ps.id(), 1, 2, BDD_EXEC_ITERATIVE)), ps);
+    EXPECT_EQ(ZDD_ID(bddswapz(ps.id(), 1, 2)), ps);
+    EXPECT_EQ(bddimplyset(ps.id(), 1, BDD_EXEC_ITERATIVE), bddempty);
+    EXPECT_EQ(bddimplyset(ps.id(), 1), bddempty);
+    ZDD co = ZDD_ID(bddcoalesce(ps.id(), 2, 1, BDD_EXEC_ITERATIVE));
+    EXPECT_EQ(co, ZDD_ID(bddcoalesce(ps.id(), 2, 1)));
+    EXPECT_EQ(bddoffset(co.id(), 1), co.id());   // variable 1 eliminated
+
+    // {{1..n}, {1}}: the k-lightest / k-heaviest need the exact count of
+    // f, which recurses down the whole chain.
+    ZDD f = deep_single_set(kDeep) + ZDD::singleton(1);
+    std::vector<int> w(bdd_varcount + 1, 1);
+    EXPECT_THROW(bddgetklightest(f.id(), static_cast<int64_t>(1), w, 0, BDD_EXEC_RECURSIVE),
+                 std::overflow_error);
+    EXPECT_THROW(bddgetkheaviest(f.id(), static_cast<int64_t>(1), w, 0, BDD_EXEC_RECURSIVE),
+                 std::overflow_error);
+    EXPECT_EQ(bddgetklightest(f.id(), static_cast<int64_t>(1), w, 0, BDD_EXEC_ITERATIVE),
+              ZDD::singleton(1).id());
+    EXPECT_EQ(bddgetklightest(f.id(), static_cast<int64_t>(1), w, 0), ZDD::singleton(1).id());
+    EXPECT_EQ(ZDD_ID(bddgetkheaviest(f.id(), static_cast<int64_t>(1), w, 0, BDD_EXEC_ITERATIVE)),
+              deep_single_set(kDeep));
+    EXPECT_EQ(ZDD_ID(bddgetkheaviest(f.id(), static_cast<int64_t>(1), w, 0)),
+              deep_single_set(kDeep));
+}
+
+TEST_F(ExecModeTest, CompositeWrappersHighLevel) {
+    // bdddivisor, bddflatten, bddsymgrp and bddsymgrpnaive loop over the
+    // support, so a chain with thousands of support variables costs
+    // O(n^2) and is too slow for a unit test. Use a two-node family whose
+    // root sits above BDD_RecurLimit instead: Auto dispatches to _iter
+    // for it, and every mode must still agree.
+    const bddvar top = static_cast<bddvar>(kDeep);
+    for (int i = bdd_varcount; i < kDeep; ++i) bddnewvar();
+    ZDD a = ZDD::singleton(1), t = ZDD::singleton(top);
+    ZDD f = (a * t) + t;          // {{1, top}, {top}}
+    ZDD g = (a * t) + a + t;      // symmetric in {1, top}
+    EXPECT_GT(bddp_level(f.id()), static_cast<bddvar>(BDD_RecurLimit));
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        EXPECT_EQ(bdddivisor(f.id(), m), bdddivisor(f.id()));
+        EXPECT_EQ(bddflatten(f.id(), m), bddflatten(f.id()));
+        EXPECT_EQ(bddflatten(f.id(), m), (a * t).id());
+        EXPECT_EQ(bddsymgrp(g.id(), m), bddsymgrp(g.id()));
+        EXPECT_EQ(bddsymgrp(g.id(), m), (a * t).id());
+        EXPECT_EQ(bddsymgrpnaive(g.id(), m), bddsymgrpnaive(g.id()));
+        EXPECT_EQ(bddsymgrpnaive(g.id(), m), (a * t).id());
+        EXPECT_EQ(bddsymgrp(f.id(), m), bddempty);   // 1 and top not symmetric
+    }
+}
