@@ -565,3 +565,57 @@ TEST_F(SvgLayoutTest, RandomFamilies_AllGeometricProperties) {
     }
     EXPECT_GE(checked, 30);
 }
+
+// --- Review item 18: terminal-lane arcs never share an x ---
+
+namespace {
+
+// Pairs of vertical segments (longer than 20 px) of different arcs that lie
+// on the same x and overlap in y, i.e. are drawn on top of each other.
+int coincident_vertical_pairs(const Svg& s) {
+    struct V { size_t path; double x, y0, y1; };
+    std::vector<V> vs;
+    for (size_t pi = 0; pi < s.paths.size(); ++pi)
+        for (size_t i = 0; i < s.paths[pi].segs.size(); ++i) {
+            const Seg& g = s.paths[pi].segs[i];
+            if (g.type != 'L' || std::fabs(g.p0.x - g.p1.x) > 0.01 || std::fabs(g.p0.y - g.p1.y) < 20) continue;
+            V v = {pi, g.p0.x, std::min(g.p0.y, g.p1.y), std::max(g.p0.y, g.p1.y)};
+            vs.push_back(v);
+        }
+    int n = 0;
+    for (size_t i = 0; i < vs.size(); ++i)
+        for (size_t j = i + 1; j < vs.size(); ++j)
+            if (vs[i].path != vs[j].path && std::fabs(vs[i].x - vs[j].x) < 0.5 &&
+                vs[i].y0 < vs[j].y1 - 1 && vs[j].y0 < vs[i].y1 - 1)
+                ++n;
+    return n;
+}
+
+// Terminal lanes: parents above and below the widest row used to get
+// different lane x values from separate lists, so two arcs could end up on
+// exactly the same x. A root whose lo arc goes to 0 from above the widest
+// row plus level-2 nodes whose lo arcs go to 0 from below it.
+ZDD terminal_lane_mix() {
+    ZDD B1 = ZDD::singleton(1);
+    ZDD B2 = ZDD::power_set(1);
+    ZDD los[4] = { ZDD(0), ZDD(1), B1, B2 };
+    ZDD his[3] = { ZDD(1), B1, B2 };
+    std::vector<ZDD> L2;
+    for (int a = 0; a < 4; ++a)
+        for (int b = 0; b < 3; ++b) L2.push_back(znode(2, los[a], his[b]));
+    std::vector<ZDD> L3;
+    for (int i = 0; i < 8; i += 2) L3.push_back(znode(3, L2[i], L2[i + 1]));
+    ZDD L4a = znode(4, L3[0], L3[1]);
+    ZDD L4b = znode(4, L3[2], L3[3]);
+    ZDD L5 = znode(5, L4a, L4b);
+    return znode(6, ZDD(0) + ZDD(1).change(2), L5);   // lo: a lone level-2 node, hi: the tree
+}
+
+} // namespace
+
+TEST_F(SvgLayoutTest, TerminalLanes_NoCoincidentVerticals) {
+    EXPECT_EQ(coincident_vertical_pairs(parse_svg(terminal_lane_mix().save_svg())), 0);
+    EXPECT_EQ(coincident_vertical_pairs(parse_svg(lane_funnel().save_svg())), 0);
+    EXPECT_EQ(coincident_vertical_pairs(parse_svg(ZDD::combination(8, 4).save_svg())), 0);
+    EXPECT_EQ(coincident_vertical_pairs(parse_svg(wide_level2().save_svg())), 0);
+}

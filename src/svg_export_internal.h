@@ -465,7 +465,7 @@ public:
         // Build leftmost_lane_to_x
         for (auto& kv : leftmost_lane_usage) {
             int level = kv.first;
-            int lane_x = get_leftmost_lane(level);
+            int lane_x = leftmost_terminal_lane();
             for (auto& ap : kv.second) {
                 TermLaneEntry e;
                 e.arc_key = ap.first;
@@ -478,7 +478,7 @@ public:
         // Build rightmost_lane_to_x
         for (auto& kv : rightmost_lane_usage) {
             int level = kv.first;
-            int lane_x = get_rightmost_lane(level);
+            int lane_x = rightmost_terminal_lane();
             for (auto& ap : kv.second) {
                 TermLaneEntry e;
                 e.arc_key = ap.first;
@@ -507,6 +507,17 @@ public:
                     return va < vb;
                 });
         }
+    }
+
+    // Outer lanes used by arcs to the 0-/1-terminal. One lane per side for
+    // the whole drawing (left of the leftmost / right of the rightmost lane
+    // of any row), so that all terminal arcs are offset from a single list
+    // and never share an x.
+    int leftmost_terminal_lane() const {
+        return get_leftmost_lane(lane.empty() ? 0 : lane.rbegin()->first);
+    }
+    int rightmost_terminal_lane() const {
+        return get_rightmost_lane(lane.empty() ? 0 : lane.rbegin()->first);
     }
 
     int get_leftmost_lane(int level) const {
@@ -1272,7 +1283,7 @@ private:
         int arc_interval = params.arc_interval;
         int target_x;
         if (is_term0) {
-            int lane_x = lane_manager.get_leftmost_lane(parent_level - 1);
+            int lane_x = lane_manager.leftmost_terminal_lane();
             target_x = lane_x;
             auto it = lane_manager.leftmost_lane_to_x.find(lane_x);
             if (it != lane_manager.leftmost_lane_to_x.end()) {
@@ -1283,7 +1294,7 @@ private:
                 }
             }
         } else {
-            int lane_x = lane_manager.get_rightmost_lane(parent_level - 1);
+            int lane_x = lane_manager.rightmost_terminal_lane();
             target_x = lane_x;
             auto it = lane_manager.rightmost_lane_to_x.find(lane_x);
             if (it != lane_manager.rightmost_lane_to_x.end()) {
