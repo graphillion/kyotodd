@@ -354,12 +354,12 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
             "binary import: bits_for_id must be a multiple of 8 and at most 64");
     if (max_level > bdd_node_max)
         throw std::runtime_error("binary import: max_level exceeds node limit");
-    if (max_level > IMPORT_MAX_LEVEL_LIMIT)
+    if (import_exceeds(max_level, bdd_import_max_levels))
         throw std::runtime_error(
             "binary import: max_level exceeds import safety limit");
     if (num_roots > bdd_node_max)
         throw std::runtime_error("binary import: num_roots exceeds node limit");
-    if (num_roots > IMPORT_MAX_NODE_COUNT)
+    if (import_exceeds(num_roots, bdd_import_max_nodes))
         throw std::runtime_error(
             "binary import: num_roots exceeds import safety limit");
 
@@ -381,7 +381,7 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
             throw std::runtime_error("binary import: total_nodes overflow");
         total_nodes += level_counts[l];
     }
-    if (total_nodes > IMPORT_MAX_NODE_COUNT)
+    if (import_exceeds(total_nodes, bdd_import_max_nodes))
         throw std::runtime_error(
             "binary import: total_nodes exceeds import safety limit");
 

@@ -17,6 +17,25 @@ namespace kyotodd {
 // live in src/bdd_io_common.h.
 // ---------------------------------------------------------------------------
 
+// Import safety bounds. See bdd_set_import_limit() in include/bdd_io.h.
+uint64_t bdd_import_max_nodes = BDD_IMPORT_DEFAULT_MAX_NODES;
+uint64_t bdd_import_max_levels = BDD_IMPORT_DEFAULT_MAX_LEVELS;
+uint64_t bdd_import_max_outputs = BDD_IMPORT_DEFAULT_MAX_OUTPUTS;
+
+void bdd_set_import_limit(uint64_t max_nodes, uint64_t max_levels, uint64_t max_outputs) {
+    bdd_import_max_nodes = max_nodes;
+    bdd_import_max_levels = max_levels;
+    bdd_import_max_outputs = max_outputs;
+}
+
+ImportLimit bdd_get_import_limit() {
+    ImportLimit lim;
+    lim.max_nodes = bdd_import_max_nodes;
+    lim.max_levels = bdd_import_max_levels;
+    lim.max_outputs = bdd_import_max_outputs;
+    return lim;
+}
+
 static void export_collect(bddp f, std::unordered_set<bddp>& visited,
                            std::vector<bddp>& order) {
     if (f == bddnull) return;
@@ -186,9 +205,9 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
     if (!read_tag_uint(strm, "_o", output_count)) return -1;
     if (!read_tag_uint(strm, "_n", node_count)) return -1;
 
-    if (max_level > IMPORT_MAX_LEVEL_LIMIT) return -1;
-    if (node_count > IMPORT_MAX_NODE_COUNT) return -1;
-    if (output_count > IMPORT_MAX_OUTPUT_COUNT) return -1;
+    if (import_exceeds(max_level, bdd_import_max_levels)) return -1;
+    if (import_exceeds(node_count, bdd_import_max_nodes)) return -1;
+    if (import_exceeds(output_count, bdd_import_max_outputs)) return -1;
 
     while (bddvarused() < max_level) bddnewvar();
 

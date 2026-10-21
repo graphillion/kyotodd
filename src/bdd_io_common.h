@@ -30,9 +30,16 @@ namespace kyotodd {
 #define XSTR_(x) #x
 #define XSTR(x) XSTR_(x)
 
-static const unsigned IMPORT_MAX_LEVEL_LIMIT = 1000000;
-static const unsigned IMPORT_MAX_NODE_COUNT = 10000000;
-static const unsigned IMPORT_MAX_OUTPUT_COUNT = 1000000;
+// Runtime import bounds (see bdd_set_import_limit in include/bdd_io.h).
+// Defined in bdd_io.cpp. A value of 0 disables the corresponding check.
+extern uint64_t bdd_import_max_nodes;
+extern uint64_t bdd_import_max_levels;
+extern uint64_t bdd_import_max_outputs;
+
+// True iff `value` exceeds `limit`, where limit == 0 means "no limit".
+static inline bool import_exceeds(uint64_t value, uint64_t limit) {
+    return limit != 0 && value > limit;
+}
 
 typedef bddp (*import_nodefn_t)(bddvar, bddp, bddp);
 

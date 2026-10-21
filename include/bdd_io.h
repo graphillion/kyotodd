@@ -8,6 +8,49 @@
 
 namespace kyotodd {
 
+/** @brief Default upper bound on the number of nodes accepted by an import. */
+static const uint64_t BDD_IMPORT_DEFAULT_MAX_NODES = 10000000;
+/** @brief Default upper bound on the number of levels accepted by an import. */
+static const uint64_t BDD_IMPORT_DEFAULT_MAX_LEVELS = 1000000;
+/** @brief Default upper bound on the number of roots (outputs) accepted by an import. */
+static const uint64_t BDD_IMPORT_DEFAULT_MAX_OUTPUTS = 1000000;
+
+/**
+ * @brief Upper bounds applied while importing a DD from a file or stream.
+ *
+ * Every import function (Sapporo text, binary, Graphillion, Knuth) checks
+ * the sizes declared in the file header against these bounds before
+ * allocating anything, so that a corrupted or malicious file cannot
+ * trigger a huge allocation. A bound of 0 disables that particular check.
+ */
+struct ImportLimit {
+    uint64_t max_nodes;    ///< Maximum total node count (0 = unlimited).
+    uint64_t max_levels;   ///< Maximum level / variable count (0 = unlimited).
+    uint64_t max_outputs;  ///< Maximum root count for multi-root formats (0 = unlimited).
+};
+
+/**
+ * @brief Set the upper bounds applied by all import functions.
+ *
+ * The defaults are @c BDD_IMPORT_DEFAULT_MAX_NODES (10,000,000 nodes),
+ * @c BDD_IMPORT_DEFAULT_MAX_LEVELS (1,000,000 levels) and
+ * @c BDD_IMPORT_DEFAULT_MAX_OUTPUTS (1,000,000 roots). Pass 0 for a bound
+ * to disable it. Raise or disable the bounds only when the input files are
+ * trusted, e.g. to load a DD with more than ten million nodes that was
+ * written by this library.
+ *
+ * @param max_nodes Maximum total node count (0 = unlimited).
+ * @param max_levels Maximum level count (0 = unlimited).
+ * @param max_outputs Maximum root count for multi-root formats (0 = unlimited).
+ */
+void bdd_set_import_limit(uint64_t max_nodes, uint64_t max_levels, uint64_t max_outputs);
+
+/**
+ * @brief Get the upper bounds currently applied by the import functions.
+ * @return The current limits; a field of 0 means that bound is disabled.
+ */
+ImportLimit bdd_get_import_limit();
+
 /**
  * @brief Export BDD/ZDD nodes to a FILE stream (array version).
  *

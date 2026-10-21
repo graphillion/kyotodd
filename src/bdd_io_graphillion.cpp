@@ -180,7 +180,7 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
     if (lines.empty()) return root;  // terminal-only
 
     unsigned N = max_gvar;
-    if (N > IMPORT_MAX_LEVEL_LIMIT)
+    if (import_exceeds(N, bdd_import_max_levels))
         throw std::runtime_error("zdd_import_graphillion: max variable exceeds limit");
 
     // Determine max level needed and ensure variables exist

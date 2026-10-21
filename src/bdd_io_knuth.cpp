@@ -197,7 +197,7 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
         throw std::runtime_error("knuth import: no nodes found");
 
     unsigned N = max_knuth_level;
-    if (N > IMPORT_MAX_LEVEL_LIMIT)
+    if (import_exceeds(N, bdd_import_max_levels))
         throw std::runtime_error("knuth import: max_level exceeds limit");
 
     // Determine max level needed and ensure variables exist
