@@ -1092,7 +1092,7 @@ private:
             if (child & BDD_CONST_FLAG) {
                 // Terminal lane: down the outer edge, then across the gap
                 // above the terminal row.
-                ri.xs.push_back(terminal_target_x(arc_key, child == bddfalse, parent_level));
+                ri.xs.push_back(terminal_target_x(arc_key, child == bddfalse));
                 ri.gaps.push_back(parent_level);
                 ri.gaps.push_back(bottom_row_level());
             } else {
@@ -1279,7 +1279,7 @@ private:
 
     // x of the terminal lane used by a routed arc to the 0- or 1-terminal
     // (the outermost lane, offset by arc_interval per earlier user).
-    int terminal_target_x(ArcKey arc_key, bool is_term0, int parent_level) const {
+    int terminal_target_x(ArcKey arc_key, bool is_term0) const {
         int arc_interval = params.arc_interval;
         int target_x;
         if (is_term0) {
