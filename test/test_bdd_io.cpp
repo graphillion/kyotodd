@@ -1554,3 +1554,135 @@ TEST_F(BDDTest, CoImplySetTerminalSafety) {
     EXPECT_EQ(bddcoimplyset(bddsingle, 1), bddempty);
 }
 
+
+// --- Import safety limits (bdd_set_import_limit / bdd_get_import_limit) ---
+
+namespace {
+// Restores the import limits when a test finishes, so a test that tightens
+// or disables them cannot leak into the other tests.
+struct ImportLimitGuard {
+    ImportLimit saved;
+    ImportLimitGuard() : saved(bdd_get_import_limit()) {}
+    ~ImportLimitGuard() {
+        bdd_set_import_limit(saved.max_nodes, saved.max_levels, saved.max_outputs);
+    }
+};
+
+// A ZDD over 3 variables with 3 nodes: {{1,2,3}} (a chain).
+ZDD make_chain3() {
+    ZDD z = ZDD::Single;
+    for (bddvar v = 1; v <= 3; v++) z = z.change(v);
+    return z;
+}
+}  // namespace
+
+TEST_F(BDDTest, ImportLimit_Defaults) {
+    ImportLimitGuard guard;
+    ImportLimit lim = bdd_get_import_limit();
+    EXPECT_EQ(lim.max_nodes, BDD_IMPORT_DEFAULT_MAX_NODES);
+    EXPECT_EQ(lim.max_levels, BDD_IMPORT_DEFAULT_MAX_LEVELS);
+    EXPECT_EQ(lim.max_outputs, BDD_IMPORT_DEFAULT_MAX_OUTPUTS);
+    EXPECT_EQ(lim.max_nodes, 10000000u);
+    EXPECT_EQ(lim.max_levels, 1000000u);
+    EXPECT_EQ(lim.max_outputs, 1000000u);
+}
+
+TEST_F(BDDTest, ImportLimit_SetGetRoundtrip) {
+    ImportLimitGuard guard;
+    bdd_set_import_limit(123, 45, 6);
+    ImportLimit lim = bdd_get_import_limit();
+    EXPECT_EQ(lim.max_nodes, 123u);
+    EXPECT_EQ(lim.max_levels, 45u);
+    EXPECT_EQ(lim.max_outputs, 6u);
+    bdd_set_import_limit(0, 0, 0);
+    lim = bdd_get_import_limit();
+    EXPECT_EQ(lim.max_nodes, 0u);
+    EXPECT_EQ(lim.max_levels, 0u);
+    EXPECT_EQ(lim.max_outputs, 0u);
+}
+
+TEST_F(BDDTest, ImportLimit_Sapporo) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar(); bddnewvar();
+    ZDD f = make_chain3();
+    std::ostringstream oss;
+    f.export_sapporo(oss);
+    const std::string data = oss.str();
+
+    // Tight node bound: 3 nodes > 2 -> rejected.
+    bdd_set_import_limit(2, 0, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_sapporo(iss), std::runtime_error); }
+    // Tight level bound: 3 levels > 2 -> rejected.
+    bdd_set_import_limit(0, 2, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_sapporo(iss), std::runtime_error); }
+    // Exactly at the bound -> accepted.
+    bdd_set_import_limit(3, 3, 1);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_sapporo(iss), f); }
+    // All bounds disabled -> accepted.
+    bdd_set_import_limit(0, 0, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_sapporo(iss), f); }
+}
+
+TEST_F(BDDTest, ImportLimit_SapporoOutputs) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar();
+    std::vector<bddp> roots;
+    roots.push_back(ZDD::Single.change(1).id());
+    roots.push_back(ZDD::Single.change(2).id());
+    std::ostringstream oss;
+    bddexport(oss, roots);
+    const std::string data = oss.str();
+
+    // Two outputs > 1 -> rejected (bddimport reports failure with -1).
+    bdd_set_import_limit(0, 0, 1);
+    { std::istringstream iss(data); std::vector<bddp> v; EXPECT_EQ(bddimportz(iss, v), -1); }
+    // Bound disabled -> both outputs read back.
+    bdd_set_import_limit(0, 0, 0);
+    { std::istringstream iss(data); std::vector<bddp> v; EXPECT_EQ(bddimportz(iss, v), 2); EXPECT_EQ(v, roots); }
+}
+
+TEST_F(BDDTest, ImportLimit_Binary) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar(); bddnewvar();
+    ZDD f = make_chain3();
+    std::ostringstream oss;
+    f.export_binary(oss);
+    const std::string data = oss.str();
+
+    bdd_set_import_limit(2, 0, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_binary(iss), std::runtime_error); }
+    bdd_set_import_limit(0, 2, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_binary(iss), std::runtime_error); }
+    bdd_set_import_limit(3, 3, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_binary(iss), f); }
+    bdd_set_import_limit(0, 0, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_binary(iss), f); }
+}
+
+TEST_F(BDDTest, ImportLimit_Graphillion) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar(); bddnewvar();
+    ZDD f = make_chain3();
+    std::ostringstream oss;
+    f.export_graphillion(oss);
+    const std::string data = oss.str();
+
+    bdd_set_import_limit(0, 2, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_graphillion(iss), std::runtime_error); }
+    bdd_set_import_limit(0, 0, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_graphillion(iss), f); }
+}
+
+TEST_F(BDDTest, ImportLimit_Knuth) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar(); bddnewvar();
+    ZDD f = make_chain3();
+    std::ostringstream oss;
+    f.export_knuth(oss);
+    const std::string data = oss.str();
+
+    bdd_set_import_limit(0, 2, 0);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_knuth(iss), std::runtime_error); }
+    bdd_set_import_limit(0, 0, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_knuth(iss), f); }
+}
