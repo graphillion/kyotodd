@@ -10,6 +10,7 @@ INPUT                  = ../include/bdd_types.h \
                          ../include/bdd_class.h \
                          ../include/zdd_class.h \
                          ../include/bdd_io.h \
+                         ../include/svg_export.h \
                          ../include/bdd.h \
                          ../include/dd_base.h \
                          ../include/qdd.h \

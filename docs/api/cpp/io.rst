@@ -85,6 +85,57 @@ Graphviz DOT Format
 .. doxygenfunction:: zdd_save_graphviz(FILE *strm, bddp f, DrawMode mode)
 .. doxygenfunction:: zdd_save_graphviz(std::ostream &strm, bddp f, DrawMode mode)
 
+SVG Format
+----------
+
+Self-contained SVG drawings of a decision diagram (also available as the
+``save_svg`` member functions of :cpp:class:`kyotodd::BDD`,
+:cpp:class:`kyotodd::ZDD`, ``QDD``, ``UnreducedDD``, ``MTBDD`` / ``MTZDD``
+and ``MVBDD`` / ``MVZDD``). Nodes are circles labelled with the variable
+number (or the name from ``var_name_map``), terminals are rectangles, 0-edges
+are dashed and 1-edges solid. With ``DrawMode::Expanded`` (the default)
+complement edges are expanded into separate nodes; with ``DrawMode::Raw``
+the physical DAG is drawn and complement edges carry a hollow dot marker.
+
+Layout notes:
+
+- Levels without nodes take no row by default (``skip_unused_levels``);
+  set it to ``false`` to reserve a row for every level.
+- An arc is drawn as a straight segment when it keeps clear of every other
+  node and arrives steeply at its target; otherwise it is routed
+  orthogonally through the gaps between rows and the lanes between nodes.
+- Labels that do not fit inside their node are drawn with a smaller font.
+- Arrowheads, dot markers and outlines use ``node_stroke``; labels use
+  ``font_family``.
+
+.. doxygenstruct:: kyotodd::SvgParams
+   :members:
+
+.. doxygenfunction:: bdd_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: bdd_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: bdd_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: zdd_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: zdd_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: zdd_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: qdd_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: qdd_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: qdd_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: unreduced_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: unreduced_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: unreduced_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: mtbdd_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: mtbdd_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: mtbdd_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: mtzdd_save_svg(const char *filename, bddp f, const SvgParams &params)
+.. doxygenfunction:: mtzdd_save_svg(std::ostream &strm, bddp f, const SvgParams &params)
+.. doxygenfunction:: mtzdd_save_svg(bddp f, const SvgParams &params)
+.. doxygenfunction:: mvbdd_save_svg(const char *filename, bddp f, const MVDDVarTable *table, const SvgParams &params)
+.. doxygenfunction:: mvbdd_save_svg(std::ostream &strm, bddp f, const MVDDVarTable *table, const SvgParams &params)
+.. doxygenfunction:: mvbdd_save_svg(bddp f, const MVDDVarTable *table, const SvgParams &params)
+.. doxygenfunction:: mvzdd_save_svg(const char *filename, bddp f, const MVDDVarTable *table, const SvgParams &params)
+.. doxygenfunction:: mvzdd_save_svg(std::ostream &strm, bddp f, const MVDDVarTable *table, const SvgParams &params)
+.. doxygenfunction:: mvzdd_save_svg(bddp f, const MVDDVarTable *table, const SvgParams &params)
+
 Legacy Sapporo Format
 ---------------------
 
