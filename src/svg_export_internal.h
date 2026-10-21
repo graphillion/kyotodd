@@ -834,14 +834,49 @@ private:
                     return node_pos_map[a.first].first < node_pos_map[b.first].first;
                 });
 
-            // Initial angle
-            double rad = 2.0 / 3.0 * M_PI;
-            if (arcs.size() == 1) {
-                rad = 0.5 * M_PI; // single connection: from top
-            }
-
             size_t child_idx = child_pos_idx(child);
             int c_level = child_level(child);
+            Point child_pos = node_pos_map[child_idx];
+            bool child_is_terminal = (child & BDD_CONST_FLAG) != 0;
+
+            // Attachment angle of each arc on a circle: each arc wants the
+            // point of the upper sector [30, 150] degrees that faces its
+            // parent; neighbouring arcs are then pushed apart by at most 20
+            // degrees (at least 90/(n-1) degrees) so that arrowheads do not
+            // pile up and no arc has to cross the circle to reach a point on
+            // the far side.
+            const double sector_lo = M_PI / 6.0, sector_hi = 5.0 * M_PI / 6.0;
+            std::vector<double> angle(arcs.size(), 0.5 * M_PI);
+            if (!child_is_terminal) {
+                size_t n = arcs.size();
+                std::vector<double> desired(n);
+                for (size_t i = 0; i < n; ++i) {
+                    Point st = calculate_arc_start_point(arcs[i].first, arcs[i].second);
+                    double dx = st.first - child_pos.first;
+                    double dy = child_pos.second - st.second;   // positive: parent above
+                    double a = std::atan2(dy, dx);
+                    if (a < sector_lo) a = sector_lo;
+                    if (a > sector_hi) a = sector_hi;
+                    desired[i] = a;
+                }
+                // Left to right (descending angle); arcs[] is sorted by parent x.
+                std::vector<size_t> order(n);
+                for (size_t i = 0; i < n; ++i) order[i] = i;
+                std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                    if (desired[a] != desired[b]) return desired[a] > desired[b];
+                    return a < b;
+                });
+                double sep = (n >= 2) ? std::min(M_PI / 9.0, 0.5 * M_PI / static_cast<double>(n - 1)) : 0.0;
+                for (size_t k = 0; k < n; ++k) {
+                    double a = desired[order[k]];
+                    if (k > 0 && a > angle[order[k - 1]] - sep) a = angle[order[k - 1]] - sep;
+                    angle[order[k]] = a;
+                }
+                for (size_t k = n; k-- > 0;) {
+                    double lo = (k + 1 == n) ? sector_lo : angle[order[k + 1]] + sep;
+                    if (angle[order[k]] < lo) angle[order[k]] = lo;
+                }
+            }
 
             for (size_t i = 0; i < arcs.size(); ++i) {
                 size_t parent_idx = arcs[i].first;
@@ -850,24 +885,18 @@ private:
                 ArcKey arc_key = std::make_pair(parent_idx, arc_type);
 
                 // End point
-                Point child_pos = node_pos_map[child_idx];
                 int pos_end_x, pos_end_y;
 
-                if (child & BDD_CONST_FLAG) {
+                if (child_is_terminal) {
                     // Terminal: connect to top center of rectangle
                     pos_end_x = static_cast<int>(child_pos.first);
                     pos_end_y = static_cast<int>(child_pos.second) - params.terminal_y / 2;
                 } else {
-                    pos_end_x = circle_pos_x(static_cast<int>(child_pos.first), node_radius, rad);
-                    pos_end_y = circle_pos_y(static_cast<int>(child_pos.second), node_radius, rad);
+                    pos_end_x = circle_pos_x(static_cast<int>(child_pos.first), node_radius, angle[i]);
+                    pos_end_y = circle_pos_y(static_cast<int>(child_pos.second), node_radius, angle[i]);
                 }
 
                 arc_end_point_map[arc_key] = Point(pos_end_x, pos_end_y);
-
-                // Update angle for next arc
-                if (arcs.size() >= 2) {
-                    rad -= M_PI / 3.0 / (static_cast<double>(arcs.size()) - 1.0);
-                }
 
                 // Start point
                 Point start = calculate_arc_start_point(parent_idx, arc_type);
@@ -887,14 +916,28 @@ private:
                 // parent's and the child's own rows.
                 std::vector<Point> between = obstacle_centers(
                     parent_idx, child_idx, nodes[parent_idx].level, c_level);
-                if (segment_intersects_any_circle(
+                bool straight = !segment_intersects_any_circle(
                         Point(pos_start_x, pos_start_y),
                         Point(pos_end_x, pos_end_y),
-                        node_radius + params.arc_width + kArcClearance, between)) {
-                    arc_is_straight_map[arc_key] = false;
-                } else {
-                    arc_is_straight_map[arc_key] = true;
+                        node_radius + params.arc_width + kArcClearance, between);
+                if (straight) {
+                    // A straight arc must also meet its end point head-on.
+                    // A shallow arc would arrive almost tangentially (onto
+                    // the top of a circle or the top edge of a terminal), so
+                    // such arcs are routed instead and come down from above.
+                    double dx = pos_end_x - pos_start_x;
+                    double dy = pos_end_y - pos_start_y;
+                    double len = std::sqrt(dx * dx + dy * dy);
+                    double nx = 0.0, ny = -1.0;   // outward normal at the end point
+                    if (!child_is_terminal) {
+                        nx = pos_end_x - child_pos.first;
+                        ny = pos_end_y - child_pos.second;
+                        double nl = std::sqrt(nx * nx + ny * ny);
+                        if (nl > 0) { nx /= nl; ny /= nl; }
+                    }
+                    if (len > 0 && (dx * nx + dy * ny) / len > -0.5) straight = false;
                 }
+                arc_is_straight_map[arc_key] = straight;
             }
         }
     }

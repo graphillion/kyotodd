@@ -416,3 +416,57 @@ TEST_F(SvgLayoutTest, RoutedArcs_FinalApproachClearsChildRow) {
     EXPECT_GE(min_foreign_circle_clearance(sb), 0.0);
     EXPECT_EQ(overlapping_run_pairs(sb), 0);
 }
+
+// --- Review item 3: arcs attach on the side of the child that faces the parent ---
+
+namespace {
+
+// Number of arcs whose end point lies on the far side of the child circle
+// (parent clearly left but end point right of the top sector, or vice
+// versa), plus arcs whose final segment does not point into the circle
+// (tangential or outward arrival, i.e. the arc crossed the circle to reach
+// its point).
+int count_bad_arrivals(const Svg& s) {
+    int bad = 0;
+    for (size_t pi = 0; pi < s.paths.size(); ++pi) {
+        const Path& p = s.paths[pi];
+        int sc = circle_at(s, p.start), ec = circle_at(s, p.end);
+        if (sc < 0 || ec < 0) continue;
+        const Circle& c = s.circles[ec];
+        double ang = std::atan2(-(p.end.y - c.cy), p.end.x - c.cx) * 180.0 / M_PI;
+        double px = s.circles[sc].cx;
+        if ((px < c.cx - 30 && ang < 60) || (px > c.cx + 30 && ang > 120)) { ++bad; continue; }
+        const Seg& last = p.segs.back();
+        Pt prev = (last.type == 'L') ? last.p0 : last.c;
+        double dx = p.end.x - prev.x, dy = p.end.y - prev.y;
+        double nx = p.end.x - c.cx, ny = p.end.y - c.cy;
+        double L = std::hypot(dx, dy), N = std::hypot(nx, ny);
+        if (L > 0 && N > 0 && (dx * nx + dy * ny) / (L * N) > -0.3) ++bad;
+    }
+    return bad;
+}
+
+} // namespace
+
+TEST_F(SvgLayoutTest, EndPoints_FaceTheParent) {
+    // Both families had an arc whose parent is left of the child but which
+    // was given the upper-right attachment point (end angles were handed
+    // out by rank among the incoming arcs, not by direction).
+    EXPECT_EQ(count_bad_arrivals(parse_svg(family({{1, 2, 3}, {1}, {1, 2, 4}}).save_svg())), 0);
+    EXPECT_EQ(count_bad_arrivals(parse_svg(family({{1, 2, 3, 5}, {1, 5}, {3, 4}}).save_svg())), 0);
+    EXPECT_EQ(count_bad_arrivals(parse_svg(lane_funnel().save_svg())), 0);
+    EXPECT_EQ(count_bad_arrivals(parse_svg(wide_level2().save_svg())), 0);
+}
+
+TEST_F(SvgLayoutTest, EndPoints_StayInTopSector) {
+    Svg s = parse_svg(lane_funnel().save_svg());
+    for (size_t pi = 0; pi < s.paths.size(); ++pi) {
+        int ec = circle_at(s, s.paths[pi].end);
+        if (ec < 0) continue;
+        const Circle& c = s.circles[ec];
+        double ang = std::atan2(-(s.paths[pi].end.y - c.cy), s.paths[pi].end.x - c.cx) * 180.0 / M_PI;
+        // sector [30, 150] degrees; end points are rounded to integer px
+        EXPECT_GE(ang, 27.0);
+        EXPECT_LE(ang, 153.0);
+    }
+}
