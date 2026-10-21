@@ -57,12 +57,12 @@ static std::string svg_generate_impl(
     pos_mgr.compute_all_positions();
 
     // ---- 3. Draw SVG ----
-    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke, params.font_family);
 
     // Add raw mode markers if needed
     bool raw_mode = !is_expanded;
     if (raw_mode) {
-        svg.add_raw_markers();
+        svg.add_raw_markers(params.node_radius);
     }
 
     // Draw internal nodes
@@ -77,7 +77,7 @@ static std::string svg_generate_impl(
 
             // Draw label (variable number)
             std::string label = node_label(sn.var, params);
-            svg.emit_text(pos.first, pos.second + params.label_y,
+            svg.emit_text(pos.first, pos.second + label_offset(params),
                           label, params.font_size, "middle");
 
             // Draw lo edge (0-edge)
@@ -120,7 +120,7 @@ static std::string svg_generate_impl(
 
         svg.emit_rect(tpos.first - tx / 2.0, tpos.second - ty / 2.0,
                       tx, ty, params.node_fill, params.node_stroke, params.arc_width);
-        svg.emit_text(tpos.first, tpos.second + params.label_y,
+        svg.emit_text(tpos.first, tpos.second + label_offset(params),
                       label, params.font_size, "middle");
     };
 

@@ -87,7 +87,7 @@ static std::string make_mt_terminal_svg(bddp f, const SvgParams& params) {
     int mx = params.margin_x;
     int my = params.margin_y;
 
-    SvgWriter svg(mx, my, params.node_stroke);
+    SvgWriter svg(mx, my, params.node_stroke, params.font_family);
 
     // Adjust width for longer labels
     std::string label = mt_terminal_label(f, params);
@@ -96,7 +96,7 @@ static std::string make_mt_terminal_svg(bddp f, const SvgParams& params) {
 
     svg.emit_rect(mx, my, rect_w, ty,
                   params.node_fill, params.node_stroke, params.arc_width);
-    svg.emit_text(mx + rect_w / 2.0, my + ty / 2.0 + params.label_y,
+    svg.emit_text(mx + rect_w / 2.0, my + ty / 2.0 + label_offset(params),
                   label, params.font_size, "middle");
 
     return svg.to_string();
@@ -224,7 +224,7 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
     };
 
     // 3. Draw SVG
-    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke, params.font_family);
 
     int r = params.node_radius;
 
@@ -238,7 +238,7 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
                             params.node_fill, params.node_stroke, params.arc_width);
 
             std::string label = node_label(sn.var, params);
-            svg.emit_text(pos.first, pos.second + params.label_y,
+            svg.emit_text(pos.first, pos.second + label_offset(params),
                           label, params.font_size, "middle");
 
             // Draw lo edge (dashed)
@@ -300,7 +300,7 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
         svg.emit_rect(tpos.first - term_rect_w / 2.0, tpos.second - ty / 2.0,
                       term_rect_w, ty, params.node_fill, params.node_stroke, params.arc_width);
         std::string label = mt_terminal_label(t, params);
-        svg.emit_text(tpos.first, tpos.second + params.label_y,
+        svg.emit_text(tpos.first, tpos.second + label_offset(params),
                       label, params.font_size, "middle");
     }
 

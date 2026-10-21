@@ -316,7 +316,7 @@ static std::string mvdd_svg_generate_expanded(
     };
 
     // 4. Draw SVG
-    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke, params.font_family);
 
     int r = params.node_radius;
 
@@ -340,7 +340,7 @@ static std::string mvdd_svg_generate_expanded(
             } else {
                 label = std::to_string(static_cast<unsigned>(sn.mv_var));
             }
-            svg.emit_text(pos.first, pos.second + params.label_y,
+            svg.emit_text(pos.first, pos.second + label_offset(params),
                           label, params.font_size, "middle");
 
             // Draw k edges
@@ -418,7 +418,7 @@ static std::string mvdd_svg_generate_expanded(
         svg.emit_rect(tpos.first - terminal_x / 2.0, tpos.second - terminal_y / 2.0,
                       terminal_x, terminal_y,
                       params.node_fill, params.node_stroke, params.arc_width);
-        svg.emit_text(tpos.first, tpos.second + params.label_y,
+        svg.emit_text(tpos.first, tpos.second + label_offset(params),
                       label, params.font_size, "middle");
     };
     if (draw_zero && has_false) draw_term(TERM_0, "0");

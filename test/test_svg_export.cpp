@@ -630,3 +630,101 @@ TEST_F(SvgExportTest, Markers_StrokeColorIsEscaped) {
     std::string svg = z.save_svg(p);
     EXPECT_FALSE(contains(svg, "<script>"));
 }
+
+// --- font-family, label centring, marker size, marker bounds, text width ---
+// (review-SVG-20261021 items 12, 13, 15, 16, 17)
+
+TEST_F(SvgExportTest, Text_HasFontFamily) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD::singleton(v);
+    SvgParams p;
+    EXPECT_TRUE(contains(z.save_svg(p), "font-family=\"sans-serif\""));
+    p.font_family = "serif";
+    EXPECT_TRUE(contains(z.save_svg(p), "font-family=\"serif\""));
+    p.font_family = "";
+    EXPECT_FALSE(contains(z.save_svg(p), "font-family"));
+    p.font_family = "a\"b";
+    EXPECT_TRUE(contains(z.save_svg(p), "font-family=\"a&quot;b\""));
+    EXPECT_TRUE(contains(ZDD(1).save_svg(SvgParams()), "font-family=\"sans-serif\""));
+}
+
+// y of the first <text> minus cy of the first <circle>
+static int label_baseline_offset(const std::string& svg) {
+    double cx, cy, tx, ty;
+    size_t c = svg.find("<circle cx=\"");
+    size_t t = svg.find("<text x=\"");
+    EXPECT_NE(c, std::string::npos);
+    EXPECT_NE(t, std::string::npos);
+    std::sscanf(svg.c_str() + c, "<circle cx=\"%lf\" cy=\"%lf\"", &cx, &cy);
+    std::sscanf(svg.c_str() + t, "<text x=\"%lf\" y=\"%lf\"", &tx, &ty);
+    return static_cast<int>(ty - cy);
+}
+
+TEST_F(SvgExportTest, Label_CentredForAnyFontSize) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD::singleton(v);
+    SvgParams p;
+    EXPECT_EQ(label_baseline_offset(z.save_svg(p)), 7);      // 0.3 * 24
+    p.font_size = 12;
+    EXPECT_EQ(label_baseline_offset(z.save_svg(p)), 4);      // 0.3 * 12 = 3.6
+    p.font_size = 40;
+    EXPECT_EQ(label_baseline_offset(z.save_svg(p)), 12);
+    p.label_y = 2;                                            // explicit value wins
+    EXPECT_EQ(label_baseline_offset(z.save_svg(p)), 2);
+    p.label_y = 0;
+    EXPECT_EQ(label_baseline_offset(z.save_svg(p)), 0);
+}
+
+TEST_F(SvgExportTest, RawMarkers_SizedFromNodeRadius) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD::singleton(v);
+    SvgParams p;
+    p.mode = DrawMode::Raw;
+    std::string svg = z.save_svg(p);
+    EXPECT_TRUE(contains(svg, "markerUnits=\"userSpaceOnUse\""));
+    EXPECT_TRUE(contains(svg, "r=\"4\" fill="));          // node_radius 20 -> dot radius 4
+    p.node_radius = 40;
+    EXPECT_TRUE(contains(z.save_svg(p), "r=\"8\" fill="));
+    p.node_radius = 40;
+    p.arc_width = 9;                                       // stroke width no longer scales the dots
+    EXPECT_TRUE(contains(z.save_svg(p), "r=\"8\" fill="));
+}
+
+TEST_F(SvgExportTest, RawRootMarker_InsideMargin) {
+    std::vector<bddvar> vs = bddnewvar(2);
+    ZDD z = ~ZDD::singleton(vs[0]) + ZDD::singleton(vs[1]);   // complemented root
+    SvgParams p;
+    p.mode = DrawMode::Raw;
+    std::string svg = z.save_svg(p);
+    double vx, vy, vw, vh;
+    size_t pos = svg.find("viewBox=\"");
+    ASSERT_NE(pos, std::string::npos);
+    std::sscanf(svg.c_str() + pos, "viewBox=\"%lf %lf %lf %lf\"", &vx, &vy, &vw, &vh);
+    // the entry stub starts 20 px above the root circle; its odot marker
+    // (radius node_radius/5 = 4, plus outline) must lie inside the margin
+    double root_cy = 1e9;
+    size_t body = svg.find("</defs>");                     // skip the marker circles
+    size_t c = svg.find("<circle cx=\"", body == std::string::npos ? 0 : body);
+    while (c != std::string::npos) {
+        double cx, cy;
+        std::sscanf(svg.c_str() + c, "<circle cx=\"%lf\" cy=\"%lf\"", &cx, &cy);
+        if (cy < root_cy) root_cy = cy;
+        c = svg.find("<circle cx=\"", c + 8);
+    }
+    double stub_top = root_cy - p.node_radius - 20;
+    EXPECT_LE(vy + p.margin_y, stub_top - 5.0 + 0.01);
+}
+
+#include "../src/svg_export_internal.h"
+
+TEST_F(SvgExportTest, TextWidthEstimate_CountsCodePoints) {
+    using kyotodd::svg_internal::estimate_text_width;
+    double w = estimate_text_width("(2,1)", 24);
+    EXPECT_GE(w, 40.0);                                   // real width ~55 px
+    EXPECT_LE(w, 62.0);
+    EXPECT_NEAR(estimate_text_width("100", 24), 43.2, 0.1);
+    // two CJK characters: about two em, not six bytes * 0.6 em
+    std::string cjk = "\xE6\x97\xA5\xE6\x9C\xAC";
+    EXPECT_NEAR(estimate_text_width(cjk, 24), 48.0, 0.1);
+    EXPECT_LT(estimate_text_width("ill", 24), estimate_text_width("WWW", 24));
+}

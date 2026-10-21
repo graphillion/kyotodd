@@ -31,6 +31,35 @@ namespace svg_internal {
 // pass closer are routed through lanes instead.
 static const int kArcClearance = 4;
 
+// ---- Label helpers -----------------------------------------------------
+
+// Baseline offset of a label below the centre of its node.
+inline int label_offset(const SvgParams& params) {
+    if (params.label_y >= 0) return params.label_y;
+    return static_cast<int>(std::floor(0.3 * params.font_size + 0.5));
+}
+
+// Rough advance width of a label in a generic sans-serif font, in px.
+// Counts UTF-8 code points (not bytes); wide (non-ASCII) characters are
+// taken as one em.
+inline double estimate_text_width(const std::string& text, int font_size) {
+    double em = 0.0;
+    for (size_t i = 0; i < text.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(text[i]);
+        if ((c & 0xC0) == 0x80) continue;          // UTF-8 continuation byte
+        if (c >= 0x80) { em += 1.0; continue; }    // non-ASCII: assume full width
+        if (c >= '0' && c <= '9') em += 0.6;
+        else if (c == 'm' || c == 'w' || c == 'M' || c == 'W') em += 0.9;
+        else if (c >= 'A' && c <= 'Z') em += 0.7;
+        else if (c == 'i' || c == 'j' || c == 'l' || c == 'I' || c == '!' || c == '|' ||
+                 c == '(' || c == ')' || c == ',' || c == '.' || c == ':' || c == ';' ||
+                 c == '\'' || c == ' ')
+            em += 0.3;
+        else em += 0.55;
+    }
+    return em * font_size;
+}
+
 // ---- Numeric formatting helper ------------------------------------------
 // Format a double for SVG attribute values, trimming trailing zeros.
 inline std::string fmt_double(double v) {
@@ -1342,13 +1371,18 @@ public:
     int margin_x;
     int margin_y;
     std::string marker_color;   // arrowheads and dot/odot markers follow node_stroke
+    std::string font_family;    // written on every text element (may be empty)
+    double marker_start_extent; // radius of the dot/odot marker around a path start
     std::vector<std::string> defs;
     std::vector<std::string> elements;
     double min_x, min_y, max_x, max_y;
 
-    SvgWriter(int mx, int my, const char* stroke = "#1b3966")
+    SvgWriter(int mx, int my, const char* stroke = "#1b3966",
+              const char* family = "sans-serif")
         : margin_x(mx), margin_y(my),
           marker_color(xml_escape(stroke ? stroke : "")),
+          font_family(xml_escape(family ? family : "")),
+          marker_start_extent(0.0),
           min_x(1e18), min_y(1e18), max_x(-1e18), max_y(-1e18)
     {
         add_arrow_marker();
@@ -1363,20 +1397,28 @@ public:
             "    </marker>");
     }
 
-    // Raw mode markers
-    void add_raw_markers() {
+    // Raw mode markers. Sized from the node radius (a fifth of it) in user
+    // units, so they do not grow with the stroke width.
+    void add_raw_markers(int node_radius) {
+        int dot_r = node_radius / 5;
+        if (dot_r < 2) dot_r = 2;
+        int box = dot_r + 2;   // room for the odot outline
+        marker_start_extent = dot_r + 1.0;
+        std::string vb = "viewBox=\"-" + std::to_string(box) + " -" + std::to_string(box) + " " +
+                         std::to_string(2 * box) + " " + std::to_string(2 * box) + "\" "
+                         "markerUnits=\"userSpaceOnUse\" markerWidth=\"" + std::to_string(2 * box) +
+                         "\" markerHeight=\"" + std::to_string(2 * box) + "\" "
+                         "orient=\"auto\" refX=\"0\" refY=\"0\"";
         // Filled circle (normal edge)
         defs.push_back(
-            "<marker id=\"dot\" viewBox=\"-4 -4 8 8\" "
-            "markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\" refX=\"0\" refY=\"0\">\n"
-            "        <circle cx=\"0\" cy=\"0\" r=\"3\" "
+            "<marker id=\"dot\" " + vb + ">\n"
+            "        <circle cx=\"0\" cy=\"0\" r=\"" + std::to_string(dot_r) + "\" "
             "fill=\"" + marker_color + "\" stroke=\"none\" />\n"
             "    </marker>");
         // Open circle (complement edge)
         defs.push_back(
-            "<marker id=\"odot\" viewBox=\"-4 -4 8 8\" "
-            "markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\" refX=\"0\" refY=\"0\">\n"
-            "        <circle cx=\"0\" cy=\"0\" r=\"3\" "
+            "<marker id=\"odot\" " + vb + ">\n"
+            "        <circle cx=\"0\" cy=\"0\" r=\"" + std::to_string(dot_r) + "\" "
             "fill=\"white\" stroke=\"" + marker_color + "\" stroke-width=\"1.5\" />\n"
             "    </marker>");
     }
@@ -1437,6 +1479,10 @@ public:
         elem += fmt_double(y);
         elem += "\" font-size=\"";
         elem += std::to_string(font_size);
+        if (!font_family.empty()) {
+            elem += "\" font-family=\"";
+            elem += font_family;
+        }
         elem += "\" text-anchor=\"";
         elem += xml_escape(text_anchor ? text_anchor : "");
         elem += "\" fill=\"";
@@ -1445,7 +1491,7 @@ public:
         elem += xml_escape(text);
         elem += "</text>";
         elements.push_back(elem);
-        double tw_est = text.size() * font_size * 0.6;
+        double tw_est = estimate_text_width(text, font_size);
         if (std::string(text_anchor) == "middle") {
             update_bounds(x - tw_est / 2, y - font_size);
             update_bounds(x + tw_est / 2, y);
@@ -1544,6 +1590,13 @@ public:
             update_bounds(points[i].first - hw, points[i].second - hw);
             update_bounds(points[i].first + hw, points[i].second + hw);
         }
+        // A start marker (dot/odot) is centred on the first point and may
+        // stick out beyond the stroke, e.g. the complement marker above a
+        // Raw-mode root.
+        if (marker_start && marker_start[0] && marker_start_extent > hw) {
+            update_bounds(points[0].first - marker_start_extent, points[0].second - marker_start_extent);
+            update_bounds(points[0].first + marker_start_extent, points[0].second + marker_start_extent);
+        }
     }
 
     // --- align_to_origin and generate ---
@@ -1613,13 +1666,13 @@ inline std::string make_terminal_svg(bddp f, const SvgParams& params) {
     int mx = params.margin_x;
     int my = params.margin_y;
 
-    SvgWriter svg(mx, my, params.node_stroke);
+    SvgWriter svg(mx, my, params.node_stroke, params.font_family);
 
     svg.emit_rect(mx, my, tx, ty,
                   params.node_fill, params.node_stroke, params.arc_width);
 
     const char* label = (f == bddtrue) ? "1" : "0";
-    svg.emit_text(mx + tx / 2.0, my + ty / 2.0 + params.label_y,
+    svg.emit_text(mx + tx / 2.0, my + ty / 2.0 + label_offset(params),
                   label, params.font_size, "middle");
 
     return svg.to_string();

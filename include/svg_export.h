@@ -26,7 +26,9 @@ struct SvgParams {
     int terminal_y = 40;        ///< Terminal node rectangle height.
     int margin_x = 20;          ///< SVG horizontal padding.
     int margin_y = 20;          ///< SVG vertical padding.
-    int label_y = 7;            ///< Vertical offset for node label text.
+    /** -1 (default) = automatic: 0.3 * font_size, which keeps the label
+     *  vertically centred for any font size. */
+    int label_y = -1;           ///< Vertical offset for node label text.
     int arc_width = 3;          ///< Edge line stroke width.
     int arc_interval = 7;       ///< Horizontal offset between parallel edges on same lane.
     int arc_terminal = 20;      ///< Extra distance for terminal lane margins.
@@ -38,6 +40,10 @@ struct SvgParams {
      *  keep it below terminal_y and 2 * node_radius, otherwise the text
      *  overflows the terminal rectangles / node circles. */
     int font_size = 24;
+    /** Font family written on every text element (empty = viewer default).
+     *  A generic family keeps the drawing looking the same in browsers,
+     *  which otherwise fall back to a serif font. */
+    const char* font_family = "sans-serif";
     /** Optional variable name map. If non-empty, var numbers are replaced by names. */
     std::map<bddvar, std::string> var_name_map;
     /** Terminal node labels for MTBDD/MTZDD. Maps terminal bddp to display string. */
