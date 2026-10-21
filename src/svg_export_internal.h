@@ -26,6 +26,11 @@
 namespace kyotodd {
 namespace svg_internal {
 
+// Minimum ink-to-ink distance (px) kept between a straight arc and the
+// outline of any node that is not one of its endpoints. Arcs that would
+// pass closer are routed through lanes instead.
+static const int kArcClearance = 4;
+
 // ---- Numeric formatting helper ------------------------------------------
 // Format a double for SVG attribute values, trimming trailing zeros.
 inline std::string fmt_double(double v) {
@@ -588,8 +593,6 @@ public:
     std::map<ArcKey, Point> arc_end_point_map;
     std::map<ArcKey, bool>  arc_is_straight_map;
 
-    // y of each routed arc's first horizontal run (see compute_run_heights)
-    std::map<ArcKey, int> run_y_map;
 
     // Level -> y coordinate
     std::map<int, int> level_y_map;
@@ -679,6 +682,21 @@ private:
             if (dist_sq <= r2) return true;
         }
         return false;
+    }
+
+    // --- obstacle_centers: every node on the rows from the child's row up to
+    // the parent's row, except the two endpoints of the arc itself ---
+    std::vector<Point> obstacle_centers(size_t parent_idx, size_t child_idx,
+                                        int parent_level, int c_level) const {
+        std::vector<Point> result;
+        for (auto it = all_nodes.lower_bound(c_level);
+             it != all_nodes.end() && it->first <= parent_level; ++it) {
+            for (size_t idx : it->second) {
+                if (idx == parent_idx || idx == child_idx) continue;
+                result.push_back(node_pos_map.at(idx));
+            }
+        }
+        return result;
     }
 
     // --- get_nodes_between: nodes whose y is strictly between y_start and y_end ---
@@ -823,6 +841,7 @@ private:
             }
 
             size_t child_idx = child_pos_idx(child);
+            int c_level = child_level(child);
 
             for (size_t i = 0; i < arcs.size(); ++i) {
                 size_t parent_idx = arcs[i].first;
@@ -862,12 +881,16 @@ private:
                 }
                 arc_adjusted_start_point_map[arc_key] = Point(pos_start_x, pos_start_y);
 
-                // Straightness check
-                std::vector<Point> between = get_nodes_between(pos_start_y, pos_end_y);
+                // Straightness check: the arc is drawn straight only if it
+                // keeps kArcClearance from the outline (radius + stroke) of
+                // every other node on the rows it passes, including the
+                // parent's and the child's own rows.
+                std::vector<Point> between = obstacle_centers(
+                    parent_idx, child_idx, nodes[parent_idx].level, c_level);
                 if (segment_intersects_any_circle(
                         Point(pos_start_x, pos_start_y),
                         Point(pos_end_x, pos_end_y),
-                        node_radius, between)) {
+                        node_radius + params.arc_width + kArcClearance, between)) {
                     arc_is_straight_map[arc_key] = false;
                 } else {
                     arc_is_straight_map[arc_key] = true;
@@ -903,43 +926,90 @@ private:
     }
 
     // --- horizontal runs ---
-    // A routed (non-straight) arc first drops vertically from its start
-    // point into the gap below the parent row and then runs sideways to its
-    // first lane (or to the terminal lane). Runs that share a gap and
-    // overlap in x get distinct heights so they do not merge into one line;
-    // the longest run is placed lowest, which keeps the drops of the
-    // shorter runs from crossing it.
+    // A routed (non-straight) arc is drawn orthogonally: it drops vertically
+    // from its start point into the gap below the parent row, runs sideways
+    // to its first lane, follows the lane down, jogs sideways in the next
+    // gap to the following lane, and so on, until a final run in the gap
+    // above the child's row brings it right above the end point. Runs that
+    // share a gap and overlap in x get distinct heights so they do not merge
+    // into one line; the longest run is placed lowest, which keeps the
+    // drops of the shorter runs from crossing it.
+    struct RouteInfo {
+        std::vector<int> xs;     // start x, lane x's (offset applied), end x
+        std::vector<int> gaps;   // row above the gap holding run i (xs[i]..xs[i+1])
+    };
     struct RunInfo {
         ArcKey key;
+        int index;    // run index within the arc's route
         int x0, x1;   // x range covered by the run (x0 <= x1)
         int len;
     };
 
-    // True when the arc is drawn through lanes: not straight, and at least
-    // one row lies between parent and child.
-    bool is_routed(ArcKey arc_key, int parent_level, int child_level_val) const {
+    // True when the arc is not drawn as a single straight segment.
+    bool is_routed(ArcKey arc_key) const {
         auto it = arc_is_straight_map.find(arc_key);
         bool straight = (it == arc_is_straight_map.end()) ? true : it->second;
-        return !straight && parent_level - 1 > child_level_val;
+        return !straight;
     }
 
-    // x where the first horizontal run of a routed arc ends.
-    bool first_run_target(ArcKey arc_key, bddp child, int parent_level, int& x_to) const {
-        if (child & BDD_CONST_FLAG) {
-            x_to = terminal_target_x(arc_key, child == bddfalse, parent_level);
-            return true;
+    // Lowest drawn non-terminal level: the row right above the terminals.
+    int bottom_row_level() const {
+        for (auto& kv : level_y_map) {
+            if (kv.first > 0) return kv.first;
         }
-        auto it = lane_manager.arc_lanes.find(arc_key);
-        if (it == lane_manager.arc_lanes.end() || it->second.empty()) return false;
-        int lev = std::get<0>(it->second[0]);
-        int lane_x = std::get<1>(it->second[0]);
-        x_to = lane_manager.calculate_lane_offset(arc_key, lane_x, lev);
+        return 0;
+    }
+
+    // Corner x positions and gap rows of a routed arc.
+    bool route_of(ArcKey arc_key, bddp child, size_t parent_idx, int arc_type,
+                  int parent_level, int child_level_val, RouteInfo& ri) const
+    {
+        auto ep = arc_end_point_map.find(arc_key);
+        if (ep == arc_end_point_map.end()) return false;
+        Point start = calculate_arc_start_point(parent_idx, arc_type);
+        int x_s = static_cast<int>(start.first);
+        int x_e = static_cast<int>(ep->second.first);
+        ri.xs.clear();
+        ri.gaps.clear();
+        ri.xs.push_back(x_s);
+        if (parent_level - 1 > child_level_val) {
+            if (child & BDD_CONST_FLAG) {
+                // Terminal lane: down the outer edge, then across the gap
+                // above the terminal row.
+                ri.xs.push_back(terminal_target_x(arc_key, child == bddfalse, parent_level));
+                ri.gaps.push_back(parent_level);
+                ri.gaps.push_back(bottom_row_level());
+            } else {
+                auto lit = lane_manager.arc_lanes.find(arc_key);
+                if (lit != lane_manager.arc_lanes.end()) {
+                    ri.gaps.push_back(parent_level);
+                    for (size_t li = 0; li < lit->second.size(); ++li) {
+                        int lev = std::get<0>(lit->second[li]);
+                        int lane_x = std::get<1>(lit->second[li]);
+                        ri.xs.push_back(lane_manager.calculate_lane_offset(arc_key, lane_x, lev));
+                        // The run after lane li lies in the gap below row lev;
+                        // its height is chosen per gap, so skipped or empty
+                        // rows below lev need no special handling here.
+                        ri.gaps.push_back(lev);
+                    }
+                }
+            }
+        }
+        if (ri.gaps.empty()) {
+            // No row in between (or no lanes): one run right above the end point.
+            ri.gaps.push_back(parent_level);
+        }
+        ri.xs.push_back(x_e);
         return true;
     }
 
+    // y of run `index` of a routed arc, filled in by compute_run_heights().
+    std::map<std::pair<ArcKey,int>, int> run_y_map;
+
     void compute_run_heights() {
         run_y_map.clear();
-        std::map<int, std::vector<RunInfo> > runs_by_level;
+        // Runs grouped by the row above the gap they lie in.
+        std::map<int, std::vector<RunInfo> > runs_by_gap;
         for (auto& kv : dest_info) {
             bddp child = kv.first;
             if (!draw_zero && child == bddfalse) continue;
@@ -948,30 +1018,32 @@ private:
                 size_t parent_idx = kv.second[i].first;
                 int arc_type = kv.second[i].second;
                 ArcKey arc_key = std::make_pair(parent_idx, arc_type);
-                int parent_level = nodes[parent_idx].level;
-                if (!is_routed(arc_key, parent_level, c_level)) continue;
-                int x_to;
-                if (!first_run_target(arc_key, child, parent_level, x_to)) continue;
-                Point start = calculate_arc_start_point(parent_idx, arc_type);
-                int x_from = static_cast<int>(start.first);
-                RunInfo ri;
-                ri.key = arc_key;
-                ri.x0 = std::min(x_from, x_to);
-                ri.x1 = std::max(x_from, x_to);
-                ri.len = ri.x1 - ri.x0;
-                runs_by_level[parent_level].push_back(ri);
+                if (!is_routed(arc_key)) continue;
+                RouteInfo ri;
+                if (!route_of(arc_key, child, parent_idx, arc_type,
+                              nodes[parent_idx].level, c_level, ri)) continue;
+                for (size_t k = 0; k + 1 < ri.xs.size(); ++k) {
+                    RunInfo run;
+                    run.key = arc_key;
+                    run.index = static_cast<int>(k);
+                    run.x0 = std::min(ri.xs[k], ri.xs[k + 1]);
+                    run.x1 = std::max(ri.xs[k], ri.xs[k + 1]);
+                    run.len = run.x1 - run.x0;
+                    runs_by_gap[ri.gaps[k]].push_back(run);
+                }
             }
         }
 
         int node_radius = params.node_radius;
         int node_interval_y = params.node_interval_y;
-        for (auto& lv : runs_by_level) {
-            std::vector<RunInfo>& runs = lv.second;
+        for (auto& gp : runs_by_gap) {
+            std::vector<RunInfo>& runs = gp.second;
             std::sort(runs.begin(), runs.end(),
                 [](const RunInfo& a, const RunInfo& b) {
                     if (a.len != b.len) return a.len > b.len;
                     if (a.x0 != b.x0) return a.x0 < b.x0;
-                    return a.key < b.key;
+                    if (a.key != b.key) return a.key < b.key;
+                    return a.index < b.index;
                 });
             // Greedy interval colouring: runs that overlap in x get different
             // slots; slot 0 (the longest runs) is drawn lowest.
@@ -994,7 +1066,7 @@ private:
             }
             // Spread the slots around the middle of the gap, keeping clear
             // of the node outlines above and below.
-            int y_mid = level_y_map[lv.first] + node_radius + node_interval_y / 2;
+            int y_mid = level_y_map[gp.first] + node_radius + node_interval_y / 2;
             double interval = params.arc_interval;
             double avail = node_interval_y - 2.0 * (params.arc_width + 2);
             if (avail < 0) avail = 0;
@@ -1002,8 +1074,26 @@ private:
                 interval = avail / (num_slots - 1);
             for (size_t i = 0; i < runs.size(); ++i) {
                 double y = y_mid + ((num_slots - 1) / 2.0 - slot[i]) * interval;
-                run_y_map[runs[i].key] = static_cast<int>(std::floor(y + 0.5));
+                run_y_map[std::make_pair(runs[i].key, runs[i].index)] =
+                    static_cast<int>(std::floor(y + 0.5));
             }
+        }
+    }
+
+    // Waypoints of a routed arc between its start and end points:
+    // alternately a vertical and a horizontal segment per run.
+    void build_route_waypoints(std::vector<Point>& arc_pos, ArcKey arc_key, bddp child,
+                               size_t parent_idx, int arc_type,
+                               int parent_level, int child_level_val) const
+    {
+        RouteInfo ri;
+        if (!route_of(arc_key, child, parent_idx, arc_type, parent_level, child_level_val, ri))
+            return;
+        for (size_t k = 0; k + 1 < ri.xs.size(); ++k) {
+            auto ry = run_y_map.find(std::make_pair(arc_key, static_cast<int>(k)));
+            if (ry == run_y_map.end()) return;
+            arc_pos.push_back(Point(ri.xs[k], ry->second));
+            arc_pos.push_back(Point(ri.xs[k + 1], ry->second));
         }
     }
 
@@ -1046,19 +1136,10 @@ private:
                 double pos_end_x = end_pt.first;
                 double pos_end_y = end_pt.second;
 
-                // Adjust start if arc crosses
-                auto ry = run_y_map.find(arc_key);
-                if (is_routed(arc_key, parent_level, c_level) && ry != run_y_map.end()) {
+                if (is_routed(arc_key)) {
                     // Routed arcs drop straight down into the gap first, so
                     // the sideways run clears the other nodes of the parent
                     // row instead of grazing their outlines.
-                    arc_pos.push_back(Point(pos_start_x, ry->second));
-                } else if ((arc_type == 0 && pos_start_x < pos_end_x) ||
-                           (arc_type == 1 && pos_start_x > pos_end_x)) {
-                    arc_pos.push_back(Point(pos_start_x, pos_start_y + node_radius / 2));
-                }
-
-                if (!arc_is_straight_map[arc_key]) {
                     if (child_is_terminal && parent_level - 1 > c_level) {
                         handle_terminal_connections(arc_pos, child, parent_idx, arc_type,
                                                     parent_level, c_level);
@@ -1066,6 +1147,10 @@ private:
                         handle_normal_connections(arc_pos, parent_idx, child, arc_type,
                                                   parent_level, c_level, pos_end_x);
                     }
+                } else if ((arc_type == 0 && pos_start_x < pos_end_x) ||
+                           (arc_type == 1 && pos_start_x > pos_end_x)) {
+                    // Adjust start if arc crosses
+                    arc_pos.push_back(Point(pos_start_x, pos_start_y + node_radius / 2));
                 }
 
                 // Append end point
@@ -1112,73 +1197,20 @@ private:
         size_t parent_idx, int arc_type,
         int parent_level, int child_level_val)
     {
-        int node_radius = params.node_radius;
-        int node_interval_y = params.node_interval_y;
-
-        bool is_term0 = (child == bddfalse);
         ArcKey arc_key = std::make_pair(parent_idx, arc_type);
-
-        int target_x = terminal_target_x(arc_key, is_term0, parent_level);
-
-        int y_horizontal;
-        auto ry = run_y_map.find(arc_key);
-        if (ry != run_y_map.end()) {
-            y_horizontal = ry->second;
-        } else {
-            int next_level = lane_manager.find_valid_level(parent_level, child_level_val, level_y_map);
-            y_horizontal = level_y_map[next_level] - (node_radius + node_interval_y / 2);
-        }
-        arc_pos.push_back(Point(target_x, y_horizontal));
-
-        int y_vertical = level_y_map[child_level_val] - (node_radius * 2);
-        arc_pos.push_back(Point(target_x, y_vertical));
+        build_route_waypoints(arc_pos, arc_key, child, parent_idx, arc_type,
+                              parent_level, child_level_val);
     }
 
     // --- handle_normal_connections ---
     void handle_normal_connections(
         std::vector<Point>& arc_pos,
-        size_t parent_idx, bddp /* child */, int arc_type,
+        size_t parent_idx, bddp child, int arc_type,
         int parent_level, int child_level_val, double /* pos_end_x */)
     {
-        int node_radius = params.node_radius;
-        int node_interval_y = params.node_interval_y;
-
-        if (parent_level - 1 > child_level_val) {
-            ArcKey arc_key = std::make_pair(parent_idx, arc_type);
-            auto it = lane_manager.arc_lanes.find(arc_key);
-            if (it != lane_manager.arc_lanes.end()) {
-                for (size_t li = 0; li < it->second.size(); ++li) {
-                    int lev = std::get<0>(it->second[li]);
-                    int lane_x = std::get<1>(it->second[li]);
-
-                    int adjusted_x = lane_manager.calculate_lane_offset(arc_key, lane_x, lev);
-
-                    // The first lane starts at the height of the arc's
-                    // horizontal run so the run stays level.
-                    int y_top = level_y_map[lev] - (node_radius + node_interval_y / 2);
-                    if (li == 0) {
-                        auto ry = run_y_map.find(arc_key);
-                        if (ry != run_y_map.end()) y_top = ry->second;
-                    }
-                    arc_pos.push_back(Point(adjusted_x, y_top));
-                    // Find lev-1 in level_y_map; if not present, use closest
-                    // drawn level below lev (lev-1 is absent when
-                    // skip_unused_levels drops it). Level 0 (terminals) is
-                    // always present, so the lane always reaches the next
-                    // drawn row instead of collapsing to zero length.
-                    auto lym = level_y_map.lower_bound(lev);
-                    int y_below;
-                    if (lym != level_y_map.begin()) {
-                        --lym;
-                        y_below = lym->second;
-                    } else {
-                        y_below = level_y_map[lev]; // fallback
-                    }
-                    arc_pos.push_back(Point(adjusted_x,
-                        y_below - (node_radius + node_interval_y / 2)));
-                }
-            }
-        }
+        ArcKey arc_key = std::make_pair(parent_idx, arc_type);
+        build_route_waypoints(arc_pos, arc_key, child, parent_idx, arc_type,
+                              parent_level, child_level_val);
     }
 };
 

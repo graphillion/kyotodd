@@ -344,3 +344,75 @@ TEST_F(SvgLayoutTest, RoutedArcs_SmallFamily_NoGrazing) {
     EXPECT_GE(min_parent_row_clearance(s), 4.0);
     EXPECT_EQ(overlapping_run_pairs(s), 0);
 }
+
+// --- Review item 4: straight arcs keep a clearance from every other node ---
+
+namespace {
+
+// Eight distinct nodes on level 2 feeding two nodes on level 1: long,
+// shallow one-row arcs.
+ZDD wide_level2() {
+    ZDD B1 = ZDD::singleton(1);
+    ZDD B2 = ZDD::power_set(1);
+    ZDD los[4] = { ZDD(0), ZDD(1), B1, B2 };
+    ZDD his[3] = { ZDD(1), B1, B2 };
+    std::vector<ZDD> L2;
+    for (int a = 0; a < 4; ++a)
+        for (int b = 0; b < 3; ++b) L2.push_back(znode(2, los[a], his[b]));
+    int idx[8] = {0, 11, 1, 10, 2, 9, 5, 7};
+    std::vector<ZDD> pick;
+    for (int i = 0; i < 8; ++i) pick.push_back(L2[idx[i]]);
+    std::vector<ZDD> L3;
+    for (int i = 0; i < 8; i += 2) L3.push_back(znode(3, pick[i], pick[i + 1]));
+    std::vector<ZDD> L4;
+    for (int i = 0; i < 4; i += 2) L4.push_back(znode(4, L3[i], L3[i + 1]));
+    return znode(5, L4[0], L4[1]);
+}
+
+} // namespace
+
+TEST_F(SvgLayoutTest, StraightArcs_KeepClearanceFromIntermediateRows) {
+    // combination(6,3): the lo arc of the leftmost "3" node passed 0.9 px
+    // into the outline of the left "2" node (the old check used the bare
+    // radius, ignoring both stroke widths).
+    Svg s = parse_svg(ZDD::combination(6, 3).save_svg());
+    ASSERT_EQ(s.circles.size(), 12u);
+    EXPECT_GE(min_foreign_circle_clearance(s), 2.0);
+    EXPECT_GE(min_foreign_circle_clearance(parse_svg(family({{3}, {1, 3, 4}, {3, 4}}).save_svg())), 2.0);
+    EXPECT_GE(min_foreign_circle_clearance(parse_svg(family({{3}, {1}, {2, 3, 4}}).save_svg())), 2.0);
+}
+
+TEST_F(SvgLayoutTest, StraightArcs_KeepClearanceFromChildRow) {
+    // Long one-row arcs used to graze the neighbours of their target node;
+    // they are now routed through the gap instead.
+    Svg s = parse_svg(wide_level2().save_svg());
+    ASSERT_EQ(s.circles.size(), 17u);
+    EXPECT_GE(min_foreign_circle_clearance(s), 0.0);
+    EXPECT_EQ(overlapping_run_pairs(s), 0);
+}
+
+TEST_F(SvgLayoutTest, AllArcs_ClearOfOtherNodes_Funnel) {
+    EXPECT_GE(min_foreign_circle_clearance(parse_svg(lane_funnel().save_svg())), 0.0);
+    ZDD z = family({{1, 3, 4}, {1, 2, 4}, {3, 4}, {1, 3, 5, 6}, {1, 2, 3, 4, 6},
+                    {1, 6}, {2, 3}, {1, 2, 3, 5}, {1, 5}});
+    EXPECT_GE(min_foreign_circle_clearance(parse_svg(z.save_svg())), 0.0);
+}
+
+TEST_F(SvgLayoutTest, RoutedArcs_FinalApproachClearsChildRow) {
+    // The last lane of a routed arc may end far from the child; the final
+    // approach used to sweep across the child's row and graze its
+    // neighbours. Two random-search families that showed this.
+    ZDD a = family({{2, 7, 8}, {1, 3, 5, 6, 7, 8}, {1, 3, 6, 8}, {2, 5, 7, 8}, {1, 5},
+                    {1, 2, 4, 7, 8}, {2, 3, 7, 8}, {1, 3, 5, 7}, {3, 4, 8}, {1, 3, 5, 7, 8},
+                    {4, 5, 6, 7}, {1}, {2, 4, 6, 8}, {1, 3, 4, 8}, {2, 3, 4, 6, 7, 8}});
+    Svg sa = parse_svg(a.save_svg());
+    EXPECT_GE(min_foreign_circle_clearance(sa), 0.0);
+    EXPECT_EQ(overlapping_run_pairs(sa), 0);
+    ZDD b = family({{2, 4, 5}, {1, 2, 5, 7}, {1, 2, 4, 6}, {3, 4}, {2, 3, 4, 5}, {3}, {1, 4, 6},
+                    {2, 3, 5, 7}, {1, 2, 4, 5}, {3, 5, 6, 7}, {4, 7}, {3, 5, 6, 7}, {3, 5},
+                    {1, 2, 3, 4, 5, 7}, {2, 4, 5, 6}, {2, 3, 7}, {3, 4}, {6, 7}, {2, 3, 5, 6},
+                    {5, 7}, {1, 3, 6, 7}, {1, 2, 3, 6, 7}, {1, 2, 3, 4, 5}});
+    Svg sb = parse_svg(b.save_svg());
+    EXPECT_GE(min_foreign_circle_clearance(sb), 0.0);
+    EXPECT_EQ(overlapping_run_pairs(sb), 0);
+}
