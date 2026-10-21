@@ -245,6 +245,11 @@ bddp bddexist_iter(bddp f, bddp g);
 bddp bddexist(bddp f, const std::vector<bddvar>& vars);
 
 /**
+ * @brief Existential quantification by a list of variables with execution mode selection.
+ */
+bddp bddexist(bddp f, const std::vector<bddvar>& vars, BddExecMode mode);
+
+/**
  * @brief Existential quantification of a single variable.
  * @param f The BDD to quantify.
  * @param v Variable number to quantify out.
@@ -284,6 +289,11 @@ bddp bdduniv_iter(bddp f, bddp g);
  * @return The resulting BDD.
  */
 bddp bdduniv(bddp f, const std::vector<bddvar>& vars);
+
+/**
+ * @brief Universal quantification by a list of variables with execution mode selection.
+ */
+bddp bdduniv(bddp f, const std::vector<bddvar>& vars, BddExecMode mode);
 
 /**
  * @brief Universal quantification of a single variable.

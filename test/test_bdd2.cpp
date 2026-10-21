@@ -1356,6 +1356,21 @@ TEST_F(BddExistVectorDeepTest, UnivVectorMatchesCube) {
     EXPECT_EQ(expected, BDD(0));
 }
 
+TEST_F(BddExistVectorDeepTest, VectorFormHonoursExecMode) {
+    BDD f = build_chain();
+    BDD cube = cube3();
+    // Forced Recursive mode must fail exactly like the cube overload does;
+    // forced Iterative mode must succeed and agree with it.
+    EXPECT_THROW(bddexist(f.id(), vars3(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(bdduniv(f.id(), vars3(), BDD_EXEC_RECURSIVE), std::overflow_error);
+    BDD e = BDD_ID(bddexist(f.id(), vars3(), BDD_EXEC_ITERATIVE));
+    BDD u = BDD_ID(bdduniv(f.id(), vars3(), BDD_EXEC_ITERATIVE));
+    EXPECT_EQ(e, BDD_ID(bddexist(f.id(), cube.id(), BDD_EXEC_ITERATIVE)));
+    EXPECT_EQ(u, BDD_ID(bdduniv(f.id(), cube.id(), BDD_EXEC_ITERATIVE)));
+    EXPECT_EQ(e, BDD_ID(bddexist(f.id(), vars3(), BDD_EXEC_AUTO)));
+    EXPECT_EQ(u, BDD_ID(bdduniv(f.id(), vars3(), BDD_EXEC_AUTO)));
+}
+
 TEST_F(BddExistVectorDeepTest, ClassVectorMatchesCube) {
     BDD f = build_chain();
     BDD cube = cube3();

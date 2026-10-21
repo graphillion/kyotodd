@@ -989,6 +989,27 @@ TEST_P(BddExistModeTest, CrossValidation) {
     }
 }
 
+TEST_P(BddExistModeTest, VectorFormMatchesCube) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    // {2, 5} as a vector (unsorted, with a duplicate) and as a support cube.
+    std::vector<bddvar> vars;
+    vars.push_back(5);
+    vars.push_back(2);
+    vars.push_back(5);
+    bddp cube = bddor(bddprime(2), bddprime(5));
+    EXPECT_EQ(bddexist(f, vars, GetParam()), bddexist_mode(f, cube));
+    EXPECT_EQ(bddexist(f, vars, GetParam()), bddexist(f, vars));
+    // Empty list: f unchanged.
+    EXPECT_EQ(bddexist(f, std::vector<bddvar>(), GetParam()), f);
+    // Out-of-range variable is rejected in every mode.
+    std::vector<bddvar> bad;
+    bad.push_back(static_cast<bddvar>(n + 1));
+    EXPECT_THROW(bddexist(f, bad, GetParam()), std::invalid_argument);
+}
+
 class BddUnivModeTest : public ::testing::TestWithParam<BddExecMode> {
 protected:
     void SetUp() override {
@@ -1050,6 +1071,24 @@ TEST_P(BddUnivModeTest, CrossValidation) {
         bddp g = bddprime(v);
         EXPECT_EQ(bdduniv_mode(f, g), bdduniv(f, g));
     }
+}
+
+TEST_P(BddUnivModeTest, VectorFormMatchesCube) {
+    const int n = 6;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddtrue;
+    for (int i = 1; i <= n; ++i) f = bddand(f, bddor(bddprime(i), bddprime(((i % n) + 1))));
+    std::vector<bddvar> vars;
+    vars.push_back(5);
+    vars.push_back(2);
+    vars.push_back(5);
+    bddp cube = bddor(bddprime(2), bddprime(5));
+    EXPECT_EQ(bdduniv(f, vars, GetParam()), bdduniv_mode(f, cube));
+    EXPECT_EQ(bdduniv(f, vars, GetParam()), bdduniv(f, vars));
+    EXPECT_EQ(bdduniv(f, std::vector<bddvar>(), GetParam()), f);
+    std::vector<bddvar> bad;
+    bad.push_back(static_cast<bddvar>(n + 1));
+    EXPECT_THROW(bdduniv(f, bad, GetParam()), std::invalid_argument);
 }
 
 class BddCofactorModeTest : public ::testing::TestWithParam<BddExecMode> {

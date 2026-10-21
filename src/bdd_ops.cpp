@@ -815,6 +815,15 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
     });
 }
 
+bddp bddexist(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
+    bddp_validate(f, "bddexist");
+    if (f == bddnull) return bddnull;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp cube = vars_to_cube(vars);
+        return bddexist(f, cube, mode);
+    });
+}
+
 bddp bddexistvar(bddp f, bddvar v) {
     return bddexist(f, bddprime(v));
 }
@@ -921,6 +930,15 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
         // See bddexist(f, vars) for why delegating to the cube overload
         // inside the guard is safe.
         return bdduniv(f, cube);
+    });
+}
+
+bddp bdduniv(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
+    bddp_validate(f, "bdduniv");
+    if (f == bddnull) return bddnull;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp cube = vars_to_cube(vars);
+        return bdduniv(f, cube, mode);
     });
 }
 
