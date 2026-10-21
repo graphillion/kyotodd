@@ -316,7 +316,7 @@ static std::string mvdd_svg_generate_expanded(
     };
 
     // 4. Draw SVG
-    SvgWriter svg(params.margin_x, params.margin_y);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
 
     int r = params.node_radius;
 

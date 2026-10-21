@@ -1341,12 +1341,14 @@ class SvgWriter {
 public:
     int margin_x;
     int margin_y;
+    std::string marker_color;   // arrowheads and dot/odot markers follow node_stroke
     std::vector<std::string> defs;
     std::vector<std::string> elements;
     double min_x, min_y, max_x, max_y;
 
-    SvgWriter(int mx, int my)
+    SvgWriter(int mx, int my, const char* stroke = "#1b3966")
         : margin_x(mx), margin_y(my),
+          marker_color(xml_escape(stroke ? stroke : "")),
           min_x(1e18), min_y(1e18), max_x(-1e18), max_y(-1e18)
     {
         add_arrow_marker();
@@ -1357,7 +1359,7 @@ public:
             "<marker id=\"arrow\" viewBox=\"-10 -4 20 8\" "
             "markerWidth=\"10\" markerHeight=\"10\" orient=\"auto\">\n"
             "        <polygon points=\"-10,-4 0,0 -10,4\" "
-            "fill=\"#1b3966\" stroke=\"none\" />\n"
+            "fill=\"" + marker_color + "\" stroke=\"none\" />\n"
             "    </marker>");
     }
 
@@ -1368,14 +1370,14 @@ public:
             "<marker id=\"dot\" viewBox=\"-4 -4 8 8\" "
             "markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\" refX=\"0\" refY=\"0\">\n"
             "        <circle cx=\"0\" cy=\"0\" r=\"3\" "
-            "fill=\"#1b3966\" stroke=\"none\" />\n"
+            "fill=\"" + marker_color + "\" stroke=\"none\" />\n"
             "    </marker>");
         // Open circle (complement edge)
         defs.push_back(
             "<marker id=\"odot\" viewBox=\"-4 -4 8 8\" "
             "markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\" refX=\"0\" refY=\"0\">\n"
             "        <circle cx=\"0\" cy=\"0\" r=\"3\" "
-            "fill=\"white\" stroke=\"#1b3966\" stroke-width=\"1.5\" />\n"
+            "fill=\"white\" stroke=\"" + marker_color + "\" stroke-width=\"1.5\" />\n"
             "    </marker>");
     }
 
@@ -1611,7 +1613,7 @@ inline std::string make_terminal_svg(bddp f, const SvgParams& params) {
     int mx = params.margin_x;
     int my = params.margin_y;
 
-    SvgWriter svg(mx, my);
+    SvgWriter svg(mx, my, params.node_stroke);
 
     svg.emit_rect(mx, my, tx, ty,
                   params.node_fill, params.node_stroke, params.arc_width);

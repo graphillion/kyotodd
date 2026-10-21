@@ -57,7 +57,7 @@ static std::string svg_generate_impl(
     pos_mgr.compute_all_positions();
 
     // ---- 3. Draw SVG ----
-    SvgWriter svg(params.margin_x, params.margin_y);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
 
     // Add raw mode markers if needed
     bool raw_mode = !is_expanded;

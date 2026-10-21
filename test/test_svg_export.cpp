@@ -592,3 +592,41 @@ TEST_F(SvgExportTest, SizeMatchesViewBox_FractionalBounds) {
     expect_size_matches_viewbox(ZDD::combination(4, 2).save_svg(p));
     expect_size_matches_viewbox(BDD(1).save_svg(p));
 }
+
+// --- Markers follow node_stroke (review-SVG-20261021 item 11) ---
+
+static size_t count_substr(const std::string& s, const std::string& sub) {
+    size_t n = 0, pos = 0;
+    while ((pos = s.find(sub, pos)) != std::string::npos) { ++n; pos += sub.size(); }
+    return n;
+}
+
+TEST_F(SvgExportTest, Markers_FollowNodeStroke) {
+    std::vector<bddvar> vs = bddnewvar(3);
+    ZDD z = ZDD::combination(3, 2);
+    SvgParams p;
+    p.node_stroke = "#c00000";
+    p.node_fill = "#ffe0e0";
+    std::string svg = z.save_svg(p);
+    EXPECT_EQ(count_substr(svg, "#1b3966"), 0u);
+    // arrowhead polygon is filled with the stroke colour
+    EXPECT_TRUE(contains(svg, "fill=\"#c00000\" stroke=\"none\""));
+    p.mode = DrawMode::Raw;
+    std::string raw = z.save_svg(p);
+    EXPECT_EQ(count_substr(raw, "#1b3966"), 0u);
+    EXPECT_TRUE(contains(raw, "marker id=\"odot\""));
+    EXPECT_TRUE(contains(raw, "fill=\"white\" stroke=\"#c00000\""));
+    // terminal-only drawings and the other exporters use the same writer
+    EXPECT_EQ(count_substr(ZDD(1).save_svg(p), "#1b3966"), 0u);
+    auto mt = MTBDD<double>::ite(vs[0], MTBDD<double>::terminal(1.0), MTBDD<double>::terminal(2.0));
+    EXPECT_EQ(count_substr(mt.save_svg(p), "#1b3966"), 0u);
+}
+
+TEST_F(SvgExportTest, Markers_StrokeColorIsEscaped) {
+    bddvar v = bddnewvar();
+    ZDD z = ZDD::singleton(v);
+    SvgParams p;
+    p.node_stroke = "\"><script>";
+    std::string svg = z.save_svg(p);
+    EXPECT_FALSE(contains(svg, "<script>"));
+}

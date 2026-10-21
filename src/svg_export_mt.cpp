@@ -87,7 +87,7 @@ static std::string make_mt_terminal_svg(bddp f, const SvgParams& params) {
     int mx = params.margin_x;
     int my = params.margin_y;
 
-    SvgWriter svg(mx, my);
+    SvgWriter svg(mx, my, params.node_stroke);
 
     // Adjust width for longer labels
     std::string label = mt_terminal_label(f, params);
@@ -224,7 +224,7 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
     };
 
     // 3. Draw SVG
-    SvgWriter svg(params.margin_x, params.margin_y);
+    SvgWriter svg(params.margin_x, params.margin_y, params.node_stroke);
 
     int r = params.node_radius;
 
