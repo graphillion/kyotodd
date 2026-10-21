@@ -703,8 +703,9 @@ TEST_F(SvgLayoutTest, UpwardArcs_AreDrawnStraight) {
         EXPECT_LE(s.paths[pi].segs.size(), 3u) << "upward arc " << pi << " was routed";
         for (size_t i = 0; i < s.paths[pi].segs.size(); ++i) {
             const Seg& g = s.paths[pi].segs[i];
-            if (g.type == 'L' && std::fabs(g.p0.y - g.p1.y) < 0.01)
+            if (g.type == 'L' && std::fabs(g.p0.y - g.p1.y) < 0.01) {
                 EXPECT_LT(std::fabs(g.p0.x - g.p1.x), 20.0) << "upward arc " << pi << " has a horizontal run";
+            }
         }
     }
     EXPECT_GE(upward, 1);
