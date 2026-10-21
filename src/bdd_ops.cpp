@@ -808,7 +808,10 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars) {
     if (f == bddnull) return bddnull;
     return bdd_gc_guard([&]() -> bddp {
         bddp cube = vars_to_cube(vars);
-        return bddexist_rec(f, cube);
+        // Delegate to the cube overload so the _rec / _iter dispatch is
+        // shared. Nested bdd_gc_guard is safe: the inner guard neither
+        // collects nor retries, and the outer one rebuilds the cube on retry.
+        return bddexist(f, cube);
     });
 }
 
@@ -915,7 +918,9 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars) {
     if (f == bddnull) return bddnull;
     return bdd_gc_guard([&]() -> bddp {
         bddp cube = vars_to_cube(vars);
-        return bdduniv_rec(f, cube);
+        // See bddexist(f, vars) for why delegating to the cube overload
+        // inside the guard is safe.
+        return bdduniv(f, cube);
     });
 }
 

@@ -1286,3 +1286,84 @@ TEST_F(BddShiftIterTest, RshiftUnderflowThrows) {
         std::invalid_argument);
 }
 
+
+// --- bddexist / bdduniv (vector form) on deep BDDs ---
+//
+// The vector overloads build a variable-set cube and must dispatch to the
+// _iter implementation when the BDD level exceeds BDD_RecurLimit, exactly
+// like the cube overloads do. A chain of (BDD_RecurLimit + 100) conjoined
+// variables has its root at a level above the limit. Roots are held in
+// BDD objects so that they survive the GC retry performed by bdd_gc_guard.
+
+class BddExistVectorDeepTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        BDD_Init(1024, UINT64_MAX);
+        for (int i = 0; i < kDepth; ++i) BDD_NewVar();
+    }
+
+    static const int kDepth = BDD_RecurLimit + 100;
+
+    // AND of all variables 1..kDepth, built bottom-up (var 1 first) so the
+    // root is var kDepth at level kDepth.
+    static BDD build_chain() {
+        bddp f = bddtrue;
+        for (int i = 1; i <= kDepth; ++i) {
+            f = BDD::getnode_raw(static_cast<bddvar>(i), bddfalse, f);
+        }
+        return BDD_ID(f);
+    }
+
+    // Variable set {1, kDepth/2, kDepth} in support() encoding (disjunction
+    // of primes), plus the same set as a vector.
+    static BDD cube3() {
+        return BDD::prime(1) | BDD::prime(kDepth / 2)
+             | BDD::prime(static_cast<bddvar>(kDepth));
+    }
+    static std::vector<bddvar> vars3() {
+        std::vector<bddvar> vars;
+        vars.push_back(1);
+        vars.push_back(kDepth / 2);
+        vars.push_back(static_cast<bddvar>(kDepth));
+        return vars;
+    }
+};
+
+TEST_F(BddExistVectorDeepTest, ExistVectorMatchesCube) {
+    BDD f = build_chain();
+    BDD cube = cube3();
+    // The vector call goes first so that the cube call (which takes the
+    // _iter path) cannot pre-populate the shared operation cache for it.
+    BDD got(0);
+    EXPECT_NO_THROW(got = BDD_ID(bddexist(f.id(), vars3())));
+    BDD expected = BDD_ID(bddexist(f.id(), cube.id()));
+    EXPECT_EQ(got, expected);
+    // Sanity: the result no longer depends on the quantified variables.
+    EXPECT_EQ(expected.exist(cube), expected);
+    EXPECT_EQ(expected.at1(1), expected);
+    EXPECT_EQ(expected.at1(static_cast<bddvar>(kDepth)), expected);
+}
+
+TEST_F(BddExistVectorDeepTest, UnivVectorMatchesCube) {
+    BDD f = build_chain();
+    BDD cube = cube3();
+    // Vector call first: see ExistVectorMatchesCube.
+    BDD got(0);
+    EXPECT_NO_THROW(got = BDD_ID(bdduniv(f.id(), vars3())));
+    BDD expected = BDD_ID(bdduniv(f.id(), cube.id()));
+    EXPECT_EQ(got, expected);
+    // forall x. (x AND rest) = false
+    EXPECT_EQ(expected, BDD(0));
+}
+
+TEST_F(BddExistVectorDeepTest, ClassVectorMatchesCube) {
+    BDD f = build_chain();
+    BDD cube = cube3();
+    // Vector calls first: see ExistVectorMatchesCube.
+    BDD g(0);
+    EXPECT_NO_THROW(g = f.exist(vars3()));
+    BDD h(0);
+    EXPECT_NO_THROW(h = f.univ(vars3()));
+    EXPECT_EQ(g, f.exist(cube));
+    EXPECT_EQ(h, f.univ(cube));
+}
