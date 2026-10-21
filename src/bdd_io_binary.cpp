@@ -359,7 +359,7 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
             "binary import: max_level exceeds import safety limit");
     if (num_roots > bdd_node_max)
         throw std::runtime_error("binary import: num_roots exceeds node limit");
-    if (import_exceeds(num_roots, bdd_import_max_nodes))
+    if (import_exceeds(num_roots, bdd_import_max_outputs))
         throw std::runtime_error(
             "binary import: num_roots exceeds import safety limit");
 

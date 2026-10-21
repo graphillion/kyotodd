@@ -1659,6 +1659,27 @@ TEST_F(BDDTest, ImportLimit_Binary) {
     { std::istringstream iss(data); EXPECT_EQ(ZDD::import_binary(iss), f); }
 }
 
+TEST_F(BDDTest, ImportLimit_BinaryOutputs) {
+    ImportLimitGuard guard;
+    bddnewvar(); bddnewvar();
+    std::vector<ZDD> roots;
+    roots.push_back(ZDD::Single.change(1));
+    roots.push_back(ZDD::Single.change(2));
+    std::ostringstream oss;
+    ZDD::export_binary_multi(oss, roots);
+    const std::string data = oss.str();
+
+    // Two roots > 1 -> rejected by max_outputs, not by max_nodes.
+    bdd_set_import_limit(0, 0, 1);
+    { std::istringstream iss(data); EXPECT_THROW(ZDD::import_binary_multi(iss), std::runtime_error); }
+    // max_nodes alone does not bound the root count.
+    bdd_set_import_limit(2, 0, 0);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_binary_multi(iss), roots); }
+    // Exactly at the bound -> accepted.
+    bdd_set_import_limit(0, 0, 2);
+    { std::istringstream iss(data); EXPECT_EQ(ZDD::import_binary_multi(iss), roots); }
+}
+
 TEST_F(BDDTest, ImportLimit_Graphillion) {
     ImportLimitGuard guard;
     bddnewvar(); bddnewvar(); bddnewvar();
