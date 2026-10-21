@@ -939,6 +939,68 @@ private:
                 }
                 arc_is_straight_map[arc_key] = straight;
             }
+
+            if (child_is_terminal) {
+                // Spread the end points along the terminal's top edge in the
+                // same spirit, so arrowheads do not pile up on its centre.
+                // Arcs that come down the outer terminal lane enter at the
+                // outer end of the edge, the others at the point facing
+                // their parent; neighbours are kept at least a few px apart
+                // within the usable part of the edge.
+                size_t n = arcs.size();
+                double half = params.terminal_x / 2.0 - 5.0;
+                if (half < 0) half = 0;
+                std::vector<double> desired(n);
+                for (size_t i = 0; i < n; ++i) {
+                    ArcKey key = std::make_pair(arcs[i].first, arcs[i].second);
+                    int plevel = nodes[arcs[i].first].level;
+                    double t;
+                    if (!arc_is_straight_map[key] && plevel - 1 > 0) {
+                        t = child_is_false ? -1.0 : 1.0;
+                    } else {
+                        Point st = calculate_arc_start_point(arcs[i].first, arcs[i].second);
+                        t = (st.first - child_pos.first) / 150.0;
+                        if (t < -1.0) t = -1.0;
+                        if (t > 1.0) t = 1.0;
+                    }
+                    desired[i] = child_pos.first + t * half;
+                }
+                std::vector<size_t> order(n);
+                for (size_t i = 0; i < n; ++i) order[i] = i;
+                std::sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+                    if (desired[a] != desired[b]) return desired[a] < desired[b];
+                    return a < b;
+                });
+                double sep = (n >= 2) ? std::min(6.0, 2.0 * half / static_cast<double>(n - 1)) : 0.0;
+                std::vector<double> xs(n);
+                for (size_t k = 0; k < n; ++k) {
+                    double x = desired[order[k]];
+                    if (k > 0 && x < xs[order[k - 1]] + sep) x = xs[order[k - 1]] + sep;
+                    xs[order[k]] = x;
+                }
+                for (size_t k = n; k-- > 0;) {
+                    double hi = (k + 1 == n) ? child_pos.first + half : xs[order[k + 1]] - sep;
+                    if (xs[order[k]] > hi) xs[order[k]] = hi;
+                }
+                int top_y = static_cast<int>(child_pos.second) - params.terminal_y / 2;
+                for (size_t i = 0; i < n; ++i) {
+                    ArcKey key = std::make_pair(arcs[i].first, arcs[i].second);
+                    arc_end_point_map[key] = Point(std::floor(xs[i] + 0.5), top_y);
+                    if (!arc_is_straight_map[key]) continue;
+                    // The end point moved: re-check that the straight
+                    // segment still clears every node and arrives steeply.
+                    Point st = arc_adjusted_start_point_map[key];
+                    Point en = arc_end_point_map[key];
+                    std::vector<Point> between = obstacle_centers(
+                        arcs[i].first, child_idx, nodes[arcs[i].first].level, c_level);
+                    bool ok = !segment_intersects_any_circle(
+                        st, en, node_radius + params.arc_width + kArcClearance, between);
+                    double dx = en.first - st.first, dy = en.second - st.second;
+                    double len = std::sqrt(dx * dx + dy * dy);
+                    if (len > 0 && dy / len < 0.5) ok = false;
+                    if (!ok) arc_is_straight_map[key] = false;
+                }
+            }
         }
     }
 

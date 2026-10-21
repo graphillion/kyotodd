@@ -470,3 +470,98 @@ TEST_F(SvgLayoutTest, EndPoints_StayInTopSector) {
         EXPECT_LE(ang, 153.0);
     }
 }
+
+// --- Review item 5: terminal end points are spread along the top edge ---
+
+namespace {
+
+int rect_at_top(const Svg& s, Pt q, double tol = 2.5) {
+    for (size_t i = 0; i < s.rects.size(); ++i) {
+        const Rect& r = s.rects[i];
+        if (std::fabs(q.y - r.y) <= tol && q.x >= r.x - tol && q.x <= r.x + r.w + tol)
+            return static_cast<int>(i);
+    }
+    return -1;
+}
+
+void expect_terminal_end_points_spread(const Svg& s, double terminal_x) {
+    for (size_t ri = 0; ri < s.rects.size(); ++ri) {
+        std::vector<double> xs;
+        for (size_t pi = 0; pi < s.paths.size(); ++pi)
+            if (rect_at_top(s, s.paths[pi].end) == static_cast<int>(ri)) xs.push_back(s.paths[pi].end.x);
+        if (xs.size() < 2) continue;
+        double cx = s.rects[ri].x + s.rects[ri].w / 2, half = terminal_x / 2 - 5;
+        double sep = std::min(6.0, 2 * half / (xs.size() - 1));
+        std::sort(xs.begin(), xs.end());
+        for (size_t i = 0; i < xs.size(); ++i) {
+            EXPECT_GE(xs[i], cx - half - 0.5);
+            EXPECT_LE(xs[i], cx + half + 0.5);
+            if (i > 0) {
+                EXPECT_GE(xs[i] - xs[i - 1], sep - 1.0) << "end points too close on rect " << ri;
+            }
+        }
+    }
+}
+
+// Every arc onto a terminal must come down steeply (at least 30 degrees
+// from horizontal) so the arrowhead does not lie along the top edge.
+void expect_steep_terminal_arrivals(const Svg& s) {
+    for (size_t pi = 0; pi < s.paths.size(); ++pi) {
+        const Path& p = s.paths[pi];
+        if (rect_at_top(s, p.end) < 0) continue;
+        const Seg& last = p.segs.back();
+        Pt prev = (last.type == 'L') ? last.p0 : last.c;
+        double dx = p.end.x - prev.x, dy = p.end.y - prev.y;
+        double len = std::hypot(dx, dy);
+        EXPECT_GE(dy / len, 0.5) << "shallow arrival of path " << pi;
+    }
+}
+
+} // namespace
+
+TEST_F(SvgLayoutTest, TerminalEndPoints_SpreadAlongTopEdge) {
+    SvgParams p;
+    expect_terminal_end_points_spread(parse_svg(lane_funnel().save_svg(p)), p.terminal_x);
+    expect_terminal_end_points_spread(parse_svg(ZDD::combination(8, 4).save_svg(p)), p.terminal_x);
+    expect_terminal_end_points_spread(parse_svg(wide_level2().save_svg(p)), p.terminal_x);
+}
+
+TEST_F(SvgLayoutTest, TerminalArrivals_AreSteep) {
+    expect_steep_terminal_arrivals(parse_svg(lane_funnel().save_svg()));
+    expect_steep_terminal_arrivals(parse_svg(ZDD::combination(8, 4).save_svg()));
+    expect_steep_terminal_arrivals(parse_svg(wide_level2().save_svg()));
+    expect_steep_terminal_arrivals(parse_svg(family({{1, 2, 3}, {1}, {1, 2, 4}}).save_svg()));
+}
+
+// --- Property test over deterministic pseudo-random families ---
+
+TEST_F(SvgLayoutTest, RandomFamilies_AllGeometricProperties) {
+    // A small LCG keeps the families identical on every platform.
+    unsigned long long state = 0x9E3779B97F4A7C15ULL;
+    auto next = [&]() { state = state * 6364136223846793005ULL + 1442695040888963407ULL; return static_cast<unsigned>(state >> 33); };
+    int checked = 0;
+    for (int t = 0; t < 40; ++t) {
+        int nv = 4 + static_cast<int>(next() % 5);          // 4..8 variables
+        int ns = 3 + static_cast<int>(next() % 20);         // 3..22 sets
+        std::vector<std::vector<bddvar> > sets;
+        for (int i = 0; i < ns; ++i) {
+            std::vector<bddvar> s;
+            for (int v = 1; v <= nv; ++v) if (next() & 1) s.push_back(v);
+            sets.push_back(s);
+        }
+        ZDD z = family(sets);
+        if (z.raw_size() < 3) continue;
+        SvgParams p;
+        p.skip_unused_levels = (t % 3 == 0);
+        if (t % 4 == 1) p.mode = DrawMode::Raw;
+        Svg s = parse_svg(z.save_svg(p));
+        ++checked;
+        EXPECT_GE(min_foreign_circle_clearance(s), 0.0) << "family " << t;
+        EXPECT_EQ(count_degenerate_commands(s), 0) << "family " << t;
+        EXPECT_EQ(count_bad_arrivals(s), 0) << "family " << t;
+        EXPECT_EQ(overlapping_run_pairs(s), 0) << "family " << t;
+        expect_steep_terminal_arrivals(s);
+        expect_terminal_end_points_spread(s, p.terminal_x);
+    }
+    EXPECT_GE(checked, 30);
+}
