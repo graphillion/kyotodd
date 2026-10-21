@@ -275,8 +275,10 @@ TEST_F(SvgExportTest, SkipUnusedLevels) {
     bddvar v5 = bddnewvar();
     BDD f = BDD::prime(v1) & BDD::prime(v5);
 
-    // Default: all levels allocated
+    // All levels allocated (skip_unused_levels defaults to true since
+    // review-SVG-20261021 item 8, so ask for the full layout explicitly)
     SvgParams params_default;
+    params_default.skip_unused_levels = false;
     std::string svg_default = f.save_svg(params_default);
 
     // With skip: unused levels omitted
@@ -727,4 +729,24 @@ TEST_F(SvgExportTest, TextWidthEstimate_CountsCodePoints) {
     std::string cjk = "\xE6\x97\xA5\xE6\x9C\xAC";
     EXPECT_NEAR(estimate_text_width(cjk, 24), 48.0, 0.1);
     EXPECT_LT(estimate_text_width("ill", 24), estimate_text_width("WWW", 24));
+}
+
+// --- Empty levels are skipped by default (review-SVG-20261021 item 8) ---
+
+TEST_F(SvgExportTest, SkipUnusedLevels_IsDefault) {
+    SvgParams p;
+    EXPECT_TRUE(p.skip_unused_levels);
+    // ZDD::singleton(5) with vars 1..5: one node row directly above the
+    // terminals, no empty rows in between.
+    std::vector<bddvar> vs = bddnewvar(5);
+    std::string svg = ZDD::singleton(vs[4]).save_svg();
+    double cx, cy, rx, ry;
+    size_t c = svg.find("<circle cx=\"", svg.find("</defs>"));
+    size_t r = svg.find("<rect x=\"");
+    ASSERT_NE(c, std::string::npos);
+    ASSERT_NE(r, std::string::npos);
+    std::sscanf(svg.c_str() + c, "<circle cx=\"%lf\" cy=\"%lf\"", &cx, &cy);
+    std::sscanf(svg.c_str() + r, "<rect x=\"%lf\" y=\"%lf\"", &rx, &ry);
+    // circle bottom (cy + r) to terminal top: exactly one node_interval_y gap
+    EXPECT_DOUBLE_EQ(ry - (cy + p.node_radius), p.node_interval_y);
 }
