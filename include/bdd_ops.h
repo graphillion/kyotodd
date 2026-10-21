@@ -353,6 +353,9 @@ bddp bddunivvar(bddp f, bddvar v, BddExecMode mode);
  */
 bddp bddlshiftb(bddp f, bddvar shift);
 
+/** @brief BDD left shift with execution mode selection. */
+bddp bddlshiftb(bddp f, bddvar shift, BddExecMode mode);
+
 /**
  * @brief BDD right shift: rename variable i to variable i-shift for all variables.
  * @param f A BDD node ID.
@@ -360,6 +363,9 @@ bddp bddlshiftb(bddp f, bddvar shift);
  * @return The resulting BDD.
  */
 bddp bddrshiftb(bddp f, bddvar shift);
+
+/** @brief BDD right shift with execution mode selection. */
+bddp bddrshiftb(bddp f, bddvar shift, BddExecMode mode);
 
 /**
  * @brief Generalized cofactor of @p f by @p g.

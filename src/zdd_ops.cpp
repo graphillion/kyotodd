@@ -1448,13 +1448,17 @@ bddp bddremainder(bddp f, bddp g) {
 }
 
 bddp bddlshiftz(bddp f, bddvar shift) {
+    return bddlshiftz(f, shift, BddExecMode::Auto);
+}
+
+bddp bddlshiftz(bddp f, bddvar shift, BddExecMode mode) {
     bddp_validate(f, "bddlshiftz");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        if (use_iter_1op(f)) {
+        if (select_iter_1op(f, mode)) {
             return bdd_lshift_iter(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
         }
         return bdd_lshift_rec(f, shift, BDD_OP_LSHIFTZ, ZDD::getnode_raw);
@@ -1462,13 +1466,17 @@ bddp bddlshiftz(bddp f, bddvar shift) {
 }
 
 bddp bddrshiftz(bddp f, bddvar shift) {
+    return bddrshiftz(f, shift, BddExecMode::Auto);
+}
+
+bddp bddrshiftz(bddp f, bddvar shift, BddExecMode mode) {
     bddp_validate(f, "bddrshiftz");
     if (f == bddnull) return bddnull;
     if (f & BDD_CONST_FLAG) return f;
     if (shift == 0) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        if (use_iter_1op(f)) {
+        if (select_iter_1op(f, mode)) {
             return bdd_rshift_iter(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);
         }
         return bdd_rshift_rec(f, shift, BDD_OP_RSHIFTZ, ZDD::getnode_raw);

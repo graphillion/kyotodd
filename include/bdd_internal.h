@@ -628,6 +628,25 @@ inline bool use_iter_1op(bddp f) {
 }
 
 /**
+ * @brief Mode-aware variant of use_iter_1op().
+ *
+ * Returns true for BddExecMode::Iterative, false for BddExecMode::Recursive,
+ * and the use_iter_1op() decision for BddExecMode::Auto.
+ *
+ * @param f The single operand.
+ * @param mode Requested execution mode.
+ * @return true if the _iter variant should be used.
+ */
+inline bool select_iter_1op(bddp f, BddExecMode mode) {
+    switch (mode) {
+    case BddExecMode::Iterative: return true;
+    case BddExecMode::Recursive: return false;
+    case BddExecMode::Auto:
+    default: return use_iter_1op(f);
+    }
+}
+
+/**
  * @brief Determine whether the iterative implementation should be used
  *        for a 2-operand recursive operation.
  *

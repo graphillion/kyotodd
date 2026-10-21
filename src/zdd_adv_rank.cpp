@@ -199,6 +199,11 @@ static bddp bddgetksets_rec(bddp f, const bigint::BigInt& k,
 }
 
 bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo) {
+    return bddgetksets(f, k, memo, BddExecMode::Auto);
+}
+
+bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo,
+                 BddExecMode mode) {
     bddp_validate(f, "bddgetksets");
     if (f == bddnull) {
         throw std::invalid_argument("bddgetksets: null ZDD");
@@ -212,7 +217,7 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo) {
     if (f == bddsingle) return bddsingle;
 
     return bdd_gc_guard([&]() -> bddp {
-        bool use_iter = use_iter_1op(f);
+        bool use_iter = select_iter_1op(f, mode);
         bigint::BigInt total = use_iter
             ? bddexactcount_iter(f, memo)
             : bddexactcount_rec(f, memo);
@@ -238,11 +243,23 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k) {
     return bddgetksets(f, k, memo);
 }
 
+bddp bddgetksets(bddp f, const bigint::BigInt& k, BddExecMode mode) {
+    CountMemoMap memo;
+    return bddgetksets(f, k, memo, mode);
+}
+
 bddp bddgetksets(bddp f, int64_t k) {
     if (k < 0) {
         throw std::invalid_argument("bddgetksets: k must be >= 0");
     }
     return bddgetksets(f, bigint::BigInt(k));
+}
+
+bddp bddgetksets(bddp f, int64_t k, BddExecMode mode) {
+    if (k < 0) {
+        throw std::invalid_argument("bddgetksets: k must be >= 0");
+    }
+    return bddgetksets(f, bigint::BigInt(k), mode);
 }
 
 // ============================================================

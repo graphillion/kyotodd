@@ -513,6 +513,9 @@ bddp bddpush(bddp f, bddvar v);
  */
 bddp bddlshiftz(bddp f, bddvar shift);
 
+/** @brief ZDD left shift with execution mode selection. */
+bddp bddlshiftz(bddp f, bddvar shift, BddExecMode mode);
+
 /**
  * @brief ZDD right shift: rename variable i to variable i-shift for all variables.
  * @param f A ZDD node ID.
@@ -520,6 +523,9 @@ bddp bddlshiftz(bddp f, bddvar shift);
  * @return The resulting ZDD.
  */
 bddp bddrshiftz(bddp f, bddvar shift);
+
+/** @brief ZDD right shift with execution mode selection. */
+bddp bddrshiftz(bddp f, bddvar shift, BddExecMode mode);
 
 /**
  * @brief @deprecated Use bddlshiftb or bddlshiftz instead.
@@ -1443,6 +1449,9 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
  */
 bddp bddgetksets(bddp f, int64_t k);
 
+/** @brief Same as above with execution mode selection. */
+bddp bddgetksets(bddp f, int64_t k, BddExecMode mode);
+
 /**
  * @brief Return the first k sets from a ZDD family in structure order (BigInt).
  *
@@ -1452,6 +1461,9 @@ bddp bddgetksets(bddp f, int64_t k);
  * @throws std::invalid_argument if f is null or k is negative.
  */
 bddp bddgetksets(bddp f, const bigint::BigInt& k);
+
+/** @brief Same as above with execution mode selection. */
+bddp bddgetksets(bddp f, const bigint::BigInt& k, BddExecMode mode);
 
 /**
  * @brief Return the first k sets, reusing a count memo.
@@ -1463,6 +1475,9 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k);
  * @throws std::invalid_argument if f is null or k is negative.
  */
 bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo);
+
+/** @brief Same as above with execution mode selection. */
+bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo, BddExecMode mode);
 
 // ZDD get_k_lightest / get_k_heaviest
 

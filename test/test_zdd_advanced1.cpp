@@ -1379,6 +1379,41 @@ TEST_F(BDDTest, ZDD_GetKSets_FreeFunctions) {
     EXPECT_EQ(bddcard(g3), 1u);
 }
 
+TEST_F(BDDTest, ZDD_GetKSets_ExecModeOverloads) {
+    bddvar v1 = bddnewvar();
+    bddvar v2 = bddnewvar();
+    bddvar v3 = bddnewvar();
+    ZDD f = ZDD::power_set(3);
+    bddp fp = f.id();
+    const BddExecMode modes[] = {BDD_EXEC_RECURSIVE, BDD_EXEC_ITERATIVE, BDD_EXEC_AUTO};
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = modes[i];
+        for (int64_t k = 0; k <= 9; ++k) {
+            EXPECT_EQ(bddgetksets(fp, k, m), bddgetksets(fp, k));
+            EXPECT_EQ(bddgetksets(fp, bigint::BigInt(k), m), bddgetksets(fp, bigint::BigInt(k)));
+            CountMemoMap memo;
+            EXPECT_EQ(bddgetksets(fp, bigint::BigInt(k), memo, m), bddgetksets(fp, k));
+        }
+        EXPECT_THROW(bddgetksets(fp, static_cast<int64_t>(-1), m), std::invalid_argument);
+    }
+}
+
+TEST_F(BDDTest, ZDD_GetKSets_ExecModeDeep) {
+    // Single-set chain deeper than BDD_RecurLimit: Recursive must hit the
+    // recursion limit, Iterative must succeed and return the family itself.
+    const int depth = BDD_RecurLimit + 100;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    bddp chain = bddsingle;
+    for (int i = 1; i <= depth; ++i) {
+        chain = ZDD::getnode_raw(static_cast<bddvar>(i), bddempty, chain);
+    }
+    ZDD f = ZDD_ID(chain);
+    EXPECT_THROW(bddgetksets(f.id(), static_cast<int64_t>(1), BDD_EXEC_RECURSIVE),
+                 std::overflow_error);
+    EXPECT_EQ(ZDD_ID(bddgetksets(f.id(), static_cast<int64_t>(1), BDD_EXEC_ITERATIVE)), f);
+    EXPECT_EQ(ZDD_ID(bddgetksets(f.id(), static_cast<int64_t>(1))), f);
+}
+
 TEST_F(BDDTest, ZDD_GetKSets_Combination) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();

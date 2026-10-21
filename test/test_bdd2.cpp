@@ -1274,6 +1274,59 @@ TEST_F(BddShiftIterTest, PublicZddShiftRoundtrip) {
     EXPECT_EQ(back.id(), f.id());
 }
 
+TEST_F(BddShiftIterTest, PublicShiftExecModeOverloads) {
+    // Every mode must agree with the Auto form for BDD and ZDD shifts.
+    BDD a = BDD::prime(1);
+    BDD b = BDD::prime(2);
+    BDD c = BDD::prime(3);
+    BDD f = (a & b) | (~c);
+    ZDD x1 = ZDD::singleton(1);
+    ZDD x2 = ZDD::singleton(2);
+    ZDD z = x1 + x2 + (x1 * x2);
+    const BddExecMode modes[] = {BDD_EXEC_RECURSIVE, BDD_EXEC_ITERATIVE, BDD_EXEC_AUTO};
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = modes[i];
+        EXPECT_EQ(bddlshiftb(f.id(), 2, m), bddlshiftb(f.id(), 2));
+        EXPECT_EQ(bddrshiftb(bddlshiftb(f.id(), 2, m), 2, m), f.id());
+        EXPECT_EQ(bddlshiftz(z.id(), 3, m), bddlshiftz(z.id(), 3));
+        EXPECT_EQ(bddrshiftz(bddlshiftz(z.id(), 3, m), 3, m), z.id());
+        // Terminal / null / zero-shift fast paths are mode-independent.
+        EXPECT_EQ(bddlshiftb(bddtrue, 1, m), bddtrue);
+        EXPECT_EQ(bddlshiftb(bddnull, 1, m), bddnull);
+        EXPECT_EQ(bddlshiftb(f.id(), 0, m), f.id());
+        EXPECT_EQ(bddlshiftz(bddempty, 1, m), bddempty);
+        EXPECT_EQ(bddrshiftz(z.id(), 0, m), z.id());
+    }
+}
+
+TEST_F(BddShiftIterTest, PublicShiftExecModeDeep) {
+    // A chain deeper than BDD_RecurLimit: Recursive must hit the recursion
+    // limit, Iterative and Auto must succeed and agree.
+    const int depth = BDD_RecurLimit + 100;
+    for (int i = bdd_varcount; i < depth + 5; ++i) BDD_NewVar();
+    bddp chain = bddtrue;
+    for (int i = 1; i <= depth; ++i) {
+        chain = BDD::getnode_raw(static_cast<bddvar>(i), bddfalse, chain);
+    }
+    BDD f = BDD_ID(chain);
+    EXPECT_THROW(bddlshiftb(f.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    BDD l = BDD_ID(bddlshiftb(f.id(), 1, BDD_EXEC_ITERATIVE));
+    EXPECT_EQ(l, f << 1);
+    EXPECT_THROW(bddrshiftb(l.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(BDD_ID(bddrshiftb(l.id(), 1, BDD_EXEC_ITERATIVE)), f);
+
+    bddp zchain = bddsingle;
+    for (int i = 1; i <= depth; ++i) {
+        zchain = ZDD::getnode_raw(static_cast<bddvar>(i), bddempty, zchain);
+    }
+    ZDD z = ZDD_ID(zchain);
+    EXPECT_THROW(bddlshiftz(z.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    ZDD zl = ZDD_ID(bddlshiftz(z.id(), 1, BDD_EXEC_ITERATIVE));
+    EXPECT_EQ(zl, z << 1);
+    EXPECT_THROW(bddrshiftz(zl.id(), 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(ZDD_ID(bddrshiftz(zl.id(), 1, BDD_EXEC_ITERATIVE)), z);
+}
+
 TEST_F(BddShiftIterTest, RshiftUnderflowThrows) {
     BDD a = BDD::prime(1);  // level 1
     BDD b = BDD::prime(2);
