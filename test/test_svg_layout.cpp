@@ -619,3 +619,39 @@ TEST_F(SvgLayoutTest, TerminalLanes_NoCoincidentVerticals) {
     EXPECT_EQ(coincident_vertical_pairs(parse_svg(ZDD::combination(8, 4).save_svg())), 0);
     EXPECT_EQ(coincident_vertical_pairs(parse_svg(wide_level2().save_svg())), 0);
 }
+
+// --- Review item 7: lane offsets are symmetric, clamped, and wider by default ---
+
+#include "../src/svg_export_internal.h"
+
+TEST_F(SvgLayoutTest, LaneOffsets_SymmetricAndClamped) {
+    SvgParams p;
+    EXPECT_EQ(p.arc_interval, 7);
+    EXPECT_GE(p.arc_interval, p.arc_width + 3);   // at least 3 px of white between strokes
+
+    svg_internal::SvgLaneManager lm(p);
+    auto fill = [&](int n) {
+        lm.lane_usage.clear();
+        std::vector<std::pair<svg_internal::ArcKey,int> > users;
+        for (int i = 0; i < n; ++i) users.push_back(std::make_pair(std::make_pair(static_cast<size_t>(i), 0), i * 10));
+        lm.lane_usage[std::make_pair(3, 100)] = users;
+    };
+    // two users: symmetric around the lane, arc_interval apart
+    fill(2);
+    int a = lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(0), 0), 100, 3);
+    int b = lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(1), 0), 100, 3);
+    EXPECT_EQ(a + b, 200);
+    EXPECT_GE(b - a, p.arc_interval);
+    // three users: centre user sits on the lane
+    fill(3);
+    EXPECT_EQ(lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(1), 0), 100, 3), 100);
+    EXPECT_EQ(lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(0), 0), 100, 3), 100 - p.arc_interval);
+    EXPECT_EQ(lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(2), 0), 100, 3), 100 + p.arc_interval);
+    // many users: the bundle never reaches the circles beside the lane
+    fill(11);
+    double half_room = (p.node_interval_x + 1) / 2.0 - p.arc_width - 1.0;
+    for (int i = 0; i < 11; ++i) {
+        int x = lm.calculate_lane_offset(std::make_pair(static_cast<size_t>(i), 0), 100, 3);
+        EXPECT_LE(std::fabs(x - 100.0), half_room + 0.5);
+    }
+}

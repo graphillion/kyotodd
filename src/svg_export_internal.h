@@ -552,21 +552,24 @@ public:
         assert(it != lane_usage.end());
         int total_users = static_cast<int>(it->second.size());
 
-        int offset_start;
-        if (total_users % 2 == 1) {
-            offset_start = -arc_interval * (total_users / 2);
-        } else {
-            offset_start = -arc_interval * ((total_users - 1) / 2);
-        }
-
         int user_index = 0;
         for (auto& entry : it->second) {
             if (entry.first == arc_key) break;
             user_index++;
         }
 
-        int x_offset = offset_start + user_index * arc_interval;
-        return lane_x + x_offset;
+        // Centre the bundle on the lane (symmetric for any number of
+        // users) and keep its outermost arcs clear of the circles on both
+        // sides of the lane: the gap between two circles of the fullest row
+        // is node_interval_x + 1, so the usable half-width is half of that
+        // minus the strokes and a small margin.
+        double interval = arc_interval;
+        double half_room = (params.node_interval_x + 1) / 2.0 - params.arc_width - 1.0;
+        if (half_room < 0) half_room = 0;
+        if (total_users > 1 && interval * (total_users - 1) / 2.0 > half_room)
+            interval = 2.0 * half_room / (total_users - 1);
+        double x_offset = (user_index - (total_users - 1) / 2.0) * interval;
+        return lane_x + static_cast<int>(std::round(x_offset));
     }
 
     // --- find_valid_level ---
@@ -1180,11 +1183,12 @@ private:
                 slot[i] = s;
                 if (s + 1 > num_slots) num_slots = s + 1;
             }
-            // Spread the slots around the middle of the gap, keeping clear
-            // of the node outlines above and below.
+            // Spread the slots around the middle of the gap, keeping the
+            // same clearance from the node outlines above and below as a
+            // straight arc keeps (kArcClearance beyond the strokes).
             int y_mid = level_y_map[gp.first] + node_radius + node_interval_y / 2;
             double interval = params.arc_interval;
-            double avail = node_interval_y - 2.0 * (params.arc_width + 2);
+            double avail = node_interval_y - 2.0 * (params.arc_width + kArcClearance);
             if (avail < 0) avail = 0;
             if (num_slots > 1 && interval * (num_slots - 1) > avail)
                 interval = avail / (num_slots - 1);

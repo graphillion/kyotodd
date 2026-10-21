@@ -28,7 +28,7 @@ struct SvgParams {
     int margin_y = 20;          ///< SVG vertical padding.
     int label_y = 7;            ///< Vertical offset for node label text.
     int arc_width = 3;          ///< Edge line stroke width.
-    int arc_interval = 4;       ///< Horizontal offset between parallel edges on same lane.
+    int arc_interval = 7;       ///< Horizontal offset between parallel edges on same lane.
     int arc_terminal = 20;      ///< Extra distance for terminal lane margins.
     bool draw_zero = true;      ///< Whether to draw the 0-terminal node.
     bool skip_unused_levels = false; ///< Skip levels that have no nodes (compact layout).
