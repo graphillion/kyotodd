@@ -733,7 +733,7 @@ bigint::BigInt bddcountintersec_iter(
  * @return The Jaccard index in [0, 1], or 0.0 if either is null.
  */
 double bddjaccardindex(bddp f, bddp g);
-/** @brief Same as above with execution mode selection. */
+/** @brief Compute the Jaccard index of two ZDD families with execution mode selection. */
 double bddjaccardindex(bddp f, bddp g, BddExecMode mode);
 
 /**
@@ -746,7 +746,7 @@ double bddjaccardindex(bddp f, bddp g, BddExecMode mode);
  * @return |F △ G| as a BigInt, or 0 if either is null.
  */
 bigint::BigInt bddhammingdist(bddp f, bddp g);
-/** @brief Same as above with execution mode selection. */
+/** @brief Compute the Hamming distance of two ZDD families with execution mode selection. */
 bigint::BigInt bddhammingdist(bddp f, bddp g, BddExecMode mode);
 
 /**
@@ -760,7 +760,7 @@ bigint::BigInt bddhammingdist(bddp f, bddp g, BddExecMode mode);
  * @return The overlap coefficient in [0, 1].
  */
 double bddoverlapcoeff(bddp f, bddp g);
-/** @brief Same as above with execution mode selection. */
+/** @brief Compute the overlap coefficient of two ZDD families with execution mode selection. */
 double bddoverlapcoeff(bddp f, bddp g, BddExecMode mode);
 
 /**
@@ -825,7 +825,7 @@ bddp bddproject_iter(bddp f, const std::vector<bddvar>& vars);
 bddp bddcoalesce(bddp f, bddvar v1, bddvar v2);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Coalesce (merge) two variables in a ZDD family with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -889,7 +889,7 @@ bool bddissubset_iter(bddp f, bddp g);
 bddp bddflatten(bddp f);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Return the union of all sets as a single-set ZDD with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1118,7 +1118,7 @@ int bddispoly(bddp f);
 bddp bddswapz(bddp f, bddvar v1, bddvar v2);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Swap two variables in a ZDD family with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1201,7 +1201,7 @@ int bddsymchk_iter(bddp f, bddvar v1, bddvar v2);
 bddp bddimplyset(bddp f, bddvar v);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Find all variables implied by v with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1215,7 +1215,7 @@ bddp bddimplyset(bddp f, bddvar v, BddExecMode mode);
 bddp bddsymgrp(bddp f);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Find all symmetry groups (size ≥ 2) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1229,7 +1229,7 @@ bddp bddsymgrp(bddp f, BddExecMode mode);
 bddp bddsymgrpnaive(bddp f);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Find all symmetry groups (naive method) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1281,7 +1281,7 @@ bddp bddcoimplyset_iter(bddp f0, bddp f1);
 bddp bdddivisor(bddp f);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Find an approximate divisor of a ZDD family with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1374,7 +1374,7 @@ long long bddmaxweight_iter(
  */
 std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights);
 
-/** @brief Same as above with execution mode selection. */
+/** @brief Find a minimum-weight set with execution mode selection. */
 std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights,
                                     BddExecMode mode);
 
@@ -1389,7 +1389,7 @@ std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights,
  */
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
 
-/** @brief Same as above with execution mode selection. */
+/** @brief Find a maximum-weight set with execution mode selection. */
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights,
                                     BddExecMode mode);
 
@@ -1459,7 +1459,7 @@ bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
  * @throws std::overflow_error if the rank exceeds int64_t range.
  */
 int64_t bddrank(bddp f, const std::vector<bddvar>& s);
-/** @brief Same as above with execution mode selection. */
+/** @brief Rank a set (int64_t version) with execution mode selection. */
 int64_t bddrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
 
 /**
@@ -1471,7 +1471,7 @@ int64_t bddrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
  * @throws std::invalid_argument if f is bddnull.
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
-/** @brief Same as above with execution mode selection. */
+/** @brief Rank a set (arbitrary precision) with execution mode selection. */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
 
 /**
@@ -1485,7 +1485,7 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s, BddExecMode mo
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
                             CountMemoMap& memo);
-/** @brief Same as above with execution mode selection. */
+/** @brief Rank a set (arbitrary precision, with memo) with execution mode selection. */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
                             CountMemoMap& memo, BddExecMode mode);
 
@@ -1502,7 +1502,7 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
  * @throws std::out_of_range if @p order is negative or >= family size.
  */
 std::vector<bddvar> bddunrank(bddp f, int64_t order);
-/** @brief Same as above with execution mode selection. */
+/** @brief Unrank (int64_t) with execution mode selection. */
 std::vector<bddvar> bddunrank(bddp f, int64_t order, BddExecMode mode);
 
 /**
@@ -1515,7 +1515,7 @@ std::vector<bddvar> bddunrank(bddp f, int64_t order, BddExecMode mode);
  * @throws std::out_of_range if @p order is out of range.
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
-/** @brief Same as above with execution mode selection. */
+/** @brief Unrank (arbitrary precision) with execution mode selection. */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order, BddExecMode mode);
 
 /**
@@ -1530,7 +1530,7 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order, BddExecM
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
                                    CountMemoMap& memo);
-/** @brief Same as above with execution mode selection. */
+/** @brief Unrank (arbitrary precision, with memo) with execution mode selection. */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
                                    CountMemoMap& memo, BddExecMode mode);
 
@@ -1549,7 +1549,7 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
  */
 bddp bddgetksets(bddp f, int64_t k);
 
-/** @brief Same as above with execution mode selection. */
+/** @brief Return the first k sets (int64_t) with execution mode selection. */
 bddp bddgetksets(bddp f, int64_t k, BddExecMode mode);
 
 /**
@@ -1562,7 +1562,7 @@ bddp bddgetksets(bddp f, int64_t k, BddExecMode mode);
  */
 bddp bddgetksets(bddp f, const bigint::BigInt& k);
 
-/** @brief Same as above with execution mode selection. */
+/** @brief Return the first k sets (BigInt) with execution mode selection. */
 bddp bddgetksets(bddp f, const bigint::BigInt& k, BddExecMode mode);
 
 /**
@@ -1576,7 +1576,7 @@ bddp bddgetksets(bddp f, const bigint::BigInt& k, BddExecMode mode);
  */
 bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo);
 
-/** @brief Same as above with execution mode selection. */
+/** @brief Return the first k sets, reusing a count memo, with execution mode selection. */
 bddp bddgetksets(bddp f, const bigint::BigInt& k, CountMemoMap& memo, BddExecMode mode);
 
 // ZDD get_k_lightest / get_k_heaviest
@@ -1599,7 +1599,7 @@ bddp bddgetklightest(bddp f, int64_t k,
                       const std::vector<int>& weights, int strict);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Return the k lightest sets (int64_t) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1621,7 +1621,7 @@ bddp bddgetklightest(bddp f, const bigint::BigInt& k,
                       const std::vector<int>& weights, int strict);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Return the k lightest sets (BigInt) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1645,7 +1645,7 @@ bddp bddgetkheaviest(bddp f, int64_t k,
                       const std::vector<int>& weights, int strict);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Return the k heaviest sets (int64_t) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */
@@ -1667,7 +1667,7 @@ bddp bddgetkheaviest(bddp f, const bigint::BigInt& k,
                       const std::vector<int>& weights, int strict);
 
 /**
- * @brief Same as above with execution mode selection.
+ * @brief Return the k heaviest sets (BigInt) with execution mode selection.
  *
  * Composite operation: @p mode is forwarded to every underlying operation.
  */

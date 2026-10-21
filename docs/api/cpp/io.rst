@@ -194,5 +194,6 @@ Knuth Format (Deprecated)
 Debug Dump
 ----------
 
-.. doxygenfunction:: bdddump
+.. doxygenfunction:: bdddump(bddp f)
+.. doxygenfunction:: bdddump(bddp f, BddExecMode mode)
 .. doxygenfunction:: bddvdump
