@@ -366,6 +366,7 @@ public:
         const std::map<bddp, std::vector<std::pair<size_t,int> > >& dest_info,
         const std::map<size_t, Point>& node_pos_map,
         const std::vector<SvgNode>& nodes,
+        const std::unordered_map<bddp, size_t>& key_index,
         const std::map<ArcKey, bool>& arc_is_straight_map,
         bool draw_zero)
     {
@@ -403,11 +404,9 @@ public:
                     // Lookup in id_map would be needed; instead, we store it via nodes
                     // For simplicity, we find the child node index
                     child_level = 0; // placeholder
-                    for (size_t ni = 0; ni < nodes.size(); ++ni) {
-                        if (nodes[ni].key == child) {
-                            child_level = nodes[ni].level;
-                            break;
-                        }
+                    auto cit = key_index.find(child);
+                    if (cit != key_index.end()) {
+                        child_level = nodes[cit->second].level;
                     }
                 }
 
@@ -422,11 +421,9 @@ public:
                     } else if (parent_level - 1 > child_level) {
                         int child_pos_x = 0;
                         // For non-terminal children
-                        for (size_t ni = 0; ni < nodes.size(); ++ni) {
-                            if (nodes[ni].key == child) {
-                                child_pos_x = static_cast<int>(node_pos_map.at(ni).first);
-                                break;
-                            }
+                        auto cpit = key_index.find(child);
+                        if (cpit != key_index.end()) {
+                            child_pos_x = static_cast<int>(node_pos_map.at(cpit->second).first);
                         }
                         std::vector<std::tuple<int,int,int> > used =
                             calculate_normal_lanes(
@@ -610,6 +607,9 @@ public:
 
     int root_level;
 
+    // node key (bddp) -> index into nodes[]; avoids linear scans per arc
+    std::unordered_map<bddp, size_t> key_index;
+
     SvgLaneManager lane_manager;
 
     SvgPositionManager(const SvgParams& p,
@@ -622,6 +622,7 @@ public:
         // Build all_nodes grouped by level, preserving DFS order within each level
         for (size_t i = 0; i < nodes.size(); ++i) {
             all_nodes[nodes[i].level].push_back(i);
+            key_index[nodes[i].key] = i;
         }
 
         // Find root level = max level
@@ -783,17 +784,15 @@ private:
         if (child == bddtrue)  return TERM_1_IDX();
         if (child & BDD_CONST_FLAG) return TERM_1_IDX(); // other constants -> treat as true
         // Non-terminal: find node index
-        for (size_t i = 0; i < nodes.size(); ++i) {
-            if (nodes[i].key == child) return i;
-        }
+        auto it = key_index.find(child);
+        if (it != key_index.end()) return it->second;
         return TERM_1_IDX(); // fallback
     }
 
     int child_level(bddp child) const {
         if (child & BDD_CONST_FLAG) return 0;
-        for (size_t i = 0; i < nodes.size(); ++i) {
-            if (nodes[i].key == child) return nodes[i].level;
-        }
+        auto it = key_index.find(child);
+        if (it != key_index.end()) return nodes[it->second].level;
         return 0;
     }
 
@@ -894,7 +893,8 @@ private:
     // --- calculate_arc_connection_points ---
     void calculate_arc_connection_points() {
         lane_manager.initialize_lane_usage();
-        lane_manager.determine_arc_lanes(dest_info, node_pos_map, nodes, arc_is_straight_map, draw_zero);
+        lane_manager.determine_arc_lanes(dest_info, node_pos_map, nodes, key_index,
+                                         arc_is_straight_map, draw_zero);
         calculate_node_connection_angles();
     }
 
