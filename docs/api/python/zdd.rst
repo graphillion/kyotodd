@@ -1146,21 +1146,34 @@ ZDD Class
    SVG
    ^^^
 
-   .. py:method:: save_svg_str(raw=False, draw_zero=True)
+   .. py:method:: save_svg_str(raw=False, draw_zero=True, var_name_map=None, skip_unused_levels=True, node_radius=20, node_interval_x=30, node_interval_y=40, font_size=24, font_family='sans-serif', node_fill='#deebf7', node_stroke='#1b3966')
 
       Export this ZDD as an SVG string.
 
       :param bool raw: If True, show physical DAG with complement markers (Knuth-style).
                        If False (default), expand complement edges.
       :param bool draw_zero: If True (default), draw the 0-terminal node.
+      :param dict var_name_map: Optional ``{variable number: label}`` drawn
+                                instead of the variable numbers.
+      :param bool skip_unused_levels: If True (default), levels without nodes
+                                      take no row.
+      :param int node_radius: Circle radius of internal nodes in px.
+      :param int node_interval_x: Minimum horizontal gap between nodes.
+      :param int node_interval_y: Vertical gap between rows.
+      :param int font_size: Label font size in px; labels that do not fit
+                            their node are drawn smaller.
+      :param str font_family: CSS font family of the labels.
+      :param str node_fill: Node fill colour.
+      :param str node_stroke: Outline, arc and arrowhead colour.
       :return: SVG image as a string.
       :rtype: str
 
-   .. py:method:: save_svg_file(path, raw=False, draw_zero=True)
+   .. py:method:: save_svg_file(stream, raw=False, draw_zero=True, var_name_map=None, skip_unused_levels=True, node_radius=20, node_interval_x=30, node_interval_y=40, font_size=24, font_family='sans-serif', node_fill='#deebf7', node_stroke='#1b3966')
 
-      Export this ZDD as an SVG file.
+      Export this ZDD as SVG to a text stream. Takes the same keyword
+      arguments as :py:meth:`save_svg_str`.
 
-      :param str path: File path to write to.
+      :param IO stream: A writable text stream.
       :param bool raw: If True, show physical DAG with complement markers (Knuth-style).
                        If False (default), expand complement edges.
       :param bool draw_zero: If True (default), draw the 0-terminal node.

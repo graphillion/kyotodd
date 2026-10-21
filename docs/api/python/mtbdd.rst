@@ -175,16 +175,18 @@ MTBDDFloat Class
    I/O
    ~~~
 
-   .. py:method:: save_svg_str(draw_zero=True)
+   .. py:method:: save_svg_str(draw_zero=True, var_name_map=None, skip_unused_levels=True, node_radius=20, node_interval_x=30, node_interval_y=40, font_size=24, font_family='sans-serif', node_fill='#deebf7', node_stroke='#1b3966')
 
-      Export this MTBDD as an SVG string.
+      Export this MTBDD as an SVG string. The keyword arguments after
+      ``draw_zero`` are the same as for :py:meth:`ZDD.save_svg_str`.
 
       :param bool draw_zero: If ``True``, draw the zero-value terminal.
       :rtype: str
 
-   .. py:method:: save_svg_file(stream, draw_zero=True)
+   .. py:method:: save_svg_file(stream, draw_zero=True, var_name_map=None, skip_unused_levels=True, node_radius=20, node_interval_x=30, node_interval_y=40, font_size=24, font_family='sans-serif', node_fill='#deebf7', node_stroke='#1b3966')
 
-      Export this MTBDD as SVG to a text stream.
+      Export this MTBDD as SVG to a text stream. The keyword arguments after
+      ``draw_zero`` are the same as for :py:meth:`ZDD.save_svg_str`.
 
       :param IO stream: A text stream to write SVG to.
       :param bool draw_zero: If ``True``, draw the zero-value terminal.

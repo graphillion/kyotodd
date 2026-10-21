@@ -67,6 +67,72 @@ static void ensure_init() {
     }
 }
 
+// ---- SVG export keyword arguments (shared by every save_svg_* binding) ----
+// SvgParams keeps C string pointers, so the std::string copies live next
+// to it for as long as the export runs.
+struct PySvgParams {
+    SvgParams p;
+    std::string fill, stroke, family;
+};
+
+static void py_fill_svg_params(PySvgParams& ps, bool raw, bool draw_zero,
+                               py::object var_name_map, bool skip_unused_levels,
+                               int node_radius, int node_interval_x, int node_interval_y,
+                               int font_size, const std::string& font_family,
+                               const std::string& node_fill, const std::string& node_stroke)
+{
+    if (node_radius <= 0 || font_size <= 0 || node_interval_x < 0 || node_interval_y < 0)
+        throw py::value_error("save_svg: node_radius and font_size must be positive and "
+                              "node_interval_x / node_interval_y must not be negative");
+    ps.fill = node_fill;
+    ps.stroke = node_stroke;
+    ps.family = font_family;
+    ps.p.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
+    ps.p.draw_zero = draw_zero;
+    ps.p.skip_unused_levels = skip_unused_levels;
+    ps.p.node_radius = node_radius;
+    ps.p.node_interval_x = node_interval_x;
+    ps.p.node_interval_y = node_interval_y;
+    ps.p.font_size = font_size;
+    ps.p.font_family = ps.family.c_str();
+    ps.p.node_fill = ps.fill.c_str();
+    ps.p.node_stroke = ps.stroke.c_str();
+    if (!var_name_map.is_none()) {
+        if (!py::isinstance<py::dict>(var_name_map))
+            throw py::type_error("save_svg: var_name_map must be a dict {variable number: label}");
+        py::dict d = py::cast<py::dict>(var_name_map);
+        for (auto item : d) {
+            ps.p.var_name_map[py::cast<bddvar>(item.first)] = py::cast<std::string>(item.second);
+        }
+    }
+}
+
+#define KYOTODD_SVG_PARAMS_DECL \
+    py::object var_name_map, bool skip_unused_levels, int node_radius, int node_interval_x, \
+    int node_interval_y, int font_size, const std::string& font_family, \
+    const std::string& node_fill, const std::string& node_stroke
+#define KYOTODD_SVG_PARAMS_ARGS \
+    var_name_map, skip_unused_levels, node_radius, node_interval_x, node_interval_y, \
+    font_size, font_family, node_fill, node_stroke
+#define KYOTODD_SVG_KWARGS \
+    py::arg("var_name_map") = py::none(), py::arg("skip_unused_levels") = true, \
+    py::arg("node_radius") = 20, py::arg("node_interval_x") = 30, \
+    py::arg("node_interval_y") = 40, py::arg("font_size") = 24, \
+    py::arg("font_family") = "sans-serif", py::arg("node_fill") = "#deebf7", \
+    py::arg("node_stroke") = "#1b3966"
+#define KYOTODD_SVG_KWARGS_DOC \
+    "    var_name_map: Optional dict {variable number: label} drawn instead of\n" \
+    "        the variable numbers.\n" \
+    "    skip_unused_levels: If True (default), levels without nodes take no row.\n" \
+    "    node_radius: Circle radius of internal nodes in px (default 20).\n" \
+    "    node_interval_x: Minimum horizontal gap between nodes (default 30).\n" \
+    "    node_interval_y: Vertical gap between rows (default 40).\n" \
+    "    font_size: Label font size in px (default 24); labels that do not fit\n" \
+    "        their node are drawn smaller.\n" \
+    "    font_family: CSS font family of the labels (default 'sans-serif').\n" \
+    "    node_fill: Node fill colour (default '#deebf7').\n" \
+    "    node_stroke: Outline, arc and arrowhead colour (default '#1b3966').\n"
+
 PYBIND11_MODULE(_core, m) {
     m.doc() = "KyotoDD BDD/ZDD library";
 
@@ -887,32 +953,34 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
-        .def("save_svg_str", [](const BDD& b, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const BDD& b, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return b.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this BDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const BDD& b, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const BDD& b, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = b.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this BDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
-           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+           "    draw_zero: If True (default), draw the 0-terminal node.\n"
+           KYOTODD_SVG_KWARGS_DOC)
 
         .def("print", [](const BDD& b) -> std::string {
             std::ostringstream oss;
@@ -2535,32 +2603,34 @@ PYBIND11_MODULE(_core, m) {
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n")
 
-        .def("save_svg_str", [](const ZDD& z, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const ZDD& z, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return z.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this ZDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const ZDD& z, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const ZDD& z, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = z.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this ZDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
-           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+           "    draw_zero: If True (default), draw the 0-terminal node.\n"
+           KYOTODD_SVG_KWARGS_DOC)
 
         .def("print", [](const ZDD& z) -> std::string {
             std::ostringstream oss;
@@ -2730,26 +2800,27 @@ PYBIND11_MODULE(_core, m) {
             return oss.str();
         }, "Enumerate all permutations (form 2) and return as string.")
 
-        .def("save_svg_str", [](const PiDD& p, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const PiDD& p, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return p.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const PiDD& p, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const PiDD& p, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = p.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
@@ -2759,6 +2830,7 @@ PYBIND11_MODULE(_core, m) {
 
         .def_static("svg_var_name_map", &PiDD::svg_var_name_map,
            "Build a variable name map labeling each PiDD variable with its transposition.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    A dict mapping BDD variable numbers to transposition label strings like '(x,y)'.\n")
     ;
@@ -3009,26 +3081,27 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    The maximum contradiction value.\n")
 
-        .def("save_svg_str", [](const RotPiDD& p, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const RotPiDD& p, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return p.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const RotPiDD& p, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const RotPiDD& p, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = p.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
@@ -3038,6 +3111,7 @@ PYBIND11_MODULE(_core, m) {
 
         .def_static("svg_var_name_map", &RotPiDD::svg_var_name_map,
            "Build a variable name map labeling each RotPiDD variable with its rotation.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    A dict mapping BDD variable numbers to rotation label strings like '(x,y)'.\n")
     ;
@@ -3224,32 +3298,34 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("stream"), py::arg("ignore_type") = false,
            "Import multiple QDDs from a binary stream.")
 
-        .def("save_svg_str", [](const QDD& q, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const QDD& q, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return q.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this QDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const QDD& q, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const QDD& q, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = q.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this QDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
-           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+           "    draw_zero: If True (default), draw the 0-terminal node.\n"
+           KYOTODD_SVG_KWARGS_DOC)
     ;
 
     // ================================================================
@@ -3434,28 +3510,32 @@ PYBIND11_MODULE(_core, m) {
         }, py::arg("stream"),
            "Import an UnreducedDD from a binary stream.")
 
-        .def("save_svg_str", [](const UnreducedDD& u, bool draw_zero) -> std::string {
-            SvgParams params;
+        .def("save_svg_str", [](const UnreducedDD& u, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, true, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.mode = DrawMode::Raw;  // UnreducedDD always uses Raw mode
-            params.draw_zero = draw_zero;
             return u.save_svg(params);
-        }, py::arg("draw_zero") = true,
+        }, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this UnreducedDD as an SVG string (always Raw mode).\n\n"
            "Args:\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const UnreducedDD& u, py::object stream, bool draw_zero) {
-            SvgParams params;
+        .def("save_svg_file", [](const UnreducedDD& u, py::object stream, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, true, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.mode = DrawMode::Raw;
-            params.draw_zero = draw_zero;
             std::string svg = u.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this UnreducedDD as SVG to a text stream (always Raw mode).\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
-           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+           "    draw_zero: If True (default), draw the 0-terminal node.\n"
+           KYOTODD_SVG_KWARGS_DOC)
     ;
 
     // ================================================================
@@ -3620,32 +3700,34 @@ PYBIND11_MODULE(_core, m) {
            "Returns:\n"
            "    A string representation of all sequences.\n")
 
-        .def("save_svg_str", [](const SeqBDD& s, bool raw, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const SeqBDD& s, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return s.save_svg(params);
-        }, py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
            "    draw_zero: If True (default), draw the 0-terminal node.\n\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const SeqBDD& s, py::object stream, bool raw, bool draw_zero) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const SeqBDD& s, py::object stream, bool raw, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = s.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("raw") = false, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export the internal ZDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A writable text stream.\n"
            "    raw: If True, show physical DAG with complement markers.\n"
            "         If False (default), expand complement edges into full nodes.\n"
-           "    draw_zero: If True (default), draw the 0-terminal node.\n")
+           "    draw_zero: If True (default), draw the 0-terminal node.\n"
+           KYOTODD_SVG_KWARGS_DOC)
     ;
 
     // ZddMinWeightRange Python iterator
@@ -4000,37 +4082,39 @@ PYBIND11_MODULE(_core, m) {
         })
 
         .def("save_svg_str", [](const MVBDD& m, bool raw, bool draw_zero,
-                                 bool draw_edge_labels) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+                                 bool draw_edge_labels, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.draw_edge_labels = draw_edge_labels;
             return m.save_svg(params);
         }, py::arg("raw") = false, py::arg("draw_zero") = true,
-           py::arg("draw_edge_labels") = false,
+           py::arg("draw_edge_labels") = false, KYOTODD_SVG_KWARGS,
            "Export this MVBDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show internal binary BDD.\n"
            "    draw_zero: If True, draw the 0-terminal.\n"
            "    draw_edge_labels: If True, label edges with values.\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
         .def("save_svg_file", [](const MVBDD& m, py::object stream, bool raw,
-                                  bool draw_zero, bool draw_edge_labels) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+                                  bool draw_zero, bool draw_edge_labels, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.draw_edge_labels = draw_edge_labels;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
         }, py::arg("stream"), py::arg("raw") = false,
-           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false,
+           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false, KYOTODD_SVG_KWARGS,
            "Export this MVBDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A text stream to write SVG to.\n"
            "    raw: If True, show internal binary BDD.\n"
            "    draw_zero: If True, draw the 0-terminal.\n"
-           "    draw_edge_labels: If True, label edges with values.\n")
+           "    draw_edge_labels: If True, label edges with values.\n"
+           KYOTODD_SVG_KWARGS_DOC)
     ;
 
     // ================================================================
@@ -4573,37 +4657,39 @@ PYBIND11_MODULE(_core, m) {
         })
 
         .def("save_svg_str", [](const MVZDD& m, bool raw, bool draw_zero,
-                                 bool draw_edge_labels) -> std::string {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+                                 bool draw_edge_labels, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.draw_edge_labels = draw_edge_labels;
             return m.save_svg(params);
         }, py::arg("raw") = false, py::arg("draw_zero") = true,
-           py::arg("draw_edge_labels") = false,
+           py::arg("draw_edge_labels") = false, KYOTODD_SVG_KWARGS,
            "Export this MVZDD as an SVG string.\n\n"
            "Args:\n"
            "    raw: If True, show internal binary ZDD.\n"
            "    draw_zero: If True, draw the 0-terminal.\n"
            "    draw_edge_labels: If True, label edges with values.\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
         .def("save_svg_file", [](const MVZDD& m, py::object stream, bool raw,
-                                  bool draw_zero, bool draw_edge_labels) {
-            SvgParams params;
-            params.mode = raw ? DrawMode::Raw : DrawMode::Expanded;
-            params.draw_zero = draw_zero;
+                                  bool draw_zero, bool draw_edge_labels, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, raw, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             params.draw_edge_labels = draw_edge_labels;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
         }, py::arg("stream"), py::arg("raw") = false,
-           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false,
+           py::arg("draw_zero") = true, py::arg("draw_edge_labels") = false, KYOTODD_SVG_KWARGS,
            "Export this MVZDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A text stream to write SVG to.\n"
            "    raw: If True, show internal binary ZDD.\n"
            "    draw_zero: If True, draw the 0-terminal.\n"
-           "    draw_edge_labels: If True, label edges with values.\n")
+           "    draw_edge_labels: If True, label edges with values.\n"
+           KYOTODD_SVG_KWARGS_DOC)
     ;
 
     // ================================================================
@@ -4723,26 +4809,30 @@ PYBIND11_MODULE(_core, m) {
                 "Cannot convert MTBDDFloat to bool. Use is_zero or is_one.");
         })
 
-        .def("save_svg_str", [](const MTBDDFloat& m, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const MTBDDFloat& m, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return m.save_svg(params);
-        }, py::arg("draw_zero") = true,
+        }, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this MTBDD as an SVG string.\n\n"
            "Args:\n"
            "    draw_zero: If True, draw the zero-value terminal.\n"
+           KYOTODD_SVG_KWARGS_DOC
            "Returns:\n"
            "    An SVG format string.\n")
-        .def("save_svg_file", [](const MTBDDFloat& m, py::object stream, bool draw_zero) {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        .def("save_svg_file", [](const MTBDDFloat& m, py::object stream, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("draw_zero") = true,
+        }, py::arg("stream"), py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
            "Export this MTBDD as SVG to a text stream.\n\n"
            "Args:\n"
            "    stream: A text stream to write SVG to.\n"
-           "    draw_zero: If True, draw the zero-value terminal.\n")
+           "    draw_zero: If True, draw the zero-value terminal.\n"
+           KYOTODD_SVG_KWARGS_DOC)
         .def("export_binary_bytes", [](const MTBDDFloat& m) -> py::bytes {
             std::ostringstream oss(std::ios::binary);
             m.export_binary(oss);
@@ -4866,19 +4956,25 @@ PYBIND11_MODULE(_core, m) {
                 "Cannot convert MTBDDInt to bool. Use is_zero or is_one.");
         })
 
-        .def("save_svg_str", [](const MTBDDInt& m, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const MTBDDInt& m, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return m.save_svg(params);
-        }, py::arg("draw_zero") = true,
-           "Export this MTBDD as an SVG string.\n")
-        .def("save_svg_file", [](const MTBDDInt& m, py::object stream, bool draw_zero) {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        }, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTBDD as an SVG string.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
+        .def("save_svg_file", [](const MTBDDInt& m, py::object stream, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("draw_zero") = true,
-           "Export this MTBDD as SVG to a text stream.\n")
+        }, py::arg("stream"), py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTBDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
         .def("export_binary_bytes", [](const MTBDDInt& m) -> py::bytes {
             std::ostringstream oss(std::ios::binary);
             m.export_binary(oss);
@@ -5023,19 +5119,25 @@ PYBIND11_MODULE(_core, m) {
                 "Cannot convert MTZDDFloat to bool. Use is_zero or is_one.");
         })
 
-        .def("save_svg_str", [](const MTZDDFloat& m, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const MTZDDFloat& m, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return m.save_svg(params);
-        }, py::arg("draw_zero") = true,
-           "Export this MTZDD as an SVG string.\n")
-        .def("save_svg_file", [](const MTZDDFloat& m, py::object stream, bool draw_zero) {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        }, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTZDD as an SVG string.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
+        .def("save_svg_file", [](const MTZDDFloat& m, py::object stream, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("draw_zero") = true,
-           "Export this MTZDD as SVG to a text stream.\n")
+        }, py::arg("stream"), py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
         .def("export_binary_bytes", [](const MTZDDFloat& m) -> py::bytes {
             std::ostringstream oss(std::ios::binary);
             m.export_binary(oss);
@@ -5194,19 +5296,25 @@ PYBIND11_MODULE(_core, m) {
                 "Cannot convert MTZDDInt to bool. Use is_zero or is_one.");
         })
 
-        .def("save_svg_str", [](const MTZDDInt& m, bool draw_zero) -> std::string {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        .def("save_svg_str", [](const MTZDDInt& m, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) -> std::string {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             return m.save_svg(params);
-        }, py::arg("draw_zero") = true,
-           "Export this MTZDD as an SVG string.\n")
-        .def("save_svg_file", [](const MTZDDInt& m, py::object stream, bool draw_zero) {
-            SvgParams params;
-            params.draw_zero = draw_zero;
+        }, py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTZDD as an SVG string.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
+        .def("save_svg_file", [](const MTZDDInt& m, py::object stream, bool draw_zero, KYOTODD_SVG_PARAMS_DECL) {
+            PySvgParams ps;
+            py_fill_svg_params(ps, false, draw_zero, KYOTODD_SVG_PARAMS_ARGS);
+            SvgParams& params = ps.p;
             std::string svg = m.save_svg(params);
             stream.attr("write")(svg);
-        }, py::arg("stream"), py::arg("draw_zero") = true,
-           "Export this MTZDD as SVG to a text stream.\n")
+        }, py::arg("stream"), py::arg("draw_zero") = true, KYOTODD_SVG_KWARGS,
+           "Export this MTZDD as SVG to a text stream.\n\n"
+           "Args:\n"
+           KYOTODD_SVG_KWARGS_DOC)
         .def("export_binary_bytes", [](const MTZDDInt& m) -> py::bytes {
             std::ostringstream oss(std::ios::binary);
             m.export_binary(oss);

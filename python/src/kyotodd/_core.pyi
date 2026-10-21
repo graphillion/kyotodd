@@ -1,5 +1,5 @@
 import enum
-from typing import IO, Iterator, List, Tuple, Union, overload
+from typing import IO, Dict, Iterator, List, Optional, Tuple, Union, overload
 
 
 class BddCountMemo:
@@ -837,6 +837,49 @@ class BDD:
                  If False (default), expand complement edges into full nodes.
         """
         ...
+
+    def save_svg_str(self, raw: bool = False, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this BDD as an SVG string.
+
+        Args:
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+            draw_zero: If True (default), draw the 0-terminal node.
+            var_name_map: Optional {variable number: label} drawn instead
+                of the variable numbers.
+            skip_unused_levels: If True (default), levels without nodes
+                take no row.
+            node_radius: Circle radius of internal nodes in px.
+            node_interval_x: Minimum horizontal gap between nodes.
+            node_interval_y: Vertical gap between rows.
+            font_size: Label font size in px; labels that do not fit
+                their node are drawn smaller.
+            font_family: CSS font family of the labels.
+            node_fill: Node fill colour.
+            node_stroke: Outline, arc and arrowhead colour.
+
+        Returns:
+            An SVG format string.
+        """
+        ...
+
+    def save_svg_file(self, stream: IO, raw: bool = False, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this BDD as SVG to a text stream.
+
+        Takes the same keyword arguments as save_svg_str.
+        """
+        ...
+
 
     def print(self) -> str:
         """Print BDD summary (ID, Var, Level, Size) and return as string."""
@@ -2388,6 +2431,49 @@ class ZDD:
                  If False (default), expand complement edges into full nodes.
         """
         ...
+
+    def save_svg_str(self, raw: bool = False, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this ZDD as an SVG string.
+
+        Args:
+            raw: If True, show physical DAG with complement markers.
+                 If False (default), expand complement edges into full nodes.
+            draw_zero: If True (default), draw the 0-terminal node.
+            var_name_map: Optional {variable number: label} drawn instead
+                of the variable numbers.
+            skip_unused_levels: If True (default), levels without nodes
+                take no row.
+            node_radius: Circle radius of internal nodes in px.
+            node_interval_x: Minimum horizontal gap between nodes.
+            node_interval_y: Vertical gap between rows.
+            font_size: Label font size in px; labels that do not fit
+                their node are drawn smaller.
+            font_family: CSS font family of the labels.
+            node_fill: Node fill colour.
+            node_stroke: Outline, arc and arrowhead colour.
+
+        Returns:
+            An SVG format string.
+        """
+        ...
+
+    def save_svg_file(self, stream: IO, raw: bool = False, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this ZDD as SVG to a text stream.
+
+        Takes the same keyword arguments as save_svg_str.
+        """
+        ...
+
 
     def print(self) -> str:
         """Print ZDD statistics (ID, Var, Size, Card, Lit, Len) and return as string."""
@@ -3957,12 +4043,28 @@ class MTBDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
-    def save_svg_str(self, draw_zero: bool = True) -> str:
-        """Export this MTBDD as an SVG string."""
+    def save_svg_str(self, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this MTBDD as an SVG string.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
-    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
-        """Export this MTBDD as SVG to a text stream."""
+    def save_svg_file(self, stream: IO, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this MTBDD as SVG to a text stream.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
     def export_binary_bytes(self) -> bytes:
@@ -4051,12 +4153,28 @@ class MTBDDInt:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
-    def save_svg_str(self, draw_zero: bool = True) -> str:
-        """Export this MTBDD as an SVG string."""
+    def save_svg_str(self, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this MTBDD as an SVG string.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
-    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
-        """Export this MTBDD as SVG to a text stream."""
+    def save_svg_file(self, stream: IO, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this MTBDD as SVG to a text stream.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
     def export_binary_bytes(self) -> bytes:
@@ -4145,12 +4263,28 @@ class MTZDDFloat:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
-    def save_svg_str(self, draw_zero: bool = True) -> str:
-        """Export this MTZDD as an SVG string."""
+    def save_svg_str(self, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this MTZDD as an SVG string.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
-    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
-        """Export this MTZDD as SVG to a text stream."""
+    def save_svg_file(self, stream: IO, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this MTZDD as SVG to a text stream.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
     def export_binary_bytes(self) -> bytes:
@@ -4239,12 +4373,28 @@ class MTZDDInt:
     def __ne__(self, other: object) -> bool: ...
     def __hash__(self) -> int: ...
 
-    def save_svg_str(self, draw_zero: bool = True) -> str:
-        """Export this MTZDD as an SVG string."""
+    def save_svg_str(self, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> str:
+        """Export this MTZDD as an SVG string.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
-    def save_svg_file(self, stream: IO, draw_zero: bool = True) -> None:
-        """Export this MTZDD as SVG to a text stream."""
+    def save_svg_file(self, stream: IO, draw_zero: bool = True,
+                     var_name_map: Optional[Dict[int, str]] = None,
+                     skip_unused_levels: bool = True, node_radius: int = 20,
+                     node_interval_x: int = 30, node_interval_y: int = 40,
+                     font_size: int = 24, font_family: str = "sans-serif",
+                     node_fill: str = "#deebf7", node_stroke: str = "#1b3966") -> None:
+        """Export this MTZDD as SVG to a text stream.
+
+        Keyword arguments after draw_zero are the same as ZDD.save_svg_str.
+        """
         ...
 
     def export_binary_bytes(self) -> bytes:
