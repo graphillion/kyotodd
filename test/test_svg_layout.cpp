@@ -6,6 +6,7 @@
 // their endpoints, paths must not contain zero-length commands, and so on.
 #include <gtest/gtest.h>
 #include "bdd.h"
+#include "seqbdd.h"
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -681,4 +682,31 @@ TEST_F(SvgLayoutTest, Terminals_AlignWithNodeColumns) {
     ASSERT_EQ(row2.size(), 2u);
     EXPECT_DOUBLE_EQ(row2[0], terms[0]);
     EXPECT_DOUBLE_EQ(row2[1], terms[1]);
+}
+
+// --- Arcs that go up or sideways (SeqBDD) stay straight ---
+
+TEST_F(SvgLayoutTest, UpwardArcs_AreDrawnStraight) {
+    // {"ab", "ac", "b"} with a = var 1, b = var 2, c = var 3: the root has
+    // the lowest level, so its arcs point upwards to the b and c nodes.
+    SeqBDD ab = SeqBDD(1).push(2).push(1);
+    SeqBDD ac = SeqBDD(1).push(3).push(1);
+    SeqBDD b = SeqBDD(1).push(2);
+    SeqBDD seq = ab + ac + b;
+    Svg s = parse_svg(seq.save_svg());
+    int upward = 0;
+    for (size_t pi = 0; pi < s.paths.size(); ++pi) {
+        int sc = circle_at(s, s.paths[pi].start), ec = circle_at(s, s.paths[pi].end);
+        if (sc < 0 || ec < 0 || s.circles[ec].cy >= s.circles[sc].cy) continue;
+        ++upward;
+        // at most start, side nudge and end: no lane runs, no vertical drops
+        EXPECT_LE(s.paths[pi].segs.size(), 3u) << "upward arc " << pi << " was routed";
+        for (size_t i = 0; i < s.paths[pi].segs.size(); ++i) {
+            const Seg& g = s.paths[pi].segs[i];
+            if (g.type == 'L' && std::fabs(g.p0.y - g.p1.y) < 0.01)
+                EXPECT_LT(std::fabs(g.p0.x - g.p1.x), 20.0) << "upward arc " << pi << " has a horizontal run";
+        }
+    }
+    EXPECT_GE(upward, 1);
+    EXPECT_EQ(count_degenerate_commands(s), 0);
 }

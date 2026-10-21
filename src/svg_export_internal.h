@@ -1005,6 +1005,10 @@ private:
                     }
                     if (len > 0 && (dx * nx + dy * ny) / len > -0.5) straight = false;
                 }
+                // An arc whose child is not below its parent (SeqBDD stacks
+                // the same variable, so a child can sit on the same row or
+                // above) has no gap to route through: draw it straight.
+                if (c_level >= nodes[parent_idx].level) straight = true;
                 arc_is_straight_map[arc_key] = straight;
             }
 
