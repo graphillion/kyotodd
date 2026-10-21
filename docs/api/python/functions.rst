@@ -131,6 +131,39 @@ Garbage Collection
 
    :rtype: int
 
+Import Limits
+-------------
+
+.. py:function:: kyotodd.set_import_limit(max_nodes=None, max_levels=None, max_outputs=None)
+
+   Set the safety limits applied by every import function
+   (``import_str`` / ``import_file``, ``import_binary_*``,
+   ``import_sapporo_*``, ``import_graphillion_*`` and the deprecated
+   ``import_knuth_*``).
+
+   An import rejects a file whose header declares more nodes, levels or
+   roots than these limits before allocating anything, so that a corrupted
+   or malicious file cannot trigger a huge allocation. Pass 0 to disable a
+   limit; omit an argument to keep its current value. Raise or disable the
+   limits only for trusted files, for example to load a DD with more than
+   ten million nodes that was written by this library::
+
+      kyotodd.set_import_limit(max_nodes=0)   # no node bound
+      big = ZDD.import_binary_file(f)
+
+   :param int max_nodes: Maximum total node count (default 10,000,000; 0 = unlimited).
+   :param int max_levels: Maximum level count (default 1,000,000; 0 = unlimited).
+   :param int max_outputs: Maximum root count for multi-root formats
+      (default 1,000,000; 0 = unlimited).
+
+.. py:function:: kyotodd.get_import_limit()
+
+   Get the safety limits currently applied by the import functions.
+
+   :return: A dict with keys ``'max_nodes'``, ``'max_levels'`` and
+      ``'max_outputs'``. A value of 0 means that limit is disabled.
+   :rtype: dict[str, int]
+
 Random Generation
 -----------------
 

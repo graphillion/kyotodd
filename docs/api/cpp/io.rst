@@ -1,6 +1,29 @@
 I/O Functions
 =============
 
+Import Limits
+-------------
+
+Every import function (Sapporo text, binary, Graphillion and Knuth) checks
+the node, level and root counts declared in the file header against a set of
+safety limits before allocating anything, so that a corrupted or malicious
+file cannot trigger a huge allocation. The defaults are 10,000,000 nodes,
+1,000,000 levels and 1,000,000 roots. To load a larger DD from a trusted
+file, raise the limits or pass 0 to disable a limit entirely:
+
+.. code-block:: cpp
+
+   // Accept any number of nodes; keep the default level and root bounds.
+   bdd_set_import_limit(0, BDD_IMPORT_DEFAULT_MAX_LEVELS,
+                        BDD_IMPORT_DEFAULT_MAX_OUTPUTS);
+   ZDD big = ZDD::import_binary(strm);
+
+.. doxygenstruct:: kyotodd::ImportLimit
+   :members:
+
+.. doxygenfunction:: bdd_set_import_limit
+.. doxygenfunction:: bdd_get_import_limit
+
 Sapporo Format
 --------------
 
