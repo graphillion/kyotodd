@@ -284,6 +284,20 @@ bddp bdddelta_iter(bddp f, bddp g);
 bddp bddremainder(bddp f, bddp g);
 
 /**
+ * @brief Remainder with execution mode selection.
+ */
+bddp bddremainder(bddp f, bddp g, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddremainder.
+ *
+ * Advanced API. Preconditions as in @ref bdddiv_iter (validated non-null
+ * inputs, must run inside a @c bdd_gc_guard scope). Internally composes
+ * @ref bdddiv_iter, @ref bddjoin_iter and @ref bddsubtract_iter.
+ */
+bddp bddremainder_iter(bddp f, bddp g);
+
+/**
  * @brief Disjoint product of two ZDD families.
  *
  * For each pair (A, B) where A ∈ f and B ∈ g, if A ∩ B = ∅,
@@ -710,6 +724,8 @@ bigint::BigInt bddcountintersec_iter(
  * @return The Jaccard index in [0, 1], or 0.0 if either is null.
  */
 double bddjaccardindex(bddp f, bddp g);
+/** @brief Same as above with execution mode selection. */
+double bddjaccardindex(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Compute the Hamming distance (symmetric difference size) of two ZDD families.
@@ -721,6 +737,8 @@ double bddjaccardindex(bddp f, bddp g);
  * @return |F △ G| as a BigInt, or 0 if either is null.
  */
 bigint::BigInt bddhammingdist(bddp f, bddp g);
+/** @brief Same as above with execution mode selection. */
+bigint::BigInt bddhammingdist(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Compute the overlap coefficient of two ZDD families.
@@ -733,6 +751,8 @@ bigint::BigInt bddhammingdist(bddp f, bddp g);
  * @return The overlap coefficient in [0, 1].
  */
 double bddoverlapcoeff(bddp f, bddp g);
+/** @brief Same as above with execution mode selection. */
+double bddoverlapcoeff(bddp f, bddp g, BddExecMode mode);
 
 /**
  * @brief Extract supersets of a given set from a ZDD family.
@@ -1373,6 +1393,8 @@ bddp bddcostbound_ge(bddp f, const std::vector<int>& weights, long long b,
  * @throws std::overflow_error if the rank exceeds int64_t range.
  */
 int64_t bddrank(bddp f, const std::vector<bddvar>& s);
+/** @brief Same as above with execution mode selection. */
+int64_t bddrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
 
 /**
  * @brief Rank a set in the ZDD family (arbitrary precision).
@@ -1383,6 +1405,8 @@ int64_t bddrank(bddp f, const std::vector<bddvar>& s);
  * @throws std::invalid_argument if f is bddnull.
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
+/** @brief Same as above with execution mode selection. */
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode);
 
 /**
  * @brief Rank a set in the ZDD family (arbitrary precision, with memo).
@@ -1395,6 +1419,9 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s);
  */
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
                             CountMemoMap& memo);
+/** @brief Same as above with execution mode selection. */
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
+                            CountMemoMap& memo, BddExecMode mode);
 
 /**
  * @brief Unrank: retrieve the set at a given index in the ZDD family (int64_t).
@@ -1409,6 +1436,8 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
  * @throws std::out_of_range if @p order is negative or >= family size.
  */
 std::vector<bddvar> bddunrank(bddp f, int64_t order);
+/** @brief Same as above with execution mode selection. */
+std::vector<bddvar> bddunrank(bddp f, int64_t order, BddExecMode mode);
 
 /**
  * @brief Unrank: retrieve the set at a given index (arbitrary precision).
@@ -1420,6 +1449,8 @@ std::vector<bddvar> bddunrank(bddp f, int64_t order);
  * @throws std::out_of_range if @p order is out of range.
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
+/** @brief Same as above with execution mode selection. */
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order, BddExecMode mode);
 
 /**
  * @brief Unrank: retrieve the set at a given index (arbitrary precision, with memo).
@@ -1433,6 +1464,9 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order);
  */
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
                                    CountMemoMap& memo);
+/** @brief Same as above with execution mode selection. */
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
+                                   CountMemoMap& memo, BddExecMode mode);
 
 // ZDD get_k_sets
 

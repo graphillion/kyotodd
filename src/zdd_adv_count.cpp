@@ -847,7 +847,31 @@ bigint::BigInt bddcountintersec(bddp f, bddp g, BddExecMode mode) {
     }
 }
 
+// Shared helper for the similarity measures: computes |F|, |G| and |F ∩ G|
+// with one count memo, using the _iter helpers when the requested mode (or
+// the operand levels, in Auto mode) call for them.
+static void similarity_counts(bddp f, bddp g, BddExecMode mode,
+                              bigint::BigInt& count_f,
+                              bigint::BigInt& count_g,
+                              bigint::BigInt& count_fg) {
+    CountMemoMap count_memo;
+    PairCountMemoMap pair_memo;
+    if (select_iter_2op(f, g, mode)) {
+        count_f = bddexactcount_iter(f, count_memo);
+        count_g = bddexactcount_iter(g, count_memo);
+        count_fg = bddcountintersec_iter(f, g, pair_memo, count_memo);
+    } else {
+        count_f = bddexactcount_rec(f, count_memo);
+        count_g = bddexactcount_rec(g, count_memo);
+        count_fg = bddcountintersec_rec(f, g, pair_memo, count_memo);
+    }
+}
+
 double bddjaccardindex(bddp f, bddp g) {
+    return bddjaccardindex(f, g, BddExecMode::Auto);
+}
+
+double bddjaccardindex(bddp f, bddp g, BddExecMode mode) {
     bddp_validate(f, "bddjaccardindex");
     bddp_validate(g, "bddjaccardindex");
     if (f == bddnull || g == bddnull) return 0.0;
@@ -855,13 +879,8 @@ double bddjaccardindex(bddp f, bddp g) {
     if (f == bddempty || g == bddempty) return 0.0;
     if (f == g) return 1.0;
 
-    CountMemoMap count_memo;
-    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
-    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
-
-    PairCountMemoMap pair_memo;
-    bigint::BigInt count_fg = bddcountintersec_rec(
-        f, g, pair_memo, count_memo);
+    bigint::BigInt count_f, count_g, count_fg;
+    similarity_counts(f, g, mode, count_f, count_g, count_fg);
 
     bigint::BigInt count_union = count_f + count_g - count_fg;
     if (count_union == bigint::BigInt(0)) return 1.0;
@@ -870,26 +889,29 @@ double bddjaccardindex(bddp f, bddp g) {
 }
 
 bigint::BigInt bddhammingdist(bddp f, bddp g) {
+    return bddhammingdist(f, g, BddExecMode::Auto);
+}
+
+bigint::BigInt bddhammingdist(bddp f, bddp g, BddExecMode mode) {
     bddp_validate(f, "bddhammingdist");
     bddp_validate(g, "bddhammingdist");
     if (f == bddnull || g == bddnull) return bigint::BigInt(0);
     if (f == g) return bigint::BigInt(0);
-    if (f == bddempty) return bddexactcount(g);
-    if (g == bddempty) return bddexactcount(f);
+    if (f == bddempty) return bddexactcount(g, mode);
+    if (g == bddempty) return bddexactcount(f, mode);
 
-    CountMemoMap count_memo;
-    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
-    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
-
-    PairCountMemoMap pair_memo;
-    bigint::BigInt count_fg = bddcountintersec_rec(
-        f, g, pair_memo, count_memo);
+    bigint::BigInt count_f, count_g, count_fg;
+    similarity_counts(f, g, mode, count_f, count_g, count_fg);
 
     // |F △ G| = |F| + |G| - 2|F ∩ G|
     return count_f + count_g - count_fg - count_fg;
 }
 
 double bddoverlapcoeff(bddp f, bddp g) {
+    return bddoverlapcoeff(f, g, BddExecMode::Auto);
+}
+
+double bddoverlapcoeff(bddp f, bddp g, BddExecMode mode) {
     bddp_validate(f, "bddoverlapcoeff");
     bddp_validate(g, "bddoverlapcoeff");
     if (f == bddnull || g == bddnull) return 0.0;
@@ -897,16 +919,11 @@ double bddoverlapcoeff(bddp f, bddp g) {
     if (f == bddempty || g == bddempty) return 0.0;
     if (f == g) return 1.0;
 
-    CountMemoMap count_memo;
-    bigint::BigInt count_f = bddexactcount_rec(f, count_memo);
-    bigint::BigInt count_g = bddexactcount_rec(g, count_memo);
+    bigint::BigInt count_f, count_g, count_fg;
+    similarity_counts(f, g, mode, count_f, count_g, count_fg);
 
     bigint::BigInt min_count = (count_f < count_g) ? count_f : count_g;
     if (min_count == bigint::BigInt(0)) return 0.0;
-
-    PairCountMemoMap pair_memo;
-    bigint::BigInt count_fg = bddcountintersec_rec(
-        f, g, pair_memo, count_memo);
 
     return bigint_ratio_to_double(count_fg, min_count);
 }

@@ -662,6 +662,21 @@ inline bool use_iter_2op(bddp f, bddp g) {
 }
 
 /**
+ * @brief Mode-aware variant of use_iter_2op().
+ *
+ * Returns true for BddExecMode::Iterative, false for BddExecMode::Recursive,
+ * and the use_iter_2op() decision for BddExecMode::Auto.
+ */
+inline bool select_iter_2op(bddp f, bddp g, BddExecMode mode) {
+    switch (mode) {
+    case BddExecMode::Iterative: return true;
+    case BddExecMode::Recursive: return false;
+    case BddExecMode::Auto:
+    default: return use_iter_2op(f, g);
+    }
+}
+
+/**
  * @brief Determine whether the iterative implementation should be used
  *        for a 3-operand recursive operation (ITE-style).
  *

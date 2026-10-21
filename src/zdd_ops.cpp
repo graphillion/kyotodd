@@ -1425,7 +1425,24 @@ static bddp bdddelta_rec(bddp f, bddp g) {
     return result;
 }
 
+// F % G = F \ (G ⊔ (F / G)), composed from the same-file _rec helpers.
+static bddp bddremainder_rec(bddp f, bddp g) {
+    bddp cached = bddrcache(BDD_OP_REMAINDER, f, g);
+    if (cached != bddnull) return cached;
+
+    bddp q = bdddiv_rec(f, g);
+    bddp j = bddjoin_rec(g, q);
+    bddp result = bddsubtract_rec(f, j);
+
+    bddwcache(BDD_OP_REMAINDER, f, g, result);
+    return result;
+}
+
 bddp bddremainder(bddp f, bddp g) {
+    return bddremainder(f, g, BddExecMode::Auto);
+}
+
+bddp bddremainder(bddp f, bddp g, BddExecMode mode) {
     bddp_validate(f, "bddremainder");
     bddp_validate(g, "bddremainder");
     if (f == bddnull || g == bddnull) return bddnull;
@@ -1433,17 +1450,11 @@ bddp bddremainder(bddp f, bddp g) {
     if (g == bddsingle) return bddempty;  // F/{∅}=F, {∅}⊔F=F, F\F=∅
     if (f == g) return bddempty;
 
-    // F % G = F \ (G ⊔ (F / G))
     return bdd_gc_guard([&]() -> bddp {
-        bddp cached = bddrcache(BDD_OP_REMAINDER, f, g);
-        if (cached != bddnull) return cached;
-
-        bddp q = bdddiv_rec(f, g);
-        bddp j = bddjoin_rec(g, q);
-        bddp result = bddsubtract_rec(f, j);
-
-        bddwcache(BDD_OP_REMAINDER, f, g, result);
-        return result;
+        if (select_iter_2op(f, g, mode)) {
+            return bddremainder_iter(f, g);
+        }
+        return bddremainder_rec(f, g);
     });
 }
 

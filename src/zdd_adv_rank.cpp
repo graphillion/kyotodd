@@ -14,8 +14,22 @@ namespace kyotodd {
 // Rank / Unrank
 // ---------------------------------------------------------------
 
+// Count a subtree during the rank/unrank walk. The walk itself is a loop;
+// only the per-node counts recurse, so each one picks _rec or _iter by its
+// own level (Auto) or by the requested mode.
+static bigint::BigInt rank_subcount(bddp h, CountMemoMap& memo,
+                                    BddExecMode mode) {
+    return select_iter_1op(h, mode) ? bddexactcount_iter(h, memo)
+                                    : bddexactcount_rec(h, memo);
+}
+
 bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
                             CountMemoMap& memo) {
+    return bddexactrank(f, s, memo, BddExecMode::Auto);
+}
+
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
+                            CountMemoMap& memo, BddExecMode mode) {
     bddp_validate(f, "bddexactrank");
     if (f == bddnull) {
         throw std::invalid_argument("bddexactrank: null ZDD");
@@ -72,7 +86,7 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
             f = hi;
         } else {
             // var is not in s: follow lo-edge, add count of hi subtree
-            rank += bddexactcount_rec(hi, memo);
+            rank += rank_subcount(hi, memo, mode);
             f = lo;
         }
     }
@@ -89,9 +103,19 @@ bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s) {
     return bddexactrank(f, s, memo);
 }
 
-int64_t bddrank(bddp f, const std::vector<bddvar>& s) {
+bigint::BigInt bddexactrank(bddp f, const std::vector<bddvar>& s,
+                            BddExecMode mode) {
     CountMemoMap memo;
-    bigint::BigInt result = bddexactrank(f, s, memo);
+    return bddexactrank(f, s, memo, mode);
+}
+
+int64_t bddrank(bddp f, const std::vector<bddvar>& s) {
+    return bddrank(f, s, BddExecMode::Auto);
+}
+
+int64_t bddrank(bddp f, const std::vector<bddvar>& s, BddExecMode mode) {
+    CountMemoMap memo;
+    bigint::BigInt result = bddexactrank(f, s, memo, mode);
     if (result == bigint::BigInt(-1)) return -1;
     if (result > bigint::BigInt(INT64_MAX)) {
         throw std::overflow_error(
@@ -102,12 +126,17 @@ int64_t bddrank(bddp f, const std::vector<bddvar>& s) {
 
 std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
                                    CountMemoMap& memo) {
+    return bddexactunrank(f, order, memo, BddExecMode::Auto);
+}
+
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
+                                   CountMemoMap& memo, BddExecMode mode) {
     bddp_validate(f, "bddexactunrank");
     if (f == bddnull) {
         throw std::invalid_argument("bddexactunrank: null ZDD");
     }
 
-    bigint::BigInt total = bddexactcount_rec(f, memo);
+    bigint::BigInt total = rank_subcount(f, memo, mode);
     if (order < bigint::BigInt(0) || order >= total) {
         throw std::out_of_range("bddexactunrank: order out of range");
     }
@@ -133,7 +162,7 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
         bddp hi = node_hi(f_raw);
         if (comp) lo = bddnot(lo);
 
-        bigint::BigInt count_hi = bddexactcount_rec(hi, memo);
+        bigint::BigInt count_hi = rank_subcount(hi, memo, mode);
         if (remaining < count_hi) {
             result.push_back(var);  // select var, follow hi-edge
             f = hi;
@@ -152,9 +181,20 @@ std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order) {
     return bddexactunrank(f, order, memo);
 }
 
+std::vector<bddvar> bddexactunrank(bddp f, const bigint::BigInt& order,
+                                   BddExecMode mode) {
+    CountMemoMap memo;
+    return bddexactunrank(f, order, memo, mode);
+}
+
 std::vector<bddvar> bddunrank(bddp f, int64_t order) {
     CountMemoMap memo;
     return bddexactunrank(f, bigint::BigInt(order), memo);
+}
+
+std::vector<bddvar> bddunrank(bddp f, int64_t order, BddExecMode mode) {
+    CountMemoMap memo;
+    return bddexactunrank(f, bigint::BigInt(order), memo, mode);
 }
 
 // ---------------------------------------------------------------

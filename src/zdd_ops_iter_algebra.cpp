@@ -184,6 +184,22 @@ bddp bdddiv_iter(bddp f, bddp g) {
 }
 
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddoffset_iter.
+// F % G = F \ (G ⊔ (F / G)); shares the BDD_OP_REMAINDER cache slot with the
+// recursive version in zdd_ops.cpp. The sub-operations are themselves
+// iterative, so no recursion depth is consumed.
+bddp bddremainder_iter(bddp f, bddp g) {
+    bddp cached = bddrcache(BDD_OP_REMAINDER, f, g);
+    if (cached != bddnull) return cached;
+
+    bddp q = bdddiv_iter(f, g);
+    bddp j = bddjoin_iter(g, q);
+    bddp result = bddsubtract_iter(f, j);
+
+    bddwcache(BDD_OP_REMAINDER, f, g, result);
+    return result;
+}
+
+// PRECONDITION: Must be invoked under a bdd_gc_guard scope. See bddoffset_iter.
 // At same-var case, combines four sub-results via bddunion_iter.
 bddp bddjoin_iter(bddp f, bddp g) {
     enum class Phase : uint8_t {
