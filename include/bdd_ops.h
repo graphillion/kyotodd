@@ -215,6 +215,9 @@ bddp bddite_iter(bddp f, bddp g, bddp h);
  */
 int bddimply(bddp f, bddp g);
 
+/** @brief Implication check with execution mode selection. */
+int bddimply(bddp f, bddp g, BddExecMode mode);
+
 /**
  * @brief Iterative (non-recursive) implementation of bddimply.
  *

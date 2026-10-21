@@ -205,6 +205,9 @@ int ZDD_Import(std::istream& strm, std::vector<ZDD>& v);
  */
 void bdddump(bddp f);
 
+/** @brief Same as bdddump() with execution mode selection for the traversal. */
+void bdddump(bddp f, BddExecMode mode);
+
 /**
  * @brief Dump the internal structure of multiple BDD/ZDDs to stdout.
  *

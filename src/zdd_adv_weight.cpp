@@ -264,9 +264,14 @@ static void bddminweightset_trace(bddp f, const std::vector<int>& weights,
 }
 
 std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights) {
+    return bddminweightset(f, weights, BddExecMode::Auto);
+}
+
+std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights,
+                                    BddExecMode mode) {
     bddweight_validate(f, weights, "bddminweightset");
     std::unordered_map<bddp, long long> memo;
-    if (use_iter_1op(f)) {
+    if (select_iter_1op(f, mode)) {
         bddminweight_iter(f, weights, memo);
     } else {
         bddminweight_rec(f, weights, memo);
@@ -306,9 +311,14 @@ static void bddmaxweightset_trace(bddp f, const std::vector<int>& weights,
 }
 
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights) {
+    return bddmaxweightset(f, weights, BddExecMode::Auto);
+}
+
+std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights,
+                                    BddExecMode mode) {
     bddweight_validate(f, weights, "bddmaxweightset");
     std::unordered_map<bddp, long long> memo;
-    if (use_iter_1op(f)) {
+    if (select_iter_1op(f, mode)) {
         bddmaxweight_iter(f, weights, memo);
     } else {
         bddmaxweight_rec(f, weights, memo);

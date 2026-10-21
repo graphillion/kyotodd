@@ -598,6 +598,9 @@ double bddcount_iter(bddp f, std::unordered_map<bddp, double>& memo);
  */
 uint64_t bddlit(bddp f);
 
+/** @brief Total literal count with execution mode selection. */
+uint64_t bddlit(bddp f, BddExecMode mode);
+
 /**
  * @brief Iterative (non-recursive) implementation of bddlit.
  *
@@ -620,6 +623,9 @@ uint64_t bddlit_iter(bddp f);
  *         Returns (2^39 - 1) if saturated.
  */
 uint64_t bddlen(bddp f);
+
+/** @brief Maximum set size with execution mode selection. */
+uint64_t bddlen(bddp f, BddExecMode mode);
 
 /**
  * @brief Iterative (non-recursive) implementation of bddlen.
@@ -662,6 +668,9 @@ uint64_t bddminsize_iter(bddp f);
  *         Returns (2^39 - 1) if saturated.
  */
 uint64_t bddmaxsize(bddp f);
+
+/** @brief Maximum set size with execution mode selection (alias of bddlen). */
+uint64_t bddmaxsize(bddp f, BddExecMode mode);
 
 /**
  * @brief Check if two ZDD families are disjoint (F ∩ G = ∅).
@@ -1316,6 +1325,10 @@ long long bddmaxweight_iter(
  */
 std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights);
 
+/** @brief Same as above with execution mode selection. */
+std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights,
+                                    BddExecMode mode);
+
 /**
  * @brief Find a set with the maximum weight sum in a ZDD family.
  *
@@ -1326,6 +1339,10 @@ std::vector<bddvar> bddminweightset(bddp f, const std::vector<int>& weights);
  * @throws std::invalid_argument if f is empty/null or weights is too small.
  */
 std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights);
+
+/** @brief Same as above with execution mode selection. */
+std::vector<bddvar> bddmaxweightset(bddp f, const std::vector<int>& weights,
+                                    BddExecMode mode);
 
 /**
  * @brief Extract cost-bounded solutions from a ZDD using BkTrk-IntervalMemo.

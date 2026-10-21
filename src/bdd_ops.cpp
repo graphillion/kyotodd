@@ -639,9 +639,13 @@ static int bddimply_rec(bddp f, bddp g) {
 }
 
 int bddimply(bddp f, bddp g) {
+    return bddimply(f, g, BddExecMode::Auto);
+}
+
+int bddimply(bddp f, bddp g, BddExecMode mode) {
     bddp_validate(f, "bddimply");
     bddp_validate(g, "bddimply");
-    if (use_iter_2op(f, g)) {
+    if (select_iter_2op(f, g, mode)) {
         return bddimply_iter(f, g);
     }
     return bddimply_rec(f, g);

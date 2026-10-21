@@ -483,8 +483,12 @@ static uint64_t bddlit_rec(bddp f) {
 }
 
 uint64_t bddlit(bddp f) {
+    return bddlit(f, BddExecMode::Auto);
+}
+
+uint64_t bddlit(bddp f, BddExecMode mode) {
     bddp_validate(f, "bddlit");
-    if (use_iter_1op(f)) return bddlit_iter(f);
+    if (select_iter_1op(f, mode)) return bddlit_iter(f);
     return bddlit_rec(f);
 }
 
@@ -526,8 +530,12 @@ static uint64_t bddlen_rec(bddp f) {
 }
 
 uint64_t bddlen(bddp f) {
+    return bddlen(f, BddExecMode::Auto);
+}
+
+uint64_t bddlen(bddp f, BddExecMode mode) {
     bddp_validate(f, "bddlen");
-    if (use_iter_1op(f)) return bddlen_iter(f);
+    if (select_iter_1op(f, mode)) return bddlen_iter(f);
     return bddlen_rec(f);
 }
 
@@ -601,6 +609,11 @@ uint64_t bddminsize(bddp f, BddExecMode mode) {
 uint64_t bddmaxsize(bddp f) {
     bddp_validate(f, "bddmaxsize");
     return bddlen(f);
+}
+
+uint64_t bddmaxsize(bddp f, BddExecMode mode) {
+    bddp_validate(f, "bddmaxsize");
+    return bddlen(f, mode);
 }
 
 static double bddcount_rec(

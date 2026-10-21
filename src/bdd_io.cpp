@@ -504,6 +504,10 @@ static void dump_root(const char* label, bddp f) {
 }
 
 void bdddump(bddp f) {
+    bdddump(f, BddExecMode::Auto);
+}
+
+void bdddump(bddp f, BddExecMode mode) {
     if (f == bddnull) {
         std::printf("RT = NULL\n\n");
         return;
@@ -517,7 +521,7 @@ void bdddump(bddp f) {
         }
     }
     std::unordered_set<bddp> visited;
-    if (use_iter_1op(f)) {
+    if (select_iter_1op(f, mode)) {
         dump_iter(f, visited);
     } else {
         dump_rec(f, visited);
