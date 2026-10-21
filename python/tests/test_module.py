@@ -112,3 +112,41 @@ def test_node_max_exhaustion_raises():
         a = BDD.var(v1) & BDD.var(v2) & BDD.var(v3) & BDD.var(v4)
         b = BDD.var(v1) | BDD.var(v2) | BDD.var(v3) | BDD.var(v4)
         c = a ^ b
+
+
+class TestImportLimit:
+    def teardown_method(self):
+        kyotodd.set_import_limit(10_000_000, 1_000_000, 1_000_000)
+
+    def test_defaults(self):
+        lim = kyotodd.get_import_limit()
+        assert lim == {"max_nodes": 10_000_000, "max_levels": 1_000_000,
+                       "max_outputs": 1_000_000}
+
+    def test_set_all_and_unlimited(self):
+        kyotodd.set_import_limit(123, 45, 6)
+        assert kyotodd.get_import_limit() == {"max_nodes": 123, "max_levels": 45,
+                                              "max_outputs": 6}
+        kyotodd.set_import_limit(0, 0, 0)
+        assert kyotodd.get_import_limit() == {"max_nodes": 0, "max_levels": 0,
+                                              "max_outputs": 0}
+
+    def test_omitted_arguments_keep_current(self):
+        kyotodd.set_import_limit(max_levels=7)
+        lim = kyotodd.get_import_limit()
+        assert lim["max_nodes"] == 10_000_000
+        assert lim["max_levels"] == 7
+        assert lim["max_outputs"] == 1_000_000
+
+    def test_limit_applies_to_import(self):
+        from kyotodd import ZDD
+        kyotodd.new_vars(3)
+        z = ZDD.single
+        for v in (1, 2, 3):
+            z = z.change(v)
+        data = z.export_binary_str()
+        kyotodd.set_import_limit(max_nodes=2)
+        with pytest.raises(RuntimeError):
+            ZDD.import_binary_str(data)
+        kyotodd.set_import_limit(max_nodes=0)
+        assert ZDD.import_binary_str(data) == z

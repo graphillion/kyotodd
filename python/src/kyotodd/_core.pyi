@@ -2556,6 +2556,32 @@ def gc_get_threshold() -> float:
     """Get the current GC threshold."""
     ...
 
+def set_import_limit(max_nodes: Optional[int] = None, max_levels: Optional[int] = None,
+                     max_outputs: Optional[int] = None) -> None:
+    """Set the safety limits applied by every import function.
+
+    Import functions reject a file whose header declares more nodes, levels
+    or roots than these limits before allocating anything. Pass 0 to disable
+    a limit; omit an argument to keep its current value. Raise or disable the
+    limits only for trusted files.
+
+    Args:
+        max_nodes: Maximum total node count (default 10,000,000; 0 = unlimited).
+        max_levels: Maximum level count (default 1,000,000; 0 = unlimited).
+        max_outputs: Maximum root count for multi-root formats
+            (default 1,000,000; 0 = unlimited).
+    """
+    ...
+
+def get_import_limit() -> Dict[str, int]:
+    """Get the safety limits currently applied by the import functions.
+
+    Returns:
+        A dict with keys 'max_nodes', 'max_levels' and 'max_outputs'.
+        A value of 0 means that limit is disabled.
+    """
+    ...
+
 def node_count() -> int:
     """Return the number of used node slots (including dead nodes awaiting GC)."""
     ...

@@ -262,6 +262,40 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    The current threshold value.\n");
 
+    m.def("set_import_limit",
+          [](py::object max_nodes, py::object max_levels, py::object max_outputs) {
+              ImportLimit lim = bdd_get_import_limit();
+              if (!max_nodes.is_none()) lim.max_nodes = max_nodes.cast<uint64_t>();
+              if (!max_levels.is_none()) lim.max_levels = max_levels.cast<uint64_t>();
+              if (!max_outputs.is_none()) lim.max_outputs = max_outputs.cast<uint64_t>();
+              bdd_set_import_limit(lim.max_nodes, lim.max_levels, lim.max_outputs);
+          },
+          py::arg("max_nodes") = py::none(), py::arg("max_levels") = py::none(),
+          py::arg("max_outputs") = py::none(),
+       "Set the safety limits applied by every import function.\n\n"
+       "Import functions reject a file whose header declares more nodes,\n"
+       "levels or roots than these limits before allocating anything.\n"
+       "Pass 0 to disable a limit; omit an argument to keep its current value.\n"
+       "Raise or disable the limits only for trusted files.\n\n"
+       "Args:\n"
+       "    max_nodes: Maximum total node count (default 10,000,000; 0 = unlimited).\n"
+       "    max_levels: Maximum level count (default 1,000,000; 0 = unlimited).\n"
+       "    max_outputs: Maximum root count for multi-root formats\n"
+       "        (default 1,000,000; 0 = unlimited).\n");
+
+    m.def("get_import_limit", []() -> py::dict {
+              ImportLimit lim = bdd_get_import_limit();
+              py::dict d;
+              d["max_nodes"] = lim.max_nodes;
+              d["max_levels"] = lim.max_levels;
+              d["max_outputs"] = lim.max_outputs;
+              return d;
+          },
+       "Get the safety limits currently applied by the import functions.\n\n"
+       "Returns:\n"
+       "    A dict with keys 'max_nodes', 'max_levels' and 'max_outputs'.\n"
+       "    A value of 0 means that limit is disabled.\n");
+
     m.def("new_vars", [](int n, bool reverse) -> std::vector<bddvar> {
         ensure_init();
         return DDBase::new_var(n, reverse);
