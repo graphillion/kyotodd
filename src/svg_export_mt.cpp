@@ -96,8 +96,9 @@ static std::string make_mt_terminal_svg(bddp f, const SvgParams& params) {
 
     svg.emit_rect(mx, my, rect_w, ty,
                   params.node_fill, params.node_stroke, params.arc_width);
-    svg.emit_text(mx + rect_w / 2.0, my + ty / 2.0 + label_offset(params),
-                  label, params.font_size, "middle");
+    int fs = fit_font_size(label, params, terminal_label_room(params, rect_w));
+    svg.emit_text(mx + rect_w / 2.0, my + ty / 2.0 + label_offset(params, fs),
+                  label, fs, "middle");
 
     return svg.to_string();
 }
@@ -238,8 +239,9 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
                             params.node_fill, params.node_stroke, params.arc_width);
 
             std::string label = node_label(sn.var, params);
-            svg.emit_text(pos.first, pos.second + label_offset(params),
-                          label, params.font_size, "middle");
+            int fs = fit_font_size(label, params, node_label_room(params));
+            svg.emit_text(pos.first, pos.second + label_offset(params, fs),
+                          label, fs, "middle");
 
             // Draw lo edge (dashed)
             if (!(sn.lo & BDD_CONST_FLAG) || params.draw_zero || sn.lo != zero_terminal) {
@@ -300,8 +302,9 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
         svg.emit_rect(tpos.first - term_rect_w / 2.0, tpos.second - ty / 2.0,
                       term_rect_w, ty, params.node_fill, params.node_stroke, params.arc_width);
         std::string label = mt_terminal_label(t, params);
-        svg.emit_text(tpos.first, tpos.second + label_offset(params),
-                      label, params.font_size, "middle");
+        int fs = fit_font_size(label, params, terminal_label_room(params, term_rect_w));
+        svg.emit_text(tpos.first, tpos.second + label_offset(params, fs),
+                      label, fs, "middle");
     }
 
     svg.align_to_origin();

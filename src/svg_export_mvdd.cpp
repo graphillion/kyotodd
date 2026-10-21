@@ -340,8 +340,9 @@ static std::string mvdd_svg_generate_expanded(
             } else {
                 label = std::to_string(static_cast<unsigned>(sn.mv_var));
             }
-            svg.emit_text(pos.first, pos.second + label_offset(params),
-                          label, params.font_size, "middle");
+            int fs = fit_font_size(label, params, node_label_room(params));
+            svg.emit_text(pos.first, pos.second + label_offset(params, fs),
+                          label, fs, "middle");
 
             // Draw k edges
             for (int v = 0; v < k; ++v) {
@@ -418,8 +419,9 @@ static std::string mvdd_svg_generate_expanded(
         svg.emit_rect(tpos.first - terminal_x / 2.0, tpos.second - terminal_y / 2.0,
                       terminal_x, terminal_y,
                       params.node_fill, params.node_stroke, params.arc_width);
-        svg.emit_text(tpos.first, tpos.second + label_offset(params),
-                      label, params.font_size, "middle");
+        int fs = fit_font_size(label, params, terminal_label_room(params, terminal_x));
+        svg.emit_text(tpos.first, tpos.second + label_offset(params, fs),
+                      label, fs, "middle");
     };
     if (draw_zero && has_false) draw_term(TERM_0, "0");
     if (has_true) draw_term(TERM_1, "1");

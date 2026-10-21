@@ -750,3 +750,61 @@ TEST_F(SvgExportTest, SkipUnusedLevels_IsDefault) {
     // circle bottom (cy + r) to terminal top: exactly one node_interval_y gap
     EXPECT_DOUBLE_EQ(ry - (cy + p.node_radius), p.node_interval_y);
 }
+
+// --- Labels that do not fit are drawn smaller (review-SVG-20261021 item 9) ---
+
+// font-size and y of the <text> element whose content is `label` (first match)
+static bool text_font_size(const std::string& svg, const std::string& label, int& fs, double& y) {
+    size_t pos = 0;
+    while ((pos = svg.find("<text x=\"", pos)) != std::string::npos) {
+        size_t end = svg.find("</text>", pos);
+        std::string elem = svg.substr(pos, end - pos);
+        if (elem.size() >= label.size() + 1 && elem.compare(elem.size() - label.size(), label.size(), label) == 0 &&
+            elem[elem.size() - label.size() - 1] == '>') {
+            double x;
+            std::sscanf(elem.c_str(), "<text x=\"%lf\" y=\"%lf\" font-size=\"%d\"", &x, &y, &fs);
+            return true;
+        }
+        pos = end;
+    }
+    return false;
+}
+
+TEST_F(SvgExportTest, Labels_ShrinkToFitNode) {
+    std::vector<bddvar> vs = bddnewvar(3);
+    ZDD z = ZDD::combination(3, 2);
+    SvgParams p;
+    p.var_name_map[vs[2]] = "color";    // top node
+    p.var_name_map[vs[0]] = "x";
+    std::string svg = z.save_svg(p);
+    int fs; double y;
+    ASSERT_TRUE(text_font_size(svg, "color", fs, y));
+    EXPECT_LT(fs, 24);
+    EXPECT_GE(fs, 6);
+    double room = 2.0 * p.node_radius - p.arc_width - 4.0;
+    EXPECT_LE(kyotodd::svg_internal::estimate_text_width("color", fs), room);
+    EXPECT_EQ(static_cast<int>(y) % 1000 >= 0, true);
+    // short labels keep the full size; the baseline follows the smaller font
+    int fs2; double y2;
+    ASSERT_TRUE(text_font_size(svg, "x", fs2, y2));
+    EXPECT_EQ(fs2, 24);
+    ASSERT_TRUE(text_font_size(svg, "2", fs2, y2));
+    EXPECT_EQ(fs2, 24);
+    ASSERT_TRUE(text_font_size(svg, "0", fs2, y2));   // terminal labels untouched
+    EXPECT_EQ(fs2, 24);
+}
+
+TEST_F(SvgExportTest, Labels_ThreeDigitVariablesShrink) {
+    std::vector<bddvar> vs = bddnewvar(120);
+    std::vector<std::vector<bddvar> > sets;
+    sets.push_back({100, 110, 120});
+    sets.push_back({100, 120});
+    std::string svg = ZDD::from_sets(sets).save_svg();
+    int fs; double y;
+    ASSERT_TRUE(text_font_size(svg, "120", fs, y));
+    EXPECT_EQ(fs, 18);                                  // 24 * 33 / 43.2
+    SvgParams p;
+    p.node_radius = 30;                                 // enough room: full size again
+    ASSERT_TRUE(text_font_size(ZDD::from_sets(sets).save_svg(p), "120", fs, y));
+    EXPECT_EQ(fs, 24);
+}

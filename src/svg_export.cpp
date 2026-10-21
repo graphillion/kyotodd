@@ -77,8 +77,9 @@ static std::string svg_generate_impl(
 
             // Draw label (variable number)
             std::string label = node_label(sn.var, params);
-            svg.emit_text(pos.first, pos.second + label_offset(params),
-                          label, params.font_size, "middle");
+            int fs = fit_font_size(label, params, node_label_room(params));
+            svg.emit_text(pos.first, pos.second + label_offset(params, fs),
+                          label, fs, "middle");
 
             // Draw lo edge (0-edge)
             ArcKey lo_key = std::make_pair(idx, 0);
@@ -120,8 +121,9 @@ static std::string svg_generate_impl(
 
         svg.emit_rect(tpos.first - tx / 2.0, tpos.second - ty / 2.0,
                       tx, ty, params.node_fill, params.node_stroke, params.arc_width);
-        svg.emit_text(tpos.first, tpos.second + label_offset(params),
-                      label, params.font_size, "middle");
+        int fs = fit_font_size(label, params, terminal_label_room(params, tx));
+        svg.emit_text(tpos.first, tpos.second + label_offset(params, fs),
+                      label, fs, "middle");
     };
 
     if (params.draw_zero && has_false) {

@@ -33,10 +33,14 @@ static const int kArcClearance = 4;
 
 // ---- Label helpers -----------------------------------------------------
 
-// Baseline offset of a label below the centre of its node.
-inline int label_offset(const SvgParams& params) {
+// Baseline offset of a label below the centre of its node, for a label
+// drawn at font size `font_size`.
+inline int label_offset(const SvgParams& params, int font_size) {
     if (params.label_y >= 0) return params.label_y;
-    return static_cast<int>(std::floor(0.3 * params.font_size + 0.5));
+    return static_cast<int>(std::floor(0.3 * font_size + 0.5));
+}
+inline int label_offset(const SvgParams& params) {
+    return label_offset(params, params.font_size);
 }
 
 // Rough advance width of a label in a generic sans-serif font, in px.
@@ -58,6 +62,26 @@ inline double estimate_text_width(const std::string& text, int font_size) {
         else em += 0.55;
     }
     return em * font_size;
+}
+
+// Font size at which `label` fits into `avail` px: params.font_size when
+// it already fits, otherwise scaled down (not below kMinLabelFontSize).
+static const int kMinLabelFontSize = 6;
+inline int fit_font_size(const std::string& label, const SvgParams& params, double avail) {
+    double est = estimate_text_width(label, params.font_size);
+    if (est <= avail || est <= 0.0) return params.font_size;
+    int fs = static_cast<int>(std::floor(params.font_size * avail / est));
+    if (fs < kMinLabelFontSize) fs = kMinLabelFontSize;
+    return fs;
+}
+
+// Width available for a label inside a node circle / a terminal rectangle:
+// the inner width minus the outline and a small margin on both sides.
+inline double node_label_room(const SvgParams& params) {
+    return 2.0 * params.node_radius - params.arc_width - 4.0;
+}
+inline double terminal_label_room(const SvgParams& params, int rect_w) {
+    return rect_w - params.arc_width - 4.0;
 }
 
 // ---- Numeric formatting helper ------------------------------------------
@@ -1672,8 +1696,9 @@ inline std::string make_terminal_svg(bddp f, const SvgParams& params) {
                   params.node_fill, params.node_stroke, params.arc_width);
 
     const char* label = (f == bddtrue) ? "1" : "0";
-    svg.emit_text(mx + tx / 2.0, my + ty / 2.0 + label_offset(params),
-                  label, params.font_size, "middle");
+    int fs = fit_font_size(label, params, terminal_label_room(params, tx));
+    svg.emit_text(mx + tx / 2.0, my + ty / 2.0 + label_offset(params, fs),
+                  label, fs, "middle");
 
     return svg.to_string();
 }
