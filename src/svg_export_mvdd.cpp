@@ -285,7 +285,8 @@ static std::string mvdd_svg_generate_expanded(
     size_t TERM_1 = SIZE_MAX - 1;
 
     if (num_terms > 0) {
-        int tx = canvas_w / (num_terms + 1) - (terminal_x / 2 + node_interval_x);
+        // Same column formula as the internal nodes (centres line up).
+        int tx = canvas_w / (num_terms + 1) - (node_radius + node_interval_x);
         if (draw_zero && has_false) {
             pos_map[TERM_0] = Point(static_cast<double>(tx), static_cast<double>(y));
             tx += canvas_w / (num_terms + 1);

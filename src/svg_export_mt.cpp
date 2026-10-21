@@ -197,7 +197,8 @@ static std::string svg_generate_mt_impl(bddp f, const SvgParams& params) {
     y += params.terminal_y / 2 - node_radius;
     int num_terms = static_cast<int>(term_list.size());
     if (num_terms > 0) {
-        int tx = canvas_w / (num_terms + 1) - (term_rect_w / 2 + node_interval_x);
+        // Same column formula as the internal nodes (centres line up).
+        int tx = canvas_w / (num_terms + 1) - (node_radius + node_interval_x);
         for (int i = 0; i < num_terms; ++i) {
             size_t tidx = term_idx_map[term_list[i]];
             pos_map[tidx] = Point(static_cast<double>(tx), static_cast<double>(y));

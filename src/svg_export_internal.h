@@ -780,12 +780,13 @@ private:
 
     // --- calculate_terminal_positions ---
     void calculate_terminal_positions() {
-        int terminal_x = params.terminal_x;
         int node_interval_x = params.node_interval_x;
         int y = level_y_map[0];
 
         int num_terms = (draw_zero && has_false) ? 2 : 1;
-        int tx = node_x / (num_terms + 1) - (terminal_x / 2 + node_interval_x);
+        // Same column formula as the internal nodes, so a terminal sits
+        // exactly under a node row with the same number of elements.
+        int tx = node_x / (num_terms + 1) - (params.node_radius + node_interval_x);
 
         if (draw_zero && has_false) {
             node_pos_map[TERM_0_IDX()] = Point(static_cast<double>(tx),

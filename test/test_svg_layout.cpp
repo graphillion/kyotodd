@@ -655,3 +655,30 @@ TEST_F(SvgLayoutTest, LaneOffsets_SymmetricAndClamped) {
         EXPECT_LE(std::fabs(x - 100.0), half_room + 0.5);
     }
 }
+
+// --- Review item 14: terminals line up with the node columns ---
+
+TEST_F(SvgLayoutTest, Terminals_AlignWithNodeColumns) {
+    // One terminal under a single chain: same x as the chain.
+    Svg s = parse_svg(ZDD::power_set(3).save_svg());
+    ASSERT_EQ(s.rects.size(), 1u);
+    ASSERT_EQ(s.circles.size(), 3u);
+    for (size_t i = 0; i < s.circles.size(); ++i)
+        EXPECT_DOUBLE_EQ(s.rects[0].x + s.rects[0].w / 2, s.circles[i].cx);
+    // Two terminals under a row of two nodes: same two x positions.
+    Svg t = parse_svg(ZDD::combination(3, 2).save_svg());
+    ASSERT_EQ(t.rects.size(), 2u);
+    std::vector<double> row2, terms;
+    for (size_t i = 0; i < t.circles.size(); ++i) {
+        // the row with two nodes is the middle one
+        int same = 0;
+        for (size_t j = 0; j < t.circles.size(); ++j) if (t.circles[j].cy == t.circles[i].cy) ++same;
+        if (same == 2) row2.push_back(t.circles[i].cx);
+    }
+    for (size_t i = 0; i < t.rects.size(); ++i) terms.push_back(t.rects[i].x + t.rects[i].w / 2);
+    std::sort(row2.begin(), row2.end());
+    std::sort(terms.begin(), terms.end());
+    ASSERT_EQ(row2.size(), 2u);
+    EXPECT_DOUBLE_EQ(row2[0], terms[0]);
+    EXPECT_DOUBLE_EQ(row2[1], terms[1]);
+}
