@@ -3116,10 +3116,18 @@ PYBIND11_MODULE(_core, m) {
              "    A RotPiDD with the constraint applied.\n")
         .def("order", [](const RotPiDD& p, int a, int b) { return p.order(a, b); },
              py::arg("a"), py::arg("b"),
-             "Extract permutations where pi(a) < pi(b).\n\n"
+             "Extract permutations in which the value a precedes the value b.\n\n"
+             "Keeps the permutations whose one-line notation lists a before b,\n"
+             "i.e. the position holding a is smaller than the position holding\n"
+             "b (pi^-1(a) < pi^-1(b)). For topological orders this is the\n"
+             "constraint 'a before b'. On all permutations of {1, 2, 3},\n"
+             "order(1, 2) keeps [1 2 3], [1 3 2] and [3 1 2].\n\n"
+             "To keep the permutations with pi(a) < pi(b) instead (the value at\n"
+             "position a smaller than the value at position b), use\n"
+             "inverse().order(a, b).inverse().\n\n"
              "Args:\n"
-             "    a: First position.\n"
-             "    b: Second position.\n\n"
+             "    a: Value that must come first.\n"
+             "    b: Value that must come later.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only permutations satisfying the order.\n")
         .def("inverse", [](const RotPiDD& p) { return p.inverse(); },

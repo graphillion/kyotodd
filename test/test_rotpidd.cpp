@@ -1145,3 +1145,38 @@ TEST_F(RotPiDDTest, CofactChainCountsExtensions) {
         if (perms[i][1] == 4 && perms[i][3] == 1) ++brute;
     EXPECT_EQ(brute, 6);
 }
+
+/* ---- order: value a precedes value b ---- */
+TEST_F(RotPiDDTest, OrderIsPrecedenceInOneLineNotation) {
+    for (int i = 0; i < 3; ++i) RotPiDD_NewVar();
+    RotPiDD all = rot_all_perms(3);
+    /* order(1, 2) keeps the permutations listing 1 before 2, which is
+       pi^-1(1) < pi^-1(2), not pi(1) < pi(2): [3 1 2] is kept while
+       [2 3 1] is not. */
+    std::vector<Permutation> kept = all.order(1, 2).to_permutations();
+    std::sort(kept.begin(), kept.end());
+    std::vector<Permutation> expected;
+    expected.push_back(Permutation({1, 2, 3}));
+    expected.push_back(Permutation({1, 3, 2}));
+    expected.push_back(Permutation({3, 1, 2}));
+    EXPECT_EQ(kept, expected);
+    /* Brute force over S_4: a precedes b  <=>  inv(a) < inv(b). */
+    for (int i = 0; i < 1; ++i) RotPiDD_NewVar();
+    RotPiDD all4 = rot_all_perms(4);
+    std::vector< std::vector<int> > perms = all_vectors(4, 4);
+    for (int a = 1; a <= 4; ++a) {
+        for (int b = 1; b <= 4; ++b) {
+            if (a == b) continue;
+            RotPiDD ref(0);
+            RotPiDD ref_value(0);
+            for (size_t k = 0; k < perms.size(); ++k) {
+                Permutation p(perms[k]);
+                if (p.inverse()(a) < p.inverse()(b)) ref += RotPiDD::from_permutation(p);
+                if (p(a) < p(b)) ref_value += RotPiDD::from_permutation(p);
+            }
+            EXPECT_EQ(all4.order(a, b), ref) << "a=" << a << " b=" << b;
+            /* pi(a) < pi(b) via the inverse */
+            EXPECT_EQ(all4.inverse().order(a, b).inverse(), ref_value) << "a=" << a << " b=" << b;
+        }
+    }
+}

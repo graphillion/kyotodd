@@ -251,10 +251,19 @@ RotPiDD Class
 
    .. cpp:function:: RotPiDD Order(int a, int b) const
 
-      Extract permutations where pi(a) < pi(b).
+      Extract the permutations in which the value *a* precedes the value
+      *b*: the one-line notation lists *a* before *b*, i.e.
+      pi\ :sup:`-1`\ (a) < pi\ :sup:`-1`\ (b). For topological orders
+      this is the constraint "a before b". On all permutations of
+      {1, 2, 3}, ``order(1, 2)`` keeps ``[1 2 3]``, ``[1 3 2]`` and
+      ``[3 1 2]``.
 
-      :param a: First position.
-      :param b: Second position.
+      To keep the permutations with pi(a) < pi(b) instead (the value at
+      position *a* smaller than the value at position *b*), use
+      ``inverse().order(a, b).inverse()``.
+
+      :param a: Value that must come first.
+      :param b: Value that must come later.
 
    .. cpp:function:: RotPiDD order(int a, int b, BddExecMode mode) const
 

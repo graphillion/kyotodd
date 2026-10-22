@@ -3055,11 +3055,21 @@ class RotPiDD:
         ...
 
     def order(self, a: int, b: int) -> RotPiDD:
-        """Extract permutations where pi(a) < pi(b).
+        """Extract permutations in which the value a precedes the value b.
+
+        Keeps the permutations whose one-line notation lists a before b,
+        i.e. the position holding a is smaller than the position holding
+        b (pi^-1(a) < pi^-1(b)). For topological orders this is the
+        constraint 'a before b'. On all permutations of {1, 2, 3},
+        order(1, 2) keeps [1 2 3], [1 3 2] and [3 1 2].
+
+        To keep the permutations with pi(a) < pi(b) instead (the value at
+        position a smaller than the value at position b), use
+        inverse().order(a, b).inverse().
 
         Args:
-            a: First position.
-            b: Second position.
+            a: Value that must come first.
+            b: Value that must come later.
 
         Returns:
             A RotPiDD containing only permutations satisfying the order.

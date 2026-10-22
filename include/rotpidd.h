@@ -365,19 +365,30 @@ public:
     /** @deprecated Use rot_bound() instead. */
     RotPiDD RotBound(int n) const { return rot_bound(n); }
     /**
-     * @brief Extract permutations where pi(a) < pi(b).
-     * @param a First position.
-     * @param b Second position.
+     * @brief Extract permutations in which the value a precedes the value b.
+     *
+     * Keeps the permutations whose one-line notation lists a before b,
+     * i.e. pi^-1(a) < pi^-1(b): the position holding a is smaller than
+     * the position holding b. For topological orders this is the
+     * constraint "a before b". Example: on all permutations of
+     * {1, 2, 3}, order(1, 2) keeps [1 2 3], [1 3 2] and [3 1 2].
+     *
+     * To keep the permutations with pi(a) < pi(b) instead (the value at
+     * position a smaller than the value at position b), use
+     * inverse().order(a, b).inverse().
+     *
+     * @param a Value that must come first.
+     * @param b Value that must come later.
      * @return A RotPiDD containing only permutations satisfying the order.
      */
     RotPiDD order(int a, int b) const;
     /** @deprecated Use order() instead. */
     RotPiDD Order(int a, int b) const { return order(a, b); }
     /**
-     * @brief Extract permutations where pi(a) < pi(b), with execution
-     *        mode selection.
-     * @param a First position.
-     * @param b Second position.
+     * @brief Extract permutations in which the value a precedes the
+     *        value b, with execution mode selection.
+     * @param a Value that must come first.
+     * @param b Value that must come later.
      * @param mode Execution mode (Recursive, Iterative, or Auto).
      * @return A RotPiDD containing only permutations satisfying the order.
      */

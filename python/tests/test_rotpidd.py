@@ -178,9 +178,25 @@ class TestRotPiDDOrder:
         all_perms = kyotodd.RotPiDD(0)
         for p in [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]:
             all_perms += kyotodd.rotpidd_from_perm(p)
-        # pi(1) < pi(2): [1,2,3], [1,3,2], [2,3,1] → 3 perms
+        # value 1 precedes value 2: [1,2,3], [1,3,2], [3,1,2] → 3 perms
         ordered = all_perms.order(1, 2)
         assert ordered.exact_count == 3
+        assert sorted(ordered.to_perms()) == [[1, 2, 3], [1, 3, 2], [3, 1, 2]]
+
+    def test_order_is_precedence_not_value_comparison(self):
+        from kyotodd import Permutation, RotPiDD
+        _setup_rotpidd(3)
+        all_perms = RotPiDD(0)
+        for p in [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]:
+            all_perms += kyotodd.rotpidd_from_perm(p)
+        # [2,3,1] has pi(1) < pi(2) but lists 2 before 1; [3,1,2] is the opposite.
+        assert all_perms.order(1, 2).to_permutations() != [Permutation([2, 3, 1])]
+        kept = set(all_perms.order(1, 2).to_permutations())
+        assert Permutation([3, 1, 2]) in kept
+        assert Permutation([2, 3, 1]) not in kept
+        # pi(a) < pi(b) is obtained through the inverse.
+        by_value = all_perms.inverse().order(1, 2).inverse()
+        assert sorted(by_value.to_perms()) == [[1, 2, 3], [1, 3, 2], [2, 3, 1]]
 
 
 class TestRotPiDDCofact:
