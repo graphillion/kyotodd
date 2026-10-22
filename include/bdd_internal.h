@@ -694,6 +694,21 @@ inline bool use_iter_3op(bddp f, bddp g, bddp h) {
 }
 
 /**
+ * @brief Mode-aware variant of use_iter_3op().
+ *
+ * Returns true for BddExecMode::Iterative, false for BddExecMode::Recursive,
+ * and the use_iter_3op() decision for BddExecMode::Auto.
+ */
+inline bool select_iter_3op(bddp f, bddp g, bddp h, BddExecMode mode) {
+    switch (mode) {
+    case BddExecMode::Iterative: return true;
+    case BddExecMode::Recursive: return false;
+    case BddExecMode::Auto:
+    default: return use_iter_3op(f, g, h);
+    }
+}
+
+/**
  * @brief Internal recursive helpers for ZDD union/join.
  *
  * NOT part of the public API. Defined in src/zdd_ops.cpp. Shared with

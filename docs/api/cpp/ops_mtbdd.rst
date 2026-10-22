@@ -95,6 +95,7 @@ MTBDD Class
       :param low: Low (0-edge) child.
 
    .. cpp:function:: static MTBDD from_bdd(const BDD& bdd, const T& zero_val = T{}, const T& one_val = T{1})
+                     static MTBDD from_bdd(const BDD& bdd, const T& zero_val, const T& one_val, BddExecMode mode)
 
       Convert a BDD to MTBDD. BDD false maps to *zero_val*, true maps to *one_val*.
 
@@ -131,10 +132,13 @@ MTBDD Class
    **Binary Operations (apply)**
 
    .. cpp:function:: template<typename BinOp> MTBDD apply(const MTBDD& other, BinOp op) const
+                     template<typename BinOp> MTBDD apply(const MTBDD& other, BinOp op, BddExecMode mode) const
 
       Apply a binary operation element-wise. Each pair of terminal
       values is combined via ``op(a, b)``. Uses BDD cofactoring with
-      operation cache.
+      operation cache. The second overload selects the execution mode
+      (``Auto`` / ``Recursive`` / ``Iterative``); every ``BddExecMode``
+      overload in this module follows the same convention.
 
    .. cpp:function:: MTBDD operator+(const MTBDD& other) const
 
@@ -163,6 +167,7 @@ MTBDD Class
    **ITE (3-operand)**
 
    .. cpp:function:: MTBDD ite(const MTBDD& then_case, const MTBDD& else_case) const
+                     MTBDD ite(const MTBDD& then_case, const MTBDD& else_case, BddExecMode mode) const
 
       ``this`` is the condition. If the condition's terminal value is
       non-zero, return *then_case*; if zero, return *else_case*.
@@ -238,6 +243,7 @@ MTZDD Class
       Create a node: if *v* then *high* else *low*.
 
    .. cpp:function:: static MTZDD from_zdd(const ZDD& zdd, const T& zero_val = T{}, const T& one_val = T{1})
+                     static MTZDD from_zdd(const ZDD& zdd, const T& zero_val, const T& one_val, BddExecMode mode)
 
       Convert a ZDD to MTZDD. ZDD empty maps to *zero_val*, single maps to *one_val*.
 
@@ -269,6 +275,7 @@ MTZDD Class
    **Binary Operations (apply)**
 
    .. cpp:function:: template<typename BinOp> MTZDD apply(const MTZDD& other, BinOp op) const
+                     template<typename BinOp> MTZDD apply(const MTZDD& other, BinOp op, BddExecMode mode) const
 
       Apply a binary operation element-wise using ZDD cofactoring.
 
@@ -299,8 +306,53 @@ MTZDD Class
    **ITE (3-operand)**
 
    .. cpp:function:: MTZDD ite(const MTZDD& then_case, const MTZDD& else_case) const
+                     MTZDD ite(const MTZDD& then_case, const MTZDD& else_case, BddExecMode mode) const
 
       ``this`` is the condition. Uses ZDD semantics for cofactoring.
+
+   **Cofactor, Threshold, Enumeration and Counting**
+
+   .. cpp:function:: MTZDD cofactor0(bddvar v) const
+                     MTZDD cofactor0(bddvar v, BddExecMode mode) const
+                     MTZDD cofactor1(bddvar v) const
+                     MTZDD cofactor1(bddvar v, BddExecMode mode) const
+
+      Fix variable *v* to 0 / 1 (ZDD semantics) and return the sub-MTZDD.
+
+   .. cpp:function:: ZDD threshold_gt(const T& val) const
+                     ZDD threshold_gt(const T& val, BddExecMode mode) const
+                     ZDD threshold_ge(const T& val) const
+                     ZDD threshold_ge(const T& val, BddExecMode mode) const
+                     ZDD threshold_eq(const T& val) const
+                     ZDD threshold_eq(const T& val, BddExecMode mode) const
+                     ZDD threshold_lt(const T& val) const
+                     ZDD threshold_lt(const T& val, BddExecMode mode) const
+                     ZDD threshold_le(const T& val) const
+                     ZDD threshold_le(const T& val, BddExecMode mode) const
+                     ZDD threshold_ne(const T& val) const
+                     ZDD threshold_ne(const T& val, BddExecMode mode) const
+                     ZDD to_zdd() const
+                     ZDD to_zdd(BddExecMode mode) const
+
+      Extract the paths whose terminal value satisfies the comparison
+      with *val* (``to_zdd`` keeps every non-zero path) as a ZDD.
+
+   .. cpp:function:: std::vector<std::pair<std::vector<bddvar>, T>> enumerate() const
+                     std::vector<std::pair<std::vector<bddvar>, T>> enumerate(BddExecMode mode) const
+
+      Enumerate all non-zero paths as (sorted variable set, value) pairs.
+
+   .. cpp:function:: double count() const
+                     double count(BddExecMode mode) const
+                     bigint::BigInt exact_count() const
+                     bigint::BigInt exact_count(BddExecMode mode) const
+                     double count(const T& terminal) const
+                     double count(const T& terminal, BddExecMode mode) const
+                     bigint::BigInt exact_count(const T& terminal) const
+                     bigint::BigInt exact_count(const T& terminal, BddExecMode mode) const
+
+      Count the non-zero paths, or the paths leading to a specific
+      terminal value.
 
    **Terminal Table Access**
 

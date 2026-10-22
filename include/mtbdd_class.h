@@ -50,6 +50,12 @@ public:
     static MTBDD from_bdd(const BDD& bdd,
                           const T& zero_val = T{},
                           const T& one_val = T{1}) {
+        return from_bdd(bdd, zero_val, one_val, BddExecMode::Auto);
+    }
+
+    /** @brief from_bdd() with execution mode selection. */
+    static MTBDD from_bdd(const BDD& bdd, const T& zero_val, const T& one_val,
+                          BddExecMode mode) {
         auto& table = MTBDDTerminalTable<T>::instance();
         bddp zero_t = MTBDDTerminalTable<T>::make_terminal(
             table.get_or_insert(zero_val));
@@ -59,7 +65,7 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(bdd.id())) {
+            if (select_iter_1op(bdd.id(), mode)) {
                 return mtbdd_from_bdd_iter<T>(bdd.id(), zero_t, one_t, conv_op);
             }
             return mtbdd_from_bdd_rec<T>(bdd.id(), zero_t, one_t, conv_op);
@@ -107,10 +113,16 @@ public:
 
     template<typename BinOp>
     MTBDD apply(const MTBDD& other, BinOp op) const {
+        return apply(other, op, BddExecMode::Auto);
+    }
+
+    /** @brief apply() with execution mode selection. */
+    template<typename BinOp>
+    MTBDD apply(const MTBDD& other, BinOp op, BddExecMode mode) const {
         static uint8_t apply_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_2op(root, other.root)) {
+            if (select_iter_2op(root, other.root, mode)) {
                 return mtbdd_apply_iter<T, BinOp>(root, other.root, op, apply_op);
             }
             return mtbdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
@@ -143,6 +155,12 @@ public:
     // --- ITE (3-operand: this is condition) ---
 
     MTBDD ite(const MTBDD& then_case, const MTBDD& else_case) const {
+        return ite(then_case, else_case, BddExecMode::Auto);
+    }
+
+    /** @brief ite() with execution mode selection. */
+    MTBDD ite(const MTBDD& then_case, const MTBDD& else_case,
+              BddExecMode mode) const {
         // Terminal fast paths
         if (root & BDD_CONST_FLAG) {
             auto& table = MTBDDTerminalTable<T>::instance();
@@ -154,7 +172,7 @@ public:
         static uint8_t ite_op = mtbdd_alloc_op_code();
         MTBDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_3op(root, then_case.root, else_case.root)) {
+            if (select_iter_3op(root, then_case.root, else_case.root, mode)) {
                 return mtbdd_ite_iter<T>(root, then_case.root, else_case.root, ite_op);
             }
             return mtbdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
@@ -433,6 +451,12 @@ public:
     static MTZDD from_zdd(const ZDD& zdd,
                           const T& zero_val = T{},
                           const T& one_val = T{1}) {
+        return from_zdd(zdd, zero_val, one_val, BddExecMode::Auto);
+    }
+
+    /** @brief from_zdd() with execution mode selection. */
+    static MTZDD from_zdd(const ZDD& zdd, const T& zero_val, const T& one_val,
+                          BddExecMode mode) {
         auto& table = MTBDDTerminalTable<T>::instance();
         bddp zero_t = MTBDDTerminalTable<T>::make_terminal(
             table.get_or_insert(zero_val));
@@ -442,7 +466,7 @@ public:
         static uint8_t conv_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(zdd.id())) {
+            if (select_iter_1op(zdd.id(), mode)) {
                 return mtzdd_from_zdd_iter<T>(zdd.id(), zero_t, one_t, conv_op);
             }
             return mtzdd_from_zdd_rec<T>(zdd.id(), zero_t, one_t, conv_op);
@@ -476,10 +500,18 @@ public:
     MTZDD cofactor0(bddvar v) const {
         return MTZDD(mtzdd_cofactor0(root, v));
     }
+    /** @brief cofactor0() with execution mode selection. */
+    MTZDD cofactor0(bddvar v, BddExecMode mode) const {
+        return MTZDD(mtzdd_cofactor0(root, v, mode));
+    }
 
     /** @brief Fix variable v to 1. Returns sub-MTZDD for v=1. */
     MTZDD cofactor1(bddvar v) const {
         return MTZDD(mtzdd_cofactor1(root, v));
+    }
+    /** @brief cofactor1() with execution mode selection. */
+    MTZDD cofactor1(bddvar v, BddExecMode mode) const {
+        return MTZDD(mtzdd_cofactor1(root, v, mode));
     }
 
     // --- Empty assignment check ---
@@ -505,6 +537,10 @@ public:
 
     /** @brief Extract paths where terminal value > val, as ZDD. */
     ZDD threshold_gt(const T& val) const {
+        return threshold_gt(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_gt() with execution mode selection. */
+    ZDD threshold_gt(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -512,19 +548,15 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract paths where terminal value >= val, as ZDD. */
     ZDD threshold_ge(const T& val) const {
+        return threshold_ge(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_ge() with execution mode selection. */
+    ZDD threshold_ge(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -532,19 +564,15 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract paths where terminal value == val, as ZDD. */
     ZDD threshold_eq(const T& val) const {
+        return threshold_eq(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_eq() with execution mode selection. */
+    ZDD threshold_eq(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -552,19 +580,15 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract paths where terminal value < val, as ZDD. */
     ZDD threshold_lt(const T& val) const {
+        return threshold_lt(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_lt() with execution mode selection. */
+    ZDD threshold_lt(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -572,19 +596,15 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract paths where terminal value <= val, as ZDD. */
     ZDD threshold_le(const T& val) const {
+        return threshold_le(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_le() with execution mode selection. */
+    ZDD threshold_le(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -592,19 +612,15 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract paths where terminal value != val, as ZDD. */
     ZDD threshold_ne(const T& val) const {
+        return threshold_ne(val, BddExecMode::Auto);
+    }
+    /** @brief threshold_ne() with execution mode selection. */
+    ZDD threshold_ne(const T& val, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 0; i < table.size(); ++i) {
@@ -612,42 +628,34 @@ public:
                 pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
             }
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     /** @brief Extract all non-zero paths as ZDD. Equivalent to threshold_ne(T{}). */
     ZDD to_zdd() const {
+        return to_zdd(BddExecMode::Auto);
+    }
+    /** @brief to_zdd() with execution mode selection. */
+    ZDD to_zdd(BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         std::unordered_set<bddp> pred_terminals;
         for (uint64_t i = 1; i < table.size(); ++i) {
             pred_terminals.insert(MTBDDTerminalTable<T>::make_terminal(i));
         }
-        if (pred_terminals.empty()) return ZDD(0);
-        std::unordered_map<bddp, bddp> memo;
-        bddp result = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_1op(root)) {
-                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
-            }
-            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
-        });
-        return ZDD_ID(result);
+        return threshold_to_zdd(pred_terminals, mode);
     }
 
     // --- Enumeration ---
 
     /** @brief Enumerate all non-zero paths as (variable set, terminal value) pairs. */
     std::vector<std::pair<std::vector<bddvar>, T> > enumerate() const {
+        return enumerate(BddExecMode::Auto);
+    }
+    /** @brief enumerate() with execution mode selection. */
+    std::vector<std::pair<std::vector<bddvar>, T> > enumerate(BddExecMode mode) const {
         std::vector<std::pair<std::vector<bddvar>, T> > result;
         std::vector<bddvar> current;
-        if (use_iter_1op(root)) {
+        if (select_iter_1op(root, mode)) {
             mtzdd_enumerate_iter<T>(root, current, result);
         } else {
             mtzdd_enumerate_rec<T>(root, current, result);
@@ -674,8 +682,12 @@ public:
 
     /** @brief Count the number of non-zero terminal paths (double). */
     double count() const {
+        return count(BddExecMode::Auto);
+    }
+    /** @brief count() with execution mode selection. */
+    double count(BddExecMode mode) const {
         std::unordered_map<bddp, double> memo;
-        if (use_iter_1op(root)) {
+        if (select_iter_1op(root, mode)) {
             return mtzdd_count_iter(root, memo);
         }
         return mtzdd_count_rec(root, memo);
@@ -683,8 +695,12 @@ public:
 
     /** @brief Count the number of non-zero terminal paths (exact BigInt). */
     bigint::BigInt exact_count() const {
+        return exact_count(BddExecMode::Auto);
+    }
+    /** @brief exact_count() with execution mode selection. */
+    bigint::BigInt exact_count(BddExecMode mode) const {
         std::unordered_map<bddp, bigint::BigInt> memo;
-        if (use_iter_1op(root)) {
+        if (select_iter_1op(root, mode)) {
             return mtzdd_exact_count_iter(root, memo);
         }
         return mtzdd_exact_count_rec(root, memo);
@@ -692,12 +708,16 @@ public:
 
     /** @brief Count paths leading to the specific terminal value (double). */
     double count(const T& terminal) const {
+        return count(terminal, BddExecMode::Auto);
+    }
+    /** @brief count(terminal) with execution mode selection. */
+    double count(const T& terminal, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         uint64_t idx;
         if (!table.find_index(terminal, idx)) return 0.0;
         bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
         std::unordered_map<bddp, double> memo;
-        if (use_iter_1op(root)) {
+        if (select_iter_1op(root, mode)) {
             return mtzdd_count_for_terminal_iter(root, target, memo);
         }
         return mtzdd_count_for_terminal_rec(root, target, memo);
@@ -705,12 +725,16 @@ public:
 
     /** @brief Count paths leading to the specific terminal value (exact BigInt). */
     bigint::BigInt exact_count(const T& terminal) const {
+        return exact_count(terminal, BddExecMode::Auto);
+    }
+    /** @brief exact_count(terminal) with execution mode selection. */
+    bigint::BigInt exact_count(const T& terminal, BddExecMode mode) const {
         auto& table = MTBDDTerminalTable<T>::instance();
         uint64_t idx;
         if (!table.find_index(terminal, idx)) return bigint::BigInt(0);
         bddp target = MTBDDTerminalTable<T>::make_terminal(idx);
         std::unordered_map<bddp, bigint::BigInt> memo;
-        if (use_iter_1op(root)) {
+        if (select_iter_1op(root, mode)) {
             return mtzdd_exact_count_for_terminal_iter(root, target, memo);
         }
         return mtzdd_exact_count_for_terminal_rec(root, target, memo);
@@ -720,10 +744,16 @@ public:
 
     template<typename BinOp>
     MTZDD apply(const MTZDD& other, BinOp op) const {
+        return apply(other, op, BddExecMode::Auto);
+    }
+
+    /** @brief apply() with execution mode selection. */
+    template<typename BinOp>
+    MTZDD apply(const MTZDD& other, BinOp op, BddExecMode mode) const {
         static uint8_t apply_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_2op(root, other.root)) {
+            if (select_iter_2op(root, other.root, mode)) {
                 return mtzdd_apply_iter<T, BinOp>(root, other.root, op, apply_op);
             }
             return mtzdd_apply_rec<T, BinOp>(root, other.root, op, apply_op);
@@ -756,6 +786,12 @@ public:
     // --- ITE (3-operand: this is condition) ---
 
     MTZDD ite(const MTZDD& then_case, const MTZDD& else_case) const {
+        return ite(then_case, else_case, BddExecMode::Auto);
+    }
+
+    /** @brief ite() with execution mode selection. */
+    MTZDD ite(const MTZDD& then_case, const MTZDD& else_case,
+              BddExecMode mode) const {
         if (root & BDD_CONST_FLAG) {
             auto& table = MTBDDTerminalTable<T>::instance();
             T val = table.get_value(MTBDDTerminalTable<T>::terminal_index(root));
@@ -772,7 +808,7 @@ public:
         static uint8_t ite_op = mtbdd_alloc_op_code();
         MTZDD result;
         result.root = bdd_gc_guard([&]() -> bddp {
-            if (use_iter_3op(root, then_case.root, else_case.root)) {
+            if (select_iter_3op(root, then_case.root, else_case.root, mode)) {
                 return mtzdd_ite_iter<T>(root, then_case.root, else_case.root, ite_op);
             }
             return mtzdd_ite_rec<T>(root, then_case.root, else_case.root, ite_op);
@@ -859,6 +895,21 @@ public:
 private:
     explicit MTZDD(bddp p) : DDBase() {
         root = p;
+    }
+
+    // Shared tail of threshold_* / to_zdd: keep the paths whose terminal
+    // is in pred_terminals, dispatching between the _rec / _iter cores.
+    ZDD threshold_to_zdd(const std::unordered_set<bddp>& pred_terminals,
+                         BddExecMode mode) const {
+        if (pred_terminals.empty()) return ZDD(0);
+        std::unordered_map<bddp, bddp> memo;
+        bddp result = bdd_gc_guard([&]() -> bddp {
+            if (select_iter_1op(root, mode)) {
+                return mtzdd_to_zdd_iter<T>(root, pred_terminals, memo);
+            }
+            return mtzdd_to_zdd_rec<T>(root, pred_terminals, memo);
+        });
+        return ZDD_ID(result);
     }
 
     template<typename T2, typename B> friend bddp mtzdd_apply_rec(bddp, bddp, B&, uint8_t);

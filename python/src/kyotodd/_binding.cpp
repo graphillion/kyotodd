@@ -5086,11 +5086,11 @@ PYBIND11_MODULE(_core, m) {
             "Evaluate the MTZDD for the given assignment.\n\n"
             "Args:\n"
             "    assignment: List of ints (0/1), indexed by variable number.")
-        .def("cofactor0", &MTZDDFloat::cofactor0, py::arg("var"),
+        .def("cofactor0", [](const MTZDDFloat& m, bddvar var) { return m.cofactor0(var); }, py::arg("var"),
            "Fix variable to 0. Returns the sub-MTZDD for var=0.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 0.")
-        .def("cofactor1", &MTZDDFloat::cofactor1, py::arg("var"),
+        .def("cofactor1", [](const MTZDDFloat& m, bddvar var) { return m.cofactor1(var); }, py::arg("var"),
            "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 1.")
@@ -5196,19 +5196,19 @@ PYBIND11_MODULE(_core, m) {
            "Import an MTZDD from binary bytes.\n\n"
            "Args:\n"
            "    data: Binary data (bytes).")
-        .def("threshold_gt", &MTZDDFloat::threshold_gt, py::arg("val"),
+        .def("threshold_gt", [](const MTZDDFloat& m, double val) { return m.threshold_gt(val); }, py::arg("val"),
             "Extract paths where terminal > val, as ZDD.")
-        .def("threshold_ge", &MTZDDFloat::threshold_ge, py::arg("val"),
+        .def("threshold_ge", [](const MTZDDFloat& m, double val) { return m.threshold_ge(val); }, py::arg("val"),
             "Extract paths where terminal >= val, as ZDD.")
-        .def("threshold_eq", &MTZDDFloat::threshold_eq, py::arg("val"),
+        .def("threshold_eq", [](const MTZDDFloat& m, double val) { return m.threshold_eq(val); }, py::arg("val"),
             "Extract paths where terminal == val, as ZDD.")
-        .def("threshold_lt", &MTZDDFloat::threshold_lt, py::arg("val"),
+        .def("threshold_lt", [](const MTZDDFloat& m, double val) { return m.threshold_lt(val); }, py::arg("val"),
             "Extract paths where terminal < val, as ZDD.")
-        .def("threshold_le", &MTZDDFloat::threshold_le, py::arg("val"),
+        .def("threshold_le", [](const MTZDDFloat& m, double val) { return m.threshold_le(val); }, py::arg("val"),
             "Extract paths where terminal <= val, as ZDD.")
-        .def("threshold_ne", &MTZDDFloat::threshold_ne, py::arg("val"),
+        .def("threshold_ne", [](const MTZDDFloat& m, double val) { return m.threshold_ne(val); }, py::arg("val"),
             "Extract paths where terminal != val, as ZDD.")
-        .def("to_zdd", &MTZDDFloat::to_zdd,
+        .def("to_zdd", [](const MTZDDFloat& m) { return m.to_zdd(); },
             "Extract all non-zero paths as ZDD.")
     ;
 
@@ -5263,11 +5263,11 @@ PYBIND11_MODULE(_core, m) {
             "Evaluate the MTZDD for the given assignment.\n\n"
             "Args:\n"
             "    assignment: List of ints (0/1), indexed by variable number.")
-        .def("cofactor0", &MTZDDInt::cofactor0, py::arg("var"),
+        .def("cofactor0", [](const MTZDDInt& m, bddvar var) { return m.cofactor0(var); }, py::arg("var"),
            "Fix variable to 0. Returns the sub-MTZDD for var=0.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 0.")
-        .def("cofactor1", &MTZDDInt::cofactor1, py::arg("var"),
+        .def("cofactor1", [](const MTZDDInt& m, bddvar var) { return m.cofactor1(var); }, py::arg("var"),
            "Fix variable to 1. Returns the sub-MTZDD for var=1.\n\n"
            "Args:\n"
            "    var: Variable number to fix to 1.")
@@ -5373,19 +5373,19 @@ PYBIND11_MODULE(_core, m) {
            "Import an MTZDD from binary bytes.\n\n"
            "Args:\n"
            "    data: Binary data (bytes).")
-        .def("threshold_gt", &MTZDDInt::threshold_gt, py::arg("val"),
+        .def("threshold_gt", [](const MTZDDInt& m, int64_t val) { return m.threshold_gt(val); }, py::arg("val"),
             "Extract paths where terminal > val, as ZDD.")
-        .def("threshold_ge", &MTZDDInt::threshold_ge, py::arg("val"),
+        .def("threshold_ge", [](const MTZDDInt& m, int64_t val) { return m.threshold_ge(val); }, py::arg("val"),
             "Extract paths where terminal >= val, as ZDD.")
-        .def("threshold_eq", &MTZDDInt::threshold_eq, py::arg("val"),
+        .def("threshold_eq", [](const MTZDDInt& m, int64_t val) { return m.threshold_eq(val); }, py::arg("val"),
             "Extract paths where terminal == val, as ZDD.")
-        .def("threshold_lt", &MTZDDInt::threshold_lt, py::arg("val"),
+        .def("threshold_lt", [](const MTZDDInt& m, int64_t val) { return m.threshold_lt(val); }, py::arg("val"),
             "Extract paths where terminal < val, as ZDD.")
-        .def("threshold_le", &MTZDDInt::threshold_le, py::arg("val"),
+        .def("threshold_le", [](const MTZDDInt& m, int64_t val) { return m.threshold_le(val); }, py::arg("val"),
             "Extract paths where terminal <= val, as ZDD.")
-        .def("threshold_ne", &MTZDDInt::threshold_ne, py::arg("val"),
+        .def("threshold_ne", [](const MTZDDInt& m, int64_t val) { return m.threshold_ne(val); }, py::arg("val"),
             "Extract paths where terminal != val, as ZDD.")
-        .def("to_zdd", &MTZDDInt::to_zdd,
+        .def("to_zdd", [](const MTZDDInt& m) { return m.to_zdd(); },
             "Extract all non-zero paths as ZDD.")
     ;
 }

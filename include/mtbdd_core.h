@@ -128,6 +128,10 @@ uint8_t mtbdd_alloc_op_code();
 
 bddp mtzdd_cofactor0(bddp f, bddvar v);
 bddp mtzdd_cofactor1(bddp f, bddvar v);
+/** @brief mtzdd_cofactor0 with execution mode selection. */
+bddp mtzdd_cofactor0(bddp f, bddvar v, BddExecMode mode);
+/** @brief mtzdd_cofactor1 with execution mode selection. */
+bddp mtzdd_cofactor1(bddp f, bddvar v, BddExecMode mode);
 
 // --- Forward declarations for MTZDD cofactor iter (defined in mtbdd_iter.cpp) ---
 

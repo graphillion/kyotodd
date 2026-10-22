@@ -478,3 +478,102 @@ TEST_F(ExecModeTest, ConversionDeep) {
     EXPECT_EQ(uq.reduce_as_qdd(), qf);
     EXPECT_EQ(UnreducedDD(f).reduce_as_bdd(), f);
 }
+
+// --- MTBDD / MTZDD class members -----------------------------------------
+
+namespace {
+int mt_plus(const int& p, const int& q) { return p + q; }
+}  // namespace
+
+TEST_F(ExecModeTest, MtbddModesAgree) {
+    for (int i = 0; i < 4; ++i) bddnewvar();
+    BDD x1 = BDD::prime(1), x2 = BDD::prime(2), x3 = BDD::prime(3);
+    BDD f = (x1 & x2) | x3;
+    MTBDD<int> a = MTBDD<int>::from_bdd(f, 0, 5);
+    MTBDD<int> b = MTBDD<int>::from_bdd(x2, 1, 2);
+    MTBDD<int> ref_sum = a + b;
+    MTBDD<int> ref_ite = a.ite(b, ref_sum);
+    ZDD z = (ZDD::singleton(1) * ZDD::singleton(2)) + ZDD::singleton(3) + ZDD(1);
+    MTZDD<int> za = MTZDD<int>::from_zdd(z, 0, 3);
+    MTZDD<int> zb = MTZDD<int>::from_zdd(ZDD::singleton(2) + ZDD::singleton(3), 0, 4);
+    MTZDD<int> ref_zsum = za + zb;
+    MTZDD<int> ref_zite = za.ite(zb, ref_zsum);
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        bddgc();  // clear the cache so each mode really recomputes
+        EXPECT_EQ(MTBDD<int>::from_bdd(f, 0, 5, m), a);
+        EXPECT_EQ(a.apply(b, mt_plus, m), ref_sum);
+        EXPECT_EQ(a.ite(b, ref_sum, m), ref_ite);
+        EXPECT_EQ(MTZDD<int>::from_zdd(z, 0, 3, m), za);
+        EXPECT_EQ(za.apply(zb, mt_plus, m), ref_zsum);
+        EXPECT_EQ(za.ite(zb, ref_zsum, m), ref_zite);
+        EXPECT_EQ(ref_zsum.threshold_gt(3, m), ref_zsum.threshold_gt(3));
+        EXPECT_EQ(ref_zsum.threshold_ge(3, m), ref_zsum.threshold_ge(3));
+        EXPECT_EQ(ref_zsum.threshold_eq(3, m), ref_zsum.threshold_eq(3));
+        EXPECT_EQ(ref_zsum.threshold_lt(3, m), ref_zsum.threshold_lt(3));
+        EXPECT_EQ(ref_zsum.threshold_le(3, m), ref_zsum.threshold_le(3));
+        EXPECT_EQ(ref_zsum.threshold_ne(3, m), ref_zsum.threshold_ne(3));
+        EXPECT_EQ(ref_zsum.to_zdd(m), ref_zsum.to_zdd());
+        EXPECT_EQ(za.to_zdd(m), z);
+        EXPECT_EQ(ref_zsum.enumerate(m), ref_zsum.enumerate());
+        EXPECT_EQ(ref_zsum.count(m), ref_zsum.count());
+        EXPECT_EQ(ref_zsum.exact_count(m), ref_zsum.exact_count());
+        EXPECT_EQ(ref_zsum.count(3, m), ref_zsum.count(3));
+        EXPECT_EQ(ref_zsum.exact_count(3, m), ref_zsum.exact_count(3));
+        EXPECT_EQ(za.cofactor0(2, m), za.cofactor0(2));
+        EXPECT_EQ(za.cofactor1(2, m), za.cofactor1(2));
+        EXPECT_EQ(za.cofactor1(2, m).to_zdd(m), z.onset0(2));
+        EXPECT_EQ(za.cofactor0(2, m).to_zdd(m), z.offset(2));
+        // Terminal fast paths are mode independent.
+        EXPECT_EQ(MTBDD<int>::terminal(0).ite(a, b, m), b);
+        EXPECT_EQ(MTZDD<int>::terminal(0).ite(za, zb, m), zb);
+        EXPECT_THROW(za.cofactor0(99, m), std::invalid_argument);
+    }
+}
+
+TEST_F(ExecModeTest, MtbddDeep) {
+    ZDD z = deep_single_set(kDeep);
+    BDD f = z.to_bdd();  // a chain of the same depth
+
+    EXPECT_THROW(MTBDD<int>::from_bdd(f, 0, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    MTBDD<int> a = MTBDD<int>::from_bdd(f, 0, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(a, MTBDD<int>::from_bdd(f));
+    EXPECT_THROW(a.apply(a, mt_plus, BDD_EXEC_RECURSIVE), std::overflow_error);
+    MTBDD<int> s = a.apply(a, mt_plus, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(s, a + a);
+    MTBDD<int> one = MTBDD<int>::terminal(1), two = MTBDD<int>::terminal(2);
+    EXPECT_THROW(a.ite(one, two, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(a.ite(one, two, BDD_EXEC_ITERATIVE), a.ite(one, two));
+
+    EXPECT_THROW(MTZDD<int>::from_zdd(z, 0, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    MTZDD<int> za = MTZDD<int>::from_zdd(z, 0, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(za, MTZDD<int>::from_zdd(z));
+    EXPECT_THROW(za.apply(za, mt_plus, BDD_EXEC_RECURSIVE), std::overflow_error);
+    MTZDD<int> zs = za.apply(za, mt_plus, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(zs, za + za);
+    // With two terminal branches the hi cofactors collapse (g == h == 0) at
+    // the first level, so use a deep then-branch to walk the whole chain.
+    MTZDD<int> zone = MTZDD<int>::terminal(1);
+    EXPECT_THROW(za.ite(zs, zone, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(za.ite(zs, zone, BDD_EXEC_ITERATIVE), za.ite(zs, zone));
+    EXPECT_THROW(zs.threshold_gt(1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.threshold_gt(1, BDD_EXEC_ITERATIVE), z);
+    EXPECT_THROW(zs.to_zdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.to_zdd(BDD_EXEC_ITERATIVE), z);
+    EXPECT_EQ(zs.to_zdd(), z);
+    EXPECT_THROW(zs.enumerate(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.enumerate(BDD_EXEC_ITERATIVE).size(), 1u);
+    EXPECT_THROW(zs.count(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.count(BDD_EXEC_ITERATIVE), 1.0);
+    EXPECT_THROW(zs.exact_count(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.exact_count(BDD_EXEC_ITERATIVE), bigint::BigInt(1));
+    EXPECT_THROW(zs.count(2, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.count(2, BDD_EXEC_ITERATIVE), 1.0);
+    EXPECT_THROW(zs.exact_count(2, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.exact_count(2, BDD_EXEC_ITERATIVE), bigint::BigInt(1));
+    // Variable 1 sits at the bottom, so the cofactors walk the whole chain.
+    EXPECT_THROW(zs.cofactor0(1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.cofactor0(1, BDD_EXEC_ITERATIVE), zs.cofactor0(1));
+    EXPECT_THROW(zs.cofactor1(1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(zs.cofactor1(1, BDD_EXEC_ITERATIVE), zs.cofactor1(1));
+}

@@ -87,6 +87,10 @@ static bddp mtzdd_cofactor0_rec(bddp f, bddvar v) {
 }
 
 bddp mtzdd_cofactor0(bddp f, bddvar v) {
+    return mtzdd_cofactor0(f, v, BddExecMode::Auto);
+}
+
+bddp mtzdd_cofactor0(bddp f, bddvar v, BddExecMode mode) {
     if (f == bddnull)
         throw std::invalid_argument("mtzdd_cofactor0: null node");
     if (v < 1 || v > bddvarused())
@@ -94,7 +98,7 @@ bddp mtzdd_cofactor0(bddp f, bddvar v) {
     if (f & BDD_CONST_FLAG) return f;
 
     return bdd_gc_guard([&]() -> bddp {
-        if (use_iter_1op(f)) return mtzdd_cofactor0_iter(f, v, mtzdd_cofactor0_op());
+        if (select_iter_1op(f, mode)) return mtzdd_cofactor0_iter(f, v, mtzdd_cofactor0_op());
         return mtzdd_cofactor0_rec(f, v);
     });
 }
@@ -143,6 +147,10 @@ static bddp mtzdd_cofactor1_rec(bddp f, bddvar v) {
 }
 
 bddp mtzdd_cofactor1(bddp f, bddvar v) {
+    return mtzdd_cofactor1(f, v, BddExecMode::Auto);
+}
+
+bddp mtzdd_cofactor1(bddp f, bddvar v, BddExecMode mode) {
     if (f == bddnull)
         throw std::invalid_argument("mtzdd_cofactor1: null node");
     if (v < 1 || v > bddvarused())
@@ -150,7 +158,7 @@ bddp mtzdd_cofactor1(bddp f, bddvar v) {
     if (f & BDD_CONST_FLAG) return BDD_CONST_FLAG;  // zero terminal
 
     return bdd_gc_guard([&]() -> bddp {
-        if (use_iter_1op(f)) return mtzdd_cofactor1_iter(f, v, mtzdd_cofactor1_op());
+        if (select_iter_1op(f, mode)) return mtzdd_cofactor1_iter(f, v, mtzdd_cofactor1_op());
         return mtzdd_cofactor1_rec(f, v);
     });
 }
