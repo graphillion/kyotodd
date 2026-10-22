@@ -1082,7 +1082,7 @@ bigint::BigInt bddexactcount(bddp f, bddvar n, CountMemoMap& memo,
 /**
  * @brief Iterative (non-recursive) implementation of bddexactcount.
  *
- * Advanced API. Preconditions as in @ref bddcount_bdd_iter: @p f must not
+ * Advanced API. Preconditions as in @ref bddcount_bdd_iter, i.e. @p f must not
  * be @c bddnull and must be a valid @c bddp. Must run inside a
  * @c bdd_gc_guard scope. The memo must be caller-owned.
  */

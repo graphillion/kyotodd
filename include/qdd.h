@@ -181,12 +181,17 @@ public:
      *
      * @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
      *           for built-in operations; passing one throws std::invalid_argument.
+     * @param f First operand.
+     * @param g Second operand.
      */
     static QDD cache_get(uint8_t op, const QDD& f, const QDD& g);
     /** @brief Write 2-operand cache entry.
      *
      * @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved
      *           for built-in operations; passing one throws std::invalid_argument.
+     * @param f First operand.
+     * @param g Second operand.
+     * @param result Value to store for (op, f, g).
      */
     static void cache_put(uint8_t op, const QDD& f, const QDD& g, const QDD& result);
 
