@@ -626,6 +626,9 @@ public:
     void print_sets(std::ostream& os, const std::string& delim1,
                     const std::string& delim2) const;
     /** @brief print_sets(os, delim1, delim2) with execution mode selection.
+     *  @param os Output stream.
+     *  @param delim1 Delimiter between sets.
+     *  @param delim2 Delimiter between elements within a set.
      *  @param mode Execution mode (Recursive, Iterative, or Auto). */
     void print_sets(std::ostream& os, const std::string& delim1,
                     const std::string& delim2, BddExecMode mode) const;
@@ -648,6 +651,10 @@ public:
                     const std::vector<std::string>& var_name_map) const;
     /** @brief print_sets(os, delim1, delim2, var_name_map) with execution
      *  mode selection.
+     *  @param os Output stream.
+     *  @param delim1 Delimiter between sets.
+     *  @param delim2 Delimiter between elements within a set.
+     *  @param var_name_map Vector indexed by variable number.
      *  @param mode Execution mode (Recursive, Iterative, or Auto). */
     void print_sets(std::ostream& os, const std::string& delim1,
                     const std::string& delim2,
@@ -905,6 +912,8 @@ public:
     /** @brief Return the ZDD of all k-element subsets of {1, ..., n}. */
     static ZDD combination(bddvar n, bddvar k);
     /** @brief combination() with execution mode selection.
+     *  @param n The universe size.
+     *  @param k The subset size.
      *  @param mode Execution mode (Recursive, Iterative, or Auto); Auto
      *         picks the iterative builder when n exceeds BDD_RecurLimit. */
     static ZDD combination(bddvar n, bddvar k, BddExecMode mode);
@@ -922,6 +931,8 @@ public:
     template<typename RNG>
     static ZDD random_family(bddvar n, RNG& rng);
     /** @brief random_family() with execution mode selection.
+     *  @param n The universe size.
+     *  @param rng The random number generator.
      *  @param mode Execution mode (Recursive, Iterative, or Auto); Auto
      *         picks the iterative builder when n exceeds BDD_RecurLimit. */
     template<typename RNG>

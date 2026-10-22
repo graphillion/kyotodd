@@ -65,6 +65,7 @@ public:
      */
     explicit UnreducedDD(const BDD& bdd);
     /** @brief Same as UnreducedDD(const BDD&) with execution mode selection.
+     *  @param bdd The BDD to convert.
      *  @param mode Execution mode (Recursive, Iterative, or Auto). */
     UnreducedDD(const BDD& bdd, BddExecMode mode);
     /**
@@ -76,6 +77,7 @@ public:
      */
     explicit UnreducedDD(const ZDD& zdd);
     /** @brief Same as UnreducedDD(const ZDD&) with execution mode selection.
+     *  @param zdd The ZDD to convert.
      *  @param mode Execution mode (Recursive, Iterative, or Auto). */
     UnreducedDD(const ZDD& zdd, BddExecMode mode);
     /**
@@ -85,6 +87,7 @@ public:
      */
     explicit UnreducedDD(const QDD& qdd);
     /** @brief Same as UnreducedDD(const QDD&) with execution mode selection.
+     *  @param qdd The QDD to convert.
      *  @param mode Execution mode (Recursive, Iterative, or Auto). */
     UnreducedDD(const QDD& qdd, BddExecMode mode);
 
