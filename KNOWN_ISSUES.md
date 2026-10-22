@@ -68,6 +68,25 @@ the BDD/ZDD class layout and is a significant architectural change.
   automatically detecting or correcting all affected objects would be
   prohibitive.
 
+## Recursion Without `_rec` / `_iter` Split (Accepted)
+
+- **`CtoI` and `SOP` / `SOPV` keep their native recursion** (`src/ctoi.cpp`,
+  `src/sop.cpp`). About twenty CtoI methods (`TopItem`, `TopDigit`,
+  `NonZero`, `TimesSysVar`, `DivBySysVar`, `FilterThen`, `FilterElse`,
+  `MaxVal`, `TotalVal`, `TotalValItems`, `ConstTerm`, `GetInt`, `StrNum10`,
+  `StrNum16`, `ReduceItems`, the `FreqPat*` family and `CtoI_Meet`) and
+  `SOP::IsPolyCube` / `SOP::Implicants` recurse on the variable count
+  without a `BDD_RecurGuard`, an `_iter` twin or a `BddExecMode` argument.
+  These classes exist for source compatibility with the legacy Sapporo
+  API and are not maintained to the `_rec` / `_iter` rule; only
+  `CtoI::PutForm`, `SOP_ISOP` and `PrintPla` were split because they are
+  shared with the ZDD-vector code. Deep inputs (thousands of levels) can
+  overflow the native stack in these methods.
+
+- **`bddcard` is obsolete and recursive by design** (`src/zdd_adv_count.cpp`).
+  It keeps a `BDD_RecurGuard` so deep ZDDs throw `std::overflow_error`;
+  use `bddcount` / `bddexactcount`, which have `_iter` counterparts.
+
 ## C++ Only APIs (Not Exposed to Python)
 
 The following public C++ APIs are intentionally not provided in the Python
