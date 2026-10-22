@@ -38,10 +38,14 @@ static bddp qdd_to_bdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 BDD QDD::to_bdd() const {
+    return to_bdd(BddExecMode::Auto);
+}
+
+BDD QDD::to_bdd(BddExecMode mode) const {
     if (root == bddnull) return BDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(root)) return qdd_to_bdd_iter(root, memo);
+        if (select_iter_1op(root, mode)) return qdd_to_bdd_iter(root, memo);
         return qdd_to_bdd_rec(root, memo);
     });
     return BDD_ID(result);
@@ -77,10 +81,14 @@ static bddp qdd_to_zdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 ZDD QDD::to_zdd() const {
+    return to_zdd(BddExecMode::Auto);
+}
+
+ZDD QDD::to_zdd(BddExecMode mode) const {
     if (root == bddnull) return ZDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(root)) return qdd_to_zdd_iter(root, memo);
+        if (select_iter_1op(root, mode)) return qdd_to_zdd_iter(root, memo);
         return qdd_to_zdd_rec(root, memo);
     });
     return ZDD_ID(result);
@@ -158,10 +166,14 @@ static bddp bdd_to_qdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 QDD BDD::to_qdd() const {
+    return to_qdd(BddExecMode::Auto);
+}
+
+QDD BDD::to_qdd(BddExecMode mode) const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = use_iter_1op(root)
+        bddp q = select_iter_1op(root, mode)
             ? bdd_to_qdd_iter(root, memo)
             : bdd_to_qdd_rec(root, memo);
         // Fill levels above the root up to the top level
@@ -206,10 +218,14 @@ static bddp zdd_to_qdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 QDD ZDD::to_qdd() const {
+    return to_qdd(BddExecMode::Auto);
+}
+
+QDD ZDD::to_qdd(BddExecMode mode) const {
     if (root == bddnull) return QDD::Null;
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp q = use_iter_1op(root)
+        bddp q = select_iter_1op(root, mode)
             ? zdd_to_qdd_iter(root, memo)
             : zdd_to_qdd_rec(root, memo);
         bddvar q_level = bddp_level(q);
@@ -280,6 +296,10 @@ static bddp zdd_to_bdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 BDD ZDD::to_bdd(int n) const {
+    return to_bdd(n, BddExecMode::Auto);
+}
+
+BDD ZDD::to_bdd(int n, BddExecMode mode) const {
     if (root == bddnull) return BDD::Null;
     bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
     bddvar root_src_level = bddp_level(root);
@@ -294,7 +314,7 @@ BDD ZDD::to_bdd(int n) const {
     }
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp bdd_root = use_iter_1op(root)
+        bddp bdd_root = select_iter_1op(root, mode)
             ? zdd_to_bdd_iter(root, memo)
             : zdd_to_bdd_rec(root, memo);
         return fill_zdd_levels_as_bdd(bdd_root, root_src_level, nv);
@@ -340,6 +360,10 @@ static bddp bdd_to_zdd_rec(bddp f, std::unordered_map<bddp, bddp>& memo) {
 }
 
 ZDD BDD::to_zdd(int n) const {
+    return to_zdd(n, BddExecMode::Auto);
+}
+
+ZDD BDD::to_zdd(int n, BddExecMode mode) const {
     if (root == bddnull) return ZDD::Null;
     bddvar nv = (n <= 0) ? bddvarused() : static_cast<bddvar>(n);
     bddvar root_src_level = bddp_level(root);
@@ -354,7 +378,7 @@ ZDD BDD::to_zdd(int n) const {
     }
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        bddp zdd_root = use_iter_1op(root)
+        bddp zdd_root = select_iter_1op(root, mode)
             ? bdd_to_zdd_iter(root, memo)
             : bdd_to_zdd_rec(root, memo);
         return fill_bdd_levels_as_zdd(zdd_root, root_src_level, nv);

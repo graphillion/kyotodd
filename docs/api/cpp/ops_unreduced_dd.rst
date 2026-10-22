@@ -34,18 +34,22 @@ UnreducedDD Class
       Move constructor.
 
    .. cpp:function:: explicit UnreducedDD(const BDD& bdd)
+                     UnreducedDD(const BDD& bdd, BddExecMode mode)
 
       Convert a BDD to an UnreducedDD with complement expansion.
       Recursively expands all complement edges using BDD semantics
       (~(var,lo,hi) = (var,~lo,~hi)). The resulting UnreducedDD has
-      no complement edges.
+      no complement edges. The two-argument form selects the execution
+      mode (``Auto`` / ``Recursive`` / ``Iterative``).
 
    .. cpp:function:: explicit UnreducedDD(const ZDD& zdd)
+                     UnreducedDD(const ZDD& zdd, BddExecMode mode)
 
       Convert a ZDD to an UnreducedDD with complement expansion.
       Uses ZDD complement semantics (~(var,lo,hi) = (var,~lo,hi)).
 
    .. cpp:function:: explicit UnreducedDD(const QDD& qdd)
+                     UnreducedDD(const QDD& qdd, BddExecMode mode)
 
       Convert a QDD to an UnreducedDD with complement expansion.
       Uses BDD complement semantics.
@@ -139,24 +143,30 @@ UnreducedDD Class
    **Reduce**
 
    .. cpp:function:: BDD reduce_as_bdd() const
+                     BDD reduce_as_bdd(BddExecMode mode) const
 
       Reduce to a canonical BDD. Applies BDD complement semantics and
-      BDD reduction rules (jump rule: lo == hi => return lo).
+      BDD reduction rules (jump rule: lo == hi => return lo). The second
+      overload selects the execution mode.
 
       :return: The canonical BDD.
       :throws std\:\:invalid_argument: If any node has a bddnull child.
 
    .. cpp:function:: ZDD reduce_as_zdd() const
+                     ZDD reduce_as_zdd(BddExecMode mode) const
 
       Reduce to a canonical ZDD. Applies ZDD complement semantics and
       ZDD reduction rules (zero-suppression: hi == bddempty => return lo).
+      The second overload selects the execution mode.
 
       :return: The canonical ZDD.
       :throws std\:\:invalid_argument: If any node has a bddnull child.
 
    .. cpp:function:: QDD reduce_as_qdd() const
+                     QDD reduce_as_qdd(BddExecMode mode) const
 
-      Reduce to a canonical QDD. Equivalent to ``reduce_as_bdd().to_qdd()``.
+      Reduce to a canonical QDD. Equivalent to ``reduce_as_bdd().to_qdd()``
+      (the mode, when given, is forwarded to both steps).
 
       :return: The canonical QDD.
       :throws std\:\:invalid_argument: If any node has a bddnull child.

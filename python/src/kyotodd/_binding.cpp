@@ -664,11 +664,11 @@ PYBIND11_MODULE(_core, m) {
              "True if this is the 0-terminal (false).")
 
         // Conversion
-        .def("to_qdd", &BDD::to_qdd,
+        .def("to_qdd", [](const BDD& b) { return b.to_qdd(); },
              "Convert to a Quasi-reduced Decision Diagram (QDD).\n\n"
              "Returns:\n"
              "    The QDD representation.\n")
-        .def("to_zdd", &BDD::to_zdd, py::arg("n") = 0,
+        .def("to_zdd", [](const BDD& b, int n) { return b.to_zdd(n); }, py::arg("n") = 0,
              "Convert BDD (characteristic function) to ZDD (family).\n\n"
              "Args:\n"
              "    n: Number of variables (0 = use var_used()).\n\n"
@@ -1547,7 +1547,7 @@ PYBIND11_MODULE(_core, m) {
              "True if this is the 0-terminal (empty family).")
 
         // Conversion
-        .def("to_qdd", &ZDD::to_qdd,
+        .def("to_qdd", [](const ZDD& z) { return z.to_qdd(); },
              "Convert to a Quasi-reduced Decision Diagram (QDD).\n\n"
              "Returns:\n"
              "    The QDD representation.\n")
@@ -2298,7 +2298,7 @@ PYBIND11_MODULE(_core, m) {
              "    v2: The variable to merge into v1.\n\n"
              "Returns:\n"
              "    A new ZDD with v2 merged into v1.\n")
-        .def("to_bdd", &ZDD::to_bdd, py::arg("n") = 0,
+        .def("to_bdd", [](const ZDD& z, int n) { return z.to_bdd(n); }, py::arg("n") = 0,
              "Convert ZDD (family) to BDD (characteristic function).\n\n"
              "Args:\n"
              "    n: Number of variables (0 = use var_used()).\n\n"
@@ -3269,9 +3269,9 @@ PYBIND11_MODULE(_core, m) {
              "Get the raw child by index (0 or 1) without complement resolution.")
 
         // Conversion
-        .def("to_bdd", &QDD::to_bdd,
+        .def("to_bdd", [](const QDD& q) { return q.to_bdd(); },
              "Convert to a canonical BDD by applying jump rule.")
-        .def("to_zdd", &QDD::to_zdd,
+        .def("to_zdd", [](const QDD& q) { return q.to_zdd(); },
              "Convert to a canonical ZDD.")
 
         // Properties
@@ -3501,13 +3501,13 @@ PYBIND11_MODULE(_core, m) {
              "Only valid on unreduced, non-terminal, non-complemented nodes.\n")
 
         // Reduce
-        .def("reduce_as_bdd", &UnreducedDD::reduce_as_bdd,
+        .def("reduce_as_bdd", [](const UnreducedDD& u) { return u.reduce_as_bdd(); },
              "Reduce to a canonical BDD.\n\n"
              "Applies BDD complement semantics and jump rule.\n")
-        .def("reduce_as_zdd", &UnreducedDD::reduce_as_zdd,
+        .def("reduce_as_zdd", [](const UnreducedDD& u) { return u.reduce_as_zdd(); },
              "Reduce to a canonical ZDD.\n\n"
              "Applies ZDD complement semantics and zero-suppression rule.\n")
-        .def("reduce_as_qdd", &UnreducedDD::reduce_as_qdd,
+        .def("reduce_as_qdd", [](const UnreducedDD& u) { return u.reduce_as_qdd(); },
              "Reduce to a canonical QDD.\n\n"
              "Equivalent to reduce_as_bdd().to_qdd().\n")
 

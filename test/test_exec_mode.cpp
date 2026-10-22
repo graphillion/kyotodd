@@ -404,3 +404,77 @@ TEST_F(ExecModeTest, CompositeWrappersHighLevel) {
         EXPECT_EQ(bddsymgrp(f.id(), m), bddempty);   // 1 and top not symmetric
     }
 }
+
+// --- BDD / ZDD / QDD conversions and UnreducedDD (class members) --------
+
+TEST_F(ExecModeTest, ConversionModesAgree) {
+    for (int i = 0; i < 4; ++i) bddnewvar();
+    ZDD a = ZDD::singleton(1), b = ZDD::singleton(2), c = ZDD::singleton(3);
+    ZDD z = (a * c) + b + ZDD(1);
+    BDD f = z.to_bdd();
+    QDD q = f.to_qdd();
+    UnreducedDD ub(~f), uz(z), uq(~q);
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        bddgc();  // clear the cache so each mode really recomputes
+        EXPECT_EQ(z.to_bdd(0, m), f);
+        EXPECT_EQ(z.to_bdd(4, m), z.to_bdd(4));
+        EXPECT_EQ(z.to_qdd(m), z.to_qdd());
+        EXPECT_EQ(f.to_zdd(0, m), z);
+        EXPECT_EQ(f.to_zdd(4, m), f.to_zdd(4));
+        EXPECT_EQ(f.to_qdd(m), q);
+        EXPECT_EQ(q.to_bdd(m), f);
+        EXPECT_EQ(q.to_zdd(m), q.to_zdd());
+        EXPECT_EQ(UnreducedDD(~f, m).reduce_as_bdd(m), ~f);
+        EXPECT_EQ(UnreducedDD(z, m).reduce_as_zdd(m), z);
+        EXPECT_EQ(UnreducedDD(~q, m).reduce_as_qdd(m), ~q);
+        EXPECT_EQ(ub.reduce_as_bdd(m), ~f);
+        EXPECT_EQ(uz.reduce_as_zdd(m), z);
+        EXPECT_EQ(uq.reduce_as_qdd(m), ~q);
+        // Null inputs are mode independent.
+        EXPECT_EQ(ZDD::Null.to_bdd(0, m), BDD::Null);
+        EXPECT_EQ(BDD::Null.to_qdd(m), QDD::Null);
+        EXPECT_EQ(QDD::Null.to_zdd(m), ZDD::Null);
+        EXPECT_EQ(UnreducedDD(BDD::Null, m).id(), bddnull);
+    }
+}
+
+TEST_F(ExecModeTest, ConversionDeep) {
+    ZDD z = deep_single_set(kDeep);
+    EXPECT_THROW(z.to_bdd(0, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(z.to_qdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    BDD f = z.to_bdd(0, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(f, z.to_bdd());
+    QDD qz = z.to_qdd(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(qz, z.to_qdd());
+
+    EXPECT_THROW(f.to_zdd(0, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(f.to_qdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(f.to_zdd(0, BDD_EXEC_ITERATIVE), z);
+    EXPECT_EQ(f.to_zdd(), z);
+    QDD qf = f.to_qdd(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(qf, f.to_qdd());
+
+    EXPECT_THROW(qf.to_bdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(qz.to_zdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(qf.to_bdd(BDD_EXEC_ITERATIVE), f);
+    EXPECT_EQ(qf.to_bdd(), f);
+    EXPECT_EQ(qz.to_zdd(BDD_EXEC_ITERATIVE), z);
+    EXPECT_EQ(qz.to_zdd(), z);
+
+    // UnreducedDD: expansion (constructor) and reduction.
+    EXPECT_THROW(UnreducedDD(f, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(UnreducedDD(z, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(UnreducedDD(qf, BDD_EXEC_RECURSIVE), std::overflow_error);
+    UnreducedDD ub(f, BDD_EXEC_ITERATIVE), uz(z, BDD_EXEC_ITERATIVE), uq(qf, BDD_EXEC_ITERATIVE);
+    EXPECT_THROW(ub.reduce_as_bdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(uz.reduce_as_zdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(uq.reduce_as_qdd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(ub.reduce_as_bdd(BDD_EXEC_ITERATIVE), f);
+    EXPECT_EQ(ub.reduce_as_bdd(), f);
+    EXPECT_EQ(uz.reduce_as_zdd(BDD_EXEC_ITERATIVE), z);
+    EXPECT_EQ(uz.reduce_as_zdd(), z);
+    EXPECT_EQ(uq.reduce_as_qdd(BDD_EXEC_ITERATIVE), qf);
+    EXPECT_EQ(uq.reduce_as_qdd(), qf);
+    EXPECT_EQ(UnreducedDD(f).reduce_as_bdd(), f);
+}

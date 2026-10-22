@@ -71,7 +71,10 @@ static bddp expand_zdd_rec(bddp f,
 
 // --- Complement expansion constructors ---
 
-UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
+UnreducedDD::UnreducedDD(const BDD& bdd)
+    : UnreducedDD(bdd, BddExecMode::Auto) {}
+
+UnreducedDD::UnreducedDD(const BDD& bdd, BddExecMode mode) : DDBase() {
     bddp id = bdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
@@ -79,12 +82,15 @@ UnreducedDD::UnreducedDD(const BDD& bdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(id)) return expand_bdd_iter(id, memo);
+        if (select_iter_1op(id, mode)) return expand_bdd_iter(id, memo);
         return expand_bdd_rec(id, memo);
     });
 }
 
-UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
+UnreducedDD::UnreducedDD(const ZDD& zdd)
+    : UnreducedDD(zdd, BddExecMode::Auto) {}
+
+UnreducedDD::UnreducedDD(const ZDD& zdd, BddExecMode mode) : DDBase() {
     bddp id = zdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
@@ -92,12 +98,15 @@ UnreducedDD::UnreducedDD(const ZDD& zdd) : DDBase() {
     }
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(id)) return expand_zdd_iter(id, memo);
+        if (select_iter_1op(id, mode)) return expand_zdd_iter(id, memo);
         return expand_zdd_rec(id, memo);
     });
 }
 
-UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
+UnreducedDD::UnreducedDD(const QDD& qdd)
+    : UnreducedDD(qdd, BddExecMode::Auto) {}
+
+UnreducedDD::UnreducedDD(const QDD& qdd, BddExecMode mode) : DDBase() {
     bddp id = qdd.id();
     if (id == bddnull || (id & BDD_CONST_FLAG)) {
         root = id;
@@ -106,7 +115,7 @@ UnreducedDD::UnreducedDD(const QDD& qdd) : DDBase() {
     // QDD uses BDD complement semantics
     root = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(id)) return expand_bdd_iter(id, memo);
+        if (select_iter_1op(id, mode)) return expand_bdd_iter(id, memo);
         return expand_bdd_rec(id, memo);
     });
 }
@@ -255,25 +264,37 @@ static bddp reduce_rec(bddp f, std::unordered_map<bddp, bddp>& memo,
 }
 
 BDD UnreducedDD::reduce_as_bdd() const {
+    return reduce_as_bdd(BddExecMode::Auto);
+}
+
+BDD UnreducedDD::reduce_as_bdd(BddExecMode mode) const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(root)) return reduce_iter(root, memo, BDD::getnode_raw);
+        if (select_iter_1op(root, mode)) return reduce_iter(root, memo, BDD::getnode_raw);
         return reduce_rec(root, memo, BDD::getnode_raw);
     });
     return BDD_ID(result);
 }
 
 ZDD UnreducedDD::reduce_as_zdd() const {
+    return reduce_as_zdd(BddExecMode::Auto);
+}
+
+ZDD UnreducedDD::reduce_as_zdd(BddExecMode mode) const {
     bddp result = bdd_gc_guard([&]() -> bddp {
         std::unordered_map<bddp, bddp> memo;
-        if (use_iter_1op(root)) return reduce_iter(root, memo, ZDD::getnode_raw);
+        if (select_iter_1op(root, mode)) return reduce_iter(root, memo, ZDD::getnode_raw);
         return reduce_rec(root, memo, ZDD::getnode_raw);
     });
     return ZDD_ID(result);
 }
 
 QDD UnreducedDD::reduce_as_qdd() const {
-    return reduce_as_bdd().to_qdd();
+    return reduce_as_qdd(BddExecMode::Auto);
+}
+
+QDD UnreducedDD::reduce_as_qdd(BddExecMode mode) const {
+    return reduce_as_bdd(mode).to_qdd(mode);
 }
 
 } // namespace kyotodd

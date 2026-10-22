@@ -364,8 +364,15 @@ public:
 
     /** @brief Convert to a QDD (quasi-reduced BDD) by inserting lo==hi identity nodes at skipped levels. */
     QDD to_qdd() const;
+    /** @brief Convert to a QDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    QDD to_qdd(BddExecMode mode) const;
     /** @brief Convert BDD (characteristic function) to ZDD (family) over n variables. If n=0, uses var_used(). */
     ZDD to_zdd(int n = 0) const;
+    /** @brief Convert to a ZDD over n variables with execution mode selection.
+     *  @param n Number of variables (0 = var_used()).
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    ZDD to_zdd(int n, BddExecMode mode) const;
 
     /** @brief Return the BDD representing variable v (positive literal). */
     static BDD prime(bddvar v);

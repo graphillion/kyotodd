@@ -106,12 +106,17 @@ QDD Class
    **Conversion**
 
    .. cpp:function:: BDD to_bdd() const
+                     BDD to_bdd(BddExecMode mode) const
 
-      Convert QDD to canonical BDD by applying jump rule.
+      Convert QDD to canonical BDD by applying jump rule. The second
+      overload selects the execution mode (``Auto`` / ``Recursive`` /
+      ``Iterative``).
 
    .. cpp:function:: ZDD to_zdd() const
+                     ZDD to_zdd(BddExecMode mode) const
 
-      Convert QDD to canonical ZDD.
+      Convert QDD to canonical ZDD. The second overload selects the
+      execution mode.
 
    **Binary I/O**
 

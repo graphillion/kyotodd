@@ -64,6 +64,9 @@ public:
      * The resulting UnreducedDD has no complement edges.
      */
     explicit UnreducedDD(const BDD& bdd);
+    /** @brief Same as UnreducedDD(const BDD&) with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    UnreducedDD(const BDD& bdd, BddExecMode mode);
     /**
      * @brief Convert a ZDD to an UnreducedDD with complement expansion.
      *
@@ -72,12 +75,18 @@ public:
      * The resulting UnreducedDD has no complement edges.
      */
     explicit UnreducedDD(const ZDD& zdd);
+    /** @brief Same as UnreducedDD(const ZDD&) with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    UnreducedDD(const ZDD& zdd, BddExecMode mode);
     /**
      * @brief Convert a QDD to an UnreducedDD with complement expansion.
      *
      * Uses BDD complement semantics (same as BDD constructor).
      */
     explicit UnreducedDD(const QDD& qdd);
+    /** @brief Same as UnreducedDD(const QDD&) with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    UnreducedDD(const QDD& qdd, BddExecMode mode);
 
     /** @brief Copy assignment operator. */
     UnreducedDD& operator=(const UnreducedDD& other) {
@@ -334,6 +343,9 @@ public:
      * @throws std::invalid_argument If any node has a bddnull child.
      */
     BDD reduce_as_bdd() const;
+    /** @brief Reduce to a canonical BDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    BDD reduce_as_bdd(BddExecMode mode) const;
 
     /**
      * @brief Reduce to a canonical ZDD.
@@ -346,6 +358,9 @@ public:
      * @throws std::invalid_argument If any node has a bddnull child.
      */
     ZDD reduce_as_zdd() const;
+    /** @brief Reduce to a canonical ZDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    ZDD reduce_as_zdd(BddExecMode mode) const;
 
     /**
      * @brief Reduce to a canonical QDD.
@@ -357,6 +372,10 @@ public:
      * @throws std::invalid_argument If any node has a bddnull child.
      */
     QDD reduce_as_qdd() const;
+    /** @brief Reduce to a canonical QDD with execution mode selection
+     *  (forwarded to reduce_as_bdd and to_qdd).
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    QDD reduce_as_qdd(BddExecMode mode) const;
 };
 
 } // namespace kyotodd

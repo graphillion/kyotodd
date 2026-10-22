@@ -785,8 +785,15 @@ public:
 
     /** @brief Convert to a QDD (quasi-reduced ZDD → QDD) by inserting identity nodes at zero-suppressed levels. */
     QDD to_qdd() const;
+    /** @brief Convert to a QDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    QDD to_qdd(BddExecMode mode) const;
     /** @brief Convert ZDD (family) to BDD (characteristic function) over n variables. If n=0, uses var_used(). */
     BDD to_bdd(int n = 0) const;
+    /** @brief Convert to a BDD over n variables with execution mode selection.
+     *  @param n Number of variables (0 = var_used()).
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    BDD to_bdd(int n, BddExecMode mode) const;
 
     /** @brief Return the ZDD representing {{v}} (a family with one singleton set). */
     static ZDD singleton(bddvar v);

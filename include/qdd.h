@@ -168,8 +168,14 @@ public:
 
     /** @brief Convert QDD to canonical BDD by applying jump rule via getnode(). */
     BDD to_bdd() const;
+    /** @brief Convert QDD to canonical BDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    BDD to_bdd(BddExecMode mode) const;
     /** @brief Convert QDD to canonical ZDD. */
     ZDD to_zdd() const;
+    /** @brief Convert QDD to canonical ZDD with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    ZDD to_zdd(BddExecMode mode) const;
 
     /** @brief Read 2-operand cache and return as QDD. Returns QDD::Null on miss.
      *
