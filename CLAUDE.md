@@ -81,7 +81,7 @@ DDBase (include/dd_base.h)
 - SeqBDD (`include/seqbdd.h`), PiDD (`include/pidd.h`), RotPiDD (`include/rotpidd.h`) do NOT inherit from DDBase; each wraps a ZDD by composition.
 - `MTBDD<T>` / `MTZDD<T>` (`include/mtbdd.h`, split into `mtbdd_core.h` / `mtbdd_class.h` / `mtbdd_io.h`): multi-terminal templates without complement edges. Pre-instantiated: `MTBDDFloat` / `MTBDDInt` / `MTZDDFloat` / `MTZDDInt`.
 - Memo classes for repeated queries: `BddCountMemo`, `ZddCountMemo`, `CostBoundMemo`, `WeightedSampleMemo`.
-- Python bindings: `python/src/kyotodd/_binding.cpp` (pybind11). C++-only (not bound): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP/SOPV.
+- Python bindings: `python/src/kyotodd/_binding.cpp` (pybind11). C++-only (not bound): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP/SOPV, and the `BddExecMode` arguments (Python always runs in `Auto`; see `KNOWN_ISSUES.md`).
 
 ## I/O formats
 

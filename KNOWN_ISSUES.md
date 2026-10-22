@@ -115,6 +115,12 @@ binding.
 
 - **`BDD::XPrint0()` / `BDD::XPrint()` / `ZDD::XPrint()`** — Deprecated stubs that always throw `std::logic_error`. Use `save_graphviz_str()` / `save_graphviz_file()` instead.
 
+- **`BddExecMode` arguments** — Every Python operation runs in `Auto` mode.
+  The `Recursive` / `Iterative` overloads exist only in C++ (for tests and
+  for callers that must force one implementation); the binding never
+  exposes an execution-mode parameter, and the `mode` arguments that do
+  appear in the Python API are `WeightMode` values. Decided 2026-10-22.
+
 - **PiDD / RotPiDD internal level tables are not updated by `bddnewvaroflev()`** (`include/pidd.h`, `include/rotpidd.h`, `src/bdd_base.cpp`).
   `PiDD_XOfLev` / `PiDD_LevOfX` and `RotPiDD_XOfLev` / `RotPiDD_LevOfX` are
   only built during `PiDD_NewVar()` / `RotPiDD_NewVar()` calls.
