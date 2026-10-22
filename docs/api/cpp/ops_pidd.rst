@@ -187,6 +187,33 @@ PiDD Class
 
       :param n: Constraint parameter.
 
+   **Permutation Conversion**
+
+   .. cpp:function:: static PiDD from_permutation(const Permutation& p)
+                     static PiDD from_permutation(const Permutation& p, BddExecMode mode)
+
+      Convert a :cpp:class:`Permutation` to a PiDD containing it. The
+      permutation is decomposed into transpositions, which are applied with
+      ``swap()`` starting from the identity; ``mode`` is forwarded to those
+      calls. The variables for the moved positions must already exist
+      (``PiDD_NewVar()``).
+
+      :param p: The permutation (one-line notation).
+      :return: A PiDD containing the single permutation.
+      :throws std::invalid_argument: if a moved position exceeds
+         ``PiDD_VarUsed()``.
+
+   .. cpp:function:: std::vector<Permutation> to_permutations() const
+                     std::vector<Permutation> to_permutations(BddExecMode mode) const
+
+      Convert to a list of :cpp:class:`Permutation` objects, in the same
+      order as ``enumerate()``. Each Permutation has size ``PiDD_VarUsed()``.
+      Returns an empty list for the empty set and for the null PiDD.
+
+      ``PiDD::from_permutation(p) * PiDD::from_permutation(q) ==
+      PiDD::from_permutation(p * q)``: both ``operator*`` apply the left
+      operand first.
+
    **Query Methods**
 
    .. cpp:function:: int TopX() const

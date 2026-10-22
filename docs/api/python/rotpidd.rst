@@ -272,6 +272,32 @@ RotPiDD Class
       :return: A list of permutation vectors.
       :rtype: list[list[int]]
 
+   .. py:staticmethod:: from_permutation(perm)
+
+      Create a RotPiDD containing a single permutation. Equivalent to
+      ``rotpidd_from_perm(perm.to_list())``.
+
+      :param Permutation perm: A :class:`kyotodd.Permutation` in one-line
+                               notation. Every position it moves must be
+                               ``<= rotpidd_var_used()``.
+      :return: A RotPiDD containing exactly ``perm``.
+      :rtype: RotPiDD
+      :raises ValueError: If ``perm`` moves a position beyond
+                          ``rotpidd_var_used()``.
+
+   .. py:method:: to_permutations()
+
+      Convert to a list of :class:`kyotodd.Permutation` objects, in the same
+      order as :meth:`to_perms`. Each Permutation has size
+      ``rotpidd_var_used()``.
+
+      ``RotPiDD.from_permutation(p) * RotPiDD.from_permutation(q) ==
+      RotPiDD.from_permutation(p * q)``: both ``*`` apply the left operand
+      first.
+
+      :return: A list of Permutation objects (empty for the empty set).
+      :rtype: list[Permutation]
+
    .. py:method:: count()
 
       Count the number of permutations in the set (floating-point).

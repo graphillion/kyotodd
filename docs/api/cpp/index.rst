@@ -12,6 +12,7 @@ C++ API
    ops_unreduced_dd
    ops_pidd
    ops_rotpidd
+   permutation
    ops_seqbdd
    ops_mvdd
    ops_mtbdd

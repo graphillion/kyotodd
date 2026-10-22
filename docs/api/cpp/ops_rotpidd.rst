@@ -72,6 +72,19 @@ Conversion Functions
 
    :param v: Vector to normalize (modified in-place).
 
+.. cpp:function:: static RotPiDD RotPiDD::from_permutation(const Permutation& p)
+                  static RotPiDD RotPiDD::from_permutation(const Permutation& p, BddExecMode mode)
+
+   Convert a :cpp:class:`Permutation` to a RotPiDD containing it. Equivalent
+   to ``from_vector(p.to_vector())``; ``mode`` is forwarded to the
+   ``left_rot`` calls. The variables for the moved positions must already
+   exist (``RotPiDD_NewVar()``).
+
+   :param p: The permutation (one-line notation).
+   :return: A RotPiDD containing the single permutation.
+   :throws std::invalid_argument: if a moved position exceeds
+      ``RotPiDD_VarUsed()``.
+
 RotPiDD Class
 -------------
 
@@ -347,6 +360,17 @@ RotPiDD Class
    .. cpp:function:: std::vector<std::vector<int>> to_vector_of_perms(BddExecMode mode) const
 
       Same as ``to_vector_of_perms()`` with an explicit execution mode.
+
+   .. cpp:function:: std::vector<Permutation> to_permutations() const
+                     std::vector<Permutation> to_permutations(BddExecMode mode) const
+
+      Convert to a list of :cpp:class:`Permutation` objects, in the same
+      order as ``to_vector_of_perms()``. Each Permutation has size
+      ``RotPiDD_VarUsed()``.
+
+      ``RotPiDD::from_permutation(p) * RotPiDD::from_permutation(q) ==
+      RotPiDD::from_permutation(p * q)``: both ``operator*`` apply the left
+      operand first.
 
    **Output**
 

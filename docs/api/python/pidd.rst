@@ -170,6 +170,30 @@ PiDD Class
       :return: A PiDD with the constraint applied.
       :rtype: PiDD
 
+   .. py:staticmethod:: from_permutation(perm)
+
+      Create a PiDD containing a single permutation.
+
+      :param Permutation perm: A :class:`kyotodd.Permutation` in one-line
+                               notation. Every position it moves must be
+                               ``<= pidd_var_used()``.
+      :return: A PiDD containing exactly ``perm``.
+      :rtype: PiDD
+      :raises ValueError: If ``perm`` moves a position beyond
+                          ``pidd_var_used()``.
+
+   .. py:method:: to_permutations()
+
+      Convert to a list of :class:`kyotodd.Permutation` objects, in the same
+      order as :meth:`enum`. Each Permutation has size ``pidd_var_used()``.
+
+      ``PiDD.from_permutation(p) * PiDD.from_permutation(q) ==
+      PiDD.from_permutation(p * q)``: both ``*`` apply the left operand
+      first.
+
+      :return: A list of Permutation objects (empty for the empty set).
+      :rtype: list[Permutation]
+
    .. py:method:: count()
 
       Count the number of permutations in the set (floating-point).

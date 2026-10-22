@@ -11,6 +11,7 @@ Python API
    unreduced_dd
    pidd
    rotpidd
+   permutation
    seqbdd
    mvdd
    mtbdd
