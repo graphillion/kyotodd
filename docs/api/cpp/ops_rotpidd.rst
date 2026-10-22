@@ -303,9 +303,15 @@ RotPiDD Class
 
       The number of ZDD nodes.
 
-   .. cpp:function:: uint64_t Card() const
+   .. cpp:function:: uint64_t card() const
+                     uint64_t Card() const
 
       The number of permutations in the set.
+
+      Deprecated: use ``count()`` or ``exact_count()`` instead. Both forms
+      wrap the obsolete recursive ``bddcard``, so the result saturates at
+      2^39 - 1 and a set deeper than ``BDD_RecurLimit`` throws
+      ``std::overflow_error``.
 
       .. note:: Not available in the Python API. Use ``RotPiDD.exact_count`` instead.
 

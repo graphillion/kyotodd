@@ -86,8 +86,9 @@ the BDD/ZDD class layout and is a significant architectural change.
 - **`bddcard` is obsolete and recursive by design** (`src/zdd_adv_count.cpp`).
   It keeps a `BDD_RecurGuard` so deep ZDDs throw `std::overflow_error`;
   use `bddcount` / `bddexactcount`, which have `_iter` counterparts. The
-  member wrappers `ZDD::card()` / `ZDD::Card()` are deprecated for the same
-  reason; use `ZDD::count()` / `ZDD::exact_count()`.
+  member wrappers `card()` / `Card()` of `ZDD`, `PiDD`, `RotPiDD` and
+  `SeqBDD` are deprecated for the same reason; use the `count()` /
+  `exact_count()` members of those classes.
 
 - **`ZDD_Random` keeps its native recursion** (`src/zdd_ops.cpp`).
   The legacy Sapporo-compatible generator calls itself twice per level

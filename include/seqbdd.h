@@ -93,6 +93,10 @@ public:
     uint64_t Size() const { return size(); }
     /**
      * @brief Get the number of sequences in the set.
+     * @deprecated Use count() or exact_count() instead. This wraps the
+     *             obsolete recursive bddcard(): the result saturates at
+     *             2^39 - 1 and sets deeper than BDD_RecurLimit throw
+     *             std::overflow_error because no iterative version exists.
      * @return The cardinality (number of sequences).
      */
     uint64_t card() const { return zdd_.Card(); }
