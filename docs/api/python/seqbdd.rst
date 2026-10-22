@@ -143,6 +143,13 @@ SeqBDD Class
       :return: A SeqBDD with *v* at the front of every sequence.
       :rtype: SeqBDD
 
+   .. py:method:: count()
+
+      Count the number of sequences in the set (floating-point).
+
+      :return: The number of sequences as a float.
+      :rtype: float
+
    Properties
    ~~~~~~~~~~
 

@@ -272,6 +272,13 @@ RotPiDD Class
       :return: A list of permutation vectors.
       :rtype: list[list[int]]
 
+   .. py:method:: count()
+
+      Count the number of permutations in the set (floating-point).
+
+      :return: The number of permutations as a float.
+      :rtype: float
+
    Properties
    ~~~~~~~~~~
 

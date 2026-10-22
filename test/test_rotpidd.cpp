@@ -882,3 +882,32 @@ TEST_F(RotPiDDTest, ExecModesDeep) {
     EXPECT_NE(e2.find("(129:1)"), std::string::npos);
     EXPECT_NE(e2.find("(2:1)"), std::string::npos);
 }
+
+// --- count / exact_count ------------------------------------------------
+
+TEST_F(RotPiDDTest, CountAndExactCount) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    RotPiDD all = rot_all_perms(4);
+    EXPECT_EQ(all.card(), 24u);
+    EXPECT_EQ(all.count(), 24.0);
+    EXPECT_EQ(all.exact_count(), bigint::BigInt(24));
+    RotPiDD f = all - RotPiDD(1);
+    EXPECT_EQ(f.count(), 23.0);
+    EXPECT_EQ(f.exact_count().to_string(), "23");
+    EXPECT_EQ(RotPiDD(0).count(), 0.0);
+    EXPECT_EQ(RotPiDD(0).exact_count(), bigint::BigInt(0));
+    EXPECT_EQ(RotPiDD(1).count(), 1.0);
+    EXPECT_EQ(RotPiDD(1).exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(RotPiDDTest, CountAndExactCountDeep) {
+    const int n = 130;
+    for (int i = 0; i < n; ++i) RotPiDD_NewVar();
+    const bddvar levels = 129 * 128 / 2;  // > BDD_RecurLimit
+    RotPiDD chain = rot_chain(levels);
+    // card() wraps the recursive bddcard and hits the depth limit, while
+    // count() / exact_count() switch to the iterative counters.
+    EXPECT_THROW(chain.card(), std::overflow_error);
+    EXPECT_EQ(chain.count(), static_cast<double>(levels));
+    EXPECT_EQ(chain.exact_count(), bigint::BigInt(static_cast<unsigned long long>(levels)));
+}

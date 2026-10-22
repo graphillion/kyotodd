@@ -2802,8 +2802,12 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &PiDD::size,
              "The number of nodes in the internal ZDD.")
+        .def("count", &PiDD::count,
+             "Count the number of permutations in the set (floating-point).\n\n"
+             "Returns:\n"
+             "    The number of permutations as a float.\n")
         .def_property_readonly("exact_count", [](const PiDD& p) -> py::int_ {
-            bigint::BigInt bi = p.get_zdd().exact_count();
+            bigint::BigInt bi = p.exact_count();
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "The number of permutations in the set (arbitrary precision Python int).")
@@ -3065,8 +3069,12 @@ PYBIND11_MODULE(_core, m) {
              "The BDD level of the top variable.")
         .def_property_readonly("size", &RotPiDD::size,
              "The number of nodes in the internal ZDD.")
+        .def("count", &RotPiDD::count,
+             "Count the number of permutations in the set (floating-point).\n\n"
+             "Returns:\n"
+             "    The number of permutations as a float.\n")
         .def_property_readonly("exact_count", [](const RotPiDD& p) -> py::int_ {
-            bigint::BigInt bi = p.get_zdd().exact_count();
+            bigint::BigInt bi = p.exact_count();
             std::string s = bi.to_string();
             return py::int_(py::str(s));
         }, "The number of permutations in the set (arbitrary precision Python int).")
@@ -3695,8 +3703,12 @@ PYBIND11_MODULE(_core, m) {
              "Total symbol count across all sequences.")
         .def_property_readonly("len", &SeqBDD::len,
              "Length of the longest sequence.")
+        .def("count", &SeqBDD::count,
+             "Count the number of sequences in the set (floating-point).\n\n"
+             "Returns:\n"
+             "    The number of sequences as a float.\n")
         .def_property_readonly("exact_count", [](const SeqBDD& s) -> py::int_ {
-            bigint::BigInt bi = s.get_zdd().exact_count();
+            bigint::BigInt bi = s.exact_count();
             std::string s_str = bi.to_string();
             return py::int_(py::str(s_str));
         }, "The number of sequences in the set (arbitrary precision Python int).")

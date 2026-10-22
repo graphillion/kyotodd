@@ -1,4 +1,5 @@
 #include "seqbdd.h"
+#include "bdd_internal.h"
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -601,4 +602,37 @@ TEST_F(SeqBDDTest, VarRangeValidation) {
     EXPECT_THROW(eps.offset(too_big), std::invalid_argument);
     EXPECT_THROW(eps.onset(too_big), std::invalid_argument);
     EXPECT_THROW(eps.push(too_big), std::invalid_argument);
+}
+
+/* ---- count / exact_count ---- */
+TEST_F(SeqBDDTest, CountAndExactCount) {
+    bddnewvar();
+    bddnewvar();
+    SeqBDD a = SeqBDD(1).push(1);           // {1}
+    SeqBDD b = SeqBDD(1).push(2);           // {2}
+    SeqBDD ab = SeqBDD(1).push(2).push(1);  // {12}
+    SeqBDD s = a + b + ab;
+    EXPECT_EQ(s.card(), 3u);
+    EXPECT_EQ(s.count(), 3.0);
+    EXPECT_EQ(s.exact_count(), bigint::BigInt(3));
+    EXPECT_EQ(SeqBDD(0).count(), 0.0);
+    EXPECT_EQ(SeqBDD(0).exact_count(), bigint::BigInt(0));
+    EXPECT_EQ(SeqBDD(1).count(), 1.0);
+    EXPECT_EQ(SeqBDD(1).exact_count(), bigint::BigInt(1));
+}
+
+TEST_F(SeqBDDTest, CountAndExactCountDeep) {
+    // One sequence of BDD_RecurLimit + 100 symbols: the ZDD chain is deeper
+    // than the recursion limit, so card() (recursive bddcard) throws while
+    // count() / exact_count() use the iterative counters.
+    const int depth = BDD_RecurLimit + 100;
+    for (int i = bdd_varcount; i < depth; ++i) bddnewvar();
+    bddp f = bddsingle;
+    for (int v = 1; v <= depth; ++v) {
+        f = ZDD::getnode_raw(static_cast<bddvar>(v), bddempty, f);
+    }
+    SeqBDD s(ZDD_ID(f));
+    EXPECT_THROW(s.card(), std::overflow_error);
+    EXPECT_EQ(s.count(), 1.0);
+    EXPECT_EQ(s.exact_count(), bigint::BigInt(1));
 }

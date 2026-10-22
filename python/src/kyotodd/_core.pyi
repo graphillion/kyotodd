@@ -2735,6 +2735,9 @@ class PiDD:
     def size(self) -> int:
         """The number of nodes in the internal ZDD."""
         ...
+    def count(self) -> float:
+        """Count the number of permutations in the set (floating-point)."""
+        ...
     @property
     def exact_count(self) -> int:
         """The number of permutations in the set."""
@@ -2995,6 +2998,9 @@ class RotPiDD:
     @property
     def size(self) -> int:
         """The number of nodes in the internal ZDD."""
+        ...
+    def count(self) -> float:
+        """Count the number of permutations in the set (floating-point)."""
         ...
     @property
     def exact_count(self) -> int:
@@ -3605,6 +3611,9 @@ class SeqBDD:
     @property
     def size(self) -> int:
         """The number of nodes in the internal ZDD."""
+        ...
+    def count(self) -> float:
+        """Count the number of sequences in the set (floating-point)."""
         ...
     @property
     def exact_count(self) -> int:

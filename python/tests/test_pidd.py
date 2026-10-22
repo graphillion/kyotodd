@@ -185,3 +185,18 @@ class TestPiDDFromZDD:
         a = kyotodd.PiDD(1)
         b = kyotodd.PiDD(a.zdd)
         assert a == b
+
+
+class TestPiDDCount:
+    def test_count_matches_exact_count(self):
+        _setup_pidd(3)
+        e = kyotodd.PiDD(1)
+        s = e + e.swap(2, 1) + e.swap(3, 1)
+        assert s.exact_count == 3
+        assert s.count() == 3.0
+        assert isinstance(s.count(), float)
+
+    def test_count_terminals(self):
+        _setup_pidd(3)
+        assert kyotodd.PiDD(0).count() == 0.0
+        assert kyotodd.PiDD(1).count() == 1.0

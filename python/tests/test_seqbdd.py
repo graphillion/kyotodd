@@ -326,3 +326,18 @@ class TestSeqBDDFromZDD:
         a = kyotodd.SeqBDD(1)
         b = kyotodd.SeqBDD(a.zdd)
         assert a == b
+
+
+class TestSeqBDDCount:
+    def test_count_matches_exact_count(self):
+        v1, v2 = _vars(2)
+        s = (kyotodd.SeqBDD.from_list([v1])
+             + kyotodd.SeqBDD.from_list([v2])
+             + kyotodd.SeqBDD.from_list([v1, v2]))
+        assert s.exact_count == 3
+        assert s.count() == 3.0
+        assert isinstance(s.count(), float)
+
+    def test_count_terminals(self):
+        assert kyotodd.SeqBDD(0).count() == 0.0
+        assert kyotodd.SeqBDD(1).count() == 1.0

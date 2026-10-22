@@ -170,6 +170,13 @@ PiDD Class
       :return: A PiDD with the constraint applied.
       :rtype: PiDD
 
+   .. py:method:: count()
+
+      Count the number of permutations in the set (floating-point).
+
+      :return: The number of permutations as a float.
+      :rtype: float
+
    Properties
    ~~~~~~~~~~
 

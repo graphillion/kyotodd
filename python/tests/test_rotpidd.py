@@ -271,3 +271,19 @@ class TestRotPiDDFromZDD:
         a = kyotodd.RotPiDD(1)
         b = kyotodd.RotPiDD(a.zdd)
         assert a == b
+
+
+class TestRotPiDDCount:
+    def test_count_matches_exact_count(self):
+        _setup_rotpidd(3)
+        s = (kyotodd.rotpidd_from_perm([2, 3, 1])
+             + kyotodd.rotpidd_from_perm([1, 3, 2])
+             + kyotodd.RotPiDD(1))
+        assert s.exact_count == 3
+        assert s.count() == 3.0
+        assert isinstance(s.count(), float)
+
+    def test_count_terminals(self):
+        _setup_rotpidd(3)
+        assert kyotodd.RotPiDD(0).count() == 0.0
+        assert kyotodd.RotPiDD(1).count() == 1.0

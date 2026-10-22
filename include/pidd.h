@@ -180,6 +180,16 @@ public:
     /** @deprecated Use card() instead. */
     uint64_t Card() const { return card(); }
     /**
+     * @brief Count the permutations in the set (double approximation).
+     * @return The cardinality as a double.
+     */
+    double count() const { return zdd_.count(); }
+    /**
+     * @brief Count the permutations in the set (arbitrary precision).
+     * @return The cardinality as a BigInt.
+     */
+    bigint::BigInt exact_count() const { return zdd_.exact_count(); }
+    /**
      * @brief Get the internal ZDD representation.
      * @return A copy of the internal ZDD.
      */

@@ -309,6 +309,17 @@ RotPiDD Class
 
       .. note:: Not available in the Python API. Use ``RotPiDD.exact_count`` instead.
 
+   .. cpp:function:: double count() const
+
+      The number of permutations in the set as a ``double`` approximation.
+      Unlike ``card()`` it never saturates, and it works on sets deeper
+      than ``BDD_RecurLimit``.
+
+   .. cpp:function:: bigint::BigInt exact_count() const
+
+      The number of permutations in the set with arbitrary precision. Also
+      safe on sets deeper than ``BDD_RecurLimit``.
+
    .. cpp:function:: ZDD GetZDD() const
 
       Return the internal ZDD.

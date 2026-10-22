@@ -152,6 +152,17 @@ SeqBDD Class
 
       .. note:: Not available in the Python API. Use ``SeqBDD.exact_count`` instead.
 
+   .. cpp:function:: double count() const
+
+      The number of sequences in the set as a ``double`` approximation.
+      Unlike ``card()`` it never saturates, and it works on sets deeper
+      than ``BDD_RecurLimit``.
+
+   .. cpp:function:: bigint::BigInt exact_count() const
+
+      The number of sequences in the set with arbitrary precision. Also
+      safe on sets deeper than ``BDD_RecurLimit``.
+
    .. cpp:function:: uint64_t lit() const
 
       Total symbol count across all sequences.
