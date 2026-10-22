@@ -2625,6 +2625,113 @@ def pidd_var_used() -> int:
     ...
 
 
+class Permutation:
+    """A single permutation in one-line notation.
+
+    Permutation([2, 3, 1]) maps 1 -> 2, 2 -> 3 and 3 -> 1; positions are
+    1-based. Positions beyond len(p) are fixed points, so p(i) == i for
+    i > len(p), and ==, < and hash() ignore trailing fixed points:
+    Permutation([2, 1]) == Permutation([2, 1, 3]).
+
+    Composition p * q applies p first, then q: (p * q)(i) == q(p(i)).
+    This is the convention of PiDD.__mul__ and RotPiDD.__mul__, so
+    PiDD.from_permutation(p) * PiDD.from_permutation(q) ==
+    PiDD.from_permutation(p * q), and likewise for RotPiDD.
+    """
+
+    @overload
+    def __init__(self) -> None:
+        """Construct the identity permutation of size 0."""
+        ...
+    @overload
+    def __init__(self, values: List[int]) -> None:
+        """Construct from one-line notation.
+
+        Args:
+            values: The images [p(1), ..., p(n)], a rearrangement of 1..n.
+
+        Raises:
+            ValueError: If values is not a rearrangement of 1..n.
+        """
+        ...
+
+    @staticmethod
+    def identity(n: int) -> Permutation:
+        """The identity permutation of size n.
+
+        Args:
+            n: Number of positions (n >= 0).
+
+        Returns:
+            Permutation([1, 2, ..., n]).
+        """
+        ...
+
+    def __len__(self) -> int:
+        """The number of stored positions n."""
+        ...
+
+    def __call__(self, i: int) -> int:
+        """The image p(i) of the 1-based position i.
+
+        Args:
+            i: A position >= 1. Positions beyond len(p) are fixed points.
+
+        Returns:
+            p(i), or i itself when i > len(p).
+
+        Raises:
+            IndexError: If i < 1.
+        """
+        ...
+
+    def to_list(self) -> List[int]:
+        """The one-line notation as a list [p(1), ..., p(n)]."""
+        ...
+
+    def inverse(self) -> Permutation:
+        """The inverse permutation (same size)."""
+        ...
+
+    def __mul__(self, other: Permutation) -> Permutation:
+        """Composition: apply self first, then other.
+
+        (self * other)(i) == other(self(i)). The result has size
+        max(len(self), len(other)).
+        """
+        ...
+
+    def is_even(self) -> bool:
+        """True if the permutation is a product of an even number of transpositions."""
+        ...
+
+    def is_odd(self) -> bool:
+        """True if the permutation is a product of an odd number of transpositions."""
+        ...
+
+    def __eq__(self, other: object) -> bool:
+        """Equality as permutations; trailing fixed points are ignored."""
+        ...
+
+    def __ne__(self, other: object) -> bool:
+        """Inequality as permutations."""
+        ...
+
+    def __lt__(self, other: Permutation) -> bool:
+        """Lexicographic order of p(1), p(2), ... (shorter operand extended with fixed points)."""
+        ...
+
+    def __hash__(self) -> int:
+        """Hash consistent with ==."""
+        ...
+
+    def __repr__(self) -> str: ...
+
+    def __str__(self) -> str:
+        """One-line notation, e.g. "[2 3 1]"."""
+        ...
+
+
 class PiDD:
     """A Permutation Decision Diagram based on adjacent transpositions.
 
@@ -2716,6 +2823,32 @@ class PiDD:
 
         Returns:
             A PiDD with the constraint applied.
+        """
+        ...
+
+    @staticmethod
+    def from_permutation(perm: Permutation) -> PiDD:
+        """Create a PiDD containing a single permutation.
+
+        Args:
+            perm: A Permutation in one-line notation. Every position it
+                moves must be <= pidd_var_used().
+
+        Returns:
+            A PiDD containing exactly perm.
+
+        Raises:
+            ValueError: If perm moves a position beyond pidd_var_used().
+        """
+        ...
+
+    def to_permutations(self) -> List[Permutation]:
+        """Convert to a list of Permutation objects.
+
+        Same order as enum(); each Permutation has size pidd_var_used().
+
+        Returns:
+            A list of Permutation objects (empty for the empty set).
         """
         ...
 
@@ -2980,6 +3113,35 @@ class RotPiDD:
 
         Returns:
             A list of lists, each representing a permutation as [1..n].
+        """
+        ...
+
+    @staticmethod
+    def from_permutation(perm: Permutation) -> RotPiDD:
+        """Create a RotPiDD containing a single permutation.
+
+        Equivalent to rotpidd_from_perm(perm.to_list()).
+
+        Args:
+            perm: A Permutation in one-line notation. Every position it
+                moves must be <= rotpidd_var_used().
+
+        Returns:
+            A RotPiDD containing exactly perm.
+
+        Raises:
+            ValueError: If perm moves a position beyond rotpidd_var_used().
+        """
+        ...
+
+    def to_permutations(self) -> List[Permutation]:
+        """Convert to a list of Permutation objects.
+
+        Same order as to_perms(); each Permutation has size
+        rotpidd_var_used().
+
+        Returns:
+            A list of Permutation objects (empty for the empty set).
         """
         ...
 

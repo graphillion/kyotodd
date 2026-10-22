@@ -9,6 +9,7 @@
 #include "unreduced_dd.h"
 #include "pidd.h"
 #include "rotpidd.h"
+#include "permutation.h"
 #include "seqbdd.h"
 #include "mvdd.h"
 #include "mvzdd_iter.h"
@@ -2675,6 +2676,81 @@ PYBIND11_MODULE(_core, m) {
     ;
 
     // ================================================================
+    // Permutation class
+    // ================================================================
+
+    py::class_<Permutation>(m, "Permutation",
+        "A single permutation in one-line notation.\n\n"
+        "Permutation([2, 3, 1]) maps 1 -> 2, 2 -> 3 and 3 -> 1; positions are\n"
+        "1-based. Positions beyond len(p) are fixed points, so p(i) == i for\n"
+        "i > len(p), and ==, < and hash() ignore trailing fixed points:\n"
+        "Permutation([2, 1]) == Permutation([2, 1, 3]).\n\n"
+        "Composition p * q applies p first, then q: (p * q)(i) == q(p(i)).\n"
+        "This is the convention of PiDD.__mul__ and RotPiDD.__mul__, so\n"
+        "PiDD.from_permutation(p) * PiDD.from_permutation(q) ==\n"
+        "PiDD.from_permutation(p * q), and likewise for RotPiDD.")
+        .def(py::init<>(), "Construct the identity permutation of size 0.")
+        .def(py::init([](const std::vector<int>& values) {
+            return Permutation(values);
+        }), py::arg("values"),
+           "Construct from one-line notation.\n\n"
+           "Args:\n"
+           "    values: The images [p(1), ..., p(n)], a rearrangement of 1..n.\n\n"
+           "Raises:\n"
+           "    ValueError: If values is not a rearrangement of 1..n.\n")
+        .def_static("identity", &Permutation::identity, py::arg("n"),
+             "The identity permutation of size n.\n\n"
+             "Args:\n"
+             "    n: Number of positions (n >= 0).\n\n"
+             "Returns:\n"
+             "    Permutation([1, 2, ..., n]).\n")
+        .def("__len__", &Permutation::size,
+             "The number of stored positions n.")
+        .def("__call__", &Permutation::operator(), py::arg("i"),
+             "The image p(i) of the 1-based position i.\n\n"
+             "Args:\n"
+             "    i: A position >= 1. Positions beyond len(p) are fixed points.\n\n"
+             "Returns:\n"
+             "    p(i), or i itself when i > len(p).\n\n"
+             "Raises:\n"
+             "    IndexError: If i < 1.\n")
+        .def("to_list", [](const Permutation& p) { return p.to_vector(); },
+             "The one-line notation as a list [p(1), ..., p(n)].")
+        .def("inverse", &Permutation::inverse,
+             "The inverse permutation (same size).")
+        .def("__mul__", [](const Permutation& a, const Permutation& b) { return a * b; },
+             "Composition: apply self first, then other.\n\n"
+             "(self * other)(i) == other(self(i)). The result has size\n"
+             "max(len(self), len(other)).")
+        .def("is_even", &Permutation::is_even,
+             "True if the permutation is a product of an even number of transpositions.")
+        .def("is_odd", &Permutation::is_odd,
+             "True if the permutation is a product of an odd number of transpositions.")
+        .def("__eq__", [](const Permutation& a, const Permutation& b) { return a == b; },
+             "Equality as permutations; trailing fixed points are ignored.")
+        .def("__ne__", [](const Permutation& a, const Permutation& b) { return a != b; },
+             "Inequality as permutations.")
+        .def("__lt__", [](const Permutation& a, const Permutation& b) { return a < b; },
+             "Lexicographic order of p(1), p(2), ... (shorter operand extended "
+             "with fixed points).")
+        .def("__hash__", &Permutation::hash,
+             "Hash consistent with ==.")
+        .def("__repr__", [](const Permutation& p) {
+            std::ostringstream oss;
+            oss << "Permutation([";
+            const std::vector<int>& v = p.to_vector();
+            for (size_t i = 0; i < v.size(); ++i) {
+                if (i) oss << ", ";
+                oss << v[i];
+            }
+            oss << "])";
+            return oss.str();
+        })
+        .def("__str__", &Permutation::to_string,
+             "One-line notation, e.g. \"[2 3 1]\".")
+    ;
+
+    // ================================================================
     // PiDD class
     // ================================================================
 
@@ -2792,6 +2868,23 @@ PYBIND11_MODULE(_core, m) {
              "    n: Constraint parameter.\n\n"
              "Returns:\n"
              "    A PiDD with the constraint applied.\n")
+        .def_static("from_permutation", [](const Permutation& perm) -> PiDD {
+            ensure_init();
+            return PiDD::from_permutation(perm);
+        }, py::arg("perm"),
+             "Create a PiDD containing a single permutation.\n\n"
+             "Args:\n"
+             "    perm: A Permutation in one-line notation. Every position it\n"
+             "        moves must be <= pidd_var_used().\n\n"
+             "Returns:\n"
+             "    A PiDD containing exactly perm.\n\n"
+             "Raises:\n"
+             "    ValueError: If perm moves a position beyond pidd_var_used().\n")
+        .def("to_permutations", [](const PiDD& p) { return p.to_permutations(); },
+             "Convert to a list of Permutation objects.\n\n"
+             "Same order as enum(); each Permutation has size pidd_var_used().\n\n"
+             "Returns:\n"
+             "    A list of Permutation objects (empty for the empty set).\n")
 
         // Properties
         .def_property_readonly("top_x", &PiDD::top_x,
@@ -3059,6 +3152,25 @@ PYBIND11_MODULE(_core, m) {
              "Convert to a list of permutation vectors.\n\n"
              "Returns:\n"
              "    A list of lists, each representing a permutation as [1..n].\n")
+        .def_static("from_permutation", [](const Permutation& perm) -> RotPiDD {
+            ensure_init();
+            return RotPiDD::from_permutation(perm);
+        }, py::arg("perm"),
+             "Create a RotPiDD containing a single permutation.\n\n"
+             "Equivalent to rotpidd_from_perm(perm.to_list()).\n\n"
+             "Args:\n"
+             "    perm: A Permutation in one-line notation. Every position it\n"
+             "        moves must be <= rotpidd_var_used().\n\n"
+             "Returns:\n"
+             "    A RotPiDD containing exactly perm.\n\n"
+             "Raises:\n"
+             "    ValueError: If perm moves a position beyond rotpidd_var_used().\n")
+        .def("to_permutations", [](const RotPiDD& p) { return p.to_permutations(); },
+             "Convert to a list of Permutation objects.\n\n"
+             "Same order as to_perms(); each Permutation has size\n"
+             "rotpidd_var_used().\n\n"
+             "Returns:\n"
+             "    A list of Permutation objects (empty for the empty set).\n")
 
         // Properties
         .def_property_readonly("top_x", &RotPiDD::top_x,

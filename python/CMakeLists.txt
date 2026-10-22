@@ -43,6 +43,7 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/pidd_iter.cpp
     ${KYOTODD_ROOT}/src/rotpidd.cpp
     ${KYOTODD_ROOT}/src/rotpidd_iter.cpp
+    ${KYOTODD_ROOT}/src/permutation.cpp
     ${KYOTODD_ROOT}/src/seqbdd.cpp
     ${KYOTODD_ROOT}/src/zdd_weight_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_rank_iter.cpp
