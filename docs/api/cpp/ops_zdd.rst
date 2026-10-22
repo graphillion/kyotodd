@@ -93,6 +93,12 @@ Counting
 
 .. note::
 
+   ``bddcard`` is deprecated, and so are its member wrappers ``ZDD::card()``
+   and ``ZDD::Card()``: the result saturates at 2^39 - 1, and there is no
+   iterative implementation, so a ZDD deeper than ``BDD_RecurLimit`` throws
+   ``std::overflow_error``. Use ``ZDD::exact_count()`` (arbitrary precision)
+   or ``ZDD::count()`` (double) instead.
+
    ``bddcard`` is not available in the Python API.
    Use ``ZDD.exact_count`` (arbitrary precision) or ``ZDD.count()`` (float) instead.
 

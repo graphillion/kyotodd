@@ -279,7 +279,7 @@ Requires the `TdZdd <https://github.com/kunisura/TdZdd>`_ submodule
       };
 
       UnreducedDD u = UnreducedDD::construct(Combination(10, 4));
-      ZDD z = u.reduce_as_zdd();      // z.card() == 210
+      ZDD z = u.reduce_as_zdd();      // z.exact_count() == 210
 
 ZDD subsetting with a TdZdd spec
 --------------------------------

@@ -178,6 +178,10 @@ public:
     ZDD closure() const;
     /**
      * @brief Count the number of sets in the family (uint64_t).
+     * @deprecated Use count() or exact_count() instead. This wraps the
+     *             obsolete recursive bddcard(): the result saturates at
+     *             2^39 - 1 and ZDDs deeper than BDD_RecurLimit throw
+     *             std::overflow_error because no iterative version exists.
      * @return The cardinality of the family.
      */
     uint64_t card() const;
