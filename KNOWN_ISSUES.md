@@ -87,6 +87,16 @@ the BDD/ZDD class layout and is a significant architectural change.
   It keeps a `BDD_RecurGuard` so deep ZDDs throw `std::overflow_error`;
   use `bddcount` / `bddexactcount`, which have `_iter` counterparts.
 
+- **`ZDD_Random` keeps its native recursion** (`src/zdd_ops.cpp`).
+  The legacy Sapporo-compatible generator calls itself twice per level
+  down to `lev`, with no `BDD_RecurGuard`, no `_iter` twin and no
+  `BddExecMode` argument. It is retained only for source compatibility
+  (see also the `std::rand()` note above) and is not maintained to the
+  `_rec` / `_iter` rule. Because the build costs 2^lev work, a `lev` deep
+  enough to overflow the native stack is not practical anyway. New code
+  should use `ZDD::random_family`, which has `_rec` / `_iter` builders and
+  a `BddExecMode` overload.
+
 ## C++ Only APIs (Not Exposed to Python)
 
 The following public C++ APIs are intentionally not provided in the Python
