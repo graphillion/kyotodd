@@ -1692,7 +1692,7 @@ PYBIND11_MODULE(_core, m) {
            "    Transformed weight vector for use with WeightedSampleMemo(Product mode).\n")
 
         // Enumeration
-        .def("enumerate", &ZDD::enumerate,
+        .def("enumerate", [](const ZDD& z) { return z.enumerate(); },
              "Enumerate all sets in the family.\n\n"
              "Returns:\n"
              "    A list of sets, each a list of variable numbers.\n")

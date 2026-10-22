@@ -1337,6 +1337,11 @@ bddp random_subset_iter(bddp root_f, double p, RNG& rng,
 
 template<typename RNG>
 ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
+    return sample_k(k, rng, memo, BddExecMode::Auto);
+}
+
+template<typename RNG>
+ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo, BddExecMode mode) {
     if (root == bddnull) {
         throw std::invalid_argument("sample_k: null ZDD");
     }
@@ -1348,18 +1353,19 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
             "sample_k: memo was created for a different ZDD");
     }
     if (!memo.stored()) {
-        exact_count(memo);
+        bddexactcount(root, memo.map(), mode);
+        memo.mark_stored();
     }
 
     if (k == 0 || root == bddempty) return ZDD(0);  // empty family
 
     bigint::BigInt bk(k);
-    bigint::BigInt total = bddexactcount(root, memo.map());
+    bigint::BigInt total = bddexactcount(root, memo.map(), mode);
     if (bk >= total) return *this;
 
     auto sample_k_dispatch =
         [&](bddp f, const bigint::BigInt& k) -> bddp {
-            if (use_iter_1op(f)) {
+            if (select_iter_1op(f, mode)) {
                 return detail::sample_k_iter(f, k, rng, memo.map());
             }
             return detail::sample_k_rec(f, k, rng, memo.map());
@@ -1392,6 +1398,11 @@ ZDD ZDD::sample_k(int64_t k, RNG& rng, ZddCountMemo& memo) {
 
 template<typename RNG>
 ZDD ZDD::random_subset(double p, RNG& rng) {
+    return random_subset(p, rng, BddExecMode::Auto);
+}
+
+template<typename RNG>
+ZDD ZDD::random_subset(double p, RNG& rng, BddExecMode mode) {
     if (root == bddnull) {
         throw std::invalid_argument("random_subset: null ZDD");
     }
@@ -1404,7 +1415,7 @@ ZDD ZDD::random_subset(double p, RNG& rng) {
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
     auto random_subset_dispatch = [&](bddp f) -> bddp {
-        if (use_iter_1op(f)) {
+        if (select_iter_1op(f, mode)) {
             return detail::random_subset_iter(f, p, rng, dist);
         }
         return detail::random_subset_rec(f, p, rng, dist);
@@ -1433,18 +1444,34 @@ std::vector<bddvar> ZDD::weighted_sample(
     const std::vector<double>& weights, WeightMode mode,
     RNG& rng, WeightedSampleMemo& memo)
 {
+    return weighted_sample(weights, mode, rng, memo, BddExecMode::Auto);
+}
+
+template<typename RNG>
+std::vector<bddvar> ZDD::weighted_sample(
+    const std::vector<double>& weights, WeightMode mode,
+    RNG& rng, WeightedSampleMemo& memo, BddExecMode exec_mode)
+{
     return weighted_sample_impl(
         weights, mode,
         [&rng](double upper) -> double {
             std::uniform_real_distribution<double> dist(0.0, upper);
             return dist(rng);
-        }, memo);
+        }, memo, exec_mode);
 }
 
 template<typename RNG>
 std::vector<bddvar> ZDD::boltzmann_sample(
     const std::vector<double>& weights, double beta,
     RNG& rng, WeightedSampleMemo& memo)
+{
+    return boltzmann_sample(weights, beta, rng, memo, BddExecMode::Auto);
+}
+
+template<typename RNG>
+std::vector<bddvar> ZDD::boltzmann_sample(
+    const std::vector<double>& weights, double beta,
+    RNG& rng, WeightedSampleMemo& memo, BddExecMode exec_mode)
 {
     if (memo.mode() != WeightMode::Product) {
         throw std::invalid_argument(
@@ -1458,7 +1485,7 @@ std::vector<bddvar> ZDD::boltzmann_sample(
         [&rng](double upper) -> double {
             std::uniform_real_distribution<double> dist(0.0, upper);
             return dist(rng);
-        }, memo);
+        }, memo, exec_mode);
 }
 
 template<typename RNG>

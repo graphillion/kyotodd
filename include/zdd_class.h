@@ -243,6 +243,16 @@ public:
      */
     template<typename RNG>
     ZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo);
+    /**
+     * @brief sample_k() with execution mode selection.
+     * @param k Number of sets to sample.
+     * @param rng The random number generator.
+     * @param memo A ZddCountMemo created for this ZDD.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A ZDD containing the sampled k sets.
+     */
+    template<typename RNG>
+    ZDD sample_k(int64_t k, RNG& rng, ZddCountMemo& memo, BddExecMode mode);
 
     /**
      * @brief Include each set independently with probability p.
@@ -257,6 +267,15 @@ public:
      */
     template<typename RNG>
     ZDD random_subset(double p, RNG& rng);
+    /**
+     * @brief random_subset() with execution mode selection.
+     * @param p Inclusion probability (0.0 <= p <= 1.0).
+     * @param rng The random number generator.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A ZDD containing the randomly selected sets.
+     */
+    template<typename RNG>
+    ZDD random_subset(double p, RNG& rng, BddExecMode mode);
 
     /**
      * @brief Sample a set proportional to its aggregated weight.
@@ -277,6 +296,20 @@ public:
     std::vector<bddvar> weighted_sample(
         const std::vector<double>& weights, WeightMode mode,
         RNG& rng, WeightedSampleMemo& memo);
+    /**
+     * @brief weighted_sample() with execution mode selection.
+     * @param weights Weight vector indexed by variable number (index 0 unused).
+     * @param mode Weight aggregation mode (Sum or Product).
+     * @param rng The random number generator.
+     * @param memo A WeightedSampleMemo created for this ZDD, weights, and mode.
+     * @param exec_mode Execution mode (Recursive, Iterative, or Auto) for
+     *                  the weight precomputation.
+     * @return The sampled set as a sorted vector of variable numbers.
+     */
+    template<typename RNG>
+    std::vector<bddvar> weighted_sample(
+        const std::vector<double>& weights, WeightMode mode,
+        RNG& rng, WeightedSampleMemo& memo, BddExecMode exec_mode);
 
     /**
      * @brief Sample a set from the Boltzmann distribution.
@@ -296,6 +329,21 @@ public:
     std::vector<bddvar> boltzmann_sample(
         const std::vector<double>& weights, double beta,
         RNG& rng, WeightedSampleMemo& memo);
+    /**
+     * @brief boltzmann_sample() with execution mode selection.
+     * @param weights Weight vector indexed by variable number (index 0 unused).
+     * @param beta Inverse temperature parameter.
+     * @param rng The random number generator.
+     * @param memo A WeightedSampleMemo created with boltzmann_weights()
+     *             and Product mode.
+     * @param exec_mode Execution mode (Recursive, Iterative, or Auto) for
+     *                  the weight precomputation.
+     * @return The sampled set as a sorted vector of variable numbers.
+     */
+    template<typename RNG>
+    std::vector<bddvar> boltzmann_sample(
+        const std::vector<double>& weights, double beta,
+        RNG& rng, WeightedSampleMemo& memo, BddExecMode exec_mode);
 
     /**
      * @brief Compute Boltzmann-transformed weights.
@@ -316,6 +364,10 @@ public:
         const std::vector<double>& weights, WeightMode mode,
         std::function<double(double)> rand_func,
         WeightedSampleMemo& memo);
+    std::vector<bddvar> weighted_sample_impl(
+        const std::vector<double>& weights, WeightMode mode,
+        std::function<double(double)> rand_func,
+        WeightedSampleMemo& memo, BddExecMode exec_mode);
     /// @endcond
 
     /**
@@ -327,6 +379,12 @@ public:
      * @return All sets in the family.
      */
     std::vector<std::vector<bddvar>> enumerate() const;
+    /**
+     * @brief enumerate() with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return All sets in the family.
+     */
+    std::vector<std::vector<bddvar>> enumerate(BddExecMode mode) const;
     /**
      * @brief Restrict to sets that are subsets of some set in @p g.
      * @param g The constraining family.
@@ -544,6 +602,10 @@ public:
      * @param os Output stream.
      */
     void print_sets(std::ostream& os) const;
+    /** @brief print_sets(os) with execution mode selection.
+     *  @param os Output stream.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void print_sets(std::ostream& os, BddExecMode mode) const;
 
     /**
      * @brief Print the family of sets with custom delimiters.
@@ -559,6 +621,10 @@ public:
      */
     void print_sets(std::ostream& os, const std::string& delim1,
                     const std::string& delim2) const;
+    /** @brief print_sets(os, delim1, delim2) with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void print_sets(std::ostream& os, const std::string& delim1,
+                    const std::string& delim2, BddExecMode mode) const;
 
     /**
      * @brief Print the family of sets with custom delimiters and variable name mapping.
@@ -576,6 +642,13 @@ public:
     void print_sets(std::ostream& os, const std::string& delim1,
                     const std::string& delim2,
                     const std::vector<std::string>& var_name_map) const;
+    /** @brief print_sets(os, delim1, delim2, var_name_map) with execution
+     *  mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void print_sets(std::ostream& os, const std::string& delim1,
+                    const std::string& delim2,
+                    const std::vector<std::string>& var_name_map,
+                    BddExecMode mode) const;
 
     /**
      * @brief Return the family of sets as a string in default format.
@@ -586,24 +659,40 @@ public:
      * @return The formatted string.
      */
     std::string to_str() const;
+    /** @brief to_str() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    std::string to_str(BddExecMode mode) const;
 
     /** @brief Return a CNF string. Each set is a clause (OR of variables),
      *  clauses are joined by AND. Empty family → "T". */
     std::string to_cnf() const;
+    /** @brief to_cnf() with execution mode selection. */
+    std::string to_cnf(BddExecMode mode) const;
     /** @brief Return a CNF string with custom variable names. */
     std::string to_cnf(const std::vector<std::string>& var_name_map) const;
+    /** @brief to_cnf(var_name_map) with execution mode selection. */
+    std::string to_cnf(const std::vector<std::string>& var_name_map,
+                       BddExecMode mode) const;
 
     /** @brief Return a DNF string. Each set is a term (AND of variables),
      *  terms are joined by OR. Empty family → "F". */
     std::string to_dnf() const;
+    /** @brief to_dnf() with execution mode selection. */
+    std::string to_dnf(BddExecMode mode) const;
     /** @brief Return a DNF string with custom variable names. */
     std::string to_dnf(const std::vector<std::string>& var_name_map) const;
+    /** @brief to_dnf(var_name_map) with execution mode selection. */
+    std::string to_dnf(const std::vector<std::string>& var_name_map,
+                       BddExecMode mode) const;
 
     /** @brief @deprecated Always throws std::logic_error. Use save_graphviz() instead.
      *  @note C++ only. Not available in the Python binding. */
     void XPrint() const;
     /** @brief Print in PLA format. */
     void print_pla() const;
+    /** @brief print_pla() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void print_pla(BddExecMode mode) const;
     /** @deprecated Use print_pla() instead. */
     void PrintPla() const { print_pla(); }
     /** @brief Adjust ZDD to a given number of levels.
@@ -614,6 +703,9 @@ public:
     ZDD ZLev(bddvar lev, int last) const { return zlev(lev, last); }
     /** @brief Set ZDD skip flags. */
     void set_zskip() const;
+    /** @brief set_zskip() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void set_zskip(BddExecMode mode) const;
     /** @deprecated Use set_zskip() instead. */
     void SetZSkip() const { set_zskip(); }
 
@@ -808,6 +900,10 @@ public:
     static ZDD from_sets(const std::vector<std::vector<bddvar>>& sets);
     /** @brief Return the ZDD of all k-element subsets of {1, ..., n}. */
     static ZDD combination(bddvar n, bddvar k);
+    /** @brief combination() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto); Auto
+     *         picks the iterative builder when n exceeds BDD_RecurLimit. */
+    static ZDD combination(bddvar n, bddvar k, BddExecMode mode);
 
     /**
      * @brief Generate a uniformly random family over {1, ..., n}.

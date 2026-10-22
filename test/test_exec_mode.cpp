@@ -9,7 +9,11 @@
 #include "bigint.hpp"
 #include <climits>
 #include <cstdio>
+#include <iostream>
+#include <random>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <unistd.h>
 #include <vector>
 
@@ -576,4 +580,199 @@ TEST_F(ExecModeTest, MtbddDeep) {
     EXPECT_EQ(zs.cofactor0(1, BDD_EXEC_ITERATIVE), zs.cofactor0(1));
     EXPECT_THROW(zs.cofactor1(1, BDD_EXEC_RECURSIVE), std::overflow_error);
     EXPECT_EQ(zs.cofactor1(1, BDD_EXEC_ITERATIVE), zs.cofactor1(1));
+}
+
+// --- ZDD class members (enumerate / print / combination / sampling) -----
+
+namespace {
+
+template<typename Fn>
+std::string cout_capture(Fn fn) {
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    try {
+        fn();
+    } catch (...) {
+        std::cout.rdbuf(old);
+        throw;
+    }
+    std::cout.rdbuf(old);
+    return oss.str();
+}
+
+std::string sets_str(const ZDD& f, BddExecMode m, int variant,
+                     const std::vector<std::string>& names) {
+    std::ostringstream oss;
+    switch (variant) {
+    case 0: f.print_sets(oss, m); break;
+    case 1: f.print_sets(oss, ";", "+", m); break;
+    default: f.print_sets(oss, ";", "+", names, m); break;
+    }
+    return oss.str();
+}
+
+}  // namespace
+
+TEST_F(ExecModeTest, ZddMembersModesAgree) {
+    for (int i = 0; i < 4; ++i) bddnewvar();
+    ZDD a = ZDD::singleton(1), b = ZDD::singleton(2), c = ZDD::singleton(3), d = ZDD::singleton(4);
+    ZDD f = (a * b) + (b * c * d) + c + ZDD(1);
+    std::vector<std::string> names;
+    names.push_back(""); names.push_back("p"); names.push_back("q");
+    names.push_back("r"); names.push_back("s");
+    std::vector<double> w(bdd_varcount + 1, 1.0);
+    w[2] = 3.0; w[4] = 0.5;
+    ZddCountMemo cmemo(f);
+
+    std::vector<std::vector<bddvar>> ref_enum = f.enumerate();
+    std::string ref_s0 = sets_str(f, BDD_EXEC_AUTO, 0, names);
+    std::string ref_s1 = sets_str(f, BDD_EXEC_AUTO, 1, names);
+    std::string ref_s2 = sets_str(f, BDD_EXEC_AUTO, 2, names);
+    std::string ref_pla = cout_capture([&]() { f.print_pla(); });
+    ZDD ref_comb = ZDD::combination(4, 2);
+    EXPECT_EQ(ref_enum.size(), 4u);
+    EXPECT_EQ(ref_comb.count(), 6.0);
+
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        bddgc();  // clear the cache so each mode really recomputes
+        EXPECT_EQ(f.enumerate(m), ref_enum);
+        EXPECT_EQ(sets_str(f, m, 0, names), ref_s0);
+        EXPECT_EQ(sets_str(f, m, 1, names), ref_s1);
+        EXPECT_EQ(sets_str(f, m, 2, names), ref_s2);
+        EXPECT_EQ(f.to_str(m), f.to_str());
+        EXPECT_EQ(f.to_str(m), ref_s0);
+        EXPECT_EQ(f.to_cnf(m), f.to_cnf());
+        EXPECT_EQ(f.to_cnf(names, m), f.to_cnf(names));
+        EXPECT_EQ(f.to_dnf(m), f.to_dnf());
+        EXPECT_EQ(f.to_dnf(names, m), f.to_dnf(names));
+        EXPECT_EQ(cout_capture([&]() { f.print_pla(m); }), ref_pla);
+        EXPECT_EQ(ZDD::combination(4, 2, m), ref_comb);
+        EXPECT_EQ(ZDD::combination(4, 5, m), ZDD::Empty);
+        EXPECT_NO_THROW(f.set_zskip(m));
+        // Null / empty fast paths.
+        EXPECT_EQ(ZDD::Null.to_str(m), "N");
+        EXPECT_EQ(ZDD(0).to_cnf(m), "T");
+        EXPECT_EQ(ZDD(0).to_dnf(m), "F");
+        EXPECT_TRUE(ZDD::Null.enumerate(m).empty());
+        // Sampling: every mode must return members of f.
+        std::mt19937_64 rng(42);
+        ZDD sk = f.sample_k(2, rng, cmemo, m);
+        EXPECT_EQ(sk.count(), 2.0);
+        EXPECT_EQ(sk & f, sk);
+        EXPECT_EQ(f.sample_k(10, rng, cmemo, m), f);
+        ZDD rs = f.random_subset(0.5, rng, m);
+        EXPECT_EQ(rs & f, rs);
+        EXPECT_EQ(f.random_subset(1.0, rng, m), f);
+        {
+            WeightedSampleMemo wm(f, w, WeightMode::Sum);
+            std::vector<bddvar> s = f.weighted_sample(w, WeightMode::Sum, rng, wm, m);
+            EXPECT_TRUE(f.contains(s));
+            EXPECT_FALSE(s.empty());  // w(empty set) = 0 in Sum mode
+        }
+        {
+            WeightedSampleMemo wm(f, w, WeightMode::Product);
+            std::vector<bddvar> s = f.weighted_sample(w, WeightMode::Product, rng, wm, m);
+            EXPECT_TRUE(f.contains(s));
+        }
+        {
+            std::vector<double> bw = ZDD::boltzmann_weights(w, 0.5);
+            WeightedSampleMemo bm(f, bw, WeightMode::Product);
+            std::vector<bddvar> s = f.boltzmann_sample(w, 0.5, rng, bm, m);
+            EXPECT_TRUE(f.contains(s));
+        }
+    }
+}
+
+TEST_F(ExecModeTest, ZddMembersDeep) {
+    ZDD f = deep_single_set(kDeep);
+    std::vector<std::string> names;  // empty: numeric fallback
+
+    EXPECT_THROW(f.enumerate(BDD_EXEC_RECURSIVE), std::overflow_error);
+    std::vector<std::vector<bddvar>> e = f.enumerate(BDD_EXEC_ITERATIVE);
+    ASSERT_EQ(e.size(), 1u);
+    EXPECT_EQ(e[0].size(), static_cast<size_t>(kDeep));
+    EXPECT_EQ(e, f.enumerate());
+
+    EXPECT_THROW(sets_str(f, BDD_EXEC_RECURSIVE, 0, names), std::overflow_error);
+    EXPECT_THROW(sets_str(f, BDD_EXEC_RECURSIVE, 1, names), std::overflow_error);
+    EXPECT_THROW(sets_str(f, BDD_EXEC_RECURSIVE, 2, names), std::overflow_error);
+    std::string s0 = sets_str(f, BDD_EXEC_ITERATIVE, 0, names);
+    EXPECT_EQ(s0, sets_str(f, BDD_EXEC_AUTO, 0, names));
+    EXPECT_EQ(sets_str(f, BDD_EXEC_ITERATIVE, 1, names), sets_str(f, BDD_EXEC_AUTO, 1, names));
+    EXPECT_EQ(sets_str(f, BDD_EXEC_ITERATIVE, 2, names), sets_str(f, BDD_EXEC_AUTO, 2, names));
+    EXPECT_THROW(f.to_str(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(f.to_str(BDD_EXEC_ITERATIVE), s0);
+    EXPECT_EQ(f.to_str(), s0);
+    EXPECT_THROW(f.to_cnf(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(f.to_cnf(names, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(f.to_cnf(BDD_EXEC_ITERATIVE), f.to_cnf());
+    EXPECT_EQ(f.to_cnf(names, BDD_EXEC_ITERATIVE), f.to_cnf(names));
+    EXPECT_THROW(f.to_dnf(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_THROW(f.to_dnf(names, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(f.to_dnf(BDD_EXEC_ITERATIVE), f.to_dnf());
+    EXPECT_EQ(f.to_dnf(names, BDD_EXEC_ITERATIVE), f.to_dnf(names));
+
+    // print_pla recurses once per declared variable.
+    EXPECT_THROW(cout_capture([&]() { f.print_pla(BDD_EXEC_RECURSIVE); }), std::overflow_error);
+    std::string pla = cout_capture([&]() { f.print_pla(BDD_EXEC_ITERATIVE); });
+    EXPECT_EQ(pla, cout_capture([&]() { f.print_pla(); }));
+    EXPECT_NE(pla.find(".e"), std::string::npos);
+
+    EXPECT_THROW(f.set_zskip(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_NO_THROW(f.set_zskip(BDD_EXEC_ITERATIVE));
+    EXPECT_NO_THROW(f.set_zskip());
+
+    // combination recurses once per variable.
+    EXPECT_THROW(ZDD::combination(kDeep, 2, BDD_EXEC_RECURSIVE), std::overflow_error);
+    ZDD c2 = ZDD::combination(kDeep, 2, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(c2, ZDD::combination(kDeep, 2));
+    EXPECT_EQ(c2.count(), static_cast<double>(kDeep) * (kDeep - 1) / 2.0);
+
+    // Sampling over {{1..n}, {1}}.
+    ZDD g = f + ZDD::singleton(1);
+    std::mt19937_64 rng(7);
+    {
+        ZddCountMemo memo(g);
+        EXPECT_THROW(g.sample_k(1, rng, memo, BDD_EXEC_RECURSIVE), std::overflow_error);
+    }
+    ZddCountMemo memo(g);
+    ZDD sk = g.sample_k(1, rng, memo, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(sk.count(), 1.0);
+    EXPECT_EQ(sk & g, sk);
+    EXPECT_EQ(g.sample_k(1, rng, memo).count(), 1.0);
+    EXPECT_THROW(g.random_subset(0.5, rng, BDD_EXEC_RECURSIVE), std::overflow_error);
+    ZDD rs = g.random_subset(0.5, rng, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(rs & g, rs);
+    std::vector<double> w(bdd_varcount + 1, 1.0);
+    {
+        WeightedSampleMemo wm(g, w, WeightMode::Sum);
+        EXPECT_THROW(g.weighted_sample(w, WeightMode::Sum, rng, wm, BDD_EXEC_RECURSIVE),
+                     std::overflow_error);
+    }
+    {
+        WeightedSampleMemo wm(g, w, WeightMode::Sum);
+        std::vector<bddvar> s = g.weighted_sample(w, WeightMode::Sum, rng, wm, BDD_EXEC_ITERATIVE);
+        EXPECT_TRUE(g.contains(s));
+    }
+    {
+        WeightedSampleMemo wm(g, w, WeightMode::Product);
+        EXPECT_THROW(g.weighted_sample(w, WeightMode::Product, rng, wm, BDD_EXEC_RECURSIVE),
+                     std::overflow_error);
+    }
+    {
+        WeightedSampleMemo wm(g, w, WeightMode::Product);
+        std::vector<bddvar> s = g.weighted_sample(w, WeightMode::Product, rng, wm);
+        EXPECT_TRUE(g.contains(s));
+    }
+    std::vector<double> bw = ZDD::boltzmann_weights(w, 0.1);
+    {
+        WeightedSampleMemo bm(g, bw, WeightMode::Product);
+        EXPECT_THROW(g.boltzmann_sample(w, 0.1, rng, bm, BDD_EXEC_RECURSIVE), std::overflow_error);
+    }
+    {
+        WeightedSampleMemo bm(g, bw, WeightMode::Product);
+        std::vector<bddvar> s = g.boltzmann_sample(w, 0.1, rng, bm, BDD_EXEC_ITERATIVE);
+        EXPECT_TRUE(g.contains(s));
+    }
 }

@@ -265,8 +265,9 @@ static void enumerate_rec(bddp f, std::vector<bddvar>& current,
 // Level-based dispatcher for enumerate: use iterative variant when the
 // DD is too deep for the native recursion budget.
 static void enumerate_dispatch(bddp f, std::vector<bddvar>& current,
-                               std::vector<std::vector<bddvar>>& result) {
-    if (use_iter_1op(f)) {
+                               std::vector<std::vector<bddvar>>& result,
+                               BddExecMode mode) {
+    if (select_iter_1op(f, mode)) {
         enumerate_iter(f, current, result);
     } else {
         enumerate_rec(f, current, result);
@@ -491,15 +492,27 @@ static bddp combination_rec(const std::vector<bddvar>& sorted_vars,
 // by sorted_vars.size() - idx, so we switch to the iterative implementation
 // when that exceeds BDD_RecurLimit.
 static bddp combination_dispatch(const std::vector<bddvar>& sorted_vars,
-                                  size_t idx, bddvar k) {
-    if (sorted_vars.size() - idx >
-        static_cast<size_t>(BDD_RecurLimit)) {
+                                  size_t idx, bddvar k, BddExecMode mode) {
+    bool iter;
+    switch (mode) {
+    case BddExecMode::Iterative: iter = true; break;
+    case BddExecMode::Recursive: iter = false; break;
+    case BddExecMode::Auto:
+    default:
+        iter = sorted_vars.size() - idx > static_cast<size_t>(BDD_RecurLimit);
+        break;
+    }
+    if (iter) {
         return combination_iter(sorted_vars, idx, k);
     }
     return combination_rec(sorted_vars, idx, k);
 }
 
 ZDD ZDD::combination(bddvar n, bddvar k) {
+    return combination(n, k, BddExecMode::Auto);
+}
+
+ZDD ZDD::combination(bddvar n, bddvar k, BddExecMode mode) {
     if (k > n) return ZDD::Empty;
     // Ensure variables exist
     while (bdd_varcount < n) {
@@ -511,16 +524,20 @@ ZDD ZDD::combination(bddvar n, bddvar k) {
     std::sort(sorted_vars.begin(), sorted_vars.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
     bddp r = bdd_gc_guard([&]() -> bddp {
-        return combination_dispatch(sorted_vars, 0, k);
+        return combination_dispatch(sorted_vars, 0, k, mode);
     });
     return ZDD_ID(r);
 }
 
 std::vector<std::vector<bddvar>> ZDD::enumerate() const {
+    return enumerate(BddExecMode::Auto);
+}
+
+std::vector<std::vector<bddvar>> ZDD::enumerate(BddExecMode mode) const {
     if (root == bddnull) return {};
     std::vector<std::vector<bddvar>> result;
     std::vector<bddvar> current;
-    enumerate_dispatch(root, current, result);
+    enumerate_dispatch(root, current, result, mode);
     for (auto& s : result) {
         std::sort(s.begin(), s.end());
     }
@@ -577,8 +594,9 @@ static void print_sets_dispatch(std::ostream& os, bddp f,
                                 bool& first_set,
                                 const std::string& delim1,
                                 const std::string& delim2,
-                                const std::vector<std::string>* var_name_map) {
-    if (use_iter_1op(f)) {
+                                const std::vector<std::string>* var_name_map,
+                                BddExecMode mode) {
+    if (select_iter_1op(f, mode)) {
         print_sets_iter(os, f, current, first_set,
                         delim1, delim2, var_name_map);
     } else {
@@ -588,42 +606,66 @@ static void print_sets_dispatch(std::ostream& os, bddp f,
 }
 
 void ZDD::print_sets(std::ostream& os) const {
+    print_sets(os, BddExecMode::Auto);
+}
+
+void ZDD::print_sets(std::ostream& os, BddExecMode mode) const {
     if (root == bddnull) { os << "N"; return; }
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
     os << "{";
-    print_sets_dispatch(os, root, current, first_set, "},{", ",", nullptr);
+    print_sets_dispatch(os, root, current, first_set, "},{", ",", nullptr, mode);
     os << "}";
 }
 
 void ZDD::print_sets(std::ostream& os, const std::string& delim1,
                      const std::string& delim2) const {
+    print_sets(os, delim1, delim2, BddExecMode::Auto);
+}
+
+void ZDD::print_sets(std::ostream& os, const std::string& delim1,
+                     const std::string& delim2, BddExecMode mode) const {
     if (root == bddnull) { os << "N"; return; }
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
-    print_sets_dispatch(os, root, current, first_set, delim1, delim2, nullptr);
+    print_sets_dispatch(os, root, current, first_set, delim1, delim2, nullptr, mode);
 }
 
 void ZDD::print_sets(std::ostream& os, const std::string& delim1,
                      const std::string& delim2,
                      const std::vector<std::string>& var_name_map) const {
+    print_sets(os, delim1, delim2, var_name_map, BddExecMode::Auto);
+}
+
+void ZDD::print_sets(std::ostream& os, const std::string& delim1,
+                     const std::string& delim2,
+                     const std::vector<std::string>& var_name_map,
+                     BddExecMode mode) const {
     if (root == bddnull) { os << "N"; return; }
     if (root == bddempty) { os << "E"; return; }
     std::vector<bddvar> current;
     bool first_set = true;
     print_sets_dispatch(os, root, current, first_set,
-                        delim1, delim2, &var_name_map);
+                        delim1, delim2, &var_name_map, mode);
 }
 
 std::string ZDD::to_str() const {
+    return to_str(BddExecMode::Auto);
+}
+
+std::string ZDD::to_str(BddExecMode mode) const {
     std::ostringstream oss;
-    print_sets(oss);
+    print_sets(oss, mode);
     return oss.str();
 }
 
 std::string ZDD::to_cnf() const {
+    return to_cnf(BddExecMode::Auto);
+}
+
+std::string ZDD::to_cnf(BddExecMode mode) const {
     if (root == bddnull) return "N";
     if (root == bddempty) return "T";
     std::ostringstream oss;
@@ -631,13 +673,18 @@ std::string ZDD::to_cnf() const {
     bool first_set = true;
     oss << "(";
     print_sets_dispatch(oss, root, current, first_set,
-                        ") & (", " | ", nullptr);
+                        ") & (", " | ", nullptr, mode);
     oss << ")";
     return oss.str();
 }
 
 std::string ZDD::to_cnf(
     const std::vector<std::string>& var_name_map) const {
+    return to_cnf(var_name_map, BddExecMode::Auto);
+}
+
+std::string ZDD::to_cnf(
+    const std::vector<std::string>& var_name_map, BddExecMode mode) const {
     if (root == bddnull) return "N";
     if (root == bddempty) return "T";
     std::ostringstream oss;
@@ -645,12 +692,16 @@ std::string ZDD::to_cnf(
     bool first_set = true;
     oss << "(";
     print_sets_dispatch(oss, root, current, first_set,
-                        ") & (", " | ", &var_name_map);
+                        ") & (", " | ", &var_name_map, mode);
     oss << ")";
     return oss.str();
 }
 
 std::string ZDD::to_dnf() const {
+    return to_dnf(BddExecMode::Auto);
+}
+
+std::string ZDD::to_dnf(BddExecMode mode) const {
     if (root == bddnull) return "N";
     if (root == bddempty) return "F";
     std::ostringstream oss;
@@ -658,13 +709,18 @@ std::string ZDD::to_dnf() const {
     bool first_set = true;
     oss << "(";
     print_sets_dispatch(oss, root, current, first_set,
-                        ") | (", " & ", nullptr);
+                        ") | (", " & ", nullptr, mode);
     oss << ")";
     return oss.str();
 }
 
 std::string ZDD::to_dnf(
     const std::vector<std::string>& var_name_map) const {
+    return to_dnf(var_name_map, BddExecMode::Auto);
+}
+
+std::string ZDD::to_dnf(
+    const std::vector<std::string>& var_name_map, BddExecMode mode) const {
     if (root == bddnull) return "N";
     if (root == bddempty) return "F";
     std::ostringstream oss;
@@ -672,7 +728,7 @@ std::string ZDD::to_dnf(
     bool first_set = true;
     oss << "(";
     print_sets_dispatch(oss, root, current, first_set,
-                        ") | (", " & ", &var_name_map);
+                        ") | (", " & ", &var_name_map, mode);
     oss << ")";
     return oss.str();
 }
@@ -717,14 +773,26 @@ static bool print_pla_rec(bddp f, bddvar lev, std::string& cube) {
 // Level-based dispatcher for print_pla: recursion depth is bounded by lev,
 // so we switch to the iterative implementation when it exceeds the native
 // recursion budget.
-static bool print_pla_dispatch(bddp f, bddvar lev, std::string& cube) {
-    if (lev > static_cast<bddvar>(BDD_RecurLimit)) {
+static bool print_pla_dispatch(bddp f, bddvar lev, std::string& cube,
+                               BddExecMode mode) {
+    bool iter;
+    switch (mode) {
+    case BddExecMode::Iterative: iter = true; break;
+    case BddExecMode::Recursive: iter = false; break;
+    case BddExecMode::Auto:
+    default: iter = lev > static_cast<bddvar>(BDD_RecurLimit); break;
+    }
+    if (iter) {
         return print_pla_iter(f, lev, cube);
     }
     return print_pla_rec(f, lev, cube);
 }
 
 void ZDD::print_pla() const {
+    print_pla(BddExecMode::Auto);
+}
+
+void ZDD::print_pla(BddExecMode mode) const {
     if (root == bddnull) return;
 
     // Use the total number of declared variables for .i, not just the
@@ -745,7 +813,7 @@ void ZDD::print_pla() const {
     } else {
         // Recursive enumeration of product terms
         std::string cube(tlev, '0');
-        bool ok = print_pla_dispatch(root, tlev, cube);
+        bool ok = print_pla_dispatch(root, tlev, cube, mode);
         if (!ok) {
             // Error during traversal: do not output footer
             return;
@@ -938,7 +1006,11 @@ static void set_zskip_rec(bddp root) {
 }
 
 void ZDD::set_zskip() const {
-    if (use_iter_1op(root)) {
+    set_zskip(BddExecMode::Auto);
+}
+
+void ZDD::set_zskip(BddExecMode mode) const {
+    if (select_iter_1op(root, mode)) {
         set_zskip_iter(root);
     } else {
         set_zskip_rec(root);
@@ -1117,17 +1189,19 @@ static double ws_total_prod_rec(
 
 // Level-based dispatchers for the weighted-sample helpers above.
 static double ws_count_dispatch(bddp f,
-                                std::unordered_map<bddp, double>& memo) {
-    if (use_iter_1op(f)) return ws_count_iter(f, memo);
+                                std::unordered_map<bddp, double>& memo,
+                                BddExecMode mode) {
+    if (select_iter_1op(f, mode)) return ws_count_iter(f, memo);
     return ws_count_rec(f, memo);
 }
 
 static double ws_total_sum_dispatch(
     bddp f, const std::vector<double>& weights,
     WeightMemoMap& sum_memo,
-    std::unordered_map<bddp, double>& count_memo)
+    std::unordered_map<bddp, double>& count_memo,
+    BddExecMode mode)
 {
-    if (use_iter_1op(f)) {
+    if (select_iter_1op(f, mode)) {
         return ws_total_sum_iter(f, weights, sum_memo, count_memo);
     }
     return ws_total_sum_rec(f, weights, sum_memo, count_memo);
@@ -1135,9 +1209,9 @@ static double ws_total_sum_dispatch(
 
 static double ws_total_prod_dispatch(
     bddp f, const std::vector<double>& weights,
-    WeightMemoMap& prod_memo)
+    WeightMemoMap& prod_memo, BddExecMode mode)
 {
-    if (use_iter_1op(f)) return ws_total_prod_iter(f, weights, prod_memo);
+    if (select_iter_1op(f, mode)) return ws_total_prod_iter(f, weights, prod_memo);
     return ws_total_prod_rec(f, weights, prod_memo);
 }
 
@@ -1167,6 +1241,15 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
     const std::vector<double>& weights, WeightMode mode,
     std::function<double(double)> rand_func,
     WeightedSampleMemo& memo)
+{
+    return weighted_sample_impl(weights, mode, rand_func, memo,
+                                BddExecMode::Auto);
+}
+
+std::vector<bddvar> ZDD::weighted_sample_impl(
+    const std::vector<double>& weights, WeightMode mode,
+    std::function<double(double)> rand_func,
+    WeightedSampleMemo& memo, BddExecMode exec_mode)
 {
     if (root == bddnull) {
         throw std::invalid_argument("weighted_sample: null ZDD");
@@ -1217,9 +1300,10 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
     if (!memo.stored()) {
         if (mode == WeightMode::Sum) {
             ws_total_sum_dispatch(root, weights,
-                                  memo.weight_map(), memo.count_map());
+                                  memo.weight_map(), memo.count_map(),
+                                  exec_mode);
         } else {
-            ws_total_prod_dispatch(root, weights, memo.weight_map());
+            ws_total_prod_dispatch(root, weights, memo.weight_map(), exec_mode);
         }
         memo.mark_stored();
     }
@@ -1247,7 +1331,8 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
 
         // Compute total weight for validation
         double total = ws_total_sum_dispatch(f, weights,
-                                             memo.weight_map(), memo.count_map());
+                                             memo.weight_map(), memo.count_map(),
+                                             exec_mode);
         if (total <= 0.0) {
             throw std::invalid_argument(
                 "weighted_sample: total weight is zero (Sum mode)");
@@ -1263,12 +1348,14 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             bddp hi = node_hi(f_raw);
             if (comp) lo = bddnot(lo);
 
-            double c_lo = ws_count_dispatch(lo, memo.count_map());
-            double c_hi = ws_count_dispatch(hi, memo.count_map());
+            double c_lo = ws_count_dispatch(lo, memo.count_map(), exec_mode);
+            double c_hi = ws_count_dispatch(hi, memo.count_map(), exec_mode);
             double s_lo = ws_total_sum_dispatch(lo, weights,
-                                                memo.weight_map(), memo.count_map());
+                                                memo.weight_map(), memo.count_map(),
+                                                exec_mode);
             double s_hi = ws_total_sum_dispatch(hi, weights,
-                                                memo.weight_map(), memo.count_map());
+                                                memo.weight_map(), memo.count_map(),
+                                                exec_mode);
 
             double W_lo = c_lo * bias + s_lo;
             double W_hi = c_hi * (bias + weights[var]) + s_hi;
@@ -1289,7 +1376,7 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
         if (f_has_empty) {
             bddp f_no_empty = bddnot(f);
             double total_no_empty = ws_total_prod_dispatch(
-                f_no_empty, weights, memo.weight_map());
+                f_no_empty, weights, memo.weight_map(), exec_mode);
             double total_with_empty = total_no_empty + 1.0;
 
             if (total_with_empty <= 0.0) {
@@ -1304,7 +1391,8 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             f = f_no_empty;
         }
 
-        double total = ws_total_prod_dispatch(f, weights, memo.weight_map());
+        double total = ws_total_prod_dispatch(f, weights, memo.weight_map(),
+                                              exec_mode);
         if (total <= 0.0) {
             throw std::invalid_argument(
                 "weighted_sample: total weight is zero (Product mode)");
@@ -1319,9 +1407,11 @@ std::vector<bddvar> ZDD::weighted_sample_impl(
             bddp hi = node_hi(f_raw);
             if (comp) lo = bddnot(lo);
 
-            double W_lo = ws_total_prod_dispatch(lo, weights, memo.weight_map());
+            double W_lo = ws_total_prod_dispatch(lo, weights, memo.weight_map(),
+                                                 exec_mode);
             double W_hi = weights[var] *
-                          ws_total_prod_dispatch(hi, weights, memo.weight_map());
+                          ws_total_prod_dispatch(hi, weights, memo.weight_map(),
+                                                 exec_mode);
             double W_total = W_lo + W_hi;
 
             double r = rand_func(W_total);
