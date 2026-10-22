@@ -125,13 +125,13 @@ class TestSeqBDDOnSetOffSet:
     def test_on_set0_matching(self):
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1, v2])
-        r = s.on_set0(v1)
+        r = s.onset0(v1)
         assert r == kyotodd.SeqBDD.from_list([v2])
 
     def test_on_set0_non_matching(self):
         v1, v2 = _vars(2)
         s = kyotodd.SeqBDD.from_list([v1, v2])
-        r = s.on_set0(v2)
+        r = s.onset0(v2)
         assert r == kyotodd.SeqBDD(0)
 
     def test_on_set(self):
@@ -139,14 +139,14 @@ class TestSeqBDDOnSetOffSet:
         a = kyotodd.SeqBDD.from_list([v1])
         b = kyotodd.SeqBDD.from_list([v2])
         s = a + b
-        assert s.on_set(v1) == a
+        assert s.onset(v1) == a
 
     def test_off_set(self):
         v1, v2 = _vars(2)
         a = kyotodd.SeqBDD.from_list([v1])
         b = kyotodd.SeqBDD.from_list([v2])
         s = a + b
-        assert s.off_set(v1) == b
+        assert s.offset(v1) == b
 
 
 class TestSeqBDDConcatenation:
