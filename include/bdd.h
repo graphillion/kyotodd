@@ -1333,6 +1333,95 @@ bddp random_subset_iter(bddp root_f, double p, RNG& rng,
     return result;
 }
 
+// ---------------------------------------------------------------
+// random_family_rec: recursive builder for ZDD::random_family.
+// Builds the complete binary tree over sorted_vars[idx..] and draws one
+// coin per leaf, lo subtree before hi subtree, so the RNG is consumed in
+// the same order as random_family_iter. The leaf case is handled before
+// the guard so that the guarded depth equals n, matching the Auto rule
+// (n > BDD_RecurLimit) in ZDD::random_family.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+// ---------------------------------------------------------------
+
+template<typename RNG>
+bddp random_family_rec(const std::vector<bddvar>& sorted_vars, size_t idx,
+                       RNG& rng, std::uniform_int_distribution<int>& coin)
+{
+    if (idx >= sorted_vars.size()) {
+        return coin(rng) ? bddsingle : bddempty;
+    }
+    BDD_RecurGuard guard;
+    bddp lo = random_family_rec(sorted_vars, idx + 1, rng, coin);
+    bddp hi = random_family_rec(sorted_vars, idx + 1, rng, coin);
+    return ZDD::getnode_raw(sorted_vars[idx], lo, hi);
+}
+
+// ---------------------------------------------------------------
+// random_family_iter: explicit-stack counterpart of random_family_rec.
+// Same leaf order (lo subtree before hi subtree), so a given RNG state
+// yields the same family in both modes.
+// PRECONDITION: caller holds a bdd_gc_guard scope.
+// ---------------------------------------------------------------
+
+template<typename RNG>
+bddp random_family_iter(const std::vector<bddvar>& sorted_vars,
+                        RNG& rng, std::uniform_int_distribution<int>& coin)
+{
+    enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
+    struct Frame {
+        size_t idx;
+        bddp lo_result;
+        Phase phase;
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(sorted_vars.size() + 1);  // maximum depth of the build
+
+    Frame init;
+    init.idx = 0;
+    init.lo_result = bddnull;
+    init.phase = Phase::ENTER;
+    stack.push_back(init);
+
+    bddp result = bddnull;
+    while (!stack.empty()) {
+        Frame& frame = stack.back();
+        switch (frame.phase) {
+        case Phase::ENTER: {
+            if (frame.idx >= sorted_vars.size()) {
+                result = coin(rng) ? bddsingle : bddempty;
+                stack.pop_back();
+                break;
+            }
+            frame.phase = Phase::GOT_LO;
+            Frame child;
+            child.idx = frame.idx + 1;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_LO: {
+            frame.lo_result = result;
+            frame.phase = Phase::GOT_HI;
+            Frame child;
+            child.idx = frame.idx + 1;
+            child.lo_result = bddnull;
+            child.phase = Phase::ENTER;
+            stack.push_back(child);
+            break;
+        }
+        case Phase::GOT_HI: {
+            result = ZDD::getnode_raw(sorted_vars[frame.idx],
+                                      frame.lo_result, result);
+            stack.pop_back();
+            break;
+        }
+        }
+    }
+    return result;
+}
+
 } // namespace detail
 
 template<typename RNG>
@@ -1490,6 +1579,11 @@ std::vector<bddvar> ZDD::boltzmann_sample(
 
 template<typename RNG>
 ZDD ZDD::random_family(bddvar n, RNG& rng) {
+    return random_family(n, rng, BddExecMode::Auto);
+}
+
+template<typename RNG>
+ZDD ZDD::random_family(bddvar n, RNG& rng, BddExecMode mode) {
     // Ensure variables exist
     while (bdd_varcount < n) {
         bddnewvar();
@@ -1500,18 +1594,23 @@ ZDD ZDD::random_family(bddvar n, RNG& rng) {
     std::sort(sorted_vars.begin(), sorted_vars.end(),
               [](bddvar a, bddvar b) { return var2level[a] > var2level[b]; });
     std::uniform_int_distribution<int> coin(0, 1);
+    // The build recurses once per variable, so Auto switches to the
+    // explicit stack when n exceeds BDD_RecurLimit (same rule as
+    // combination()).
+    bool iter;
+    switch (mode) {
+    case BddExecMode::Iterative: iter = true; break;
+    case BddExecMode::Recursive: iter = false; break;
+    case BddExecMode::Auto:
+    default:
+        iter = n > static_cast<bddvar>(BDD_RecurLimit);
+        break;
+    }
     // Wrap the entire build in bdd_gc_guard so raw bddp intermediates
     // (lo built before hi at each level) survive across getnode_raw calls.
     bddp r = bdd_gc_guard([&]() -> bddp {
-        std::function<bddp(size_t)> build = [&](size_t idx) -> bddp {
-            if (idx >= sorted_vars.size()) {
-                return coin(rng) ? bddsingle : bddempty;
-            }
-            bddp lo = build(idx + 1);
-            bddp hi = build(idx + 1);
-            return ZDD::getnode_raw(sorted_vars[idx], lo, hi);
-        };
-        return build(0);
+        if (iter) return detail::random_family_iter(sorted_vars, rng, coin);
+        return detail::random_family_rec(sorted_vars, 0, rng, coin);
     });
     return ZDD_ID(r);
 }

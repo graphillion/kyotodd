@@ -917,6 +917,11 @@ public:
      */
     template<typename RNG>
     static ZDD random_family(bddvar n, RNG& rng);
+    /** @brief random_family() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto); Auto
+     *         picks the iterative builder when n exceeds BDD_RecurLimit. */
+    template<typename RNG>
+    static ZDD random_family(bddvar n, RNG& rng, BddExecMode mode);
 
     /** @brief Read 2-operand cache and return as ZDD. Returns ZDD::Null on miss.
      *  @param op Operation code in [BDD_OP_USER_MIN, 255]. Lower codes are reserved

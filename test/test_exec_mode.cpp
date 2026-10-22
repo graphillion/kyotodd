@@ -9,9 +9,12 @@
 #include "bigint.hpp"
 #include "seqbdd.h"
 #include <climits>
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <random>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -857,4 +860,44 @@ TEST_F(ExecModeTest, SeqDumpWeightIterDeep) {
     ASSERT_NE(mt, rmax.end());
     EXPECT_EQ(mt->first, static_cast<long long>(kDeep));
     EXPECT_EQ(*ZddMinWeightRange(f, w).begin(), *rmin.begin());
+}
+
+// --- ZDD::random_family ------------------------------------------------
+
+TEST_F(ExecModeTest, RandomFamilyModesAgree) {
+    // Both builders draw one coin per leaf in the same order, so a given
+    // seed must yield the same family, and leave the generator in the same
+    // state, in every mode.
+    for (bddvar n = 0; n <= 6; ++n) {
+        std::mt19937_64 rng_rec(1000 + n), rng_iter(1000 + n), rng_auto(1000 + n);
+        ZDD f_rec = ZDD::random_family(n, rng_rec, BDD_EXEC_RECURSIVE);
+        ZDD f_iter = ZDD::random_family(n, rng_iter, BDD_EXEC_ITERATIVE);
+        ZDD f_auto = ZDD::random_family(n, rng_auto);
+        EXPECT_EQ(f_rec.id(), f_iter.id()) << "n=" << n;
+        EXPECT_EQ(f_rec.id(), f_auto.id()) << "n=" << n;
+        std::uint64_t next_rec = rng_rec(), next_iter = rng_iter(), next_auto = rng_auto();
+        EXPECT_EQ(next_rec, next_iter) << "n=" << n;
+        EXPECT_EQ(next_rec, next_auto) << "n=" << n;
+        EXPECT_LE(f_iter.count(), std::ldexp(1.0, static_cast<int>(n)));
+    }
+
+    // The iterative builder is not degenerate: all four families over {1}
+    // appear.
+    std::mt19937_64 rng(123);
+    std::set<bddp> seen;
+    for (int i = 0; i < 200; ++i) {
+        seen.insert(ZDD::random_family(1, rng, BDD_EXEC_ITERATIVE).id());
+    }
+    EXPECT_EQ(seen.size(), 4u);
+}
+
+TEST_F(ExecModeTest, RandomFamilyDeep) {
+    // The build recurses once per variable but produces 2^n leaves, so at
+    // this depth only the recursion guard can be exercised: Recursive must
+    // fail before drawing a single coin (the iterative builder, which Auto
+    // selects here, would never finish).
+    std::mt19937_64 rng(7), fresh(7);
+    EXPECT_THROW(ZDD::random_family(static_cast<bddvar>(kDeep), rng, BDD_EXEC_RECURSIVE),
+                 std::overflow_error);
+    EXPECT_EQ(rng(), fresh());
 }
