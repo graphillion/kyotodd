@@ -37,6 +37,7 @@ set(KYOTODD_LIB_SOURCES
   src/pidd_iter.cpp
   src/rotpidd.cpp
   src/rotpidd_iter.cpp
+  src/permutation.cpp
   src/seqbdd.cpp
   src/unreduced_dd.cpp
   src/unreduced_dd_iter.cpp
@@ -170,6 +171,12 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(rotpidd_test PRIVATE -Wall -Wextra)
   endif()
 
+  add_executable(permutation_test test/test_permutation.cpp)
+  target_link_libraries(permutation_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(permutation_test PRIVATE -Wall -Wextra)
+  endif()
+
   add_executable(seqbdd_test test/test_seqbdd.cpp)
   target_link_libraries(seqbdd_test kyotodd_lib GTest::gtest_main)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -205,6 +212,7 @@ if(KYOTODD_BUILD_TESTS)
   gtest_discover_tests(bdd2_test)
   gtest_discover_tests(pidd_test)
   gtest_discover_tests(rotpidd_test)
+  gtest_discover_tests(permutation_test)
   gtest_discover_tests(seqbdd_test)
   gtest_discover_tests(ddbase_test)
   gtest_discover_tests(unreduced_dd_test)
