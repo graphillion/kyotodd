@@ -232,8 +232,8 @@ TEST_F(RotPiDDTest, Composition) {
     RotPiDD r1 = RotPiDD::VECtoRotPiDD(p1);
     RotPiDD r2 = RotPiDD::VECtoRotPiDD(p2);
 
-    /* r2 * r1 means apply r1 first, then r2 */
-    RotPiDD comp = r2 * r1;
+    /* r1 * r2 means apply r1 first, then r2 */
+    RotPiDD comp = r1 * r2;
     auto perms = comp.RotPiDDToVectorOfPerms();
     ASSERT_EQ(perms.size(), 1u);
 
