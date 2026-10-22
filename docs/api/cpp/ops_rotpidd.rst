@@ -57,6 +57,8 @@ Conversion Functions
 --------------------
 
 .. cpp:function:: static RotPiDD RotPiDD::VECtoRotPiDD(std::vector<int> v)
+                  static RotPiDD RotPiDD::from_vector(std::vector<int> v)
+                  static RotPiDD RotPiDD::from_vector(std::vector<int> v, BddExecMode mode)
 
    Convert a permutation vector to a RotPiDD containing that single
    permutation. The input is automatically normalized to [1..n].
@@ -118,6 +120,13 @@ RotPiDD Class
       Composition. Computes { pi . sigma | sigma in p, pi in q }.
       Decomposes on q's top variable and applies LeftRot recursively.
 
+   .. cpp:function:: RotPiDD multiply(const RotPiDD& q) const
+                     RotPiDD multiply(const RotPiDD& q, BddExecMode mode) const
+
+      Named form of ``operator*`` (composition). The second overload
+      selects the execution mode (``Auto`` / ``Recursive`` / ``Iterative``);
+      ``operator*`` uses ``Auto``.
+
    **Compound Assignment**
 
    .. cpp:function:: RotPiDD& operator&=(const RotPiDD& q)
@@ -152,6 +161,14 @@ RotPiDD Class
       :param v: Lower position (1-indexed).
       :return: A RotPiDD with the rotation applied.
 
+   .. cpp:function:: RotPiDD left_rot(int u, int v, BddExecMode mode) const
+
+      Same as ``left_rot(u, v)`` with an explicit execution mode. ``Auto``
+      picks the recursive implementation when the internal ZDD's level
+      is at most ``BDD_RecurLimit`` and the explicit-stack implementation
+      otherwise; ``Recursive`` / ``Iterative`` force one of them. Every
+      ``BddExecMode`` overload below follows the same rule.
+
    .. cpp:function:: RotPiDD Swap(int a, int b) const
 
       Swap positions *a* and *b* in all permutations.
@@ -161,12 +178,22 @@ RotPiDD Class
       :param a: First position.
       :param b: Second position.
 
+   .. cpp:function:: RotPiDD swap(int a, int b, BddExecMode mode) const
+
+      Same as ``swap(a, b)``; the mode is forwarded to the underlying
+      ``left_rot`` / ``multiply`` calls.
+
    .. cpp:function:: RotPiDD Reverse(int l, int r) const
 
       Reverse the subarray at positions *l* through *r* in all permutations.
 
       :param l: Left position.
       :param r: Right position.
+
+   .. cpp:function:: RotPiDD reverse(int l, int r, BddExecMode mode) const
+
+      Same as ``reverse(l, r)``; the mode is forwarded to the underlying
+      ``left_rot`` / ``multiply`` calls.
 
    .. cpp:function:: RotPiDD Cofact(int u, int v) const
 
@@ -176,15 +203,28 @@ RotPiDD Class
       :param u: Position to check.
       :param v: Required value.
 
+   .. cpp:function:: RotPiDD cofact(int u, int v, BddExecMode mode) const
+
+      Same as ``cofact(u, v)`` with an explicit execution mode.
+
    **Parity**
 
    .. cpp:function:: RotPiDD Odd() const
 
       Extract odd permutations from the set.
 
+   .. cpp:function:: RotPiDD odd(BddExecMode mode) const
+
+      Same as ``odd()`` with an explicit execution mode.
+
    .. cpp:function:: RotPiDD Even() const
 
       Extract even permutations. Computed as ``*this - Odd()``.
+
+   .. cpp:function:: RotPiDD even(BddExecMode mode) const
+
+      Same as ``even()`` with an explicit execution mode (forwarded to
+      ``odd``).
 
    **Filtering**
 
@@ -199,12 +239,20 @@ RotPiDD Class
       :param a: First position.
       :param b: Second position.
 
+   .. cpp:function:: RotPiDD order(int a, int b, BddExecMode mode) const
+
+      Same as ``order(a, b)`` with an explicit execution mode.
+
    **Transformations**
 
    .. cpp:function:: RotPiDD Inverse() const
 
       Compute the inverse of each permutation.
       Returns { sigma^{-1} | sigma in the set }.
+
+   .. cpp:function:: RotPiDD inverse(BddExecMode mode) const
+
+      Same as ``inverse()`` with an explicit execution mode.
 
    .. cpp:function:: RotPiDD Insert(int p, int v) const
 
@@ -213,17 +261,29 @@ RotPiDD Class
       :param p: Insertion position.
       :param v: Value to insert.
 
+   .. cpp:function:: RotPiDD insert(int p, int v, BddExecMode mode) const
+
+      Same as ``insert(p, v)`` with an explicit execution mode.
+
    .. cpp:function:: RotPiDD RemoveMax(int k) const
 
       Remove variables with x >= *k*, projecting down to sub-permutations.
 
       :param k: Threshold.
 
+   .. cpp:function:: RotPiDD remove_max(int k, BddExecMode mode) const
+
+      Same as ``remove_max(k)`` with an explicit execution mode.
+
    .. cpp:function:: RotPiDD normalizeRotPiDD(int k) const
 
       Remove variables with x > *k* by discarding rotation labels.
 
       :param k: Upper bound for retained variables.
+
+   .. cpp:function:: RotPiDD normalizeRotPiDD(int k, BddExecMode mode) const
+
+      Same as ``normalizeRotPiDD(k)`` with an explicit execution mode.
 
    **Query Methods**
 
@@ -259,9 +319,17 @@ RotPiDD Class
 
       Extract a single permutation from the set.
 
+   .. cpp:function:: RotPiDD extract_one(BddExecMode mode) const
+
+      Same as ``extract_one()`` with an explicit execution mode.
+
    .. cpp:function:: std::vector<std::vector<int>> RotPiDDToVectorOfPerms() const
 
       Convert to a vector of permutation vectors.
+
+   .. cpp:function:: std::vector<std::vector<int>> to_vector_of_perms(BddExecMode mode) const
+
+      Same as ``to_vector_of_perms()`` with an explicit execution mode.
 
    **Output**
 
@@ -274,10 +342,18 @@ RotPiDD Class
       Enumerate all permutations in vector notation
       (e.g., ``[2 3 1]``).
 
+   .. cpp:function:: void enumerate(BddExecMode mode) const
+
+      Same as ``enumerate()`` with an explicit execution mode.
+
    .. cpp:function:: void Enum2() const
 
       Enumerate all permutations in rotation notation
       (e.g., ``(3:1)(2:1)``).
+
+   .. cpp:function:: void enumerate2(BddExecMode mode) const
+
+      Same as ``enumerate2()`` with an explicit execution mode.
 
    **Optimization**
 
@@ -297,3 +373,18 @@ RotPiDD Class
       :param hash: Memoization table.
       :param w: Weight matrix. w[i][j] is the weight between elements i and j.
       :return: The maximum weight achievable.
+
+   .. cpp:type:: contmax_hash
+
+      The memoization table type used by ``contradictionMaximization``
+      (``std::unordered_map<std::pair<bddp, unsigned long long int>, long long int, hash_func>``).
+
+   .. cpp:function:: long long int contradictionMaximization(\
+         unsigned long long int used_set, \
+         std::vector<int>& unused_list, \
+         int n, \
+         contmax_hash& hash, \
+         const std::vector<std::vector<int>>& w, \
+         BddExecMode mode) const
+
+      Same as above with an explicit execution mode.

@@ -654,3 +654,231 @@ TEST_F(RotPiDDTest, RemoveMaxNonPositiveK) {
     EXPECT_EQ(p.remove_max(-1), p);
     EXPECT_EQ(p.remove_max(-100), p);
 }
+
+/* ---- Execution mode dispatch (_rec / _iter) ---- */
+
+namespace {
+
+const BddExecMode kRotModes[] = {BDD_EXEC_RECURSIVE, BDD_EXEC_ITERATIVE, BDD_EXEC_AUTO};
+
+// All permutations of {1..n}, encoded one by one through from_vector.
+RotPiDD rot_all_perms(int n) {
+    std::vector<int> v(n);
+    for (int i = 0; i < n; ++i) v[i] = i + 1;
+    RotPiDD all(0);
+    do {
+        all += RotPiDD::from_vector(v);
+    } while (std::next_permutation(v.begin(), v.end()));
+    return all;
+}
+
+std::string rot_enum_str(const RotPiDD& p, BddExecMode mode, bool form2) {
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    try {
+        if (form2) p.enumerate2(mode); else p.enumerate(mode);
+    } catch (...) {
+        std::cout.rdbuf(old);
+        throw;
+    }
+    std::cout.rdbuf(old);
+    return oss.str();
+}
+
+// { LeftRot(x, y) } for every rotation level 1..max_level: a ZDD chain with
+// one node per level, so every RotPiDD recursion walks all of them.
+RotPiDD rot_chain(bddvar max_level) {
+    bddp f = bddempty;
+    for (bddvar v = 1; v <= max_level; ++v) f = ZDD::getnode_raw(v, f, bddsingle);
+    return RotPiDD(ZDD_ID(f));
+}
+
+long long rot_contmax(const RotPiDD& p, int n,
+                      const std::vector< std::vector<int> >& w, BddExecMode mode) {
+    std::vector<int> unused_list;
+    for (int i = 1; i <= n; ++i) unused_list.push_back(i);
+    RotPiDD::contmax_hash hash;
+    return p.contradictionMaximization(0ULL, unused_list, n, hash, w, mode);
+}
+
+}  // namespace
+
+TEST_F(RotPiDDTest, ExecModesAgree) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();  // one spare element for insert()
+    RotPiDD all = rot_all_perms(4);
+    ASSERT_EQ(all.card(), 24u);
+    RotPiDD f = all.left_rot(3, 1) - RotPiDD(1).left_rot(2, 1) - RotPiDD(1);
+    RotPiDD g = RotPiDD(1).left_rot(4, 2) + RotPiDD(1).left_rot(3, 2).left_rot(2, 1);
+    std::vector<int> perm;
+    perm.push_back(3); perm.push_back(1); perm.push_back(4); perm.push_back(2);
+    std::vector< std::vector<int> > w(5, std::vector<int>(5, 0));
+    for (int i = 0; i < 5; ++i)
+        for (int j = 0; j < 5; ++j) w[i][j] = (i * 7 + j * 3) % 5 - 2;
+
+    // Reference values via the operator / Auto forms.
+    RotPiDD ref_lr = f.left_rot(4, 1);
+    RotPiDD ref_swap = f.swap(1, 3);
+    RotPiDD ref_rev = f.reverse(1, 4);
+    RotPiDD ref_cof = f.cofact(2, 3);
+    RotPiDD ref_odd = f.odd();
+    RotPiDD ref_even = f.even();
+    RotPiDD ref_mul = f * g;
+    RotPiDD ref_order = f.order(1, 3);
+    RotPiDD ref_inv = f.inverse();
+    RotPiDD ref_ins = f.insert(2, 3);
+    RotPiDD ref_rm = f.remove_max(2);
+    RotPiDD ref_norm = all.normalizeRotPiDD(2);
+    RotPiDD ref_fv = RotPiDD::from_vector(perm);
+    std::vector< std::vector<int> > ref_perms = f.to_vector_of_perms();
+    RotPiDD ref_ext = f.extract_one();
+    std::string ref_e1 = rot_enum_str(f, BDD_EXEC_AUTO, false);
+    std::string ref_e2 = rot_enum_str(f, BDD_EXEC_AUTO, true);
+    std::vector<int> ul;
+    for (int i = 1; i <= 4; ++i) ul.push_back(i);
+    std::unordered_map< std::pair<bddp, unsigned long long int>, long long int,
+                        RotPiDD::hash_func > h0;
+    long long ref_cm = f.contradictionMaximization(0ULL, ul, 4, h0, w);
+    EXPECT_EQ(ref_odd + ref_even, f);
+    EXPECT_EQ(ref_inv.inverse(), f);
+    EXPECT_EQ(ref_perms.size(), static_cast<size_t>(f.card()));
+
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kRotModes[i];
+        bddgc();  // clear the operation cache so each mode really recomputes
+        EXPECT_EQ(f.left_rot(4, 1, m), ref_lr);
+        EXPECT_EQ(f.swap(1, 3, m), ref_swap);
+        EXPECT_EQ(f.reverse(1, 4, m), ref_rev);
+        EXPECT_EQ(f.cofact(2, 3, m), ref_cof);
+        EXPECT_EQ(f.odd(m), ref_odd);
+        EXPECT_EQ(f.even(m), ref_even);
+        EXPECT_EQ(f.multiply(g, m), ref_mul);
+        EXPECT_EQ(f.multiply(g), ref_mul);
+        EXPECT_EQ(f.order(1, 3, m), ref_order);
+        EXPECT_EQ(f.inverse(m), ref_inv);
+        EXPECT_EQ(f.insert(2, 3, m), ref_ins);
+        EXPECT_EQ(f.remove_max(2, m), ref_rm);
+        EXPECT_EQ(all.normalizeRotPiDD(2, m), ref_norm);
+        EXPECT_EQ(RotPiDD::from_vector(perm, m), ref_fv);
+        EXPECT_EQ(f.to_vector_of_perms(m), ref_perms);
+        EXPECT_EQ(f.extract_one(m), ref_ext);
+        EXPECT_EQ(rot_enum_str(f, m, false), ref_e1);
+        EXPECT_EQ(rot_enum_str(f, m, true), ref_e2);
+        EXPECT_EQ(rot_contmax(f, 4, w, m), ref_cm);
+        // Error paths and trivial cases are mode independent.
+        EXPECT_THROW(f.left_rot(0, 1, m), std::invalid_argument);
+        EXPECT_THROW(f.cofact(1, 9, m), std::invalid_argument);
+        EXPECT_THROW(rot_contmax(f, 64, w, m), std::invalid_argument);
+        EXPECT_EQ(RotPiDD(-1).left_rot(1, 2, m), RotPiDD(-1));
+        EXPECT_EQ(RotPiDD(-1).odd(m), RotPiDD(-1));
+        EXPECT_EQ(f.multiply(RotPiDD(1), m), f);
+        EXPECT_EQ(RotPiDD(1).multiply(f, m), f);
+        EXPECT_EQ(RotPiDD(0).inverse(m), RotPiDD(0));
+        EXPECT_EQ(f.remove_max(0, m), f);
+    }
+}
+
+TEST_F(RotPiDDTest, ExecModesDeep) {
+    const int n = 130;  // elements; one spare so insert() can grow x to 130
+    for (int i = 0; i < n; ++i) RotPiDD_NewVar();
+    const bddvar levels = 129 * 128 / 2;  // every rotation with x <= 129
+    ASSERT_GT(static_cast<int>(levels), BDD_RecurLimit);
+    ASSERT_EQ(RotPiDD_Lev_XY(129, 1), static_cast<int>(levels));
+    RotPiDD chain = rot_chain(levels);
+    const double cnt = static_cast<double>(levels);
+    ASSERT_EQ(chain.get_zdd().count(), cnt);
+    ASSERT_EQ(chain.top_x(), 129);
+
+    // left_rot: forced recursion must hit the limit, iterative must succeed.
+    EXPECT_THROW(chain.left_rot(2, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD lr = chain.left_rot(2, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(lr.get_zdd().count(), cnt);
+    EXPECT_EQ(lr, chain.left_rot(2, 1));
+    EXPECT_EQ(lr.left_rot(2, 1, BDD_EXEC_ITERATIVE), chain);  // involution
+
+    // swap / reverse (composites over left_rot and multiply)
+    EXPECT_THROW(chain.swap(1, 3, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD sw = chain.swap(1, 3, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(sw.get_zdd().count(), cnt);
+    EXPECT_EQ(sw, chain.swap(1, 3));
+    // (reverse(1, 3) would reuse the swap(1, 3) composition cached just above,
+    // so use a range whose reversal is not a single swap.)
+    EXPECT_THROW(chain.reverse(1, 4, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD rv = chain.reverse(1, 4, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(rv.get_zdd().count(), cnt);
+    EXPECT_EQ(rv, chain.reverse(1, 4));
+
+    // cofact: LeftRot(x, y) fixes position 1 iff y != 1 (128 rotations have y == 1).
+    EXPECT_THROW(chain.cofact(1, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD c = chain.cofact(1, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(c, chain.cofact(1, 1));
+    EXPECT_EQ(c.get_zdd().count(), cnt - 128.0);
+
+    // odd / even: LeftRot(x, y) is odd iff x - y is odd -> 64 * 65 of them.
+    EXPECT_THROW(chain.odd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD o = chain.odd(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(o.get_zdd().count(), 64.0 * 65.0);
+    EXPECT_EQ(o + chain.even(BDD_EXEC_ITERATIVE), chain);
+    EXPECT_EQ(o, chain.odd());
+
+    // multiply: recursion runs over the right operand.
+    RotPiDD t = RotPiDD(1).left_rot(2, 1);
+    EXPECT_THROW(t.multiply(chain, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD m = t.multiply(chain, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(m, t * chain);
+    EXPECT_EQ(m.get_zdd().count(), cnt);
+
+    // order: exactly one of pi(1) < pi(2) and pi(2) < pi(1) holds.
+    EXPECT_THROW(chain.order(1, 2, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD o12 = chain.order(1, 2, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(o12, chain.order(1, 2));
+    RotPiDD o21 = chain.order(2, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(o12 + o21, chain);
+    EXPECT_EQ(o12 & o21, RotPiDD(0));
+
+    // inverse
+    EXPECT_THROW(chain.inverse(BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD inv = chain.inverse(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(inv.get_zdd().count(), cnt);
+    EXPECT_EQ(inv, chain.inverse());
+    EXPECT_EQ(inv.inverse(BDD_EXEC_ITERATIVE), chain);
+
+    // insert
+    EXPECT_THROW(chain.insert(1, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD ins = chain.insert(1, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(ins, chain.insert(1, 1));
+    EXPECT_EQ(ins.get_zdd().count(), cnt);
+
+    // remove_max / normalizeRotPiDD
+    EXPECT_THROW(chain.remove_max(1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(chain.remove_max(1, BDD_EXEC_ITERATIVE), chain.remove_max(1));
+    EXPECT_THROW(chain.normalizeRotPiDD(1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    RotPiDD nm = chain.normalizeRotPiDD(1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(nm, chain.normalizeRotPiDD(1));
+    EXPECT_EQ(nm, RotPiDD(1));  // every rotation label is discarded
+
+    // extract_one only follows 1-edges, so both modes succeed and agree.
+    RotPiDD one_r = chain.extract_one(BDD_EXEC_RECURSIVE);
+    RotPiDD one_i = chain.extract_one(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(one_r, one_i);
+    EXPECT_EQ(one_i.get_zdd().count(), 1.0);
+    EXPECT_EQ(one_i & chain, one_i);
+
+    // to_vector_of_perms
+    EXPECT_THROW(chain.to_vector_of_perms(BDD_EXEC_RECURSIVE), std::overflow_error);
+    std::vector< std::vector<int> > perms = chain.to_vector_of_perms(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(perms.size(), static_cast<size_t>(levels));
+    EXPECT_EQ(perms, chain.to_vector_of_perms());
+
+    // enumerate / enumerate2
+    EXPECT_THROW(rot_enum_str(chain, BDD_EXEC_RECURSIVE, false), std::overflow_error);
+    std::string e1 = rot_enum_str(chain, BDD_EXEC_ITERATIVE, false);
+    EXPECT_EQ(e1, rot_enum_str(chain, BDD_EXEC_AUTO, false));
+    EXPECT_THROW(rot_enum_str(chain, BDD_EXEC_RECURSIVE, true), std::overflow_error);
+    std::string e2 = rot_enum_str(chain, BDD_EXEC_ITERATIVE, true);
+    EXPECT_EQ(e2, rot_enum_str(chain, BDD_EXEC_AUTO, true));
+    size_t seps = 0;
+    for (size_t pos = e2.find(" + "); pos != std::string::npos; pos = e2.find(" + ", pos + 3)) ++seps;
+    EXPECT_EQ(seps + 1, static_cast<size_t>(levels));
+    EXPECT_NE(e2.find("(129:1)"), std::string::npos);
+    EXPECT_NE(e2.find("(2:1)"), std::string::npos);
+}

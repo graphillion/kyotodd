@@ -223,6 +223,16 @@ public:
     /** @deprecated Use left_rot() instead. */
     RotPiDD LeftRot(int u, int v) const { return left_rot(u, v); }
     /**
+     * @brief Apply left rotation LeftRot(u, v) with execution mode selection.
+     * @param u Upper position.
+     * @param v Lower position (v <= u).
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     *             Auto selects recursive if the internal ZDD's level
+     *             <= BDD_RecurLimit, else iterative.
+     * @return A new RotPiDD with the rotation applied.
+     */
+    RotPiDD left_rot(int u, int v, BddExecMode mode) const;
+    /**
      * @brief Swap positions a and b in all permutations.
      * @param a First position.
      * @param b Second position.
@@ -232,6 +242,17 @@ public:
     /** @deprecated Use swap() instead. */
     RotPiDD Swap(int a, int b) const { return swap(a, b); }
     /**
+     * @brief Swap positions a and b with execution mode selection.
+     *
+     * The mode is forwarded to the underlying left_rot / multiply calls.
+     *
+     * @param a First position.
+     * @param b Second position.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A new RotPiDD with the swap applied.
+     */
+    RotPiDD swap(int a, int b, BddExecMode mode) const;
+    /**
      * @brief Reverse positions l..r in all permutations.
      * @param l Left position.
      * @param r Right position.
@@ -240,6 +261,17 @@ public:
     RotPiDD reverse(int l, int r) const;
     /** @deprecated Use reverse() instead. */
     RotPiDD Reverse(int l, int r) const { return reverse(l, r); }
+    /**
+     * @brief Reverse positions l..r with execution mode selection.
+     *
+     * The mode is forwarded to the underlying left_rot / multiply calls.
+     *
+     * @param l Left position.
+     * @param r Right position.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A new RotPiDD with the reversal applied.
+     */
+    RotPiDD reverse(int l, int r, BddExecMode mode) const;
     /**
      * @brief Extract permutations where position u maps to value v.
      *
@@ -254,6 +286,14 @@ public:
     /** @deprecated Use cofact() instead. */
     RotPiDD Cofact(int u, int v) const { return cofact(u, v); }
     /**
+     * @brief Extract permutations with pi(u) = v, with execution mode selection.
+     * @param u Position to check.
+     * @param v Required value at position u.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD of sub-permutations satisfying the condition.
+     */
+    RotPiDD cofact(int u, int v, BddExecMode mode) const;
+    /**
      * @brief Extract odd permutations from the set.
      * @return A RotPiDD containing only the odd permutations.
      */
@@ -261,12 +301,40 @@ public:
     /** @deprecated Use odd() instead. */
     RotPiDD Odd() const { return odd(); }
     /**
+     * @brief Extract odd permutations with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing only the odd permutations.
+     */
+    RotPiDD odd(BddExecMode mode) const;
+    /**
      * @brief Extract even permutations from the set.
      * @return A RotPiDD containing only the even permutations.
      */
     RotPiDD even() const;
     /** @deprecated Use even() instead. */
     RotPiDD Even() const { return even(); }
+    /**
+     * @brief Extract even permutations with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing only the even permutations.
+     */
+    RotPiDD even(BddExecMode mode) const;
+    /**
+     * @brief Composition (multiplication) of permutation sets.
+     *
+     * Same as operator*: computes { pi . sigma | sigma in *this, pi in q }.
+     *
+     * @param q The right operand.
+     * @return The composed permutation set.
+     */
+    RotPiDD multiply(const RotPiDD& q) const;
+    /**
+     * @brief Composition (multiplication) with execution mode selection.
+     * @param q The right operand.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return The composed permutation set.
+     */
+    RotPiDD multiply(const RotPiDD& q, BddExecMode mode) const;
     /**
      * @brief Apply symmetric constraint (PermitSym) to the internal ZDD.
      * @param n Constraint parameter.
@@ -285,12 +353,27 @@ public:
     /** @deprecated Use order() instead. */
     RotPiDD Order(int a, int b) const { return order(a, b); }
     /**
+     * @brief Extract permutations where pi(a) < pi(b), with execution
+     *        mode selection.
+     * @param a First position.
+     * @param b Second position.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing only permutations satisfying the order.
+     */
+    RotPiDD order(int a, int b, BddExecMode mode) const;
+    /**
      * @brief Compute the inverse of each permutation in the set.
      * @return A RotPiDD of inverse permutations.
      */
     RotPiDD inverse() const;
     /** @deprecated Use inverse() instead. */
     RotPiDD Inverse() const { return inverse(); }
+    /**
+     * @brief Compute the inverse permutations with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD of inverse permutations.
+     */
+    RotPiDD inverse(BddExecMode mode) const;
     /**
      * @brief Insert value v at position p in each permutation.
      *
@@ -304,6 +387,14 @@ public:
     /** @deprecated Use insert() instead. */
     RotPiDD Insert(int p, int v) const { return insert(p, v); }
     /**
+     * @brief Insert value v at position p with execution mode selection.
+     * @param p Insertion position.
+     * @param v Value to insert.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD with the element inserted.
+     */
+    RotPiDD insert(int p, int v, BddExecMode mode) const;
+    /**
      * @brief Remove variables with size >= k from each permutation.
      * @param k Threshold value.
      * @return A RotPiDD with large variables removed.
@@ -311,6 +402,13 @@ public:
     RotPiDD remove_max(int k) const;
     /** @deprecated Use remove_max() instead. */
     RotPiDD RemoveMax(int k) const { return remove_max(k); }
+    /**
+     * @brief Remove variables with size >= k, with execution mode selection.
+     * @param k Threshold value.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD with large variables removed.
+     */
+    RotPiDD remove_max(int k, BddExecMode mode) const;
     /**
      * @brief Normalize by removing variables with x > k.
      *
@@ -321,6 +419,14 @@ public:
      * @return A normalized RotPiDD.
      */
     RotPiDD normalizeRotPiDD(int k) const;
+    /**
+     * @brief Normalize by removing variables with x > k, with execution
+     *        mode selection.
+     * @param k Upper bound for retained variables.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A normalized RotPiDD.
+     */
+    RotPiDD normalizeRotPiDD(int k, BddExecMode mode) const;
 
     /**
      * @brief Normalize a permutation vector to use values [1..n].
@@ -345,12 +451,27 @@ public:
     /** @deprecated Use from_vector() instead. */
     static RotPiDD VECtoRotPiDD(std::vector<int> v) { return from_vector(v); }
     /**
+     * @brief Convert a permutation vector to a RotPiDD with execution
+     *        mode selection (forwarded to the left_rot calls).
+     * @param v A vector of integers representing a permutation.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing the single permutation.
+     */
+    static RotPiDD from_vector(std::vector<int> v, BddExecMode mode);
+    /**
      * @brief Convert to a list of permutation vectors.
      * @return A vector of vectors, each representing a permutation as [1..n].
      */
     std::vector< std::vector<int> > to_vector_of_perms() const;
     /** @deprecated Use to_vector_of_perms() instead. */
     std::vector< std::vector<int> > RotPiDDToVectorOfPerms() const { return to_vector_of_perms(); }
+    /**
+     * @brief Convert to a list of permutation vectors with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A vector of vectors, each representing a permutation as [1..n].
+     */
+    std::vector< std::vector<int> > to_vector_of_perms(BddExecMode mode) const;
 
     /**
      * @brief Extract a single permutation from the set.
@@ -363,6 +484,12 @@ public:
     RotPiDD extract_one();
     /** @deprecated Use extract_one() instead. */
     RotPiDD Extract_One() { return extract_one(); }
+    /**
+     * @brief Extract a single permutation with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing exactly one permutation.
+     */
+    RotPiDD extract_one(BddExecMode mode) const;
     /** @brief Print all permutations to stdout. */
     void print() const;
     /** @deprecated Use print() instead. */
@@ -371,10 +498,22 @@ public:
     void enumerate() const;
     /** @deprecated Use enumerate() instead. */
     void Enum() const { enumerate(); }
+    /**
+     * @brief Enumerate all permutations in compact form with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     */
+    void enumerate(BddExecMode mode) const;
     /** @brief Enumerate all permutations in expanded form. */
     void enumerate2() const;
     /** @deprecated Use enumerate2() instead. */
     void Enum2() const { enumerate2(); }
+    /**
+     * @brief Enumerate all permutations in expanded form with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     */
+    void enumerate2(BddExecMode mode) const;
 
     /**
      * @brief Export the internal ZDD as SVG to a file.
@@ -436,6 +575,74 @@ public:
         int n,
         std::unordered_map< std::pair<bddp, unsigned long long int>, long long int, hash_func >& hash,
         const std::vector< std::vector<int> >& w) const;
+
+    /** @brief Memoization table type used by contradictionMaximization(). */
+    typedef std::unordered_map< std::pair<bddp, unsigned long long int>,
+                                long long int, hash_func > contmax_hash;
+
+    /**
+     * @brief Compute the maximum weighted contradiction value with
+     *        execution mode selection.
+     *
+     * Same as the overload above; @p mode selects the recursive or the
+     * explicit-stack implementation (Auto decides by the internal ZDD's
+     * level against BDD_RecurLimit).
+     */
+    long long int contradictionMaximization(
+        unsigned long long int used_set,
+        std::vector<int>& unused_list,
+        int n,
+        contmax_hash& hash,
+        const std::vector< std::vector<int> >& w,
+        BddExecMode mode) const;
+
+private:
+    // Recursive (_rec) and explicit-stack (_iter) cores of the recursive
+    // operations. Both share the same cache op codes, so their results are
+    // interchangeable; the public wrappers above dispatch between them via
+    // select_iter_1op / select_iter_2op. _rec bodies live in
+    // src/rotpidd.cpp, _iter bodies in src/rotpidd_iter.cpp. The frames
+    // hold RotPiDD objects (GC roots), so no bdd_gc_guard is needed around
+    // the _iter calls.
+    static RotPiDD left_rot_rec(const RotPiDD& p, int u, int v);
+    static RotPiDD left_rot_iter(const RotPiDD& p, int u, int v);
+    static RotPiDD cofact_rec(const RotPiDD& p, int u, int v);
+    static RotPiDD cofact_iter(const RotPiDD& p, int u, int v);
+    static RotPiDD odd_rec(const RotPiDD& p);
+    static RotPiDD odd_iter(const RotPiDD& p);
+    static RotPiDD multiply_rec(const RotPiDD& p, const RotPiDD& q);
+    static RotPiDD multiply_iter(const RotPiDD& p, const RotPiDD& q);
+    static RotPiDD order_rec(const RotPiDD& p, int a, int b);
+    static RotPiDD order_iter(const RotPiDD& p, int a, int b);
+    static RotPiDD inverse_rec(const RotPiDD& p);
+    static RotPiDD inverse_iter(const RotPiDD& p);
+    static RotPiDD insert_rec(const RotPiDD& f, int p, int v);
+    static RotPiDD insert_iter(const RotPiDD& f, int p, int v);
+    static RotPiDD remove_max_rec(const RotPiDD& p, int k);
+    static RotPiDD remove_max_iter(const RotPiDD& p, int k);
+    static RotPiDD normalize_rec(const RotPiDD& p, int k);
+    static RotPiDD normalize_iter(const RotPiDD& p, int k);
+    static RotPiDD extract_one_rec(const RotPiDD& p);
+    static RotPiDD extract_one_iter(const RotPiDD& p);
+    static void to_perms_rec(const RotPiDD& p, int dim, int* varmap,
+                             std::vector< std::vector<int> >& result);
+    static void to_perms_iter(const RotPiDD& p, int dim, int* varmap,
+                              std::vector< std::vector<int> >& result);
+    static void enumerate_rec(const RotPiDD& p, int dim, int* varmap, bool& flag);
+    static void enumerate_iter(const RotPiDD& p, int dim, int* varmap, bool& flag);
+    static void enumerate2_rec(const RotPiDD& p, std::vector<int>& levs, bool& flag);
+    static void enumerate2_iter(const RotPiDD& p, std::vector<int>& levs, bool& flag);
+    static long long int contmax_rec(
+        const RotPiDD& p, unsigned long long int used_set,
+        std::vector<int>& unused_list, int n, contmax_hash& hash,
+        const std::vector< std::vector<int> >& w);
+    static long long int contmax_iter(
+        const RotPiDD& p, unsigned long long int used_set,
+        std::vector<int>& unused_list, int n, contmax_hash& hash,
+        const std::vector< std::vector<int> >& w);
+    // Leaf printers shared by the _rec / _iter enumerators.
+    static void enumerate_print(int dim, const int* varmap, bool& flag);
+    static void enumerate2_print(const std::vector<int>& levs, bool& flag);
 };
 
 /** @brief Intersection of two permutation sets. */

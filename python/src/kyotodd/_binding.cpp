@@ -2966,7 +2966,8 @@ PYBIND11_MODULE(_core, m) {
              "In-place composition.")
 
         // Core operations
-        .def("left_rot", &RotPiDD::left_rot, py::arg("u"), py::arg("v"),
+        .def("left_rot", [](const RotPiDD& p, int u, int v) { return p.left_rot(u, v); },
+             py::arg("u"), py::arg("v"),
              "Apply left rotation LeftRot(u, v) to all permutations.\n\n"
              "Left-rotates positions v, v+1, ..., u cyclically.\n\n"
              "Args:\n"
@@ -2974,32 +2975,35 @@ PYBIND11_MODULE(_core, m) {
              "    v: Lower position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the rotation applied.\n")
-        .def("swap", &RotPiDD::swap, py::arg("a"), py::arg("b"),
+        .def("swap", [](const RotPiDD& p, int a, int b) { return p.swap(a, b); },
+             py::arg("a"), py::arg("b"),
              "Swap positions a and b in all permutations.\n\n"
              "Args:\n"
              "    a: First position.\n"
              "    b: Second position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the swap applied.\n")
-        .def("reverse", &RotPiDD::reverse, py::arg("l"), py::arg("r"),
+        .def("reverse", [](const RotPiDD& p, int l, int r) { return p.reverse(l, r); },
+             py::arg("l"), py::arg("r"),
              "Reverse positions l..r in all permutations.\n\n"
              "Args:\n"
              "    l: Left position.\n"
              "    r: Right position.\n\n"
              "Returns:\n"
              "    A new RotPiDD with the reversal applied.\n")
-        .def("cofact", &RotPiDD::cofact, py::arg("u"), py::arg("v"),
+        .def("cofact", [](const RotPiDD& p, int u, int v) { return p.cofact(u, v); },
+             py::arg("u"), py::arg("v"),
              "Extract permutations where position u has value v.\n\n"
              "Args:\n"
              "    u: Position to check.\n"
              "    v: Required value at position u.\n\n"
              "Returns:\n"
              "    A RotPiDD of sub-permutations satisfying the condition.\n")
-        .def("odd", &RotPiDD::odd,
+        .def("odd", [](const RotPiDD& p) { return p.odd(); },
              "Extract odd permutations from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only odd permutations.\n")
-        .def("even", &RotPiDD::even,
+        .def("even", [](const RotPiDD& p) { return p.even(); },
              "Extract even permutations from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only even permutations.\n")
@@ -3009,41 +3013,45 @@ PYBIND11_MODULE(_core, m) {
              "    n: Constraint parameter.\n\n"
              "Returns:\n"
              "    A RotPiDD with the constraint applied.\n")
-        .def("order", &RotPiDD::order, py::arg("a"), py::arg("b"),
+        .def("order", [](const RotPiDD& p, int a, int b) { return p.order(a, b); },
+             py::arg("a"), py::arg("b"),
              "Extract permutations where pi(a) < pi(b).\n\n"
              "Args:\n"
              "    a: First position.\n"
              "    b: Second position.\n\n"
              "Returns:\n"
              "    A RotPiDD containing only permutations satisfying the order.\n")
-        .def("inverse", &RotPiDD::inverse,
+        .def("inverse", [](const RotPiDD& p) { return p.inverse(); },
              "Compute the inverse of each permutation in the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing the inverse permutations.\n")
-        .def("insert", &RotPiDD::insert, py::arg("p"), py::arg("v"),
+        .def("insert", [](const RotPiDD& r, int p, int v) { return r.insert(p, v); },
+             py::arg("p"), py::arg("v"),
              "Insert value v at position p in each permutation.\n\n"
              "Args:\n"
              "    p: Insertion position.\n"
              "    v: Value to insert.\n\n"
              "Returns:\n"
              "    A RotPiDD with the element inserted.\n")
-        .def("remove_max", &RotPiDD::remove_max, py::arg("k"),
+        .def("remove_max", [](const RotPiDD& p, int k) { return p.remove_max(k); },
+             py::arg("k"),
              "Remove variables with size >= k from each permutation.\n\n"
              "Args:\n"
              "    k: Threshold.\n\n"
              "Returns:\n"
              "    A RotPiDD with large variables removed.\n")
-        .def("normalize", &RotPiDD::normalizeRotPiDD, py::arg("k"),
+        .def("normalize", [](const RotPiDD& p, int k) { return p.normalizeRotPiDD(k); },
+             py::arg("k"),
              "Remove variables with x > k by projecting them out.\n\n"
              "Args:\n"
              "    k: Upper bound for retained variables.\n\n"
              "Returns:\n"
              "    A normalized RotPiDD.\n")
-        .def("extract_one", &RotPiDD::extract_one,
+        .def("extract_one", [](RotPiDD& p) { return p.extract_one(); },
              "Extract a single permutation from the set.\n\n"
              "Returns:\n"
              "    A RotPiDD containing exactly one permutation.\n")
-        .def("to_perms", &RotPiDD::to_vector_of_perms,
+        .def("to_perms", [](const RotPiDD& p) { return p.to_vector_of_perms(); },
              "Convert to a list of permutation vectors.\n\n"
              "Returns:\n"
              "    A list of lists, each representing a permutation as [1..n].\n")

@@ -36,6 +36,7 @@ set(KYOTODD_LIB_SOURCES
   src/pidd.cpp
   src/pidd_iter.cpp
   src/rotpidd.cpp
+  src/rotpidd_iter.cpp
   src/seqbdd.cpp
   src/unreduced_dd.cpp
   src/unreduced_dd_iter.cpp
