@@ -289,6 +289,11 @@ static void print_seq_rec(std::ostream& os, SeqBDD f,
 
 void SeqBDD::print_seq() const
 {
+    print_seq(BddExecMode::Auto);
+}
+
+void SeqBDD::print_seq(BddExecMode mode) const
+{
     if (*this == SeqBDD(-1)) {
         std::cout << "(undefined)" << std::endl;
         return;
@@ -303,7 +308,7 @@ void SeqBDD::print_seq() const
     int idx = 0;
     bool flag = false;
 
-    if (use_iter_1op(zdd_.GetID())) {
+    if (select_iter_1op(zdd_.GetID(), mode)) {
         print_seq_iter(std::cout, *this, arr, idx, flag);
     } else {
         print_seq_rec(std::cout, *this, arr, idx, flag);
@@ -312,6 +317,11 @@ void SeqBDD::print_seq() const
 }
 
 std::string SeqBDD::seq_str() const
+{
+    return seq_str(BddExecMode::Auto);
+}
+
+std::string SeqBDD::seq_str(BddExecMode mode) const
 {
     if (*this == SeqBDD(-1)) return "(undefined)";
     if (*this == SeqBDD(0)) return "(empty)";
@@ -322,7 +332,7 @@ std::string SeqBDD::seq_str() const
     bool flag = false;
 
     std::ostringstream oss;
-    if (use_iter_1op(zdd_.GetID())) {
+    if (select_iter_1op(zdd_.GetID(), mode)) {
         print_seq_iter(oss, *this, arr, idx, flag);
     } else {
         print_seq_rec(oss, *this, arr, idx, flag);

@@ -7,6 +7,7 @@
 #include "bdd.h"
 #include "bdd_internal.h"
 #include "bigint.hpp"
+#include "seqbdd.h"
 #include <climits>
 #include <cstdio>
 #include <iostream>
@@ -775,4 +776,85 @@ TEST_F(ExecModeTest, ZddMembersDeep) {
         std::vector<bddvar> s = g.boltzmann_sample(w, 0.1, rng, bm, BDD_EXEC_ITERATIVE);
         EXPECT_TRUE(g.contains(s));
     }
+}
+
+// --- SeqBDD printing, bddvdump, weight-ordered iterators ----------------
+
+TEST_F(ExecModeTest, SeqDumpWeightIterModesAgree) {
+    for (int i = 0; i < 4; ++i) bddnewvar();
+    ZDD a = ZDD::singleton(1), b = ZDD::singleton(2), c = ZDD::singleton(3), d = ZDD::singleton(4);
+    ZDD z = (a * b * d) + (b * c) + c + ZDD(1);
+    SeqBDD s(z);
+    std::string ref_seq = s.seq_str();
+    std::string ref_print = cout_capture([&]() { s.print_seq(); });
+    std::vector<int> w(bdd_varcount + 1, 0);
+    w[1] = 3; w[2] = 1; w[3] = 4; w[4] = 1;
+    std::vector<std::pair<long long, std::vector<bddvar> > > ref_min, ref_max;
+    for (ZddMinWeightIterator it = ZddMinWeightRange(z, w).begin();
+         it != ZddMinWeightIterator(); ++it) ref_min.push_back(*it);
+    for (ZddMaxWeightIterator it = ZddMaxWeightRange(z, w).begin();
+         it != ZddMaxWeightIterator(); ++it) ref_max.push_back(*it);
+    EXPECT_EQ(ref_min.size(), 4u);
+    EXPECT_EQ(ref_max.size(), 4u);
+    bddp roots[3] = {z.id(), a.id(), bddnull};
+
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kModes[i];
+        bddgc();  // clear the cache so each mode really recomputes
+        EXPECT_EQ(s.seq_str(m), ref_seq);
+        EXPECT_EQ(cout_capture([&]() { s.print_seq(m); }), ref_print);
+        EXPECT_EQ(SeqBDD(0).seq_str(m), "(empty)");
+        EXPECT_EQ(SeqBDD(-1).seq_str(m), "(undefined)");
+        with_stdout_discarded([&]() {
+            EXPECT_NO_THROW(bddvdump(roots, 3, m));
+            EXPECT_NO_THROW(bddvdump(roots, 0, m));
+        });
+        std::vector<std::pair<long long, std::vector<bddvar> > > got_min, got_max;
+        for (ZddMinWeightIterator it = ZddMinWeightRange(z, w, m).begin();
+             it != ZddMinWeightIterator(); ++it) got_min.push_back(*it);
+        for (ZddMaxWeightIterator it = ZddMaxWeightRange(z, w, m).begin();
+             it != ZddMaxWeightIterator(); ++it) got_max.push_back(*it);
+        EXPECT_EQ(got_min, ref_min);
+        EXPECT_EQ(got_max, ref_max);
+        EXPECT_EQ(*ZddMinWeightIterator(z, w, m), ref_min[0]);
+        EXPECT_EQ(*ZddMaxWeightIterator(z, w, m), ref_max[0]);
+        EXPECT_EQ(ZddMinWeightRange(ZDD(0), w, m).begin(), ZddMinWeightRange(ZDD(0), w, m).end());
+    }
+}
+
+TEST_F(ExecModeTest, SeqDumpWeightIterDeep) {
+    ZDD f = deep_single_set(kDeep);
+
+    // SeqBDD: one sequence of kDeep symbols, so printing walks the chain.
+    SeqBDD s(f);
+    EXPECT_THROW(s.seq_str(BDD_EXEC_RECURSIVE), std::overflow_error);
+    std::string txt = s.seq_str(BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(txt, s.seq_str());
+    EXPECT_THROW(cout_capture([&]() { s.print_seq(BDD_EXEC_RECURSIVE); }), std::overflow_error);
+    EXPECT_EQ(cout_capture([&]() { s.print_seq(BDD_EXEC_ITERATIVE); }), txt + "\n");
+
+    // bddvdump dispatches per root.
+    bddp roots[2] = {f.id(), bddnull};
+    with_stdout_discarded([&]() {
+        EXPECT_THROW(bddvdump(roots, 2, BDD_EXEC_RECURSIVE), std::overflow_error);
+        EXPECT_NO_THROW(bddvdump(roots, 2, BDD_EXEC_ITERATIVE));
+        EXPECT_NO_THROW(bddvdump(roots, 2));
+    });
+
+    // Weight-ordered iterators compute the shortest distance over the chain.
+    std::vector<int> w(bdd_varcount + 1, 1);
+    EXPECT_THROW(ZddMinWeightRange(f, w, BDD_EXEC_RECURSIVE).begin(), std::overflow_error);
+    EXPECT_THROW(ZddMaxWeightIterator(f, w, BDD_EXEC_RECURSIVE), std::overflow_error);
+    ZddMinWeightRange rmin(f, w, BDD_EXEC_ITERATIVE);
+    ZddMinWeightIterator it = rmin.begin();
+    ASSERT_NE(it, rmin.end());
+    EXPECT_EQ(it->first, static_cast<long long>(kDeep));
+    EXPECT_EQ(it->second.size(), static_cast<size_t>(kDeep));
+    ++it;
+    EXPECT_EQ(it, rmin.end());
+    ZddMaxWeightRange rmax(f, w, BDD_EXEC_ITERATIVE);
+    ZddMaxWeightIterator mt = rmax.begin();
+    ASSERT_NE(mt, rmax.end());
+    EXPECT_EQ(mt->first, static_cast<long long>(kDeep));
+    EXPECT_EQ(*ZddMinWeightRange(f, w).begin(), *rmin.begin());
 }

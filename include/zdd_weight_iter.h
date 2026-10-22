@@ -57,6 +57,11 @@ public:
     /// weights must be indexed by variable number with size > var_used().
     ZddMinWeightIterator(const ZDD& zdd, const std::vector<int>& weights);
 
+    /// Same as above with execution mode selection for the internal
+    /// shortest-distance computation (Recursive, Iterative, or Auto).
+    ZddMinWeightIterator(const ZDD& zdd, const std::vector<int>& weights,
+                         BddExecMode mode);
+
     /// Construct an end (sentinel) iterator.
     ZddMinWeightIterator();
 
@@ -86,8 +91,9 @@ private:
                             std::vector<WeightedPath>,
                             std::greater<WeightedPath> > candidates;
         std::vector<Path> found_paths;
+        BddExecMode exec_mode;
 
-        State() : zdd(0) {}
+        State() : zdd(0), exec_mode(BddExecMode::Auto) {}
     };
 
     std::shared_ptr<State> state_;
@@ -113,11 +119,15 @@ private:
 class ZddMinWeightRange {
 public:
     ZddMinWeightRange(const ZDD& zdd, const std::vector<int>& weights);
+    /// Same as above with execution mode selection (forwarded to the iterator).
+    ZddMinWeightRange(const ZDD& zdd, const std::vector<int>& weights,
+                      BddExecMode mode);
     ZddMinWeightIterator begin() const;
     ZddMinWeightIterator end() const;
 private:
     ZDD zdd_;
     std::vector<int> weights_;
+    BddExecMode mode_;
 };
 
 /**
@@ -138,6 +148,11 @@ public:
 
     /// Construct a begin iterator for the given ZDD and weights.
     ZddMaxWeightIterator(const ZDD& zdd, const std::vector<int>& weights);
+
+    /// Same as above with execution mode selection (forwarded to the
+    /// underlying ZddMinWeightIterator).
+    ZddMaxWeightIterator(const ZDD& zdd, const std::vector<int>& weights,
+                         BddExecMode mode);
 
     /// Construct an end (sentinel) iterator.
     ZddMaxWeightIterator();
@@ -163,11 +178,15 @@ private:
 class ZddMaxWeightRange {
 public:
     ZddMaxWeightRange(const ZDD& zdd, const std::vector<int>& weights);
+    /// Same as above with execution mode selection (forwarded to the iterator).
+    ZddMaxWeightRange(const ZDD& zdd, const std::vector<int>& weights,
+                      BddExecMode mode);
     ZddMaxWeightIterator begin() const;
     ZddMaxWeightIterator end() const;
 private:
     ZDD zdd_;
     std::vector<int> weights_;
+    BddExecMode mode_;
 };
 
 } // namespace kyotodd

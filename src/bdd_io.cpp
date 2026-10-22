@@ -531,6 +531,10 @@ void bdddump(bddp f, BddExecMode mode) {
 }
 
 void bddvdump(bddp *p, int n) {
+    bddvdump(p, n, BddExecMode::Auto);
+}
+
+void bddvdump(bddp *p, int n, BddExecMode mode) {
     if (!p || n <= 0) return;
     // Find effective limit (bddnull acts as sentinel)
     int lim = 0;
@@ -555,7 +559,7 @@ void bddvdump(bddp *p, int n) {
     // iterative implementation when the root's level exceeds BDD_RecurLimit.
     std::unordered_set<bddp> visited;
     for (int i = 0; i < lim; i++) {
-        if (use_iter_1op(p[i])) {
+        if (select_iter_1op(p[i], mode)) {
             dump_iter(p[i], visited);
         } else {
             dump_rec(p[i], visited);

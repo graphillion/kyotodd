@@ -157,7 +157,7 @@ static long long compute_min_dist_iter(
 }
 
 long long ZddMinWeightIterator::compute_min_dist(bddp f) {
-    if (use_iter_1op(f)) {
+    if (select_iter_1op(f, state_->exec_mode)) {
         return compute_min_dist_iter(f, state_->weights, state_->min_dist_memo);
     }
     return compute_min_dist_rec(f, state_->weights, state_->min_dist_memo);
@@ -230,10 +230,19 @@ ZddMinWeightIterator::path_to_value(
 ZddMinWeightIterator::ZddMinWeightIterator(
     const ZDD& zdd,
     const std::vector<int>& weights)
+    : ZddMinWeightIterator(zdd, weights, BddExecMode::Auto)
+{
+}
+
+ZddMinWeightIterator::ZddMinWeightIterator(
+    const ZDD& zdd,
+    const std::vector<int>& weights,
+    BddExecMode mode)
     : state_(std::make_shared<State>()), exhausted_(false)
 {
     state_->zdd = zdd;
     state_->weights = weights;
+    state_->exec_mode = mode;
 
     bddp root = zdd.id();
 
@@ -464,12 +473,20 @@ bool ZddMinWeightIterator::operator!=(
 ZddMinWeightRange::ZddMinWeightRange(
     const ZDD& zdd,
     const std::vector<int>& weights)
-    : zdd_(zdd), weights_(weights)
+    : zdd_(zdd), weights_(weights), mode_(BddExecMode::Auto)
+{
+}
+
+ZddMinWeightRange::ZddMinWeightRange(
+    const ZDD& zdd,
+    const std::vector<int>& weights,
+    BddExecMode mode)
+    : zdd_(zdd), weights_(weights), mode_(mode)
 {
 }
 
 ZddMinWeightIterator ZddMinWeightRange::begin() const {
-    return ZddMinWeightIterator(zdd_, weights_);
+    return ZddMinWeightIterator(zdd_, weights_, mode_);
 }
 
 ZddMinWeightIterator ZddMinWeightRange::end() const {
@@ -492,7 +509,13 @@ static std::vector<int> negate_weights(const std::vector<int>& weights) {
 
 ZddMaxWeightIterator::ZddMaxWeightIterator(
     const ZDD& zdd, const std::vector<int>& weights)
-    : inner_(zdd, negate_weights(weights)), current_(), exhausted_(false)
+    : ZddMaxWeightIterator(zdd, weights, BddExecMode::Auto)
+{
+}
+
+ZddMaxWeightIterator::ZddMaxWeightIterator(
+    const ZDD& zdd, const std::vector<int>& weights, BddExecMode mode)
+    : inner_(zdd, negate_weights(weights), mode), current_(), exhausted_(false)
 {
     ZddMinWeightIterator end;
     if (inner_ == end) {
@@ -555,12 +578,18 @@ bool ZddMaxWeightIterator::operator!=(const ZddMaxWeightIterator& other) const {
 
 ZddMaxWeightRange::ZddMaxWeightRange(
     const ZDD& zdd, const std::vector<int>& weights)
-    : zdd_(zdd), weights_(weights)
+    : zdd_(zdd), weights_(weights), mode_(BddExecMode::Auto)
+{
+}
+
+ZddMaxWeightRange::ZddMaxWeightRange(
+    const ZDD& zdd, const std::vector<int>& weights, BddExecMode mode)
+    : zdd_(zdd), weights_(weights), mode_(mode)
 {
 }
 
 ZddMaxWeightIterator ZddMaxWeightRange::begin() const {
-    return ZddMaxWeightIterator(zdd_, weights_);
+    return ZddMaxWeightIterator(zdd_, weights_, mode_);
 }
 
 ZddMaxWeightIterator ZddMaxWeightRange::end() const {

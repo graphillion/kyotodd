@@ -196,4 +196,5 @@ Debug Dump
 
 .. doxygenfunction:: bdddump(bddp f)
 .. doxygenfunction:: bdddump(bddp f, BddExecMode mode)
-.. doxygenfunction:: bddvdump
+.. doxygenfunction:: bddvdump(bddp *p, int n)
+.. doxygenfunction:: bddvdump(bddp *p, int n, BddExecMode mode)

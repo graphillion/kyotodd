@@ -220,6 +220,13 @@ void bdddump(bddp f, BddExecMode mode);
  */
 void bddvdump(bddp *p, int n);
 
+/** @brief Dump multiple BDD/ZDD roots with execution mode selection.
+ *  @param p Array of node IDs (bddnull terminates the scan early).
+ *  @param n Maximum number of elements to scan in @p p.
+ *  @param mode Execution mode (Recursive, Iterative, or Auto), applied
+ *              per root. */
+void bddvdump(bddp *p, int n, BddExecMode mode);
+
 // --- Knuth format save/load (obsolete) ---
 
 /**

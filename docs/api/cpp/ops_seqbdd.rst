@@ -175,12 +175,16 @@ SeqBDD Class
       Export the internal ZDD to a C++ output stream.
 
    .. cpp:function:: void print_seq() const
+                     void print_seq(BddExecMode mode) const
 
       Print all sequences in human-readable form to stdout.
       Sequences are separated by ``" + "``. The empty sequence is
       shown as ``e``. Each symbol is displayed as its level value.
+      The second overload selects the execution mode (``Auto`` /
+      ``Recursive`` / ``Iterative``).
 
    .. cpp:function:: std::string seq_str() const
+                     std::string seq_str(BddExecMode mode) const
 
       Return the same output as ``print_seq()`` as a string.
 

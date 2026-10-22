@@ -173,11 +173,17 @@ public:
     void print_seq() const;
     /** @deprecated Use print_seq() instead. */
     void PrintSeq() const { print_seq(); }
+    /** @brief print_seq() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    void print_seq(BddExecMode mode) const;
     /**
      * @brief Get all sequences as a string.
      * @return A string representation of all sequences.
      */
     std::string seq_str() const;
+    /** @brief seq_str() with execution mode selection.
+     *  @param mode Execution mode (Recursive, Iterative, or Auto). */
+    std::string seq_str(BddExecMode mode) const;
 
     /**
      * @brief Export the internal ZDD as SVG to a file.
