@@ -501,3 +501,141 @@ TEST_F(PiDDTest, SvgVarNameMap) {
     // The transposition label should appear as node text
     EXPECT_TRUE(svg.find("(2,1)") != std::string::npos);
 }
+
+/* ---- Execution mode dispatch (_rec / _iter) ---- */
+
+namespace {
+
+const BddExecMode kPiddModes[] = {BDD_EXEC_RECURSIVE, BDD_EXEC_ITERATIVE, BDD_EXEC_AUTO};
+
+// All permutations of {1..n}, built as a product of (1 + Swap(x, y)) factors.
+PiDD pidd_all_perms(int n) {
+    PiDD u(1);
+    for (int x = 2; x <= n; ++x) {
+        PiDD g = u;
+        for (int y = 1; y < x; ++y) g += u.swap(x, y);
+        u = g;
+    }
+    return u;
+}
+
+std::string pidd_enum_str(const PiDD& p, BddExecMode mode, bool form2) {
+    std::ostringstream oss;
+    std::streambuf* old = std::cout.rdbuf(oss.rdbuf());
+    try {
+        if (form2) p.enumerate2(mode); else p.enumerate(mode);
+    } catch (...) {
+        std::cout.rdbuf(old);
+        throw;
+    }
+    std::cout.rdbuf(old);
+    return oss.str();
+}
+
+// { Swap(x, y) } for every transposition level: a ZDD chain with one node
+// per level, so every PiDD recursion walks all n(n-1)/2 levels.
+PiDD pidd_transposition_chain() {
+    bddp f = bddempty;
+    bddvar n = bddvarused();
+    for (bddvar v = 1; v <= n; ++v) f = ZDD::getnode_raw(v, f, bddsingle);
+    return PiDD(ZDD_ID(f));
+}
+
+}  // namespace
+
+TEST_F(PiDDTest, ExecModesAgree) {
+    for (int i = 0; i < 4; ++i) PiDD_NewVar();
+    PiDD all = pidd_all_perms(4);
+    PiDD f = all.swap(3, 1) - PiDD(1).swap(2, 1) - PiDD(1);
+    PiDD g = PiDD(1).swap(4, 2) + PiDD(1).swap(3, 2).swap(2, 1);
+    ASSERT_EQ(all.card(), 24u);
+
+    // Reference values via the operator / Auto forms.
+    PiDD ref_swap = f.swap(4, 1);
+    PiDD ref_cof = f.cofact(2, 3);
+    PiDD ref_odd = f.odd();
+    PiDD ref_even = f.even();
+    PiDD ref_mul = f * g;
+    PiDD ref_div = all / g;
+    std::string ref_e1 = pidd_enum_str(f, BDD_EXEC_AUTO, false);
+    std::string ref_e2 = pidd_enum_str(f, BDD_EXEC_AUTO, true);
+    EXPECT_EQ(ref_odd + ref_even, f);
+
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kPiddModes[i];
+        bddgc();  // clear the operation cache so each mode really recomputes
+        EXPECT_EQ(f.swap(4, 1, m), ref_swap);
+        EXPECT_EQ(f.cofact(2, 3, m), ref_cof);
+        EXPECT_EQ(f.odd(m), ref_odd);
+        EXPECT_EQ(f.even(m), ref_even);
+        EXPECT_EQ(f.multiply(g, m), ref_mul);
+        EXPECT_EQ(f.multiply(g), ref_mul);
+        EXPECT_EQ(all.divide(g, m), ref_div);
+        EXPECT_EQ(all.divide(g), ref_div);
+        EXPECT_EQ(pidd_enum_str(f, m, false), ref_e1);
+        EXPECT_EQ(pidd_enum_str(f, m, true), ref_e2);
+        // Error paths are mode independent.
+        EXPECT_THROW(f.swap(0, 1, m), std::invalid_argument);
+        EXPECT_THROW(f.cofact(1, 5, m), std::invalid_argument);
+        EXPECT_THROW(f.divide(PiDD(0), m), std::invalid_argument);
+        EXPECT_EQ(PiDD(-1).swap(1, 2, m), PiDD(-1));
+        EXPECT_EQ(PiDD(-1).odd(m), PiDD(-1));
+        EXPECT_EQ(f.multiply(PiDD(1), m), f);
+        EXPECT_EQ(f.divide(PiDD(1), m), f);
+    }
+}
+
+TEST_F(PiDDTest, ExecModesDeep) {
+    const int n = 129;  // n(n-1)/2 = 8256 levels > BDD_RecurLimit
+    for (int i = 0; i < n; ++i) PiDD_NewVar();
+    ASSERT_GT(static_cast<int>(bddvarused()), BDD_RecurLimit);
+    PiDD chain = pidd_transposition_chain();
+    const double levels = static_cast<double>(bddvarused());
+    ASSERT_EQ(chain.get_zdd().count(), levels);
+
+    // swap: forced recursion must hit the limit, iterative must succeed.
+    EXPECT_THROW(chain.swap(2, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    PiDD s = chain.swap(2, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(s.get_zdd().count(), levels);
+    EXPECT_EQ(s, chain.swap(2, 1));
+    EXPECT_EQ(s.swap(2, 1, BDD_EXEC_ITERATIVE), chain);  // involution
+
+    // cofact
+    EXPECT_THROW(chain.cofact(1, 1, BDD_EXEC_RECURSIVE), std::overflow_error);
+    PiDD c = chain.cofact(1, 1, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(c, chain.cofact(1, 1));
+    // Swap(x, y) fixes position 1 iff y != 1: (n-1)(n-2)/2 such transpositions.
+    EXPECT_EQ(c.get_zdd().count(), levels - static_cast<double>(n - 1));
+
+    // odd / even: every transposition is odd.
+    EXPECT_THROW(chain.odd(BDD_EXEC_RECURSIVE), std::overflow_error);
+    EXPECT_EQ(chain.odd(BDD_EXEC_ITERATIVE), chain);
+    EXPECT_EQ(chain.even(BDD_EXEC_ITERATIVE), PiDD(0));
+    EXPECT_EQ(chain.odd(), chain);
+
+    // multiply: recursion runs over the right operand.
+    PiDD t = PiDD(1).swap(2, 1);
+    EXPECT_THROW(t.multiply(chain, BDD_EXEC_RECURSIVE), std::overflow_error);
+    PiDD m = t.multiply(chain, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(m, t * chain);
+    EXPECT_EQ(m.get_zdd().count(), levels);
+
+    // divide: the cofactor step walks the whole chain.
+    EXPECT_THROW(chain.divide(t, BDD_EXEC_RECURSIVE), std::overflow_error);
+    PiDD d = chain.divide(t, BDD_EXEC_ITERATIVE);
+    EXPECT_EQ(d, chain / t);
+
+    // enumerate / enumerate2
+    EXPECT_THROW(pidd_enum_str(chain, BDD_EXEC_RECURSIVE, false), std::overflow_error);
+    std::string e1 = pidd_enum_str(chain, BDD_EXEC_ITERATIVE, false);
+    EXPECT_EQ(e1, pidd_enum_str(chain, BDD_EXEC_AUTO, false));
+    EXPECT_THROW(pidd_enum_str(chain, BDD_EXEC_RECURSIVE, true), std::overflow_error);
+    std::string e2 = pidd_enum_str(chain, BDD_EXEC_ITERATIVE, true);
+    EXPECT_EQ(e2, pidd_enum_str(chain, BDD_EXEC_AUTO, true));
+    // One entry per transposition, joined by " + ".
+    size_t seps = 0;
+    for (size_t pos = e2.find(" + "); pos != std::string::npos; pos = e2.find(" + ", pos + 3)) ++seps;
+    EXPECT_EQ(seps + 1, static_cast<size_t>(levels));
+    EXPECT_NE(e2.find("(129:1)"), std::string::npos);
+    EXPECT_NE(e2.find("(2:1)"), std::string::npos);
+}

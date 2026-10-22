@@ -1,5 +1,6 @@
 #include "pidd.h"
 #include "bdd_internal.h"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -77,35 +78,48 @@ int PiDD_VarUsed()
 
 PiDD PiDD::swap(int u, int v) const
 {
+    return swap(u, v, BddExecMode::Auto);
+}
+
+PiDD PiDD::swap(int u, int v, BddExecMode mode) const
+{
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
         throw std::invalid_argument("PiDD::swap: variable out of range");
     }
-    if (u == v) return *this;
-    if (u < v) return swap(v, u);
+    if (select_iter_1op(zdd_.GetID(), mode)) return swap_iter(*this, u, v);
+    return swap_rec(*this, u, v);
+}
+
+PiDD PiDD::swap_rec(const PiDD& p, int u, int v)
+{
+    BDD_RecurGuard guard;
+    if (u == v) return p;
+    if (u < v) std::swap(u, v);
     /* Now u > v */
 
-    int x = top_x();
+    int x = p.top_x();
     if (x < u) {
         /* No transposition involves u; just toggle (u, v) */
         bddvar bv = bddvaroflev(static_cast<bddvar>(PiDD_Lev_XY(u, v)));
-        return PiDD(zdd_.Change(bv));
+        return PiDD(p.zdd_.Change(bv));
     }
 
     /* Cache lookup */
-    bddp fx = zdd_.GetID();
+    bddp fx = p.zdd_.GetID();
     bddp gx = static_cast<bddp>(u * (PiDD_MaxVar + 1) + v);
     ZDD cache_result = BDD_CacheZDD(BDD_OP_PIDD_SWAP, fx, gx);
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Shannon decomposition */
-    bddvar top = zdd_.Top();
-    int y = top_y();
-    PiDD p0(zdd_.OffSet(top));
-    PiDD p1(zdd_.OnSet0(top));
+    bddvar top = p.zdd_.Top();
+    int y = p.top_y();
+    PiDD p0(p.zdd_.OffSet(top));
+    PiDD p1(p.zdd_.OnSet0(top));
 
     /* Recursive computation */
-    PiDD r = p0.swap(u, v) + p1.swap(PiDD_U_XYU(x, y, u), v).swap(x, PiDD_Y_YUV(y, u, v));
+    PiDD r = swap_rec(p0, u, v)
+           + swap_rec(swap_rec(p1, PiDD_U_XYU(x, y, u), v), x, PiDD_Y_YUV(y, u, v));
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_SWAP, fx, gx, r.zdd_.GetID());
@@ -118,47 +132,58 @@ PiDD PiDD::swap(int u, int v) const
 
 PiDD PiDD::cofact(int u, int v) const
 {
+    return cofact(u, v, BddExecMode::Auto);
+}
+
+PiDD PiDD::cofact(int u, int v, BddExecMode mode) const
+{
     if (zdd_.GetID() == bddnull) return PiDD(-1);
     if (u < 1 || u > PiDD_VarUsed() || v < 1 || v > PiDD_VarUsed()) {
         throw std::invalid_argument("PiDD::cofact: variable out of range");
     }
+    if (select_iter_1op(zdd_.GetID(), mode)) return cofact_iter(*this, u, v);
+    return cofact_rec(*this, u, v);
+}
 
-    int x = top_x();
-    int y = top_y();
+PiDD PiDD::cofact_rec(const PiDD& p, int u, int v)
+{
+    BDD_RecurGuard guard;
+    int x = p.top_x();
+    int y = p.top_y();
 
     /* Terminal / early-exit cases */
     if (x < u && x < v) {
-        return (u == v) ? *this : PiDD(0);
+        return (u == v) ? p : PiDD(0);
     }
     if (x == u && y > v) {
         return PiDD(0);
     }
 
     /* Shannon decomposition */
-    bddvar top = zdd_.Top();
-    PiDD p0(zdd_.OffSet(top));
-    PiDD p1(zdd_.OnSet0(top));
+    bddvar top = p.zdd_.Top();
+    PiDD p0(p.zdd_.OffSet(top));
+    PiDD p1(p.zdd_.OnSet0(top));
 
     if (x == u) {
         if (y == v) return p1;
-        return p0.cofact(u, v);
+        return cofact_rec(p0, u, v);
     }
     if (y == v) {
-        return p0.cofact(u, v);
+        return cofact_rec(p0, u, v);
     }
 
     /* Cache lookup */
-    bddp fx = zdd_.GetID();
+    bddp fx = p.zdd_.GetID();
     bddp gx = static_cast<bddp>(u * (PiDD_MaxVar + 1) + v);
     ZDD cache_result = BDD_CacheZDD(BDD_OP_PIDD_COFACT, fx, gx);
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Recursive computation */
-    PiDD r = p0.cofact(u, v);
+    PiDD r = cofact_rec(p0, u, v);
     if (u >= v) {
-        r += p1.cofact(u, v).swap(x, PiDD_Y_YUV(y, u, v));
+        r += swap_rec(cofact_rec(p1, u, v), x, PiDD_Y_YUV(y, u, v));
     } else {
-        r += p1.cofact(u, PiDD_U_XYU(x, y, v)).swap(x, PiDD_Y_YUV(y, v, u));
+        r += swap_rec(cofact_rec(p1, u, PiDD_U_XYU(x, y, v)), x, PiDD_Y_YUV(y, v, u));
     }
 
     /* Cache store */
@@ -172,6 +197,31 @@ PiDD PiDD::cofact(int u, int v) const
 
 PiDD operator*(const PiDD& p, const PiDD& q)
 {
+    return p.multiply(q);
+}
+
+PiDD PiDD::multiply(const PiDD& q) const
+{
+    return multiply(q, BddExecMode::Auto);
+}
+
+PiDD PiDD::multiply(const PiDD& q, BddExecMode mode) const
+{
+    if (zdd_.GetID() == bddempty || q.zdd_.GetID() == bddempty)
+        return PiDD(0);
+    if (zdd_.GetID() == bddsingle) return q;
+    if (q.zdd_.GetID() == bddsingle) return *this;
+    if (zdd_.GetID() == bddnull || q.zdd_.GetID() == bddnull)
+        return PiDD(-1);
+    if (select_iter_2op(zdd_.GetID(), q.zdd_.GetID(), mode)) {
+        return multiply_iter(*this, q);
+    }
+    return multiply_rec(*this, q);
+}
+
+PiDD PiDD::multiply_rec(const PiDD& p, const PiDD& q)
+{
+    BDD_RecurGuard guard;
     if (p.zdd_.GetID() == bddempty || q.zdd_.GetID() == bddempty)
         return PiDD(0);
     if (p.zdd_.GetID() == bddsingle) return q;
@@ -193,7 +243,7 @@ PiDD operator*(const PiDD& p, const PiDD& q)
     PiDD q1(q.zdd_.OnSet0(top));
 
     /* Recursive computation */
-    PiDD r = (p * q0) + (p * q1).swap(qx, qy);
+    PiDD r = multiply_rec(p, q0) + swap_rec(multiply_rec(p, q1), qx, qy);
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_MULT, fx, gx, r.zdd_.GetID());
@@ -206,6 +256,32 @@ PiDD operator*(const PiDD& p, const PiDD& q)
 
 PiDD operator/(const PiDD& f, const PiDD& p)
 {
+    return f.divide(p);
+}
+
+PiDD PiDD::divide(const PiDD& p) const
+{
+    return divide(p, BddExecMode::Auto);
+}
+
+PiDD PiDD::divide(const PiDD& p, BddExecMode mode) const
+{
+    if (zdd_.GetID() == bddnull || p.zdd_.GetID() == bddnull)
+        return PiDD(-1);
+    if (p.zdd_.GetID() == bddsingle) return *this;
+    if (p.zdd_.GetID() == bddempty) {
+        throw std::invalid_argument("PiDD: division by zero");
+    }
+    if (top_x() < p.top_x()) return PiDD(0);
+    if (select_iter_2op(zdd_.GetID(), p.zdd_.GetID(), mode)) {
+        return divide_iter(*this, p);
+    }
+    return divide_rec(*this, p);
+}
+
+PiDD PiDD::divide_rec(const PiDD& f, const PiDD& p)
+{
+    BDD_RecurGuard guard;
     if (f.zdd_.GetID() == bddnull || p.zdd_.GetID() == bddnull)
         return PiDD(-1);
     if (p.zdd_.GetID() == bddsingle) return f;
@@ -227,12 +303,12 @@ PiDD operator/(const PiDD& f, const PiDD& p)
     PiDD p1(p.zdd_.OnSet0(top));
 
     /* q = (f.cofact(px, py) / p1).cofact(py, py) */
-    PiDD q = (f.cofact(px, py) / p1).cofact(py, py);
+    PiDD q = cofact_rec(divide_rec(cofact_rec(f, px, py), p1), py, py);
 
     if (q.zdd_.GetID() != bddempty) {
         PiDD p0(p.zdd_.OffSet(top));
         if (p0.zdd_.GetID() != bddempty) {
-            q = q & (f / p0);
+            q = q & divide_rec(f, p0);
         }
     }
 
@@ -247,23 +323,35 @@ PiDD operator/(const PiDD& f, const PiDD& p)
 
 PiDD PiDD::odd() const
 {
+    return odd(BddExecMode::Auto);
+}
+
+PiDD PiDD::odd(BddExecMode mode) const
+{
     if (zdd_.GetID() == bddnull) return PiDD(-1);
-    if (top_x() == 0) return PiDD(0);  /* identity permutation is even */
+    if (select_iter_1op(zdd_.GetID(), mode)) return odd_iter(*this);
+    return odd_rec(*this);
+}
+
+PiDD PiDD::odd_rec(const PiDD& p)
+{
+    BDD_RecurGuard guard;
+    if (p.top_x() == 0) return PiDD(0);  /* identity permutation is even */
 
     /* Cache lookup */
-    bddp fx = zdd_.GetID();
+    bddp fx = p.zdd_.GetID();
     ZDD cache_result = BDD_CacheZDD(BDD_OP_PIDD_ODD, fx, 0);
     if (cache_result != ZDD::Null) return PiDD(cache_result);
 
     /* Shannon decomposition */
-    bddvar top = zdd_.Top();
-    int x = top_x();
-    int y = top_y();
-    PiDD p0(zdd_.OffSet(top));
-    PiDD p1(zdd_.OnSet0(top));
+    bddvar top = p.zdd_.Top();
+    int x = p.top_x();
+    int y = p.top_y();
+    PiDD p0(p.zdd_.OffSet(top));
+    PiDD p1(p.zdd_.OnSet0(top));
 
     /* Odd of p0; Even of p1 swapped back (parity flips) */
-    PiDD r = p0.odd() + p1.even().swap(x, y);
+    PiDD r = odd_rec(p0) + swap_rec(p1 - odd_rec(p1), x, y);
 
     /* Cache store */
     bddwcache(BDD_OP_PIDD_ODD, fx, 0, r.zdd_.GetID());
@@ -272,7 +360,12 @@ PiDD PiDD::odd() const
 
 PiDD PiDD::even() const
 {
-    return *this - this->odd();
+    return even(BddExecMode::Auto);
+}
+
+PiDD PiDD::even(BddExecMode mode) const
+{
+    return *this - this->odd(mode);
 }
 
 /* ================================================================ */
@@ -297,35 +390,38 @@ void PiDD::print() const
 /*  Enum — permutation vector notation                              */
 /* ================================================================ */
 
-static int* PiDD_Enum_VarMap;
-static int  PiDD_Enum_Flag;
-
-static void PiDD_EnumRec(PiDD p, int dim)
+void PiDD::enumerate_print(int dim, const int* varmap, bool& flag)
 {
+    /* Print one permutation */
+    if (flag) std::cout << " + ";
+    flag = true;
+
+    /* Find last non-identity position */
+    int d0 = 0;
+    for (int i = 0; i < dim; i++) {
+        if (varmap[i] != i + 1) d0 = i + 1;
+    }
+    if (d0 == 0) {
+        std::cout << "1";
+    } else {
+        std::cout << "[";
+        for (int i = 0; i < d0; i++) {
+            if (i > 0) std::cout << " ";
+            if (varmap[i] == i + 1)
+                std::cout << ".";
+            else
+                std::cout << varmap[i];
+        }
+        std::cout << "]";
+    }
+}
+
+void PiDD::enumerate_rec(const PiDD& p, int dim, int* varmap, bool& flag)
+{
+    BDD_RecurGuard guard;
     if (p == PiDD(0)) return;
     if (p == PiDD(1)) {
-        /* Print one permutation */
-        if (PiDD_Enum_Flag) std::cout << " + ";
-        PiDD_Enum_Flag = 1;
-
-        /* Find last non-identity position */
-        int d0 = 0;
-        for (int i = 0; i < dim; i++) {
-            if (PiDD_Enum_VarMap[i] != i + 1) d0 = i + 1;
-        }
-        if (d0 == 0) {
-            std::cout << "1";
-        } else {
-            std::cout << "[";
-            for (int i = 0; i < d0; i++) {
-                if (i > 0) std::cout << " ";
-                if (PiDD_Enum_VarMap[i] == i + 1)
-                    std::cout << ".";
-                else
-                    std::cout << PiDD_Enum_VarMap[i];
-            }
-            std::cout << "]";
-        }
+        enumerate_print(dim, varmap, flag);
         return;
     }
 
@@ -333,26 +429,27 @@ static void PiDD_EnumRec(PiDD p, int dim)
     int y = p.top_y();
 
     /* p1 = part containing (x,y); p0 = part not containing (x,y) */
-    PiDD p1 = p.cofact(x, y);
-    PiDD p0 = p - p1.swap(x, y);
+    PiDD p1 = cofact_rec(p, x, y);
+    PiDD p0 = p - swap_rec(p1, x, y);
 
     /* Enumerate p0 first */
-    PiDD_EnumRec(p0, dim);
+    enumerate_rec(p0, dim, varmap, flag);
 
     /* Apply transposition (x, y) to VarMap and enumerate p1 */
-    int tmp = PiDD_Enum_VarMap[x - 1];
-    PiDD_Enum_VarMap[x - 1] = PiDD_Enum_VarMap[y - 1];
-    PiDD_Enum_VarMap[y - 1] = tmp;
+    std::swap(varmap[x - 1], varmap[y - 1]);
 
-    PiDD_EnumRec(p1, dim);
+    enumerate_rec(p1, dim, varmap, flag);
 
     /* Restore VarMap */
-    tmp = PiDD_Enum_VarMap[x - 1];
-    PiDD_Enum_VarMap[x - 1] = PiDD_Enum_VarMap[y - 1];
-    PiDD_Enum_VarMap[y - 1] = tmp;
+    std::swap(varmap[x - 1], varmap[y - 1]);
 }
 
 void PiDD::enumerate() const
+{
+    enumerate(BddExecMode::Auto);
+}
+
+void PiDD::enumerate(BddExecMode mode) const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)"; return; }
     if (*this == PiDD(0)) { std::cout << "0"; return; }
@@ -361,40 +458,43 @@ void PiDD::enumerate() const
     int dim = top_x();
     std::vector<int> varmap(dim);
     for (int i = 0; i < dim; i++) varmap[i] = i + 1;
-    PiDD_Enum_VarMap = varmap.data();
-    PiDD_Enum_Flag = 0;
+    bool flag = false;
 
-    PiDD_EnumRec(*this, dim);
-
-    PiDD_Enum_VarMap = nullptr;
+    if (select_iter_1op(zdd_.GetID(), mode)) {
+        enumerate_iter(*this, dim, varmap.data(), flag);
+    } else {
+        enumerate_rec(*this, dim, varmap.data(), flag);
+    }
 }
 
 /* ================================================================ */
 /*  Enum2 — transposition notation                                  */
 /* ================================================================ */
 
-static int* PiDD_Enum2_VarMap;
-static int  PiDD_Enum2_Depth;
-static int  PiDD_Enum2_Flag;
-
-static void PiDD_Enum2Rec(PiDD p)
+void PiDD::enumerate2_print(const std::vector<int>& levs, bool& flag)
 {
+    /* Print one permutation as transpositions */
+    if (flag) std::cout << " + ";
+    flag = true;
+
+    if (levs.empty()) {
+        std::cout << "1";
+    } else {
+        for (size_t i = 0; i < levs.size(); i++) {
+            int lev = levs[i];
+            int tx = PiDD_X_Lev(lev);
+            int ty = PiDD_Y_Lev(lev);
+            std::cout << "(" << tx << ":" << ty << ")";
+        }
+    }
+}
+
+void PiDD::enumerate2_rec(const PiDD& p, std::vector<int>& levs, bool& flag)
+{
+    BDD_RecurGuard guard;
     if (p == PiDD(0)) return;
     if (p == PiDD(1)) {
-        /* Print one permutation as transpositions */
-        if (PiDD_Enum2_Flag) std::cout << " + ";
-        PiDD_Enum2_Flag = 1;
-
-        if (PiDD_Enum2_Depth == 0) {
-            std::cout << "1";
-        } else {
-            for (int i = 0; i < PiDD_Enum2_Depth; i++) {
-                int lev = PiDD_Enum2_VarMap[i];
-                int tx = PiDD_X_Lev(lev);
-                int ty = PiDD_Y_Lev(lev);
-                std::cout << "(" << tx << ":" << ty << ")";
-            }
-        }
+        enumerate2_print(levs, flag);
         return;
     }
 
@@ -403,36 +503,40 @@ static void PiDD_Enum2Rec(PiDD p)
     int lev = p.top_lev();
 
     /* p1 = part containing (x,y); p0 = part not containing (x,y) */
-    PiDD p1 = p.cofact(x, y);
-    PiDD p0 = p - p1.swap(x, y);
+    PiDD p1 = cofact_rec(p, x, y);
+    PiDD p0 = p - swap_rec(p1, x, y);
 
     /* Enumerate p0 first */
-    PiDD_Enum2Rec(p0);
+    enumerate2_rec(p0, levs, flag);
 
     /* Record this level and enumerate p1 */
-    PiDD_Enum2_VarMap[PiDD_Enum2_Depth] = lev;
-    PiDD_Enum2_Depth++;
+    levs.push_back(lev);
 
-    PiDD_Enum2Rec(p1);
+    enumerate2_rec(p1, levs, flag);
 
-    PiDD_Enum2_Depth--;
+    levs.pop_back();
 }
 
 void PiDD::enumerate2() const
+{
+    enumerate2(BddExecMode::Auto);
+}
+
+void PiDD::enumerate2(BddExecMode mode) const
 {
     if (zdd_.GetID() == bddnull) { std::cout << "(undefined)"; return; }
     if (*this == PiDD(0)) { std::cout << "0"; return; }
     if (*this == PiDD(1)) { std::cout << "1"; return; }
 
-    int maxdepth = static_cast<int>(bddvarused());
-    std::vector<int> varmap(maxdepth + 1);
-    PiDD_Enum2_VarMap = varmap.data();
-    PiDD_Enum2_Depth = 0;
-    PiDD_Enum2_Flag = 0;
+    std::vector<int> levs;
+    levs.reserve(static_cast<size_t>(bddvarused()) + 1);
+    bool flag = false;
 
-    PiDD_Enum2Rec(*this);
-
-    PiDD_Enum2_VarMap = nullptr;
+    if (select_iter_1op(zdd_.GetID(), mode)) {
+        enumerate2_iter(*this, levs, flag);
+    } else {
+        enumerate2_rec(*this, levs, flag);
+    }
 }
 
 std::map<bddvar, std::string> PiDD::svg_var_name_map() {

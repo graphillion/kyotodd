@@ -92,6 +92,19 @@ PiDD Class
 
       Division. Finds quotient q such that q * p is a subset of f.
 
+   .. cpp:function:: PiDD multiply(const PiDD& q) const
+                     PiDD multiply(const PiDD& q, BddExecMode mode) const
+
+      Named form of ``operator*`` (composition). The second overload
+      selects the execution mode (``Auto`` / ``Recursive`` / ``Iterative``);
+      ``operator*`` uses ``Auto``.
+
+   .. cpp:function:: PiDD divide(const PiDD& p) const
+                     PiDD divide(const PiDD& p, BddExecMode mode) const
+
+      Named form of ``operator/`` (division). The second overload selects
+      the execution mode; ``operator/`` uses ``Auto``.
+
    .. cpp:function:: friend PiDD operator%(const PiDD& f, const PiDD& p)
 
       Remainder: ``f - (f / p) * p``.
@@ -131,6 +144,13 @@ PiDD Class
       :param v: Second position (1-indexed).
       :return: A PiDD with the transposition applied.
 
+   .. cpp:function:: PiDD swap(int u, int v, BddExecMode mode) const
+
+      Same as ``swap(u, v)`` with an explicit execution mode. ``Auto``
+      picks the recursive implementation when the internal ZDD's level
+      is at most ``BDD_RecurLimit`` and the explicit-stack implementation
+      otherwise; ``Recursive`` / ``Iterative`` force one of them.
+
    .. cpp:function:: PiDD Cofact(int u, int v) const
 
       Extract permutations where sigma(u) = v, returning sub-permutations
@@ -140,13 +160,26 @@ PiDD Class
       :param v: Required value.
       :return: A PiDD of sub-permutations.
 
+   .. cpp:function:: PiDD cofact(int u, int v, BddExecMode mode) const
+
+      Same as ``cofact(u, v)`` with an explicit execution mode.
+
    .. cpp:function:: PiDD Odd() const
 
       Extract odd permutations from the set.
 
+   .. cpp:function:: PiDD odd(BddExecMode mode) const
+
+      Same as ``odd()`` with an explicit execution mode.
+
    .. cpp:function:: PiDD Even() const
 
       Extract even permutations. Computed as ``*this - Odd()``.
+
+   .. cpp:function:: PiDD even(BddExecMode mode) const
+
+      Same as ``even()`` with an explicit execution mode (forwarded to
+      ``odd``).
 
    .. cpp:function:: PiDD SwapBound(int n) const
 
@@ -192,7 +225,15 @@ PiDD Class
 
       Enumerate all permutations in vector notation (e.g., ``[2 1 3]``).
 
+   .. cpp:function:: void enumerate(BddExecMode mode) const
+
+      Same as ``enumerate()`` with an explicit execution mode.
+
    .. cpp:function:: void Enum2() const
 
       Enumerate all permutations in transposition notation
       (e.g., ``(2:1)(3:2)``).
+
+   .. cpp:function:: void enumerate2(BddExecMode mode) const
+
+      Same as ``enumerate2()`` with an explicit execution mode.

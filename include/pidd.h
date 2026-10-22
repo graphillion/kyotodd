@@ -211,6 +211,16 @@ public:
     /** @deprecated Use swap() instead. */
     PiDD Swap(int u, int v) const { return swap(u, v); }
     /**
+     * @brief Apply transposition Swap(u, v) with execution mode selection.
+     * @param u First position.
+     * @param v Second position.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     *             Auto selects recursive if the internal ZDD's level
+     *             <= BDD_RecurLimit, else iterative.
+     * @return A new PiDD with the transposition applied.
+     */
+    PiDD swap(int u, int v, BddExecMode mode) const;
+    /**
      * @brief Extract permutations where position u maps to value v.
      *
      * Returns the sub-permutations (with element v removed) of all
@@ -224,6 +234,14 @@ public:
     /** @deprecated Use cofact() instead. */
     PiDD Cofact(int u, int v) const { return cofact(u, v); }
     /**
+     * @brief Extract permutations with pi(u) = v, with execution mode selection.
+     * @param u Position to check.
+     * @param v Required value at position u.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A PiDD of sub-permutations satisfying the condition.
+     */
+    PiDD cofact(int u, int v, BddExecMode mode) const;
+    /**
      * @brief Extract odd permutations from the set.
      * @return A PiDD containing only the odd permutations.
      */
@@ -231,12 +249,59 @@ public:
     /** @deprecated Use odd() instead. */
     PiDD Odd() const { return odd(); }
     /**
+     * @brief Extract odd permutations with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A PiDD containing only the odd permutations.
+     */
+    PiDD odd(BddExecMode mode) const;
+    /**
      * @brief Extract even permutations from the set.
      * @return A PiDD containing only the even permutations.
      */
     PiDD even() const;
     /** @deprecated Use even() instead. */
     PiDD Even() const { return even(); }
+    /**
+     * @brief Extract even permutations with execution mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A PiDD containing only the even permutations.
+     */
+    PiDD even(BddExecMode mode) const;
+    /**
+     * @brief Composition (multiplication) of permutation sets.
+     *
+     * Same as operator*: computes { pi . sigma | sigma in *this, pi in q }.
+     *
+     * @param q The right operand.
+     * @return The composed permutation set.
+     */
+    PiDD multiply(const PiDD& q) const;
+    /**
+     * @brief Composition (multiplication) with execution mode selection.
+     * @param q The right operand.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return The composed permutation set.
+     */
+    PiDD multiply(const PiDD& q, BddExecMode mode) const;
+    /**
+     * @brief Division of permutation sets.
+     *
+     * Same as operator/: finds the quotient q such that q * p is a
+     * subset of *this.
+     *
+     * @param p The divisor.
+     * @return The quotient.
+     * @throws std::invalid_argument if p is empty.
+     */
+    PiDD divide(const PiDD& p) const;
+    /**
+     * @brief Division with execution mode selection.
+     * @param p The divisor.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return The quotient.
+     * @throws std::invalid_argument if p is empty.
+     */
+    PiDD divide(const PiDD& p, BddExecMode mode) const;
     /**
      * @brief Apply symmetric constraint (PermitSym) to the internal ZDD.
      *
@@ -257,10 +322,22 @@ public:
     void enumerate() const;
     /** @deprecated Use enumerate() instead. */
     void Enum() const { enumerate(); }
+    /**
+     * @brief Enumerate all permutations in compact form with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     */
+    void enumerate(BddExecMode mode) const;
     /** @brief Enumerate all permutations in expanded form. */
     void enumerate2() const;
     /** @deprecated Use enumerate2() instead. */
     void Enum2() const { enumerate2(); }
+    /**
+     * @brief Enumerate all permutations in expanded form with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     */
+    void enumerate2(BddExecMode mode) const;
 
     /**
      * @brief Export the internal ZDD as SVG to a file.
@@ -286,6 +363,31 @@ public:
     std::string save_svg(const SvgParams& params) const;
     /** @overload */
     std::string save_svg() const;
+
+private:
+    // Recursive (_rec) and explicit-stack (_iter) cores of the recursive
+    // operations. Both share the same cache op codes, so their results are
+    // interchangeable; the public wrappers above dispatch between them via
+    // select_iter_1op / select_iter_2op. _rec bodies live in src/pidd.cpp,
+    // _iter bodies in src/pidd_iter.cpp. The frames hold PiDD objects (GC
+    // roots), so no bdd_gc_guard is needed around the _iter calls.
+    static PiDD swap_rec(const PiDD& p, int u, int v);
+    static PiDD swap_iter(const PiDD& p, int u, int v);
+    static PiDD cofact_rec(const PiDD& p, int u, int v);
+    static PiDD cofact_iter(const PiDD& p, int u, int v);
+    static PiDD odd_rec(const PiDD& p);
+    static PiDD odd_iter(const PiDD& p);
+    static PiDD multiply_rec(const PiDD& p, const PiDD& q);
+    static PiDD multiply_iter(const PiDD& p, const PiDD& q);
+    static PiDD divide_rec(const PiDD& f, const PiDD& p);
+    static PiDD divide_iter(const PiDD& f, const PiDD& p);
+    static void enumerate_rec(const PiDD& p, int dim, int* varmap, bool& flag);
+    static void enumerate_iter(const PiDD& p, int dim, int* varmap, bool& flag);
+    static void enumerate2_rec(const PiDD& p, std::vector<int>& levs, bool& flag);
+    static void enumerate2_iter(const PiDD& p, std::vector<int>& levs, bool& flag);
+    // Leaf printers shared by the _rec / _iter enumerators.
+    static void enumerate_print(int dim, const int* varmap, bool& flag);
+    static void enumerate2_print(const std::vector<int>& levs, bool& flag);
 };
 
 /** @brief Intersection of two permutation sets. */

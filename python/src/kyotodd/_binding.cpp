@@ -2762,25 +2762,27 @@ PYBIND11_MODULE(_core, m) {
              "In-place composition.")
 
         // Core operations
-        .def("swap", &PiDD::swap, py::arg("u"), py::arg("v"),
+        .def("swap", [](const PiDD& p, int u, int v) { return p.swap(u, v); },
+             py::arg("u"), py::arg("v"),
              "Apply transposition Swap(u, v) to all permutations in the set.\n\n"
              "Args:\n"
              "    u: First position.\n"
              "    v: Second position.\n\n"
              "Returns:\n"
              "    A new PiDD with the transposition applied.\n")
-        .def("cofact", &PiDD::cofact, py::arg("u"), py::arg("v"),
+        .def("cofact", [](const PiDD& p, int u, int v) { return p.cofact(u, v); },
+             py::arg("u"), py::arg("v"),
              "Extract permutations where position u has value v, removing position u.\n\n"
              "Args:\n"
              "    u: Position to check.\n"
              "    v: Required value at position u.\n\n"
              "Returns:\n"
              "    A PiDD of sub-permutations satisfying the condition.\n")
-        .def("odd", &PiDD::odd,
+        .def("odd", [](const PiDD& p) { return p.odd(); },
              "Extract odd permutations from the set.\n\n"
              "Returns:\n"
              "    A PiDD containing only odd permutations.\n")
-        .def("even", &PiDD::even,
+        .def("even", [](const PiDD& p) { return p.even(); },
              "Extract even permutations from the set.\n\n"
              "Returns:\n"
              "    A PiDD containing only even permutations.\n")
