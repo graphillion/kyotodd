@@ -772,6 +772,36 @@ std::vector< std::vector<int> > RotPiDD::to_vector_of_perms(BddExecMode mode) co
 }
 
 /* ================================================================ */
+/*  Conversion: from_permutation / to_permutations                   */
+/* ================================================================ */
+
+RotPiDD RotPiDD::from_permutation(const Permutation& p)
+{
+    return from_permutation(p, BddExecMode::Auto);
+}
+
+RotPiDD RotPiDD::from_permutation(const Permutation& p, BddExecMode mode)
+{
+    return from_vector(p.to_vector(), mode);
+}
+
+std::vector<Permutation> RotPiDD::to_permutations() const
+{
+    return to_permutations(BddExecMode::Auto);
+}
+
+std::vector<Permutation> RotPiDD::to_permutations(BddExecMode mode) const
+{
+    std::vector< std::vector<int> > vecs = to_vector_of_perms(mode);
+    std::vector<Permutation> result;
+    result.reserve(vecs.size());
+    for (size_t i = 0; i < vecs.size(); i++) {
+        result.push_back(Permutation(vecs[i]));
+    }
+    return result;
+}
+
+/* ================================================================ */
 /*  extract_one                                                      */
 /* ================================================================ */
 

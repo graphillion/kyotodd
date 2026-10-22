@@ -3,6 +3,7 @@
 
 #include "bdd.h"
 #include "svg_export.h"
+#include "permutation.h"
 #include <vector>
 #include <unordered_map>
 
@@ -486,6 +487,41 @@ public:
      * @return A vector of vectors, each representing a permutation as [1..n].
      */
     std::vector< std::vector<int> > to_vector_of_perms(BddExecMode mode) const;
+
+    /**
+     * @brief Convert a Permutation to a RotPiDD containing it.
+     *
+     * Equivalent to from_vector(p.to_vector()). The variables for
+     * positions 1..p.size() must already exist (see RotPiDD_NewVar()).
+     *
+     * @param p The permutation (one-line notation, see Permutation).
+     * @return A RotPiDD containing the single permutation.
+     */
+    static RotPiDD from_permutation(const Permutation& p);
+    /**
+     * @brief Convert a Permutation to a RotPiDD with execution mode
+     *        selection (forwarded to the left_rot calls).
+     * @param p The permutation (one-line notation, see Permutation).
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A RotPiDD containing the single permutation.
+     */
+    static RotPiDD from_permutation(const Permutation& p, BddExecMode mode);
+    /**
+     * @brief Convert to a list of Permutation objects.
+     *
+     * Same order and size convention as to_vector_of_perms(): each
+     * Permutation has size RotPiDD_VarUsed().
+     *
+     * @return The permutations in the set.
+     */
+    std::vector<Permutation> to_permutations() const;
+    /**
+     * @brief Convert to a list of Permutation objects with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return The permutations in the set.
+     */
+    std::vector<Permutation> to_permutations(BddExecMode mode) const;
 
     /**
      * @brief Extract a single permutation from the set.

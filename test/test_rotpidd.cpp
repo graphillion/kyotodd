@@ -1,6 +1,7 @@
 #include "rotpidd.h"
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <set>
@@ -910,4 +911,104 @@ TEST_F(RotPiDDTest, CountAndExactCountDeep) {
     EXPECT_THROW(chain.card(), std::overflow_error);
     EXPECT_EQ(chain.count(), static_cast<double>(levels));
     EXPECT_EQ(chain.exact_count(), bigint::BigInt(static_cast<unsigned long long>(levels)));
+}
+
+/* ---- Permutation interop ---- */
+TEST_F(RotPiDDTest, FromPermutationRoundTrip) {
+    for (int i = 0; i < 4; ++i) RotPiDD_NewVar();
+    Permutation p({2, 3, 1, 4});
+    RotPiDD r = RotPiDD::from_permutation(p);
+    EXPECT_EQ(r, RotPiDD::from_vector(p.to_vector()));
+    EXPECT_EQ(r.count(), 1.0);
+    std::vector<Permutation> perms = r.to_permutations();
+    ASSERT_EQ(perms.size(), 1u);
+    EXPECT_EQ(perms[0], p);
+    EXPECT_EQ(perms[0].size(), 4);
+    EXPECT_EQ(perms[0].to_vector(), p.to_vector());
+}
+
+TEST_F(RotPiDDTest, FromPermutationShorterThanVarCount) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    Permutation p({2, 1});                 // positions 3..5 are fixed points
+    RotPiDD r = RotPiDD::from_permutation(p);
+    EXPECT_EQ(r, RotPiDD(1).left_rot(2, 1));
+    std::vector<Permutation> perms = r.to_permutations();
+    ASSERT_EQ(perms.size(), 1u);
+    EXPECT_EQ(perms[0].size(), 5);         // padded to the variable count
+    EXPECT_EQ(perms[0], p);                // but equal as permutations
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation()), RotPiDD(1));
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation::identity(3)), RotPiDD(1));
+}
+
+TEST_F(RotPiDDTest, FromPermutationRejectsTooLarge) {
+    for (int i = 0; i < 3; ++i) RotPiDD_NewVar();
+    EXPECT_THROW(RotPiDD::from_permutation(Permutation({2, 3, 4, 1})),
+                 std::invalid_argument);
+}
+
+TEST_F(RotPiDDTest, ToPermutationsOfSet) {
+    for (int i = 0; i < 3; ++i) RotPiDD_NewVar();
+    RotPiDD all = rot_all_perms(3);
+    std::vector<Permutation> perms = all.to_permutations();
+    ASSERT_EQ(perms.size(), 6u);
+    std::set<Permutation> distinct(perms.begin(), perms.end());
+    EXPECT_EQ(distinct.size(), 6u);
+    /* Same order and content as to_vector_of_perms() */
+    std::vector< std::vector<int> > vecs = all.to_vector_of_perms();
+    ASSERT_EQ(vecs.size(), perms.size());
+    for (size_t i = 0; i < vecs.size(); ++i) EXPECT_EQ(perms[i].to_vector(), vecs[i]);
+    EXPECT_TRUE(RotPiDD(0).to_permutations().empty());
+    ASSERT_EQ(RotPiDD(1).to_permutations().size(), 1u);
+    EXPECT_EQ(RotPiDD(1).to_permutations()[0], Permutation::identity(3));
+}
+
+TEST_F(RotPiDDTest, MultiplyMatchesPermutationComposition) {
+    for (int i = 0; i < 3; ++i) RotPiDD_NewVar();
+    Permutation a({2, 3, 1}), b({1, 3, 2});
+    RotPiDD A = RotPiDD::from_permutation(a);
+    RotPiDD B = RotPiDD::from_permutation(b);
+    /* A * B applies A first, then B, exactly like Permutation::operator*:
+       (a * b)(i) = b(a(i)) gives [3 2 1], while b first gives [2 1 3]. */
+    EXPECT_EQ((a * b).to_vector(), (std::vector<int>{3, 2, 1}));
+    EXPECT_EQ((b * a).to_vector(), (std::vector<int>{2, 1, 3}));
+    EXPECT_EQ(A * B, RotPiDD::from_permutation(a * b));
+    EXPECT_EQ(B * A, RotPiDD::from_permutation(b * a));
+    EXPECT_NE(A * B, B * A);
+    std::vector<Permutation> perms = (A * B).to_permutations();
+    ASSERT_EQ(perms.size(), 1u);
+    EXPECT_EQ(perms[0].to_vector(), (std::vector<int>{3, 2, 1}));
+}
+
+TEST_F(RotPiDDTest, PermutationOpsAgreeWithRotPiDDOpsRandom) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    std::srand(99);
+    for (int t = 0; t < 30; ++t) {
+        std::vector<int> va(5), vb(5);
+        for (int i = 0; i < 5; ++i) va[i] = vb[i] = i + 1;
+        std::random_shuffle(va.begin(), va.end());
+        std::random_shuffle(vb.begin(), vb.end());
+        Permutation a(va), b(vb);
+        RotPiDD A = RotPiDD::from_permutation(a);
+        RotPiDD B = RotPiDD::from_permutation(b);
+        EXPECT_EQ(A * B, RotPiDD::from_permutation(a * b));
+        EXPECT_EQ(A.inverse(), RotPiDD::from_permutation(a.inverse()));
+        EXPECT_EQ(A.odd() != RotPiDD(0), a.is_odd());
+        EXPECT_EQ(A.even() != RotPiDD(0), a.is_even());
+        std::vector<Permutation> perms = (A + B).to_permutations();
+        std::set<Permutation> distinct(perms.begin(), perms.end());
+        EXPECT_TRUE(distinct.count(a));
+        EXPECT_TRUE(distinct.count(b));
+    }
+}
+
+TEST_F(RotPiDDTest, PermutationExecModesAgree) {
+    for (int i = 0; i < 4; ++i) RotPiDD_NewVar();
+    RotPiDD all = rot_all_perms(4);
+    Permutation p({3, 1, 4, 2});
+    RotPiDD ref_fp = RotPiDD::from_permutation(p);
+    std::vector<Permutation> ref_tp = all.to_permutations();
+    for (size_t m = 0; m < sizeof(kRotModes) / sizeof(kRotModes[0]); ++m) {
+        EXPECT_EQ(RotPiDD::from_permutation(p, kRotModes[m]), ref_fp);
+        EXPECT_EQ(all.to_permutations(kRotModes[m]), ref_tp);
+    }
 }
