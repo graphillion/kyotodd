@@ -1012,3 +1012,136 @@ TEST_F(RotPiDDTest, PermutationExecModesAgree) {
         EXPECT_EQ(all.to_permutations(kRotModes[m]), ref_tp);
     }
 }
+
+/* ---- cofact: brute-force semantics ---- */
+namespace {
+
+// Delete position u and value v from a one-line permutation w with
+// w[u-1] == v: positions above u and values above v shift down by one.
+std::vector<int> rot_remove_pos_val(const std::vector<int>& w, int u, int v) {
+    std::vector<int> r;
+    for (size_t i = 0; i < w.size(); ++i) {
+        if (static_cast<int>(i) + 1 == u) continue;
+        r.push_back(w[i] > v ? w[i] - 1 : w[i]);
+    }
+    return r;
+}
+
+// Reference cofact(u, v) of a set of permutations given as vectors.
+RotPiDD rot_cofact_ref(const std::vector< std::vector<int> >& perms, int u, int v) {
+    RotPiDD r(0);
+    for (size_t i = 0; i < perms.size(); ++i) {
+        if (perms[i][u - 1] != v) continue;
+        r += RotPiDD::from_vector(rot_remove_pos_val(perms[i], u, v));
+    }
+    return r;
+}
+
+std::vector< std::vector<int> > all_vectors(int n, int pad_to) {
+    std::vector< std::vector<int> > perms;
+    std::vector<int> v(n);
+    for (int i = 0; i < n; ++i) v[i] = i + 1;
+    do {
+        std::vector<int> e = v;
+        for (int k = n + 1; k <= pad_to; ++k) e.push_back(k);
+        perms.push_back(e);
+    } while (std::next_permutation(v.begin(), v.end()));
+    return perms;
+}
+
+}  // namespace
+
+TEST_F(RotPiDDTest, CofactSinglePermutation) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    Permutation b({1, 5, 3, 2, 4});
+    RotPiDD B = RotPiDD::from_permutation(b);
+    for (int u = 1; u <= 5; ++u) {
+        for (int v = 1; v <= 5; ++v) {
+            RotPiDD c = B.cofact(u, v);
+            if (b(u) != v) {
+                EXPECT_EQ(c, RotPiDD(0)) << "u=" << u << " v=" << v;
+                continue;
+            }
+            std::vector<Permutation> ps = c.to_permutations();
+            ASSERT_EQ(ps.size(), 1u) << "u=" << u << " v=" << v;
+            EXPECT_EQ(ps[0], Permutation(rot_remove_pos_val(b.to_vector(), u, v)))
+                << "u=" << u << " v=" << v;
+        }
+    }
+    /* Delete position u and value v, shift the rest down. */
+    EXPECT_EQ(B.cofact(1, 1).to_permutations()[0], Permutation({4, 2, 1, 3}));
+    EXPECT_EQ(B.cofact(2, 5).to_permutations()[0], Permutation({1, 3, 2, 4}));
+    EXPECT_EQ(B.cofact(3, 3).to_permutations()[0], Permutation({1, 4, 2, 3}));
+    EXPECT_EQ(B.cofact(4, 2).to_permutations()[0], Permutation({1, 4, 2, 3}));
+    EXPECT_EQ(B.cofact(5, 4).to_permutations()[0], Permutation({1, 4, 3, 2}));
+    /* The top variable's cofactor is the 1-child. */
+    EXPECT_EQ(B.cofact(5, 4), RotPiDD(B.get_zdd().OnSet0(B.get_zdd().Top())));
+}
+
+TEST_F(RotPiDDTest, CofactMatchesBruteForce) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    std::vector< std::vector<int> > perms = all_vectors(5, 5);
+    RotPiDD all = rot_all_perms(5);
+    ASSERT_EQ(all.count(), 120.0);
+    for (int u = 1; u <= 5; ++u) {
+        for (int v = 1; v <= 5; ++v) {
+            RotPiDD ref = rot_cofact_ref(perms, u, v);
+            EXPECT_EQ(ref.count(), 24.0);
+            EXPECT_EQ(all.cofact(u, v), ref) << "u=" << u << " v=" << v;
+        }
+    }
+    /* Random subsets, both execution modes. */
+    std::srand(2025);
+    for (int t = 0; t < 10; ++t) {
+        std::vector< std::vector<int> > sub;
+        RotPiDD s(0);
+        for (size_t i = 0; i < perms.size(); ++i) {
+            if (std::rand() % 3 == 0) {
+                sub.push_back(perms[i]);
+                s += RotPiDD::from_vector(perms[i]);
+            }
+        }
+        for (int u = 1; u <= 5; ++u) {
+            for (int v = 1; v <= 5; ++v) {
+                RotPiDD ref = rot_cofact_ref(sub, u, v);
+                bddgc();  // clear the operation cache so each mode really recomputes
+                EXPECT_EQ(s.cofact(u, v, BDD_EXEC_RECURSIVE), ref) << "u=" << u << " v=" << v;
+                bddgc();
+                EXPECT_EQ(s.cofact(u, v, BDD_EXEC_ITERATIVE), ref) << "u=" << u << " v=" << v;
+            }
+        }
+    }
+}
+
+TEST_F(RotPiDDTest, CofactWithSpareVariables) {
+    for (int i = 0; i < 7; ++i) RotPiDD_NewVar();   // permutations of 4 inside 7 variables
+    std::vector< std::vector<int> > perms = all_vectors(4, 7);
+    RotPiDD all = rot_all_perms(4);
+    for (int u = 1; u <= 7; ++u) {
+        for (int v = 1; v <= 7; ++v) {
+            EXPECT_EQ(all.cofact(u, v), rot_cofact_ref(perms, u, v)) << "u=" << u << " v=" << v;
+        }
+    }
+    /* Positions beyond the support are fixed points. */
+    EXPECT_EQ(all.cofact(6, 6), all);
+    EXPECT_EQ(all.cofact(6, 7), RotPiDD(0));
+    EXPECT_EQ(all.cofact(2, 6), RotPiDD(0));
+}
+
+TEST_F(RotPiDDTest, CofactChainCountsExtensions) {
+    /* Counting permutations with pi(u1) = v1 and pi(u2) = v2 via two
+       cofacts (indices shift after the first deletion). */
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();
+    RotPiDD all = rot_all_perms(5);
+    RotPiDD c1 = all.cofact(2, 4);          // pi(2) = 4: 24 permutations
+    EXPECT_EQ(c1.count(), 24.0);
+    /* pi(4) = 1 on the original: position 4 -> 3 after deleting position 2,
+       value 1 stays 1 after deleting value 4. */
+    RotPiDD c2 = c1.cofact(3, 1);
+    EXPECT_EQ(c2.count(), 6.0);
+    std::vector< std::vector<int> > perms = all_vectors(5, 5);
+    int brute = 0;
+    for (size_t i = 0; i < perms.size(); ++i)
+        if (perms[i][1] == 4 && perms[i][3] == 1) ++brute;
+    EXPECT_EQ(brute, 6);
+}

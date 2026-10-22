@@ -161,7 +161,11 @@ RotPiDD Class
       Extract permutations where position *u* has value *v*.
 
       Returns the sub-permutations (with position *u* removed) of all
-      permutations sigma in the set such that sigma(u) = v.
+      permutations sigma in the set such that sigma(u) = v. Each selected
+      permutation becomes a permutation on one fewer element: position *u*
+      and value *v* are deleted, and positions above *u* and values above
+      *v* shift down by one. Example:
+      ``{[1 5 3 2 4]}.cofact(2, 5) == {[1 3 2 4]}``.
 
       :param int u: Position to check.
       :param int v: Required value at position *u*.

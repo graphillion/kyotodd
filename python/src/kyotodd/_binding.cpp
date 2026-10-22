@@ -3091,6 +3091,10 @@ PYBIND11_MODULE(_core, m) {
         .def("cofact", [](const RotPiDD& p, int u, int v) { return p.cofact(u, v); },
              py::arg("u"), py::arg("v"),
              "Extract permutations where position u has value v.\n\n"
+             "Each selected permutation is returned as a sub-permutation on\n"
+             "one fewer element: position u and value v are deleted, and\n"
+             "positions above u and values above v shift down by one.\n"
+             "Example: {[1 5 3 2 4]}.cofact(2, 5) == {[1 3 2 4]}.\n\n"
              "Args:\n"
              "    u: Position to check.\n"
              "    v: Required value at position u.\n\n"

@@ -229,19 +229,17 @@ RotPiDD RotPiDD::cofact_iter(const RotPiDD& root, int root_u, int root_v)
             if (fr.tail) { stack.pop_back(); break; }  // pass result through
             fr.r0 = result;
             fr.phase = RotPhase::GOT_1;
-            if (fr.u >= fr.v) {
-                Frame child(fr.p1, fr.u, fr.v);
-                stack.push_back(child);
-            } else {
-                Frame child(fr.p1, fr.u, RotPiDD_U_XYU(fr.x, fr.y, fr.v));
-                stack.push_back(child);
-            }
+            /* See cofact_rec: the 1-branch needs pi'(u) = v' with
+               v' = v (v < y) or v - 1 (v > y). */
+            Frame child(fr.p1, fr.u, (fr.v < fr.y) ? fr.v : fr.v - 1);
+            stack.push_back(child);
             break;
         }
         case RotPhase::GOT_1: {
-            RotPiDD s = (fr.u >= fr.v)
-                ? left_rot_iter(result, fr.x, RotPiDD_Y_YUV(fr.y, fr.u, fr.v))
-                : left_rot_iter(result, fr.x, RotPiDD_Y_YUV(fr.y, fr.v, fr.u));
+            /* LeftRot(x - 1, y') with y' = y - 1 (v < y) or y (v > y). */
+            RotPiDD s = (fr.v < fr.y)
+                ? left_rot_iter(result, fr.x - 1, fr.y - 1)
+                : left_rot_iter(result, fr.x - 1, fr.y);
             RotPiDD r = fr.r0 + s;
             /* Cache store */
             bddwcache(BDD_OP_ROTPIDD_COFACT, fr.fx, fr.gx, r.zdd_.GetID());

@@ -193,6 +193,36 @@ class TestRotPiDDCofact:
         cf = all_perms.cofact(1, 2)
         assert cf.exact_count == 2
 
+    def test_cofact_matches_brute_force(self):
+        import itertools
+        from kyotodd import Permutation, RotPiDD
+        _setup_rotpidd(4)
+        perms = [list(p) for p in itertools.permutations([1, 2, 3, 4])]
+        all_perms = RotPiDD(0)
+        for p in perms:
+            all_perms += kyotodd.rotpidd_from_perm(p)
+        for u in range(1, 5):
+            for v in range(1, 5):
+                # delete position u and value v, shift the rest down
+                ref = RotPiDD(0)
+                for p in perms:
+                    if p[u - 1] != v:
+                        continue
+                    q = [x - 1 if x > v else x for i, x in enumerate(p) if i + 1 != u]
+                    ref += RotPiDD.from_permutation(Permutation(q))
+                assert all_perms.cofact(u, v) == ref
+                assert all_perms.cofact(u, v).exact_count == 6
+
+    def test_cofact_single_permutation(self):
+        from kyotodd import Permutation, RotPiDD
+        _setup_rotpidd(5)
+        b = RotPiDD.from_permutation(Permutation([1, 5, 3, 2, 4]))
+        assert b.cofact(2, 5).to_permutations() == [Permutation([1, 3, 2, 4])]
+        assert b.cofact(3, 3).to_permutations() == [Permutation([1, 4, 2, 3])]
+        assert b.cofact(5, 4).to_permutations() == [Permutation([1, 4, 3, 2])]
+        assert b.cofact(2, 3) == RotPiDD(0)
+        assert b.cofact(3, 5) == RotPiDD(0)
+
 
 class TestRotPiDDExtractOne:
     def test_extract_one(self):

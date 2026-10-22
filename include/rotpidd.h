@@ -291,7 +291,13 @@ public:
      * @brief Extract permutations where position u maps to value v.
      *
      * Returns sub-permutations (with element v removed) of all
-     * permutations pi such that pi(u) = v.
+     * permutations pi such that pi(u) = v. Each selected pi becomes a
+     * permutation on one fewer element: position u and value v are
+     * deleted, and positions above u and values above v shift down by
+     * one. For the top variable (x, y) of a RotPiDD this is exactly its
+     * 1-child, i.e. LeftRot(x, y)^-1 o pi restricted to 1..x-1.
+     *
+     * Example: {[1 5 3 2 4]}.cofact(2, 5) = {[1 3 2 4]}.
      *
      * @param u Position to check.
      * @param v Required value at position u.

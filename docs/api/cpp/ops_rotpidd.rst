@@ -211,7 +211,11 @@ RotPiDD Class
    .. cpp:function:: RotPiDD Cofact(int u, int v) const
 
       Extract permutations where sigma(u) = v, returning sub-permutations
-      with position u removed.
+      with position u removed. Each selected permutation becomes a
+      permutation on one fewer element: position *u* and value *v* are
+      deleted, and positions above *u* and values above *v* shift down by
+      one. For the top variable (x, y) of a RotPiDD this is exactly its
+      1-child. Example: ``{[1 5 3 2 4]}.cofact(2, 5) == {[1 3 2 4]}``.
 
       :param u: Position to check.
       :param v: Required value.

@@ -275,12 +275,19 @@ RotPiDD RotPiDD::cofact_rec(const RotPiDD& p, int u, int v)
     ZDD cache_result = BDD_CacheZDD(BDD_OP_ROTPIDD_COFACT, fx, gx);
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
-    /* Recursive computation */
+    /* Recursive computation. Here u < x and v != y. A member of the
+       1-branch is pi = LeftRot(x, y) o pi' with pi' in p1 fixing x, so
+       pi(u) = v  <=>  pi'(u) = v', where v' = v if v < y and v' = v - 1
+       if v > y (LeftRot(x, y) maps v' to v). Deleting position u and value
+       v from pi gives LeftRot(x - 1, y') applied to pi' with position u
+       and value v' deleted, where y' = y - 1 if v < y and y' = y if
+       v > y (the deleted value shifts the rotated range down by one when
+       it lies below it). */
     RotPiDD r = cofact_rec(p0, u, v);
-    if (u >= v) {
-        r += left_rot_rec(cofact_rec(p1, u, v), x, RotPiDD_Y_YUV(y, u, v));
+    if (v < y) {
+        r += left_rot_rec(cofact_rec(p1, u, v), x - 1, y - 1);
     } else {
-        r += left_rot_rec(cofact_rec(p1, u, RotPiDD_U_XYU(x, y, v)), x, RotPiDD_Y_YUV(y, v, u));
+        r += left_rot_rec(cofact_rec(p1, u, v - 1), x - 1, y);
     }
 
     /* Cache store */
