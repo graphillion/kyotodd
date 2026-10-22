@@ -606,4 +606,68 @@ void PiDD::enumerate2_iter(const PiDD& root, std::vector<int>& levs, bool& flag)
     }
 }
 
+/* ================================================================ */
+/*  to_perms_iter — collect permutations as Permutation objects      */
+/* ================================================================ */
+
+void PiDD::to_perms_iter(const PiDD& root, int dim, int* varmap,
+                         std::vector<Permutation>& result)
+{
+    struct Frame {
+        PiDD p;
+        int x, y;
+        PiDD p1;
+        PiddPhase phase;
+        explicit Frame(const PiDD& p_)
+            : p(p_), x(0), y(0), p1(), phase(PiddPhase::ENTER) {}
+    };
+
+    std::vector<Frame> stack;
+    stack.reserve(64);
+    stack.push_back(Frame(root));
+
+    while (!stack.empty()) {
+        Frame& fr = stack.back();
+        switch (fr.phase) {
+        case PiddPhase::ENTER: {
+            if (fr.p == PiDD(0)) { stack.pop_back(); break; }
+            if (fr.p == PiDD(1)) {
+                result.push_back(Permutation(std::vector<int>(varmap, varmap + dim)));
+                stack.pop_back();
+                break;
+            }
+
+            fr.x = fr.p.top_x();
+            fr.y = fr.p.top_y();
+
+            /* p1 = part containing (x,y); p0 = part not containing (x,y) */
+            fr.p1 = cofact_iter(fr.p, fr.x, fr.y);
+            PiDD p0 = fr.p - swap_iter(fr.p1, fr.x, fr.y);
+
+            /* Collect p0 first (VarMap unchanged) */
+            fr.phase = PiddPhase::GOT_0;
+            Frame child(p0);
+            stack.push_back(child);
+            break;
+        }
+        case PiddPhase::GOT_0: {
+            /* Apply transposition (x, y) to VarMap and collect p1 */
+            std::swap(varmap[fr.x - 1], varmap[fr.y - 1]);
+            fr.phase = PiddPhase::GOT_1;
+            Frame child(fr.p1);
+            stack.push_back(child);
+            break;
+        }
+        case PiddPhase::GOT_1: {
+            /* Restore VarMap */
+            std::swap(varmap[fr.x - 1], varmap[fr.y - 1]);
+            stack.pop_back();
+            break;
+        }
+        case PiddPhase::GOT_2:
+            break;  // unused
+        }
+    }
+}
+
 } // namespace kyotodd

@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace kyotodd {
@@ -375,6 +376,97 @@ PiDD PiDD::even(BddExecMode mode) const
 PiDD PiDD::swap_bound(int n) const
 {
     return PiDD(zdd_.PermitSym(n));
+}
+
+/* ================================================================ */
+/*  Conversion: from_permutation / to_permutations                  */
+/* ================================================================ */
+
+PiDD PiDD::from_permutation(const Permutation& p)
+{
+    return from_permutation(p, BddExecMode::Auto);
+}
+
+PiDD PiDD::from_permutation(const Permutation& p, BddExecMode mode)
+{
+    const int n = p.size();
+    std::vector<int> cur(p.to_vector());
+
+    /* Decompose into transpositions: repeatedly take the largest position
+       x with cur(x) != x and peel off tau(x, cur(x)). Composing cur with
+       that transposition on the value side fixes x, so
+       p = tau(x1, y1) o tau(x2, y2) o ... with x1 > x2 > ... */
+    std::vector< std::pair<int, int> > swaps;
+    for (int x = n; x >= 2; x--) {
+        int y = cur[x - 1];
+        if (y == x) continue;
+        swaps.push_back(std::make_pair(x, y));
+        /* Swap the values x and y (positions > x are already fixed) */
+        for (int i = 0; i < x; i++) {
+            if (cur[i] == x) cur[i] = y;
+            else if (cur[i] == y) cur[i] = x;
+        }
+    }
+
+    /* swap(x, y) multiplies the transposition on the left (apply the
+       permutation first, then tau), so apply the list in reverse order. */
+    PiDD res(1);
+    for (int i = static_cast<int>(swaps.size()) - 1; i >= 0; i--) {
+        res = res.swap(swaps[i].first, swaps[i].second, mode);
+    }
+    return res;
+}
+
+std::vector<Permutation> PiDD::to_permutations() const
+{
+    return to_permutations(BddExecMode::Auto);
+}
+
+std::vector<Permutation> PiDD::to_permutations(BddExecMode mode) const
+{
+    std::vector<Permutation> result;
+    if (zdd_.GetID() == bddnull) return result;
+    if (*this == PiDD(0)) return result;
+
+    int dim = PiDD_VarUsed();
+    std::vector<int> varmap(dim);
+    for (int i = 0; i < dim; i++) varmap[i] = i + 1;
+
+    if (select_iter_1op(zdd_.GetID(), mode)) {
+        to_perms_iter(*this, dim, varmap.data(), result);
+    } else {
+        to_perms_rec(*this, dim, varmap.data(), result);
+    }
+    return result;
+}
+
+void PiDD::to_perms_rec(const PiDD& p, int dim, int* varmap,
+                        std::vector<Permutation>& result)
+{
+    BDD_RecurGuard guard;
+    if (p == PiDD(0)) return;
+    if (p == PiDD(1)) {
+        result.push_back(Permutation(std::vector<int>(varmap, varmap + dim)));
+        return;
+    }
+
+    int x = p.top_x();
+    int y = p.top_y();
+
+    /* p1 = part containing (x,y); p0 = part not containing (x,y) */
+    PiDD p1 = cofact_rec(p, x, y);
+    PiDD p0 = p - swap_rec(p1, x, y);
+
+    /* Collect p0 first (VarMap unchanged) */
+    to_perms_rec(p0, dim, varmap, result);
+
+    /* Apply transposition (x, y) to VarMap and collect p1 */
+    std::swap(varmap[x - 1], varmap[y - 1]);
+
+    to_perms_rec(p1, dim, varmap, result);
+
+    /* Restore VarMap */
+    std::swap(varmap[x - 1], varmap[y - 1]);
 }
 
 /* ================================================================ */

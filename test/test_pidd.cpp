@@ -1,6 +1,9 @@
 #include "pidd.h"
 #include <gtest/gtest.h>
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
+#include <set>
 #include <sstream>
 
 using namespace kyotodd;
@@ -667,4 +670,181 @@ TEST_F(PiDDTest, CountAndExactCountDeep) {
     EXPECT_THROW(chain.card(), std::overflow_error);
     EXPECT_EQ(chain.count(), levels);
     EXPECT_EQ(chain.exact_count(), bigint::BigInt(static_cast<long long>(levels)));
+}
+
+/* ---- Permutation interop ---- */
+TEST_F(PiDDTest, FromPermutationMatchesSwapChain) {
+    for (int i = 0; i < 3; ++i) PiDD_NewVar();
+    /* [3 1 2] = tau(3,2) o tau(2,1): swap() multiplies on the left, so the
+       chain is PiDD(1).swap(2,1).swap(3,2). */
+    Permutation p({3, 1, 2});
+    PiDD r = PiDD::from_permutation(p);
+    EXPECT_EQ(r, PiDD(1).swap(2, 1).swap(3, 2));
+    EXPECT_EQ(r.count(), 1.0);
+    EXPECT_EQ(pidd_enum_str(r, BDD_EXEC_AUTO, false), "[3 1 2]");
+    EXPECT_EQ(PiDD::from_permutation(Permutation({2, 1, 3})), PiDD(1).swap(2, 1));
+    EXPECT_EQ(PiDD::from_permutation(Permutation({3, 2, 1})), PiDD(1).swap(3, 1));
+    EXPECT_EQ(PiDD::from_permutation(Permutation()), PiDD(1));
+    EXPECT_EQ(PiDD::from_permutation(Permutation::identity(3)), PiDD(1));
+}
+
+TEST_F(PiDDTest, FromPermutationRoundTrip) {
+    for (int i = 0; i < 5; ++i) PiDD_NewVar();
+    std::vector<int> v(5);
+    for (int i = 0; i < 5; ++i) v[i] = i + 1;
+    PiDD all(0);
+    do {
+        Permutation p(v);
+        PiDD r = PiDD::from_permutation(p);
+        std::vector<Permutation> perms = r.to_permutations();
+        ASSERT_EQ(perms.size(), 1u);
+        EXPECT_EQ(perms[0], p);
+        EXPECT_EQ(perms[0].to_vector(), v);
+        all += r;
+    } while (std::next_permutation(v.begin(), v.end()));
+    EXPECT_EQ(all, pidd_all_perms(5));
+    EXPECT_EQ(all.count(), 120.0);
+}
+
+TEST_F(PiDDTest, FromPermutationShorterThanVarCount) {
+    for (int i = 0; i < 5; ++i) PiDD_NewVar();
+    Permutation p({2, 1});                 // positions 3..5 are fixed points
+    PiDD r = PiDD::from_permutation(p);
+    EXPECT_EQ(r, PiDD(1).swap(2, 1));
+    std::vector<Permutation> perms = r.to_permutations();
+    ASSERT_EQ(perms.size(), 1u);
+    EXPECT_EQ(perms[0].size(), 5);         // padded to the variable count
+    EXPECT_EQ(perms[0], p);                // but equal as permutations
+}
+
+TEST_F(PiDDTest, FromPermutationRejectsTooLarge) {
+    for (int i = 0; i < 3; ++i) PiDD_NewVar();
+    EXPECT_THROW(PiDD::from_permutation(Permutation({2, 3, 4, 1})),
+                 std::invalid_argument);
+    /* Extra fixed points beyond the variable count are harmless. */
+    EXPECT_EQ(PiDD::from_permutation(Permutation({2, 1, 3, 4})), PiDD(1).swap(2, 1));
+}
+
+TEST_F(PiDDTest, ToPermutationsOfSet) {
+    for (int i = 0; i < 4; ++i) PiDD_NewVar();
+    PiDD all = pidd_all_perms(4);
+    std::vector<Permutation> perms = all.to_permutations();
+    ASSERT_EQ(perms.size(), 24u);
+    std::set<Permutation> distinct(perms.begin(), perms.end());
+    EXPECT_EQ(distinct.size(), 24u);
+    for (size_t i = 0; i < perms.size(); ++i) EXPECT_EQ(perms[i].size(), 4);
+    /* Same traversal order as enumerate(): "[a b c d] + [..] + ..." with
+       "." for fixed points and trailing fixed points dropped. */
+    std::string e = pidd_enum_str(all, BDD_EXEC_AUTO, false);
+    size_t pos = 0;
+    for (size_t i = 0; i < perms.size(); ++i) {
+        std::string tok;
+        if (perms[i] == Permutation()) {
+            tok = "1";
+        } else {
+            int last = 4;
+            while (perms[i](last) == last) --last;
+            tok = "[";
+            for (int j = 1; j <= last; ++j) {
+                if (j > 1) tok += " ";
+                tok += (perms[i](j) == j) ? "." : std::to_string(perms[i](j));
+            }
+            tok += "]";
+        }
+        size_t found = e.find(tok, pos);
+        ASSERT_NE(found, std::string::npos) << "missing " << tok << " at " << pos;
+        pos = found + tok.size();
+    }
+    EXPECT_TRUE(PiDD(0).to_permutations().empty());
+    EXPECT_TRUE(PiDD(-1).to_permutations().empty());
+    ASSERT_EQ(PiDD(1).to_permutations().size(), 1u);
+    EXPECT_EQ(PiDD(1).to_permutations()[0], Permutation::identity(4));
+}
+
+TEST_F(PiDDTest, MultiplyMatchesPermutationComposition) {
+    for (int i = 0; i < 3; ++i) PiDD_NewVar();
+    Permutation a({2, 3, 1}), b({1, 3, 2});
+    PiDD A = PiDD::from_permutation(a);
+    PiDD B = PiDD::from_permutation(b);
+    /* A * B applies A first, then B, exactly like Permutation::operator*:
+       (a * b)(i) = b(a(i)) gives [3 2 1], while b first gives [2 1 3]. */
+    EXPECT_EQ((a * b).to_vector(), (std::vector<int>{3, 2, 1}));
+    EXPECT_EQ((b * a).to_vector(), (std::vector<int>{2, 1, 3}));
+    EXPECT_EQ(A * B, PiDD::from_permutation(a * b));
+    EXPECT_EQ(B * A, PiDD::from_permutation(b * a));
+    EXPECT_NE(A * B, B * A);
+    EXPECT_EQ(pidd_enum_str(A * B, BDD_EXEC_AUTO, false), "[3 . 1]");  // "." marks the fixed point
+    /* swap(x, y) composes the transposition after the permutation. */
+    EXPECT_EQ(A.swap(2, 1), PiDD::from_permutation(a * Permutation({2, 1, 3})));
+}
+
+TEST_F(PiDDTest, PermutationOpsAgreeWithPiDDOpsRandom) {
+    for (int i = 0; i < 6; ++i) PiDD_NewVar();
+    std::srand(99);
+    for (int t = 0; t < 30; ++t) {
+        std::vector<int> va(6), vb(6);
+        for (int i = 0; i < 6; ++i) va[i] = vb[i] = i + 1;
+        std::random_shuffle(va.begin(), va.end());
+        std::random_shuffle(vb.begin(), vb.end());
+        Permutation a(va), b(vb);
+        PiDD A = PiDD::from_permutation(a);
+        PiDD B = PiDD::from_permutation(b);
+        EXPECT_EQ(A * B, PiDD::from_permutation(a * b));
+        EXPECT_EQ(A.odd() != PiDD(0), a.is_odd());
+        EXPECT_EQ(A.even() != PiDD(0), a.is_even());
+        /* cofact(u, v) keeps a iff a(u) == v */
+        for (int u = 1; u <= 6; ++u)
+            for (int v = 1; v <= 6; ++v)
+                EXPECT_EQ(A.cofact(u, v) != PiDD(0), a(u) == v);
+        std::vector<Permutation> perms = (A + B).to_permutations();
+        std::set<Permutation> distinct(perms.begin(), perms.end());
+        EXPECT_TRUE(distinct.count(a));
+        EXPECT_TRUE(distinct.count(b));
+    }
+}
+
+TEST_F(PiDDTest, PermutationExecModesAgree) {
+    for (int i = 0; i < 4; ++i) PiDD_NewVar();
+    PiDD all = pidd_all_perms(4);
+    Permutation p({3, 1, 4, 2});
+    PiDD ref_fp = PiDD::from_permutation(p);
+    std::vector<Permutation> ref_tp = all.to_permutations();
+    for (int i = 0; i < 3; ++i) {
+        BddExecMode m = kPiddModes[i];
+        bddgc();  // clear the operation cache so each mode really recomputes
+        EXPECT_EQ(PiDD::from_permutation(p, m), ref_fp);
+        EXPECT_EQ(all.to_permutations(m), ref_tp);
+    }
+}
+
+TEST_F(PiDDTest, PermutationExecModesDeep) {
+    const int n = 129;  // n(n-1)/2 = 8256 levels > BDD_RecurLimit
+    for (int i = 0; i < n; ++i) PiDD_NewVar();
+    ASSERT_GT(static_cast<int>(bddvarused()), BDD_RecurLimit);
+    PiDD chain = pidd_transposition_chain();
+    const size_t levels = static_cast<size_t>(bddvarused());
+
+    EXPECT_THROW(chain.to_permutations(BDD_EXEC_RECURSIVE), std::overflow_error);
+    std::vector<Permutation> perms = chain.to_permutations(BDD_EXEC_ITERATIVE);
+    ASSERT_EQ(perms.size(), levels);
+    EXPECT_EQ(perms, chain.to_permutations());
+    /* Every member is a single transposition. */
+    for (size_t i = 0; i < perms.size(); ++i) {
+        int moved = 0;
+        for (int j = 1; j <= n; ++j) if (perms[i](j) != j) ++moved;
+        EXPECT_EQ(moved, 2);
+        EXPECT_TRUE(perms[i].is_odd());
+    }
+    /* from_permutation only touches the top of the chain-free DD it
+       builds, so every mode works even with this many variables. */
+    Permutation big = Permutation::identity(n);
+    std::vector<int> v = big.to_vector();
+    std::reverse(v.begin(), v.end());
+    Permutation rev(v);
+    PiDD r = PiDD::from_permutation(rev, BDD_EXEC_RECURSIVE);
+    EXPECT_EQ(r, PiDD::from_permutation(rev, BDD_EXEC_ITERATIVE));
+    EXPECT_EQ(r.count(), 1.0);
+    std::vector<Permutation> back = r.to_permutations(BDD_EXEC_ITERATIVE);
+    ASSERT_EQ(back.size(), 1u);
+    EXPECT_EQ(back[0], rev);
 }

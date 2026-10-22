@@ -3,6 +3,7 @@
 
 #include "bdd.h"
 #include "svg_export.h"
+#include "permutation.h"
 
 namespace kyotodd {
 
@@ -328,6 +329,47 @@ public:
     /** @deprecated Use swap_bound() instead. */
     PiDD SwapBound(int n) const { return swap_bound(n); }
 
+    /**
+     * @brief Convert a Permutation to a PiDD containing it.
+     *
+     * The permutation is decomposed into transpositions, which are
+     * applied with swap() starting from the identity. The variables for
+     * positions 1..p.size() must already exist (see PiDD_NewVar()).
+     *
+     * @param p The permutation (one-line notation, see Permutation).
+     * @return A PiDD containing the single permutation.
+     * @throws std::invalid_argument if a non-fixed position of p exceeds
+     *         PiDD_VarUsed().
+     */
+    static PiDD from_permutation(const Permutation& p);
+    /**
+     * @brief Convert a Permutation to a PiDD with execution mode
+     *        selection (forwarded to the swap() calls).
+     * @param p The permutation (one-line notation, see Permutation).
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     * @return A PiDD containing the single permutation.
+     */
+    static PiDD from_permutation(const Permutation& p, BddExecMode mode);
+    /**
+     * @brief Convert to a list of Permutation objects.
+     *
+     * Same traversal order as enumerate(); each Permutation has size
+     * PiDD_VarUsed(). Returns an empty list for the empty set and for
+     * the null PiDD.
+     *
+     * @return The permutations in the set.
+     */
+    std::vector<Permutation> to_permutations() const;
+    /**
+     * @brief Convert to a list of Permutation objects with execution
+     *        mode selection.
+     * @param mode Execution mode (Recursive, Iterative, or Auto).
+     *             Auto selects recursive if the internal ZDD's level
+     *             <= BDD_RecurLimit, else iterative.
+     * @return The permutations in the set.
+     */
+    std::vector<Permutation> to_permutations(BddExecMode mode) const;
+
     /** @brief Print all permutations to stdout. */
     void print() const;
     /** @deprecated Use print() instead. */
@@ -399,6 +441,10 @@ private:
     static void enumerate_iter(const PiDD& p, int dim, int* varmap, bool& flag);
     static void enumerate2_rec(const PiDD& p, std::vector<int>& levs, bool& flag);
     static void enumerate2_iter(const PiDD& p, std::vector<int>& levs, bool& flag);
+    static void to_perms_rec(const PiDD& p, int dim, int* varmap,
+                             std::vector<Permutation>& result);
+    static void to_perms_iter(const PiDD& p, int dim, int* varmap,
+                              std::vector<Permutation>& result);
     // Leaf printers shared by the _rec / _iter enumerators.
     static void enumerate_print(int dim, const int* varmap, bool& flag);
     static void enumerate2_print(const std::vector<int>& levs, bool& flag);
