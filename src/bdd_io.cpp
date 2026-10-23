@@ -211,30 +211,63 @@ static int import_core(Stream& strm, std::vector<bddp>& result,
 
     while (bddvarused() < max_level) bddnewvar();
 
-    std::unordered_map<uint64_t, bddp> id_map;
-    char buf0[ARC_BUF_SIZE], buf1[ARC_BUF_SIZE];
-    for (unsigned i = 0; i < node_count; i++) {
+    // Parse the whole stream first so that node construction below can be
+    // retried after GC without re-reading the stream.
+    struct NodeLine {
         uint64_t old_id;
         unsigned level;
-        if (!read_node_line(strm, old_id, level, buf0, buf1)) return -1;
-        if (level < 1 || level > max_level) return -1;
-        bddp lo = import_parse_arc(buf0, id_map);
-        bddp hi = import_parse_arc(buf1, id_map);
-        if (lo == bddnull || hi == bddnull) return -1;
-        bddvar var = bddvaroflev(level);
-        if (id_map.count(old_id)) return -1;  // duplicate node ID
-        bddp new_node = make_node(var, lo, hi);
-        id_map[old_id] = new_node;
+        char arc0[ARC_BUF_SIZE];
+        char arc1[ARC_BUF_SIZE];
+    };
+    // Grow the buffers as lines are read (no up-front sizing from the
+    // header counts) so a malformed header cannot force a huge allocation.
+    std::vector<NodeLine> lines;
+    for (unsigned i = 0; i < node_count; i++) {
+        NodeLine nl;
+        if (!read_node_line(strm, nl.old_id, nl.level, nl.arc0, nl.arc1)) return -1;
+        if (nl.level < 1 || nl.level > max_level) return -1;
+        lines.push_back(nl);
+    }
+    struct RootRef {
+        char ref[ARC_BUF_SIZE];
+    };
+    std::vector<RootRef> roots;
+    for (unsigned i = 0; i < output_count; i++) {
+        RootRef rr;
+        if (!read_token(strm, rr.ref)) return -1;
+        roots.push_back(rr);
     }
 
-    result.resize(output_count);
-    for (unsigned i = 0; i < output_count; i++) {
-        char ref[ARC_BUF_SIZE];
-        if (!read_token(strm, ref)) return -1;
-        bddp r = import_parse_arc(ref, id_map);
-        if (r == bddnull) return -1;
-        result[i] = r;
-    }
+    // Node construction runs under bdd_gc_guard: without it, allocate_node
+    // may run GC when the node table is full and reclaim the nodes built so
+    // far (they are referenced only from id_map). Under the guard
+    // allocate_node throws overflow_error instead; the outermost guard then
+    // runs GC and retries the construction from the already-parsed lines.
+    bool ok = false;
+    bdd_gc_guard([&]() -> bddp {
+        ok = false;
+        std::unordered_map<uint64_t, bddp> id_map;
+        for (unsigned i = 0; i < node_count; i++) {
+            const NodeLine& nl = lines[i];
+            bddp lo = import_parse_arc(nl.arc0, id_map);
+            bddp hi = import_parse_arc(nl.arc1, id_map);
+            if (lo == bddnull || hi == bddnull) return bddnull;
+            bddvar var = bddvaroflev(nl.level);
+            if (id_map.count(nl.old_id)) return bddnull;  // duplicate node ID
+            bddp new_node = make_node(var, lo, hi);
+            id_map[nl.old_id] = new_node;
+        }
+
+        result.resize(output_count);
+        for (unsigned i = 0; i < output_count; i++) {
+            bddp r = import_parse_arc(roots[i].ref, id_map);
+            if (r == bddnull) return bddnull;
+            result[i] = r;
+        }
+        ok = true;
+        return bddnull;
+    });
+    if (!ok) return -1;
 
     return static_cast<int>(output_count);
 }

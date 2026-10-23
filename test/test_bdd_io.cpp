@@ -846,6 +846,64 @@ TEST_F(BDDTest, Binary_ZDD_ImportExceedsNodeLimit) {
     EXPECT_EQ(live.raw_size(), 200u);
 }
 
+// --- Sapporo import when the node table is full (same setup as above) ---
+
+TEST_F(BDDTest, Sapporo_ZDD_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        std::ostringstream oss;
+        ZDD::power_set(100).export_sapporo(oss);
+        data = oss.str();
+    }
+    bddgc();
+    make_zdd_garbage_chain(101, 300);
+    std::istringstream iss(data);
+    ZDD c = ZDD::import_sapporo(iss);
+    EXPECT_EQ(c, ZDD::power_set(100));
+}
+
+TEST_F(BDDTest, Sapporo_BDD_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        BDD a(1);
+        for (bddvar v = 1; v <= 100; v++) a = a & BDDvar(v);
+        std::ostringstream oss;
+        a.export_sapporo(oss);
+        data = oss.str();
+    }
+    bddgc();
+    {
+        BDD b(0);
+        for (bddvar v = 101; v <= 300; v++) b = b | BDDvar(v);
+    }
+    std::istringstream iss(data);
+    BDD c = BDD::import_sapporo(iss);
+    BDD expected(1);
+    for (bddvar v = 1; v <= 100; v++) expected = expected & BDDvar(v);
+    EXPECT_EQ(c, expected);
+}
+
+TEST_F(BDDTest, Sapporo_ZDD_ImportExceedsNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        std::ostringstream oss;
+        ZDD::power_set(100).export_sapporo(oss);
+        data = oss.str();
+    }
+    bddgc();
+    ZDD live(1);
+    for (bddvar v = 101; v <= 300; v++) live = live.change(v);
+    std::istringstream iss(data);
+    EXPECT_THROW(ZDD::import_sapporo(iss), std::overflow_error);
+    EXPECT_EQ(live.raw_size(), 200u);
+}
+
 TEST_F(BDDTest, Binary_TypeMismatch_CLevel_BDD_from_ZDD) {
     ZDD z = ZDD::from_sets({{1, 2}});
     std::ostringstream oss;
