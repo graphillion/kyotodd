@@ -22,6 +22,22 @@ the BDD/ZDD class layout and is a significant architectural change.
   Legacy C-style API. The safe alternative `bddexactcount()` returning
   `BigInt` already exists.
 
+- **`BtoI_EQ` / `BtoI_NE` (and `BtoI_GT` / `BtoI_LT` / `BtoI_GE` / `BtoI_LE`)
+  are slow** (`src/btoi.cpp`).
+  `BtoI_EQ(a, b)` builds the difference `a - b` as a full `BtoI` and then
+  ORs its bits; `BtoI_GT` / `BtoI_LT` likewise build `a - b` only to read
+  its sign bit. `operator-` assembles the result one bit at a time with
+  `BDDV::operator||`, which rebuilds the BDDV meta-BDD at every step, so a
+  single comparison such as `send + more == money` over 20-bit operands
+  takes tens of seconds, versus well under a second for the same
+  comparison written as a bitwise XNOR / borrow chain over the operand
+  BDDs. Computing the comparisons directly (sign-extended XNOR for
+  equality, a borrow chain for ordering) without materialising the BDDV
+  difference would fix this, but `BtoI` is a legacy Sapporo-compatible
+  class that is not maintained for performance, so it is left as is.
+  Callers who need fast comparisons should build the per-bit BDDs
+  themselves.
+
 ## Design Decisions (Accepted)
 
 - **`ZDD_Random` uses `std::rand()`** (`src/zdd_ops.cpp`).
