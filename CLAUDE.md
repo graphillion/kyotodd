@@ -80,7 +80,7 @@ DDBase (include/dd_base.h)
 
 - SeqBDD (`include/seqbdd.h`), PiDD (`include/pidd.h`), RotPiDD (`include/rotpidd.h`) do NOT inherit from DDBase; each wraps a ZDD by composition.
 - `Permutation` (`include/permutation.h`) is a plain value class (not a DD) holding one permutation in 1-based one-line notation; PiDD / RotPiDD convert via `from_permutation` / `to_permutations`. `p * q` applies `p` first, matching the DD `operator*`.
-- `MTBDD<T>` / `MTZDD<T>` (`include/mtbdd.h`, split into `mtbdd_core.h` / `mtbdd_class.h` / `mtbdd_io.h`): multi-terminal templates without complement edges. Pre-instantiated: `MTBDDFloat` / `MTBDDInt` / `MTZDDFloat` / `MTZDDInt`.
+- `MTBDD<T>` / `MTZDD<T>` (`include/mtbdd.h`, split into `mtbdd_core.h` / `mtbdd_class.h` / `mtbdd_io.h`): multi-terminal templates without complement edges. C++ has no pre-instantiated typedefs (use e.g. `MTZDD<int>`); the Python bindings expose `MTBDDFloat` / `MTBDDInt` / `MTZDDFloat` / `MTZDDInt` (= `MTBDD<double>` / `MTBDD<int64_t>` / `MTZDD<double>` / `MTZDD<int64_t>`).
 - Memo classes for repeated queries: `BddCountMemo`, `ZddCountMemo`, `CostBoundMemo`, `WeightedSampleMemo`.
 - Python bindings: `python/src/kyotodd/_binding.cpp` (pybind11). C++-only (not bound): BDDV, ZBDDV, MLZBDDV, BtoI, CtoI, SOP/SOPV, and the `BddExecMode` arguments (Python always runs in `Auto`; see `KNOWN_ISSUES.md`).
 
