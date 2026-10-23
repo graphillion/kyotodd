@@ -1435,6 +1435,75 @@ TEST_P(BddCountBddModeTest, CrossValidation) {
     EXPECT_EQ(bddexactcount_mode(bddnot(f), n), bddexactcount(bddnot(f), n));
 }
 
+// Regression: the count of a complemented edge used to be computed as
+// 2^level - count(raw node). When count(raw node) is close to 2^level the
+// subtraction cancels almost every significant digit. ~(x1 | ... | x60) has
+// exactly one satisfying assignment, but 2^60 - (2^60 - 1) evaluated in
+// double gives 0 because 2^60 - 1 rounds to 2^60.
+TEST_P(BddCountBddModeTest, ComplementNoCatastrophicCancellation) {
+    const int n = 60;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+    bddp f = bddfalse;
+    for (int i = 1; i <= n; ++i) f = bddor(f, bddprime(i));
+    EXPECT_DOUBLE_EQ(bddcount_mode(bddnot(f), n), 1.0);
+    EXPECT_EQ(bddexactcount_mode(bddnot(f), n), bigint::BigInt(1));
+    // Nested under another variable (the complement is then taken on a
+    // child edge rather than on the root).
+    BDD_NewVar();
+    bddp g = bddand(bddprime(n + 1), bddnot(f));
+    EXPECT_DOUBLE_EQ(bddcount_mode(g, n + 1), 1.0);
+    bddp h = bddor(bddnot(bddprime(n + 1)), bddnot(f));
+    EXPECT_DOUBLE_EQ(bddcount_mode(h, n + 1), ldexp(1.0, n) + 1.0);
+}
+
+// bddcount must agree with bddexactcount to double precision on a large
+// (200-variable) BDD with many complement edges.
+TEST_P(BddCountBddModeTest, MatchesExactCountOnLargeBdd) {
+    const int n = 200;
+    for (int i = 0; i < n; ++i) BDD_NewVar();
+
+    auto to_double = [](const bigint::BigInt& b) {
+        return std::stod(b.to_string());
+    };
+    auto check = [&](bddp f) {
+        double expected = to_double(bddexactcount_mode(f, n));
+        double actual = bddcount_mode(f, n);
+        EXPECT_NEAR(actual, expected, expected * 1e-12) << "f=" << f;
+        double expected_not = to_double(bddexactcount_mode(bddnot(f), n));
+        double actual_not = bddcount_mode(bddnot(f), n);
+        EXPECT_NEAR(actual_not, expected_not, expected_not * 1e-12)
+            << "~f, f=" << f;
+    };
+
+    // Structured: (x1|...|x60) & ~(x61|...|x120) & (x121 ^ ... ^ x200).
+    bddp or1 = bddfalse, or2 = bddfalse, xr = bddfalse;
+    for (int i = 1; i <= 60; ++i) or1 = bddor(or1, bddprime(i));
+    for (int i = 61; i <= 120; ++i) or2 = bddor(or2, bddprime(i));
+    for (int i = 121; i <= 200; ++i) xr = bddxor(xr, bddprime(i));
+    bddp structured = bddand(bddand(or1, bddnot(or2)), xr);
+    check(structured);
+
+    // Random: combine literals with random binary operators and negations.
+    std::mt19937 rng(20261023u);
+    std::vector<bddp> pool;
+    for (int i = 1; i <= n; ++i) pool.push_back(bddprime(i));
+    for (int step = 0; step < 400; ++step) {
+        bddp a = pool[rng() % pool.size()];
+        bddp b = pool[rng() % pool.size()];
+        if (rng() % 2) a = bddnot(a);
+        bddp r;
+        switch (rng() % 3) {
+        case 0: r = bddand(a, b); break;
+        case 1: r = bddor(a, b); break;
+        default: r = bddxor(a, b); break;
+        }
+        pool.push_back(r);
+    }
+    for (int k = 0; k < 20; ++k) {
+        check(pool[pool.size() - 1 - k]);
+    }
+}
+
 // --- BDD operator| ---
 
 TEST_F(BDDTest, OperatorOr) {

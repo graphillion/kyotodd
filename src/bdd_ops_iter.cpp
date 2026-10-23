@@ -1534,7 +1534,9 @@ bddp bddite_iter(bddp f, bddp g, bddp h) {
 // PRECONDITION: Must be invoked under a bdd_gc_guard scope.
 // Explicit-stack counterpart of bddcount_bdd_rec. Returns the inner count
 // (scaled by the top-level); the outer bddcount() re-applies the top-level
-// shift. Shares the memo semantics with the recursive version.
+// shift. Shares the memo semantics with the recursive version: the memo key
+// is the full edge ID (complement flag included) and a complemented edge is
+// counted through its flipped children, never as 2^level - count.
 double bddcount_bdd_iter(bddp f, bddvar n,
                          std::unordered_map<bddp, double>& memo) {
     enum class Phase : uint8_t { ENTER, GOT_LO, GOT_HI };
@@ -1572,20 +1574,15 @@ double bddcount_bdd_iter(bddp f, bddvar n,
             if (cf == bddfalse) { result = 0.0; stack.pop_back(); break; }
             if (cf == bddtrue) { result = 1.0; stack.pop_back(); break; }
 
-            bool comp = (cf & BDD_COMP_FLAG) != 0;
-            bddp f_raw = cf & ~BDD_COMP_FLAG;
-
-            auto it = memo.find(f_raw);
+            auto it = memo.find(cf);
             if (it != memo.end()) {
-                double count = it->second;
-                if (comp) {
-                    bddvar lvl = var2level[node_var(f_raw)];
-                    count = std::ldexp(1.0, lvl) - count;
-                }
-                result = count;
+                result = it->second;
                 stack.pop_back();
                 break;
             }
+
+            bool comp = (cf & BDD_COMP_FLAG) != 0;
+            bddp f_raw = cf & ~BDD_COMP_FLAG;
 
             bddvar var = node_var(f_raw);
             if (var > n) {
@@ -1595,8 +1592,13 @@ double bddcount_bdd_iter(bddp f, bddvar n,
             bddvar f_level = var2level[var];
             bddp lo = node_lo(f_raw);
             bddp hi = node_hi(f_raw);
+            if (comp) {
+                lo ^= BDD_COMP_FLAG;
+                hi ^= BDD_COMP_FLAG;
+            }
 
-            bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0 : var2level[node_var(lo)];
+            bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0
+                : var2level[node_var(lo & ~BDD_COMP_FLAG)];
             bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
                 : var2level[node_var(hi & ~BDD_COMP_FLAG)];
 
@@ -1624,6 +1626,7 @@ double bddcount_bdd_iter(bddp f, bddvar n,
             frame.lo_count = result;
             frame.phase = Phase::GOT_HI;
             bddp hi = node_hi(frame.f_raw);
+            if (frame.comp) hi ^= BDD_COMP_FLAG;
             Frame child;
             child.f = hi;
             child.f_raw = 0;
@@ -1649,10 +1652,7 @@ double bddcount_bdd_iter(bddp f, bddvar n,
             }
             double count = std::ldexp(frame.lo_count, exp_lo)
                          + std::ldexp(hi_count, exp_hi);
-            memo[frame.f_raw] = count;
-            if (frame.comp) {
-                count = std::ldexp(1.0, frame.f_level) - count;
-            }
+            memo[frame.f] = count;
             result = count;
             stack.pop_back();
             break;
@@ -1662,7 +1662,6 @@ double bddcount_bdd_iter(bddp f, bddvar n,
     return result;
 }
 
-// PRECONDITION: Must be invoked under a bdd_gc_guard scope.
 // BigInt variant of bddcount_bdd_iter.
 bigint::BigInt bddexactcount_bdd_iter(
     bddp f, bddvar n,

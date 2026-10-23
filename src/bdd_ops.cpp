@@ -1407,6 +1407,11 @@ bddp bddspread(bddp f, int k, BddExecMode mode) {
 
 // --- BDD satisfiability counting ---
 
+// The memo key is the full edge ID including the complement flag. A
+// complemented edge is counted by descending into the flipped children
+// (~(v, lo, hi) = (v, ~lo, ~hi)), never by computing 2^level - count:
+// that subtraction loses almost all significant digits when count is
+// close to 2^level (e.g. level 180 gives an absolute error of about 1e38).
 static double bddcount_bdd_rec(
     bddp f, bddvar n, std::unordered_map<bddp, double>& memo) {
     if (f == bddfalse) return 0.0;
@@ -1414,49 +1419,44 @@ static double bddcount_bdd_rec(
 
     BDD_RecurGuard guard;
 
+    auto it = memo.find(f);
+    if (it != memo.end()) return it->second;
+
     bool comp = (f & BDD_COMP_FLAG) != 0;
     bddp f_raw = f & ~BDD_COMP_FLAG;
 
-    auto it = memo.find(f_raw);
-    double count;
-    if (it != memo.end()) {
-        count = it->second;
-    } else {
-        bddvar var = node_var(f_raw);
-        if (var > n) {
-            throw std::invalid_argument(
-                "bddcount: BDD contains variable > n");
-        }
-        bddvar f_level = var2level[var];
-
-        bddp lo = node_lo(f_raw);
-        bddp hi = node_hi(f_raw);
-
-        bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0
-            : var2level[node_var(lo)];
-        bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
-            : var2level[node_var(hi & ~BDD_COMP_FLAG)];
-
-        double lo_count = bddcount_bdd_rec(lo, n, memo);
-        double hi_count = bddcount_bdd_rec(hi, n, memo);
-
-        int exp_lo = static_cast<int>(f_level) - 1 - static_cast<int>(lo_level);
-        int exp_hi = static_cast<int>(f_level) - 1 - static_cast<int>(hi_level);
-        if (exp_lo < 0 || exp_hi < 0) {
-            throw std::logic_error(
-                "bddcount: invalid BDD structure (child level >= parent level)");
-        }
-        count = ldexp(lo_count, exp_lo)
-              + ldexp(hi_count, exp_hi);
-
-        memo[f_raw] = count;
+    bddvar var = node_var(f_raw);
+    if (var > n) {
+        throw std::invalid_argument(
+            "bddcount: BDD contains variable > n");
     }
+    bddvar f_level = var2level[var];
 
+    bddp lo = node_lo(f_raw);
+    bddp hi = node_hi(f_raw);
     if (comp) {
-        bddvar f_level = var2level[node_var(f_raw)];
-        count = ldexp(1.0, f_level) - count;
+        lo ^= BDD_COMP_FLAG;
+        hi ^= BDD_COMP_FLAG;
     }
 
+    bddvar lo_level = (lo & BDD_CONST_FLAG) ? 0
+        : var2level[node_var(lo & ~BDD_COMP_FLAG)];
+    bddvar hi_level = (hi & BDD_CONST_FLAG) ? 0
+        : var2level[node_var(hi & ~BDD_COMP_FLAG)];
+
+    double lo_count = bddcount_bdd_rec(lo, n, memo);
+    double hi_count = bddcount_bdd_rec(hi, n, memo);
+
+    int exp_lo = static_cast<int>(f_level) - 1 - static_cast<int>(lo_level);
+    int exp_hi = static_cast<int>(f_level) - 1 - static_cast<int>(hi_level);
+    if (exp_lo < 0 || exp_hi < 0) {
+        throw std::logic_error(
+            "bddcount: invalid BDD structure (child level >= parent level)");
+    }
+    double count = ldexp(lo_count, exp_lo)
+                 + ldexp(hi_count, exp_hi);
+
+    memo[f] = count;
     return count;
 }
 

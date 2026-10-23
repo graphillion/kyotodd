@@ -1046,7 +1046,10 @@ double bddcount(bddp f, bddvar n, BddExecMode mode);
  * Advanced API. Inputs must be pre-validated: @p f must not be
  * @c bddnull and must be a valid @c bddp (terminal or live node); the
  * body dereferences @c node_var(f) without a null/validity check. Must
- * run inside a @c bdd_gc_guard scope. The memo must be caller-owned.
+ * run inside a @c bdd_gc_guard scope. The memo must be caller-owned and is
+ * keyed by the full edge ID (complement flag included); a complemented edge
+ * is counted through its flipped children rather than as 2^level - count,
+ * so no precision is lost when the count is close to 2^level.
  */
 double bddcount_bdd_iter(bddp f, bddvar n,
                          std::unordered_map<bddp, double>& memo);
