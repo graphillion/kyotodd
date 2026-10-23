@@ -191,58 +191,64 @@ static bddp graphillion_import_core(Stream& strm, int offset) {
     bddvar max_level = static_cast<bddvar>(max_level_signed);
     while (bddvarused() < max_level) bddnewvar();
 
-    // Map: file node ID (string) → internal bddp
-    std::unordered_map<uint64_t, bddp> id_map;
+    // Node construction runs under bdd_gc_guard: without it, allocate_node
+    // may run GC when the node table is full and reclaim the nodes built so
+    // far (they are referenced only from id_map). Under the guard
+    // allocate_node throws overflow_error instead; the outermost guard then
+    // runs GC and retries the construction from the already-parsed lines.
+    return bdd_gc_guard([&]() -> bddp {
+        // Map: file node ID (string) → internal bddp
+        std::unordered_map<uint64_t, bddp> id_map;
 
-    for (size_t i = 0; i < lines.size(); i++) {
-        const NodeLine& nl = lines[i];
-        int level = static_cast<int>(N) + 1 - static_cast<int>(nl.g_var) + offset;
-        if (level < 1)
-            throw std::runtime_error("zdd_import_graphillion: computed level < 1");
-        bddvar var = bddvaroflev(static_cast<bddvar>(level));
+        for (size_t i = 0; i < lines.size(); i++) {
+            const NodeLine& nl = lines[i];
+            int level = static_cast<int>(N) + 1 - static_cast<int>(nl.g_var) + offset;
+            if (level < 1)
+                throw std::runtime_error("zdd_import_graphillion: computed level < 1");
+            bddvar var = bddvaroflev(static_cast<bddvar>(level));
 
-        // Resolve lo
-        bddp lo;
-        if (nl.lo_str == "B") {
-            lo = bddempty;
-        } else if (nl.lo_str == "T") {
-            lo = bddsingle;
-        } else {
-            char* ep;
-            uint64_t lo_id = std::strtoull(nl.lo_str.c_str(), &ep, 10);
-            if (ep == nl.lo_str.c_str() || *ep != '\0')
-                throw std::runtime_error("zdd_import_graphillion: invalid lo child ID");
-            std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(lo_id);
-            if (it == id_map.end())
-                throw std::runtime_error("zdd_import_graphillion: undefined lo node reference");
-            lo = it->second;
+            // Resolve lo
+            bddp lo;
+            if (nl.lo_str == "B") {
+                lo = bddempty;
+            } else if (nl.lo_str == "T") {
+                lo = bddsingle;
+            } else {
+                char* ep;
+                uint64_t lo_id = std::strtoull(nl.lo_str.c_str(), &ep, 10);
+                if (ep == nl.lo_str.c_str() || *ep != '\0')
+                    throw std::runtime_error("zdd_import_graphillion: invalid lo child ID");
+                std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(lo_id);
+                if (it == id_map.end())
+                    throw std::runtime_error("zdd_import_graphillion: undefined lo node reference");
+                lo = it->second;
+            }
+
+            // Resolve hi
+            bddp hi;
+            if (nl.hi_str == "B") {
+                hi = bddempty;
+            } else if (nl.hi_str == "T") {
+                hi = bddsingle;
+            } else {
+                char* ep;
+                uint64_t hi_id = std::strtoull(nl.hi_str.c_str(), &ep, 10);
+                if (ep == nl.hi_str.c_str() || *ep != '\0')
+                    throw std::runtime_error("zdd_import_graphillion: invalid hi child ID");
+                std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(hi_id);
+                if (it == id_map.end())
+                    throw std::runtime_error("zdd_import_graphillion: undefined hi node reference");
+                hi = it->second;
+            }
+
+            if (id_map.count(nl.id))
+                throw std::runtime_error("zdd_import_graphillion: duplicate node ID");
+            bddp node = ZDD::getnode_raw(var, lo, hi);
+            id_map[nl.id] = node;
+            root = node;  // last node is root
         }
-
-        // Resolve hi
-        bddp hi;
-        if (nl.hi_str == "B") {
-            hi = bddempty;
-        } else if (nl.hi_str == "T") {
-            hi = bddsingle;
-        } else {
-            char* ep;
-            uint64_t hi_id = std::strtoull(nl.hi_str.c_str(), &ep, 10);
-            if (ep == nl.hi_str.c_str() || *ep != '\0')
-                throw std::runtime_error("zdd_import_graphillion: invalid hi child ID");
-            std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(hi_id);
-            if (it == id_map.end())
-                throw std::runtime_error("zdd_import_graphillion: undefined hi node reference");
-            hi = it->second;
-        }
-
-        if (id_map.count(nl.id))
-            throw std::runtime_error("zdd_import_graphillion: duplicate node ID");
-        bddp node = ZDD::getnode_raw(var, lo, hi);
-        id_map[nl.id] = node;
-        root = node;  // last node is root
-    }
-
-    return root;
+        return root;
+    });
 }
 
 bddp zdd_import_graphillion(FILE* strm, int offset) {

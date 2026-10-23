@@ -904,6 +904,41 @@ TEST_F(BDDTest, Sapporo_ZDD_ImportExceedsNodeLimit) {
     EXPECT_EQ(live.raw_size(), 200u);
 }
 
+// --- Graphillion import when the node table is full (same setup as above) ---
+
+TEST_F(BDDTest, Graphillion_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        std::ostringstream oss;
+        ZDD::power_set(100).export_graphillion(oss);
+        data = oss.str();
+    }
+    bddgc();
+    make_zdd_garbage_chain(101, 300);
+    std::istringstream iss(data);
+    ZDD c = ZDD::import_graphillion(iss);
+    EXPECT_EQ(c, ZDD::power_set(100));
+}
+
+TEST_F(BDDTest, Graphillion_ImportExceedsNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        std::ostringstream oss;
+        ZDD::power_set(100).export_graphillion(oss);
+        data = oss.str();
+    }
+    bddgc();
+    ZDD live(1);
+    for (bddvar v = 101; v <= 300; v++) live = live.change(v);
+    std::istringstream iss(data);
+    EXPECT_THROW(ZDD::import_graphillion(iss), std::overflow_error);
+    EXPECT_EQ(live.raw_size(), 200u);
+}
+
 TEST_F(BDDTest, Binary_TypeMismatch_CLevel_BDD_from_ZDD) {
     ZDD z = ZDD::from_sets({{1, 2}});
     std::ostringstream oss;
