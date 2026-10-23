@@ -9,7 +9,19 @@ varies depending on BDD variable assignments.
 
 Header: ``#include "btoi.h"``
 
-Requires ``BDDV_Init()`` to have been called.
+Requires ``BDDV_Init()`` to have been called. ``BDDV_Init()`` reserves
+variables 1..``BDDV_SysVarTop`` (20) as output-selection system
+variables, so every input variable used in a BtoI must be created with
+``BDDV_NewVar()`` after ``BDDV_Init()``. Variables created with
+``bddinit()`` + ``bddnewvar()`` occupy the reserved numbers and make
+``BtoI(const BDD&)`` throw ``std::invalid_argument`` ("BDD contains
+system variables").
+
+The BDDs returned by ``GetBDD()`` / ``GetSignBDD()`` live in the same
+variable space. ``BDD::count(n)`` with ``n = BDD_TopLev()`` therefore
+counts the 20 system variables as free inputs and is
+2^``BDDV_SysVarTop`` times the number of satisfying assignments over the
+user variables; divide by 2^20 to get the count over user variables.
 
 .. note:: No Python binding is provided for this class.
 

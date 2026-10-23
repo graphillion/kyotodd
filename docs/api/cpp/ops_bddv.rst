@@ -25,6 +25,16 @@ Initialization
    before using any BDDV, ZBDDV, BtoI, CtoI, SOP, SOPV, or MLZBDDV
    functionality.
 
+   The system variables occupy variable numbers 1..``BDDV_SysVarTop``.
+   User input variables must be created afterwards with
+   ``BDDV_NewVar()`` / ``BDDV_NewVarOfLev()``; BDDs over variables from
+   a plain ``bddinit()`` + ``bddnewvar()`` session are rejected with
+   ``std::invalid_argument`` ("contains system variables"). When
+   counting satisfying assignments of a BDD taken from one of these
+   classes, ``BDD::count(n)`` counts the system variables as free
+   inputs; divide the result by 2^``BDDV_SysVarTop`` to get the count
+   over user variables.
+
    :param init: Initial node table capacity.
    :param limit: Maximum node table size.
    :return: 0 on success, 1 on failure.

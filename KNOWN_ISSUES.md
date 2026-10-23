@@ -38,6 +38,30 @@ the BDD/ZDD class layout and is a significant architectural change.
   Callers who need fast comparisons should build the per-bit BDDs
   themselves.
 
+- **BDDV-based classes require `BDDV_Init()` and reserve variables 1..20**
+  (`include/bddv.h`, `include/btoi.h`, `src/bddv.cpp`).
+  `BDDV_Init()` creates `BDDV_SysVarTop` (20) output-selection system
+  variables first, so BDDV, ZBDDV, BtoI, CtoI, SOP, SOPV and MLZBDDV only
+  accept BDDs over variables created afterwards with `BDDV_NewVar()`. A
+  BDD built from `bddinit()` + `bddnewvar()` variables fails at run time
+  with `std::invalid_argument("BDDV(BDD): BDD contains system variables")`,
+  and `BDD::count(n)` on a BDD taken from these classes counts the 20
+  system variables as free inputs (the result is 2^20 times the count
+  over user variables). Lifting the restriction would require moving the
+  system variables out of the shared variable space, a redesign of the
+  legacy Sapporo-compatible layer. The constraint is documented in the
+  headers and the Sphinx pages instead.
+
+- **No dynamic variable reordering** (sifting, window permutation, etc.).
+  KyotoDD has no reordering engine comparable to BuDDy's `bdd_reorder` or
+  CUDD's `Cudd_ReduceHeap`. The variable order is fixed by the order in
+  which variables are created (`bddnewvar()` / `bddnewvaroflev()` /
+  `new_var(n, reverse)`), and `bddnewvaroflev()` already invalidates
+  existing DDs (see above), so a reordering engine would need a new
+  level-swap primitive that rebuilds live nodes in place. Users who need a
+  different order must choose it up front and rebuild their DDs. Not
+  planned.
+
 ## Design Decisions (Accepted)
 
 - **`ZDD_Random` uses `std::rand()`** (`src/zdd_ops.cpp`).

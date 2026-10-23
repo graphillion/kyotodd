@@ -14,7 +14,20 @@
  * This header is NOT included by the umbrella header @c bdd.h.
  * You must explicitly @c \#include @c "btoi.h" to use this class.
  *
- * Requires BDDV_Init() to have been called (from bddv.h).
+ * Requires BDDV_Init() to have been called (from bddv.h). BDDV_Init()
+ * reserves variables 1..BDDV_SysVarTop (20) as output-selection system
+ * variables; every input variable used in a BtoI must therefore be created
+ * with BDDV_NewVar() (or BDDV_NewVarOfLev()) after BDDV_Init(). Variables
+ * created with bddinit() + bddnewvar() occupy the reserved numbers, and
+ * passing a BDD over them to BtoI(const BDD&) throws std::invalid_argument
+ * ("BDD contains system variables").
+ *
+ * The BDDs returned by GetBDD() / GetSignBDD() live in the same variable
+ * space, so BDD::count(n) with n = BDD_TopLev() counts the 20 system
+ * variables as free inputs and is 2^BDDV_SysVarTop times the number of
+ * satisfying assignments over the user variables. Divide by
+ * 2^BDDV_SysVarTop (e.g. ldexp(c, -BDDV_SysVarTop)) to get the count over
+ * user variables.
  *
  * No Python binding is provided for this class.
  */

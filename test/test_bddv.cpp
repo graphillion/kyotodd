@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstdio>
 #include <cstring>
+#include <cmath>
 
 using namespace kyotodd;
 
@@ -100,6 +101,29 @@ TEST_F(BDDVTest, ConstructFromBDDExcessiveLenThrows) {
 TEST_F(BDDVTest, ConstructFromBDDNull) {
     BDDV v(BDD(-1), 5);
     EXPECT_EQ(v.Len(), 1); // null forces len=1
+}
+
+// Variables created with bddinit() + bddnewvar() occupy the numbers that
+// BDDV_Init() reserves for system variables, so a BDD over them is rejected.
+TEST_F(BDDVTest, PlainBddinitVariablesAreRejectedAsSystemVars) {
+    bddinit(256, BDD_MaxNode);
+    bddvar v = bddnewvar();  // v == 1, inside 1..BDDV_SysVarTop
+    EXPECT_LE(v, static_cast<bddvar>(BDDV_SysVarTop));
+    EXPECT_THROW(BDDV(BDDvar(v)), std::invalid_argument);
+    BDDV_Init(256);  // restore the fixture's state for later tests
+}
+
+// BDD::count(n) over a BDD taken from a BDDV counts the system variables as
+// free inputs; dividing by 2^BDDV_SysVarTop gives the count over user vars.
+TEST_F(BDDVTest, CountIncludesSystemVariables) {
+    bddvar a = static_cast<bddvar>(BDDV_NewVar());
+    bddvar b = static_cast<bddvar>(BDDV_NewVar());
+    BDDV fv(BDDvar(a) & BDDvar(b));
+    BDD f = fv.GetBDD(0);
+    bddvar n = BDD_TopLev();  // 20 system + 2 user variables
+    EXPECT_EQ(n, static_cast<bddvar>(BDDV_SysVarTop + 2));
+    EXPECT_DOUBLE_EQ(f.count(n), std::ldexp(1.0, BDDV_SysVarTop));
+    EXPECT_DOUBLE_EQ(std::ldexp(f.count(n), -BDDV_SysVarTop), 1.0);
 }
 
 TEST_F(BDDVTest, ConstructFromBDDWithLenRejectsSystemVar) {

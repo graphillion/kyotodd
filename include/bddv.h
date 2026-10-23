@@ -214,6 +214,14 @@ int operator!=(const BDDV& fv, const BDDV& gv);
  * @brief Initialize the BDDV subsystem.
  *
  * Calls bddinit() and allocates BDDV_SysVarTop output-selection variables.
+ * These occupy variable numbers 1..BDDV_SysVarTop; user input variables
+ * must be created afterwards with BDDV_NewVar() / BDDV_NewVarOfLev().
+ * BDDV, ZBDDV, BtoI, CtoI, SOP, SOPV and MLZBDDV reject BDDs over the
+ * reserved numbers (std::invalid_argument "contains system variables"),
+ * so they cannot be mixed with variables from a plain bddinit() +
+ * bddnewvar() session. BDD::count(n) over a BDD taken from one of these
+ * classes counts the system variables as free inputs; divide by
+ * 2^BDDV_SysVarTop to get the count over user variables.
  *
  * @param init Initial node table capacity.
  * @param limit Maximum node table size.
