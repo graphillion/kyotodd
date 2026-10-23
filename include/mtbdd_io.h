@@ -335,81 +335,88 @@ inline bddp mtbdd_import_binary_impl(std::istream& strm,
     // Ensure variables exist
     while (bddvarused() < max_level) bddnewvar();
 
-    // --- Reconstruct nodes (topological sort) ---
-    std::unordered_map<uint64_t, bddp> id_map;
+    // Node construction runs under bdd_gc_guard: without it, allocate_node
+    // may run GC when the node table is full and reclaim the nodes built so
+    // far (they are referenced only from id_map). Under the guard
+    // allocate_node throws overflow_error instead; the outermost guard then
+    // runs GC and retries the construction from the already-parsed data.
+    return bdd_gc_guard([&]() -> bddp {
+        // --- Reconstruct nodes (topological sort) ---
+        std::unordered_map<uint64_t, bddp> id_map;
 
-    auto is_resolved = [&](uint64_t bin_id) -> bool {
-        if (bin_id < t) return true;
-        return id_map.count(bin_id) != 0;
-    };
+        auto is_resolved = [&](uint64_t bin_id) -> bool {
+            if (bin_id < t) return true;
+            return id_map.count(bin_id) != 0;
+        };
 
-    auto resolve = [&](uint64_t bin_id) -> bddp {
-        if (bin_id < t) {
-            if (bin_id >= terminal_bddps.size())
-                throw std::runtime_error("mtbdd binary import: terminal ID out of range");
-            return terminal_bddps[static_cast<size_t>(bin_id)];
-        }
-        typename std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(bin_id);
-        if (it == id_map.end())
-            throw std::runtime_error("mtbdd binary import: undefined node reference");
-        return it->second;
-    };
+        auto resolve = [&](uint64_t bin_id) -> bddp {
+            if (bin_id < t) {
+                if (bin_id >= terminal_bddps.size())
+                    throw std::runtime_error("mtbdd binary import: terminal ID out of range");
+                return terminal_bddps[static_cast<size_t>(bin_id)];
+            }
+            typename std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(bin_id);
+            if (it == id_map.end())
+                throw std::runtime_error("mtbdd binary import: undefined node reference");
+            return it->second;
+        };
 
-    // Pre-compute levels
-    std::vector<bddvar> node_levels(total_nodes);
-    {
-        uint64_t idx = 0;
-        for (uint64_t l = 0; l < max_level; l++) {
-            for (uint64_t c = 0; c < level_counts[l]; c++) {
-                node_levels[idx++] = static_cast<bddvar>(l + 1);
+        // Pre-compute levels
+        std::vector<bddvar> node_levels(total_nodes);
+        {
+            uint64_t idx = 0;
+            for (uint64_t l = 0; l < max_level; l++) {
+                for (uint64_t c = 0; c < level_counts[l]; c++) {
+                    node_levels[idx++] = static_cast<bddvar>(l + 1);
+                }
             }
         }
-    }
 
-    // Worklist-based topological sort
-    std::vector<int> pending(total_nodes, 0);
-    std::unordered_map<uint64_t, std::vector<uint64_t> > dependents;
-    for (uint64_t i = 0; i < total_nodes; i++) {
-        if (!is_resolved(bin_nodes[i].lo)) {
-            pending[i]++;
-            dependents[bin_nodes[i].lo].push_back(i);
-        }
-        if (!is_resolved(bin_nodes[i].hi)) {
-            pending[i]++;
-            dependents[bin_nodes[i].hi].push_back(i);
-        }
-    }
-
-    std::vector<uint64_t> ready;
-    for (uint64_t i = 0; i < total_nodes; i++) {
-        if (pending[i] == 0) ready.push_back(i);
-    }
-
-    uint64_t created = 0;
-    while (!ready.empty()) {
-        uint64_t i = ready.back();
-        ready.pop_back();
-
-        bddvar var = bddvaroflev(node_levels[i]);
-        bddp lo = resolve(bin_nodes[i].lo);
-        bddp hi = resolve(bin_nodes[i].hi);
-        uint64_t bin_id = t + i;
-        id_map[bin_id] = make_node(var, lo, hi);
-        created++;
-
-        typename std::unordered_map<uint64_t, std::vector<uint64_t> >::iterator dit = dependents.find(bin_id);
-        if (dit != dependents.end()) {
-            for (size_t j = 0; j < dit->second.size(); j++) {
-                uint64_t dep = dit->second[j];
-                if (--pending[dep] == 0) ready.push_back(dep);
+        // Worklist-based topological sort
+        std::vector<int> pending(total_nodes, 0);
+        std::unordered_map<uint64_t, std::vector<uint64_t> > dependents;
+        for (uint64_t i = 0; i < total_nodes; i++) {
+            if (!is_resolved(bin_nodes[i].lo)) {
+                pending[i]++;
+                dependents[bin_nodes[i].lo].push_back(i);
+            }
+            if (!is_resolved(bin_nodes[i].hi)) {
+                pending[i]++;
+                dependents[bin_nodes[i].hi].push_back(i);
             }
         }
-    }
 
-    if (created < total_nodes)
-        throw std::runtime_error("mtbdd binary import: circular dependency");
+        std::vector<uint64_t> ready;
+        for (uint64_t i = 0; i < total_nodes; i++) {
+            if (pending[i] == 0) ready.push_back(i);
+        }
 
-    return resolve(root_id);
+        uint64_t created = 0;
+        while (!ready.empty()) {
+            uint64_t i = ready.back();
+            ready.pop_back();
+
+            bddvar var = bddvaroflev(node_levels[i]);
+            bddp lo = resolve(bin_nodes[i].lo);
+            bddp hi = resolve(bin_nodes[i].hi);
+            uint64_t bin_id = t + i;
+            id_map[bin_id] = make_node(var, lo, hi);
+            created++;
+
+            typename std::unordered_map<uint64_t, std::vector<uint64_t> >::iterator dit = dependents.find(bin_id);
+            if (dit != dependents.end()) {
+                for (size_t j = 0; j < dit->second.size(); j++) {
+                    uint64_t dep = dit->second[j];
+                    if (--pending[dep] == 0) ready.push_back(dep);
+                }
+            }
+        }
+
+        if (created < total_nodes)
+            throw std::runtime_error("mtbdd binary import: circular dependency");
+
+        return resolve(root_id);
+    });
 }
 
 } // namespace mtbdd_binary_detail

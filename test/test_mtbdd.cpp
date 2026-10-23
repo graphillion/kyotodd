@@ -1111,6 +1111,82 @@ TEST_F(MTBDDClassTest, MTZDDImportTruncatedThrows) {
     EXPECT_THROW(MTZDD<double>::import_binary(ss), std::runtime_error);
 }
 
+// --- Binary import when the node table is full ---
+// The node table is capped at 256 nodes. A 100-node MTBDD/MTZDD is exported
+// and dropped, then a 200-node garbage chain fills the table, so the import
+// reaches the cap midway and GC must run. The nodes imported so far must
+// survive that GC. The result is checked by re-exporting it, since building
+// the expected DD alongside it would not fit in the capped table.
+
+TEST_F(MTBDDClassTest, MTZDDImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        MTZDD<int> a = MTZDD<int>::from_zdd(ZDD::power_set(100), 0, 3);
+        std::ostringstream oss;
+        a.export_binary(oss);
+        data = oss.str();
+    }
+    bddgc();
+    {
+        ZDD b(1);
+        for (bddvar v = 101; v <= 300; v++) b = b.change(v);
+    }
+    std::istringstream iss(data);
+    MTZDD<int> c = MTZDD<int>::import_binary(iss);
+    EXPECT_EQ(c.raw_size(), 100u);
+    std::ostringstream oss2;
+    c.export_binary(oss2);
+    EXPECT_EQ(oss2.str(), data);
+}
+
+TEST_F(MTBDDClassTest, MTBDDImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        BDD f(1);
+        for (bddvar v = 1; v <= 100; v++) f = f & BDDvar(v);
+        MTBDD<int> a = MTBDD<int>::from_bdd(f, 0, 3);
+        f = BDD(0);
+        std::ostringstream oss;
+        a.export_binary(oss);
+        data = oss.str();
+    }
+    bddgc();
+    {
+        BDD b(0);
+        for (bddvar v = 101; v <= 300; v++) b = b | BDDvar(v);
+    }
+    std::istringstream iss(data);
+    MTBDD<int> c = MTBDD<int>::import_binary(iss);
+    EXPECT_EQ(c.raw_size(), 100u);
+    std::ostringstream oss2;
+    c.export_binary(oss2);
+    EXPECT_EQ(oss2.str(), data);
+}
+
+TEST_F(MTBDDClassTest, MTZDDImportExceedsNodeLimit) {
+    // A live 200-node ZDD leaves no room for the 100-node import even after
+    // GC, so the import must fail with overflow_error.
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        MTZDD<int> a = MTZDD<int>::from_zdd(ZDD::power_set(100), 0, 3);
+        std::ostringstream oss;
+        a.export_binary(oss);
+        data = oss.str();
+    }
+    bddgc();
+    ZDD live(1);
+    for (bddvar v = 101; v <= 300; v++) live = live.change(v);
+    std::istringstream iss(data);
+    EXPECT_THROW(MTZDD<int>::import_binary(iss), std::overflow_error);
+    EXPECT_EQ(live.raw_size(), 200u);
+}
+
 // Helper: write a magic + 91-byte header with the given bits_for_id.
 // The remaining trailing bytes are not written, but the header check
 // runs before any further reads.
