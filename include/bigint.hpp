@@ -266,7 +266,16 @@ public:
     // ---------------------------------------------------------------
     friend bool operator==(const BigInt& a, const BigInt& b) {
         if (a.negative_ != b.negative_) return false;
-        return a.limbs_ == b.limbs_;
+        // Compared limb by limb instead of via std::vector::operator==:
+        // GCC 15 inlines the latter into __builtin_memcmp and emits a
+        // spurious -Wnonnull when one operand is a zero BigInt (empty
+        // limbs_, null data pointer) even though the size check in
+        // vector::operator== guarantees memcmp is never reached then.
+        if (a.limbs_.size() != b.limbs_.size()) return false;
+        for (size_t i = 0; i < a.limbs_.size(); ++i) {
+            if (a.limbs_[i] != b.limbs_[i]) return false;
+        }
+        return true;
     }
 
     friend bool operator!=(const BigInt& a, const BigInt& b) {

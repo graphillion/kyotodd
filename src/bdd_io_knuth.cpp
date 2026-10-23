@@ -160,7 +160,6 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
     unsigned max_knuth_level = 0;
 
     // Process first line and continue
-    bool first_line = true;
     do {
         if (buf[0] == '#') {
             int lev;
@@ -190,7 +189,6 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
             kn.hi_id = hi_val;
             nodes.push_back(kn);
         }
-        first_line = false;
     } while (read_line(strm, buf, sizeof(buf)));
 
     if (nodes.empty())
