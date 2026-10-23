@@ -600,13 +600,14 @@ RotPiDD RotPiDD::insert_iter(const RotPiDD& root, int root_p, int root_v)
     struct Frame {
         RotPiDD f;
         int p, v;
+        int m;            // insert(f, p, m) is computed first when v > m
         int nx, ny;
         bddp fx, gx;
         RotPiDD p1;
         RotPiDD r0;       // insert(p0, p, v)
         RotPhase phase;
         Frame(const RotPiDD& f_, int p_, int v_)
-            : f(f_), p(p_), v(v_), nx(0), ny(0), fx(0), gx(0), p1(), r0(),
+            : f(f_), p(p_), v(v_), m(0), nx(0), ny(0), fx(0), gx(0), p1(), r0(),
               phase(RotPhase::ENTER) {}
     };
 
@@ -634,10 +635,21 @@ RotPiDD RotPiDD::insert_iter(const RotPiDD& root, int root_p, int root_v)
                 break;
             }
 
-            int x = fr.f.top_x();
+            int x = fr.f.top_x();   /* 0 for the identity singleton */
             int y = fr.f.top_y();
+            /* Top position of the result when the inserted value is at most m:
+               x + 1 if p lands inside the support, p otherwise. */
+            fr.m = (fr.p <= x) ? x + 1 : fr.p;
+            if (fr.v > fr.m) {
+                /* Insert the value m first; GOT_2 then moves it up to v. */
+                fr.phase = RotPhase::GOT_2;
+                Frame child(fr.f, fr.p, fr.m);
+                stack.push_back(child);
+                break;
+            }
 
-            if (fid == bddsingle || x + 1 < fr.v || x < fr.p) {
+            if (x < fr.p) {
+                /* Every permutation lives below position p and v <= p. */
                 RotPiDD r = left_rot_iter(fr.f, fr.p, fr.v);
                 bddwcache(BDD_OP_ROTPIDD_INSERT, fr.fx, fr.gx, r.zdd_.GetID());
                 result = r;
@@ -650,7 +662,7 @@ RotPiDD RotPiDD::insert_iter(const RotPiDD& root, int root_p, int root_v)
             RotPiDD p0(fr.f.zdd_.OffSet(top));
             fr.p1 = RotPiDD(fr.f.zdd_.OnSet0(top));
 
-            fr.nx = x + (fr.p <= x ? 1 : 0);
+            fr.nx = x + 1;
             fr.ny = y + (fr.v <= y ? 1 : 0);
             fr.phase = RotPhase::GOT_0;
             Frame child(p0, fr.p, fr.v);
@@ -675,8 +687,17 @@ RotPiDD RotPiDD::insert_iter(const RotPiDD& root, int root_p, int root_v)
             stack.pop_back();
             break;
         }
-        case RotPhase::GOT_2:
-            break;  // unused
+        case RotPhase::GOT_2: {
+            /* result = insert(f, p, m): positions m + 1, ..., v must hold the
+               values m, ..., v - 1, so move the inserted value up step by step. */
+            RotPiDD r = result;
+            for (int u = fr.m + 1; u <= fr.v; ++u) r = left_rot_iter(r, u, u - 1);
+            /* Cache store */
+            bddwcache(BDD_OP_ROTPIDD_INSERT, fr.fx, fr.gx, r.zdd_.GetID());
+            result = r;
+            stack.pop_back();
+            break;
+        }
         }
     }
     return result;

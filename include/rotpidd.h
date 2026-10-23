@@ -409,11 +409,24 @@ public:
     /**
      * @brief Insert value v at position p in each permutation.
      *
-     * Shifts existing elements to make room for the new value.
+     * Shifts existing elements to make room for the new value: for every
+     * permutation pi in the set the result sigma has sigma(p) = v, the
+     * positions p, p+1, ... of pi move up by one, and the values v, v+1, ...
+     * of pi increase by one. This is the inverse of cofact(p, v):
+     * `f.insert(p, v).cofact(p, v) == f`, and `g.cofact(p, v).insert(p, v)`
+     * restores the permutations of g with pi(p) = v. A permutation of size n
+     * becomes one of size at most max(n + 1, p, v).
      *
-     * @param p Insertion position.
-     * @param v Value to insert.
+     * Example: {[2 1 3]}.insert(2, 4) = {[2 4 1 3]} and
+     * {[1 2 3]}.insert(1, 4) = {[4 1 2 3]}; the union of f.insert(p, n + 1)
+     * over p = 1..n+1 extends every permutation in f by the new element n + 1.
+     *
+     * @param p Insertion position (1-indexed).
+     * @param v Value to insert (1-indexed).
      * @return A RotPiDD with the element inserted.
+     * @throws std::invalid_argument if p or v is outside 1..RotPiDD_VarUsed(),
+     *         or if the result needs the position top_x() + 1 beyond
+     *         RotPiDD_VarUsed().
      */
     RotPiDD insert(int p, int v) const;
     /** @deprecated Use insert() instead. */

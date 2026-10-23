@@ -1049,6 +1049,29 @@ std::vector< std::vector<int> > all_vectors(int n, int pad_to) {
     return perms;
 }
 
+// Insert value v at position p into a one-line permutation w (positions
+// beyond w are fixed points): positions >= p and values >= v shift up by one.
+std::vector<int> rot_insert_pos_val(std::vector<int> w, int p, int v) {
+    int n = static_cast<int>(w.size());
+    int need = std::max(n, std::max(p - 1, v - 1));
+    for (int i = n + 1; i <= need; ++i) w.push_back(i);
+    std::vector<int> r;
+    for (size_t i = 0; i < w.size(); ++i) {
+        if (static_cast<int>(i) + 1 == p) r.push_back(v);
+        r.push_back(w[i] >= v ? w[i] + 1 : w[i]);
+    }
+    if (p == static_cast<int>(w.size()) + 1) r.push_back(v);
+    return r;
+}
+
+// Reference insert(p, v) of a set of permutations given as vectors.
+RotPiDD rot_insert_ref(const std::vector< std::vector<int> >& perms, int p, int v) {
+    RotPiDD r(0);
+    for (size_t i = 0; i < perms.size(); ++i)
+        r += RotPiDD::from_permutation(Permutation(rot_insert_pos_val(perms[i], p, v)));
+    return r;
+}
+
 }  // namespace
 
 TEST_F(RotPiDDTest, CofactSinglePermutation) {
@@ -1144,6 +1167,142 @@ TEST_F(RotPiDDTest, CofactChainCountsExtensions) {
     for (size_t i = 0; i < perms.size(); ++i)
         if (perms[i][1] == 4 && perms[i][3] == 1) ++brute;
     EXPECT_EQ(brute, 6);
+}
+
+/* ---- insert: the inverse of cofact ---- */
+TEST_F(RotPiDDTest, InsertSinglePermutation) {
+    for (int i = 0; i < 6; ++i) RotPiDD_NewVar();
+    /* Value v goes to position p; positions >= p and values >= v shift up. */
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation({2, 1, 3})).insert(2, 4).to_permutations()[0],
+              Permutation({2, 4, 1, 3}));
+    EXPECT_EQ(RotPiDD(1).insert(1, 4).to_permutations()[0], Permutation({4, 1, 2, 3}));
+    EXPECT_EQ(RotPiDD(1).insert(4, 1).to_permutations()[0], Permutation({2, 3, 4, 1}));
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation({1, 3, 2})).insert(1, 4).to_permutations()[0],
+              Permutation({4, 1, 3, 2}));
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation({2, 1})).insert(1, 4).to_permutations()[0],
+              Permutation({4, 2, 1, 3}));
+    /* Inserting the fixed point p = v beyond the support changes nothing. */
+    EXPECT_EQ(RotPiDD::from_permutation(Permutation({2, 1})).insert(3, 3),
+              RotPiDD::from_permutation(Permutation({2, 1})));
+
+    Permutation b({1, 5, 3, 2, 4});
+    RotPiDD B = RotPiDD::from_permutation(b);
+    for (int p = 1; p <= 6; ++p) {
+        for (int v = 1; v <= 6; ++v) {
+            for (int m = 0; m < 3; ++m) {
+                bddgc();  // clear the operation cache so each mode really recomputes
+                RotPiDD r = B.insert(p, v, kRotModes[m]);
+                std::vector<Permutation> ps = r.to_permutations();
+                ASSERT_EQ(ps.size(), 1u) << "p=" << p << " v=" << v;
+                EXPECT_EQ(ps[0], Permutation(rot_insert_pos_val(b.to_vector(), p, v)))
+                    << "p=" << p << " v=" << v;
+                /* cofact(p, v) undoes insert(p, v). */
+                EXPECT_EQ(r.cofact(p, v, kRotModes[m]), B) << "p=" << p << " v=" << v;
+            }
+        }
+    }
+    /* insert(p, v) undoes cofact(p, v) when pi(p) = v. */
+    for (int p = 1; p <= 5; ++p) {
+        EXPECT_EQ(B.cofact(p, b(p)).insert(p, b(p)), B) << "p=" << p;
+    }
+}
+
+TEST_F(RotPiDDTest, InsertMatchesBruteForce) {
+    for (int i = 0; i < 5; ++i) RotPiDD_NewVar();   // permutations of 4 plus one spare element
+    std::vector< std::vector<int> > perms = all_vectors(4, 5);
+    RotPiDD all = rot_all_perms(4);
+    ASSERT_EQ(all.count(), 24.0);
+    for (int p = 1; p <= 5; ++p) {
+        for (int v = 1; v <= 5; ++v) {
+            RotPiDD ref = rot_insert_ref(perms, p, v);
+            EXPECT_EQ(ref.count(), 24.0);
+            EXPECT_EQ(all.insert(p, v), ref) << "p=" << p << " v=" << v;
+            /* cofact(p, v) undoes insert(p, v) on the whole set. */
+            EXPECT_EQ(all.insert(p, v).cofact(p, v), all) << "p=" << p << " v=" << v;
+        }
+    }
+    /* Random subsets, both execution modes. */
+    std::srand(2026);
+    for (int t = 0; t < 10; ++t) {
+        std::vector< std::vector<int> > sub;
+        RotPiDD s(0);
+        for (size_t i = 0; i < perms.size(); ++i) {
+            if (std::rand() % 3 == 0) {
+                sub.push_back(perms[i]);
+                s += RotPiDD::from_vector(perms[i]);
+            }
+        }
+        for (int p = 1; p <= 5; ++p) {
+            for (int v = 1; v <= 5; ++v) {
+                RotPiDD ref = rot_insert_ref(sub, p, v);
+                bddgc();  // clear the operation cache so each mode really recomputes
+                EXPECT_EQ(s.insert(p, v, BDD_EXEC_RECURSIVE), ref) << "p=" << p << " v=" << v;
+                bddgc();
+                EXPECT_EQ(s.insert(p, v, BDD_EXEC_ITERATIVE), ref) << "p=" << p << " v=" << v;
+                /* cofact(p, v) followed by insert(p, v) keeps exactly the
+                   permutations with pi(p) = v. */
+                RotPiDD fixed(0);
+                for (size_t i = 0; i < sub.size(); ++i)
+                    if (sub[i][p - 1] == v) fixed += RotPiDD::from_vector(sub[i]);
+                bddgc();
+                EXPECT_EQ(s.cofact(p, v).insert(p, v, BDD_EXEC_ITERATIVE), fixed)
+                    << "p=" << p << " v=" << v;
+            }
+        }
+    }
+}
+
+TEST_F(RotPiDDTest, InsertWithSpareVariables) {
+    for (int i = 0; i < 7; ++i) RotPiDD_NewVar();   // permutations of 3 inside 7 variables
+    std::vector< std::vector<int> > perms = all_vectors(3, 3);
+    RotPiDD all = rot_all_perms(3);
+    for (int p = 1; p <= 7; ++p) {
+        for (int v = 1; v <= 7; ++v) {
+            RotPiDD ref = rot_insert_ref(perms, p, v);
+            for (int m = 0; m < 3; ++m) {
+                bddgc();  // clear the operation cache so each mode really recomputes
+                EXPECT_EQ(all.insert(p, v, kRotModes[m]), ref) << "p=" << p << " v=" << v;
+            }
+            EXPECT_EQ(all.insert(p, v).cofact(p, v), all) << "p=" << p << " v=" << v;
+        }
+    }
+    /* Far beyond the support the new element drags the fixed points along. */
+    EXPECT_EQ(RotPiDD(1).insert(5, 7).to_permutations()[0], Permutation({1, 2, 3, 4, 7, 5, 6}));
+    EXPECT_EQ(RotPiDD(1).insert(7, 5).to_permutations()[0], Permutation({1, 2, 3, 4, 6, 7, 5}));
+}
+
+TEST_F(RotPiDDTest, InsertBuildsSymmetricGroup) {
+    /* S_{n+1} is the union of S_n.insert(p, n + 1) over p = 1..n+1. */
+    for (int i = 0; i < 6; ++i) RotPiDD_NewVar();
+    RotPiDD all(1);   // S_1
+    double fact = 1.0;
+    for (int n = 1; n <= 5; ++n) {
+        RotPiDD next(0);
+        for (int p = 1; p <= n + 1; ++p) next += all.insert(p, n + 1);
+        fact *= n + 1;
+        EXPECT_EQ(next.count(), fact) << "n=" << n;
+        EXPECT_EQ(next, rot_all_perms(n + 1)) << "n=" << n;
+        all = next;
+    }
+}
+
+TEST_F(RotPiDDTest, InsertThrowsOnOutOfRange) {
+    for (int i = 0; i < 3; ++i) RotPiDD_NewVar();
+    RotPiDD id(1);
+    EXPECT_THROW(id.insert(0, 1), std::invalid_argument);
+    EXPECT_THROW(id.insert(1, 0), std::invalid_argument);
+    EXPECT_THROW(id.insert(4, 1), std::invalid_argument);
+    EXPECT_THROW(id.insert(1, 4), std::invalid_argument);
+    EXPECT_THROW(RotPiDD(0).insert(4, 1), std::invalid_argument);
+    EXPECT_EQ(RotPiDD(0).insert(1, 1), RotPiDD(0));
+    EXPECT_EQ(RotPiDD(-1).insert(1, 1), RotPiDD(-1));
+    /* The identity has no top position, so any p, v <= 3 works. */
+    EXPECT_EQ(id.insert(1, 3).to_permutations()[0], Permutation({3, 1, 2}));
+    /* S_3 already uses all three elements: inserting inside the support
+       needs a fourth variable. */
+    RotPiDD all = rot_all_perms(3);
+    EXPECT_THROW(all.insert(1, 1), std::invalid_argument);
+    EXPECT_THROW(all.insert(3, 2, BDD_EXEC_ITERATIVE), std::invalid_argument);
 }
 
 /* ---- order: value a precedes value b ---- */

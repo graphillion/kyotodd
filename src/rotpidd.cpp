@@ -537,7 +537,17 @@ RotPiDD RotPiDD::insert(int p, int v) const
 
 RotPiDD RotPiDD::insert(int p, int v, BddExecMode mode) const
 {
-    if (zdd_.GetID() == bddempty || zdd_.GetID() == bddnull) return *this;
+    if (zdd_.GetID() == bddnull) return RotPiDD(-1);
+    if (p < 1 || p > RotPiDD_VarUsed() || v < 1 || v > RotPiDD_VarUsed()) {
+        throw std::invalid_argument("RotPiDD::insert: variable out of range");
+    }
+    if (zdd_.GetID() == bddempty) return *this;
+    /* Inserting at or below the top position x moves that position to x + 1,
+       so the rotation variables for x + 1 must already exist. */
+    if (p <= top_x() && top_x() + 1 > RotPiDD_VarUsed()) {
+        throw std::invalid_argument(
+            "RotPiDD::insert: the result needs more elements than RotPiDD_VarUsed()");
+    }
     if (select_iter_1op(zdd_.GetID(), mode)) return insert_iter(*this, p, v);
     return insert_rec(*this, p, v);
 }
@@ -553,26 +563,38 @@ RotPiDD RotPiDD::insert_rec(const RotPiDD& f, int p, int v)
     ZDD cache_result = BDD_CacheZDD(BDD_OP_ROTPIDD_INSERT, fx, gx);
     if (cache_result != ZDD::Null) return RotPiDD(cache_result);
 
-    int x = f.top_x();
+    int x = f.top_x();   /* 0 for the identity singleton */
     int y = f.top_y();
+    /* Top position of the result when the inserted value is at most m:
+       x + 1 if p lands inside the support, p otherwise. */
+    int m = (p <= x) ? x + 1 : p;
+    RotPiDD r;
+    if (v > m) {
+        /* Positions m + 1, ..., v of the result hold the values m, ..., v - 1.
+           Insert the value m first, then move it up one value at a time; each
+           left_rot only adds a new top variable (u, u - 1). */
+        r = insert_rec(f, p, m);
+        for (int u = m + 1; u <= v; ++u) r = left_rot_rec(r, u, u - 1);
+    } else if (x < p) {
+        /* Every permutation lives below position p and v <= p: LeftRot(p, v)
+           puts the value v at position p and shifts the values v..p-1 up. */
+        r = left_rot_rec(f, p, v);
+    } else {
+        /* Shannon decomposition */
+        bddvar top = f.zdd_.Top();
+        RotPiDD p0(f.zdd_.OffSet(top));
+        RotPiDD p1(f.zdd_.OnSet0(top));
 
-    if (f.zdd_.GetID() == bddsingle || x + 1 < v || x < p) {
-        RotPiDD r = left_rot_rec(f, p, v);
-        bddwcache(BDD_OP_ROTPIDD_INSERT, fx, gx, r.zdd_.GetID());
-        return r;
+        /* pi = LeftRot(x, y) o pi' where pi' = cofact(pi, x, y). Inserting
+           v at p <= x moves the top to (x + 1, ny) with ny = y shifted past v,
+           and the sub-permutation becomes pi' with v shifted past y inserted. */
+        int nx = x + 1;
+        int ny = y + (v <= y ? 1 : 0);
+        int np = p;
+        int nv = v - (y < v ? 1 : 0);
+
+        r = insert_rec(p0, p, v) + left_rot_rec(insert_rec(p1, np, nv), nx, ny);
     }
-
-    /* Shannon decomposition */
-    bddvar top = f.zdd_.Top();
-    RotPiDD p0(f.zdd_.OffSet(top));
-    RotPiDD p1(f.zdd_.OnSet0(top));
-
-    int nx = x + (p <= x ? 1 : 0);
-    int ny = y + (v <= y ? 1 : 0);
-    int np = p;
-    int nv = v - (y < v ? 1 : 0);
-
-    RotPiDD r = insert_rec(p0, p, v) + left_rot_rec(insert_rec(p1, np, nv), nx, ny);
 
     /* Cache store */
     bddwcache(BDD_OP_ROTPIDD_INSERT, fx, gx, r.zdd_.GetID());
