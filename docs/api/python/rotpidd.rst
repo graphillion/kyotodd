@@ -235,12 +235,22 @@ RotPiDD Class
    .. py:method:: insert(p, v)
 
       Insert value *v* at position *p* in each permutation, shifting
-      existing elements appropriately.
+      existing elements to make room: the result sigma has sigma(p) = v,
+      the positions *p*, *p* + 1, ... move up by one, and the values *v*,
+      *v* + 1, ... increase by one. This is the inverse of
+      :py:meth:`cofact`: ``f.insert(p, v).cofact(p, v) == f``. A
+      permutation on *n* elements becomes one on at most
+      max(*n* + 1, *p*, *v*) elements, so enough RotPiDD variables must
+      exist. Example: ``{[2 1 3]}.insert(2, 4) == {[2 4 1 3]}``; the union
+      of ``f.insert(p, n + 1)`` over *p* = 1..*n* + 1 extends every
+      permutation in ``f`` by the new element *n* + 1.
 
-      :param int p: Insertion position.
-      :param int v: Value to insert.
+      :param int p: Insertion position (1-indexed).
+      :param int v: Value to insert (1-indexed).
       :return: A RotPiDD with the element inserted.
       :rtype: RotPiDD
+      :raises ValueError: if *p* or *v* is out of range, or if the result
+         needs more elements than there are RotPiDD variables.
 
    .. py:method:: remove_max(k)
 
