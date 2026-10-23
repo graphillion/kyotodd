@@ -755,6 +755,97 @@ TEST_F(BDDTest, Binary_TypeMismatch_ErrorMessage) {
     }
 }
 
+// --- Binary import when the node table is full ---
+// The node table is capped at 256 nodes. A 100-node DD is exported and
+// dropped, then a 200-node garbage chain fills the table, so the import
+// reaches the cap midway and GC must run. The nodes imported so far must
+// survive that GC.
+
+static std::string export_zdd_binary(const ZDD& z) {
+    std::ostringstream oss;
+    z.export_binary(oss);
+    return oss.str();
+}
+
+static void make_zdd_garbage_chain(bddvar first, bddvar last) {
+    ZDD b(1);
+    for (bddvar v = first; v <= last; v++) b = b.change(v);
+}
+
+TEST_F(BDDTest, Binary_ZDD_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data = export_zdd_binary(ZDD::power_set(100));
+    bddgc();
+    make_zdd_garbage_chain(101, 300);
+    std::istringstream iss(data);
+    ZDD c = ZDD::import_binary(iss);
+    EXPECT_EQ(c, ZDD::power_set(100));
+    EXPECT_EQ(c.raw_size(), 100u);
+}
+
+TEST_F(BDDTest, Binary_BDD_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        BDD a(1);
+        for (bddvar v = 1; v <= 100; v++) a = a & BDDvar(v);
+        std::ostringstream oss;
+        a.export_binary(oss);
+        data = oss.str();
+    }
+    bddgc();
+    {
+        BDD b(0);
+        for (bddvar v = 101; v <= 300; v++) b = b | BDDvar(v);
+    }
+    std::istringstream iss(data);
+    BDD c = BDD::import_binary(iss);
+    BDD expected(1);
+    for (bddvar v = 1; v <= 100; v++) expected = expected & BDDvar(v);
+    EXPECT_EQ(c, expected);
+}
+
+TEST_F(BDDTest, BinaryMulti_ZDD_ImportAtNodeLimit) {
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data;
+    {
+        std::vector<ZDD> zs;
+        zs.push_back(ZDD::power_set(60));
+        std::vector<bddvar> vars;
+        for (bddvar v = 61; v <= 100; v++) vars.push_back(v);
+        zs.push_back(ZDD::power_set(vars));
+        std::ostringstream oss;
+        ZDD::export_binary_multi(oss, zs);
+        data = oss.str();
+    }
+    bddgc();
+    make_zdd_garbage_chain(101, 300);
+    std::istringstream iss(data);
+    std::vector<ZDD> cs = ZDD::import_binary_multi(iss);
+    ASSERT_EQ(cs.size(), 2u);
+    EXPECT_EQ(cs[0], ZDD::power_set(60));
+    std::vector<bddvar> vars;
+    for (bddvar v = 61; v <= 100; v++) vars.push_back(v);
+    EXPECT_EQ(cs[1], ZDD::power_set(vars));
+}
+
+TEST_F(BDDTest, Binary_ZDD_ImportExceedsNodeLimit) {
+    // A live 200-node ZDD leaves no room for the 100-node import even after
+    // GC, so the import must fail with overflow_error.
+    bddinit(256, 256);
+    for (int i = 0; i < 300; i++) bddnewvar();
+    std::string data = export_zdd_binary(ZDD::power_set(100));
+    bddgc();
+    ZDD live(1);
+    for (bddvar v = 101; v <= 300; v++) live = live.change(v);
+    std::istringstream iss(data);
+    EXPECT_THROW(ZDD::import_binary(iss), std::overflow_error);
+    EXPECT_EQ(live.raw_size(), 200u);
+}
+
 TEST_F(BDDTest, Binary_TypeMismatch_CLevel_BDD_from_ZDD) {
     ZDD z = ZDD::from_sets({{1, 2}});
     std::ostringstream oss;

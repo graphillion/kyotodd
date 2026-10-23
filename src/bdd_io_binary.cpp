@@ -414,108 +414,117 @@ static std::vector<bddp> binary_import_multi_core(Stream& strm, import_nodefn_t 
     // Ensure variables exist
     while (bddvarused() < max_level) bddnewvar();
 
-    // --- Reconstruct nodes ---
-    // Nodes are stored by level but may have children at any level
-    // (e.g., ZDDs with non-standard variable ordering).
-    // Use iterative topological sort: create nodes whose children
-    // are all resolved (terminals or already created).
-    std::unordered_map<uint64_t, bddp> id_map;
-
-    // Helper to check if a binary ID is resolved
-    auto is_resolved = [&](uint64_t bin_id) -> bool {
-        if (bin_id < t) return true;  // terminal
-        uint64_t even_id = (use_neg && (bin_id & 1)) ? bin_id - 1 : bin_id;
-        return id_map.count(even_id) != 0;
-    };
-
-    // Helper to resolve a binary ID to internal bddp
-    auto resolve = [&](uint64_t bin_id) -> bddp {
-        if (bin_id < t) {
-            if (bin_id == 0) return bddfalse;
-            if (bin_id == 1) return bddtrue;
-            throw std::runtime_error("binary import: unsupported terminal ID");
-        }
-        bool comp = false;
-        if (use_neg && (bin_id & 1)) {
-            comp = true;
-            bin_id -= 1;
-        }
-        std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(bin_id);
-        if (it == id_map.end())
-            throw std::runtime_error("binary import: undefined node reference");
-        return comp ? bddnot(it->second) : it->second;
-    };
-
-    // Pre-compute level for each node index
-    std::vector<bddvar> node_levels(total_nodes);
-    {
-        uint64_t idx = 0;
-        for (uint64_t l = 0; l < max_level; l++) {
-            for (uint64_t c = 0; c < level_counts[l]; c++) {
-                if (idx >= total_nodes) {
-                    throw std::runtime_error(
-                        "binary import: level_counts sum exceeds total_nodes");
-                }
-                node_levels[idx++] = static_cast<bddvar>(l + 1);
-            }
-        }
-    }
-
-    // Worklist-based topological sort for node creation
-    // Count pending (unresolved) children per node
-    std::vector<int> pending(total_nodes, 0);
-    // Map from binary ID (even, non-terminal) to node indices that depend on it
-    std::unordered_map<uint64_t, std::vector<uint64_t>> dependents;
-    for (uint64_t i = 0; i < total_nodes; i++) {
-        const BinNode& bn = bin_nodes[i];
-        for (uint16_t a = 0; a < num_arcs; a++) {
-            if (!is_resolved(bn.children[a])) {
-                pending[i]++;
-                uint64_t child_even = (use_neg && (bn.children[a] & 1))
-                    ? bn.children[a] - 1 : bn.children[a];
-                dependents[child_even].push_back(i);
-            }
-        }
-    }
-
-    // Initialize ready queue
-    std::vector<uint64_t> ready_queue;
-    for (uint64_t i = 0; i < total_nodes; i++) {
-        if (pending[i] == 0) ready_queue.push_back(i);
-    }
-
-    uint64_t created_count = 0;
-    while (!ready_queue.empty()) {
-        uint64_t i = ready_queue.back();
-        ready_queue.pop_back();
-        const BinNode& bn = bin_nodes[i];
-
-        bddvar var = bddvaroflev(node_levels[i]);
-        bddp lo = resolve(bn.children[0]);
-        bddp hi = resolve(bn.children[1]);
-        uint64_t bin_id = use_neg ? (t + 2 * i) : (t + i);
-        id_map[bin_id] = make_node(var, lo, hi);
-        created_count++;
-
-        // Notify dependents
-        std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator dit = dependents.find(bin_id);
-        if (dit != dependents.end()) {
-            for (size_t j = 0; j < dit->second.size(); j++) {
-                uint64_t dep = dit->second[j];
-                if (--pending[dep] == 0) ready_queue.push_back(dep);
-            }
-        }
-    }
-
-    if (created_count < total_nodes)
-        throw std::runtime_error("binary import: circular dependency in node references");
-
-    // Resolve all roots
+    // Node construction runs under bdd_gc_guard: without it, allocate_node
+    // may run GC when the node table is full and reclaim the nodes built so
+    // far (they are referenced only from id_map). Under the guard
+    // allocate_node throws overflow_error instead; the outermost guard then
+    // runs GC and retries the construction from the already-parsed data.
     std::vector<bddp> result;
-    result.reserve(num_roots);
-    for (uint64_t r = 0; r < num_roots; r++) {
-        result.push_back(resolve(root_ids[r]));
-    }
+    bdd_gc_guard([&]() -> bddp {
+        result.clear();
+        // --- Reconstruct nodes ---
+        // Nodes are stored by level but may have children at any level
+        // (e.g., ZDDs with non-standard variable ordering).
+        // Use iterative topological sort: create nodes whose children
+        // are all resolved (terminals or already created).
+        std::unordered_map<uint64_t, bddp> id_map;
+
+        // Helper to check if a binary ID is resolved
+        auto is_resolved = [&](uint64_t bin_id) -> bool {
+            if (bin_id < t) return true;  // terminal
+            uint64_t even_id = (use_neg && (bin_id & 1)) ? bin_id - 1 : bin_id;
+            return id_map.count(even_id) != 0;
+        };
+
+        // Helper to resolve a binary ID to internal bddp
+        auto resolve = [&](uint64_t bin_id) -> bddp {
+            if (bin_id < t) {
+                if (bin_id == 0) return bddfalse;
+                if (bin_id == 1) return bddtrue;
+                throw std::runtime_error("binary import: unsupported terminal ID");
+            }
+            bool comp = false;
+            if (use_neg && (bin_id & 1)) {
+                comp = true;
+                bin_id -= 1;
+            }
+            std::unordered_map<uint64_t, bddp>::const_iterator it = id_map.find(bin_id);
+            if (it == id_map.end())
+                throw std::runtime_error("binary import: undefined node reference");
+            return comp ? bddnot(it->second) : it->second;
+        };
+
+        // Pre-compute level for each node index
+        std::vector<bddvar> node_levels(total_nodes);
+        {
+            uint64_t idx = 0;
+            for (uint64_t l = 0; l < max_level; l++) {
+                for (uint64_t c = 0; c < level_counts[l]; c++) {
+                    if (idx >= total_nodes) {
+                        throw std::runtime_error(
+                            "binary import: level_counts sum exceeds total_nodes");
+                    }
+                    node_levels[idx++] = static_cast<bddvar>(l + 1);
+                }
+            }
+        }
+
+        // Worklist-based topological sort for node creation
+        // Count pending (unresolved) children per node
+        std::vector<int> pending(total_nodes, 0);
+        // Map from binary ID (even, non-terminal) to node indices that depend on it
+        std::unordered_map<uint64_t, std::vector<uint64_t>> dependents;
+        for (uint64_t i = 0; i < total_nodes; i++) {
+            const BinNode& bn = bin_nodes[i];
+            for (uint16_t a = 0; a < num_arcs; a++) {
+                if (!is_resolved(bn.children[a])) {
+                    pending[i]++;
+                    uint64_t child_even = (use_neg && (bn.children[a] & 1))
+                        ? bn.children[a] - 1 : bn.children[a];
+                    dependents[child_even].push_back(i);
+                }
+            }
+        }
+
+        // Initialize ready queue
+        std::vector<uint64_t> ready_queue;
+        for (uint64_t i = 0; i < total_nodes; i++) {
+            if (pending[i] == 0) ready_queue.push_back(i);
+        }
+
+        uint64_t created_count = 0;
+        while (!ready_queue.empty()) {
+            uint64_t i = ready_queue.back();
+            ready_queue.pop_back();
+            const BinNode& bn = bin_nodes[i];
+
+            bddvar var = bddvaroflev(node_levels[i]);
+            bddp lo = resolve(bn.children[0]);
+            bddp hi = resolve(bn.children[1]);
+            uint64_t bin_id = use_neg ? (t + 2 * i) : (t + i);
+            id_map[bin_id] = make_node(var, lo, hi);
+            created_count++;
+
+            // Notify dependents
+            std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator dit = dependents.find(bin_id);
+            if (dit != dependents.end()) {
+                for (size_t j = 0; j < dit->second.size(); j++) {
+                    uint64_t dep = dit->second[j];
+                    if (--pending[dep] == 0) ready_queue.push_back(dep);
+                }
+            }
+        }
+
+        if (created_count < total_nodes)
+            throw std::runtime_error("binary import: circular dependency in node references");
+
+        // Resolve all roots
+        result.reserve(num_roots);
+        for (uint64_t r = 0; r < num_roots; r++) {
+            result.push_back(resolve(root_ids[r]));
+        }
+        return bddnull;
+    });
     return result;
 }
 
