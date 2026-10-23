@@ -206,65 +206,72 @@ static bddp knuth_import_core(Stream& strm, bool is_hex, int offset,
     while (bddvarused() < static_cast<bddvar>(max_kyoto_level))
         bddnewvar();
 
-    // Build id_map with topological sort (worklist approach)
-    std::unordered_map<uint64_t, bddp> id_map;
-    id_map[0] = bddfalse;
-    id_map[1] = bddtrue;
+    // Node construction runs under bdd_gc_guard: without it, allocate_node
+    // may run GC when the node table is full and reclaim the nodes built so
+    // far (they are referenced only from id_map). Under the guard
+    // allocate_node throws overflow_error instead; the outermost guard then
+    // runs GC and retries the construction from the already-parsed lines.
+    return bdd_gc_guard([&]() -> bddp {
+        // Build id_map with topological sort (worklist approach)
+        std::unordered_map<uint64_t, bddp> id_map;
+        id_map[0] = bddfalse;
+        id_map[1] = bddtrue;
 
-    // Count pending (unresolved) children per node
-    std::vector<int> pending(nodes.size(), 0);
-    // Map from child Knuth ID to parent node indices that depend on it
-    std::unordered_map<uint64_t, std::vector<size_t>> dependents;
-    for (size_t i = 0; i < nodes.size(); i++) {
-        const KnuthNode& kn = nodes[i];
-        if (!id_map.count(kn.lo_id)) {
-            pending[i]++;
-            dependents[kn.lo_id].push_back(i);
-        }
-        if (!id_map.count(kn.hi_id)) {
-            pending[i]++;
-            dependents[kn.hi_id].push_back(i);
-        }
-    }
-
-    // Initialize ready queue with nodes that have all children resolved
-    std::vector<size_t> ready;
-    for (size_t i = 0; i < nodes.size(); i++) {
-        if (pending[i] == 0) ready.push_back(i);
-    }
-
-    uint64_t created_count = 0;
-    while (!ready.empty()) {
-        size_t i = ready.back();
-        ready.pop_back();
-        const KnuthNode& kn = nodes[i];
-        int level = static_cast<int>(N) + 1
-                  - static_cast<int>(kn.knuth_level) + offset;
-        if (level < 1)
-            throw std::runtime_error("knuth import: computed level < 1");
-        bddvar var = bddvaroflev(static_cast<bddvar>(level));
-        bddp lo = id_map[kn.lo_id];
-        bddp hi = id_map[kn.hi_id];
-        id_map[kn.id] = make_node(var, lo, hi);
-        created_count++;
-
-        // Notify dependents
-        std::unordered_map<uint64_t, std::vector<size_t>>::iterator dit = dependents.find(kn.id);
-        if (dit != dependents.end()) {
-            for (size_t j = 0; j < dit->second.size(); j++) {
-                size_t dep = dit->second[j];
-                if (--pending[dep] == 0) ready.push_back(dep);
+        // Count pending (unresolved) children per node
+        std::vector<int> pending(nodes.size(), 0);
+        // Map from child Knuth ID to parent node indices that depend on it
+        std::unordered_map<uint64_t, std::vector<size_t>> dependents;
+        for (size_t i = 0; i < nodes.size(); i++) {
+            const KnuthNode& kn = nodes[i];
+            if (!id_map.count(kn.lo_id)) {
+                pending[i]++;
+                dependents[kn.lo_id].push_back(i);
+            }
+            if (!id_map.count(kn.hi_id)) {
+                pending[i]++;
+                dependents[kn.hi_id].push_back(i);
             }
         }
-    }
 
-    if (created_count < nodes.size())
-        throw std::runtime_error("knuth import: circular dependency");
+        // Initialize ready queue with nodes that have all children resolved
+        std::vector<size_t> ready;
+        for (size_t i = 0; i < nodes.size(); i++) {
+            if (pending[i] == 0) ready.push_back(i);
+        }
 
-    // The first non-terminal node (ID 2) is the root
-    if (!id_map.count(2))
-        throw std::runtime_error("knuth import: root node (ID 2) not found");
-    return id_map[2];
+        uint64_t created_count = 0;
+        while (!ready.empty()) {
+            size_t i = ready.back();
+            ready.pop_back();
+            const KnuthNode& kn = nodes[i];
+            int level = static_cast<int>(N) + 1
+                      - static_cast<int>(kn.knuth_level) + offset;
+            if (level < 1)
+                throw std::runtime_error("knuth import: computed level < 1");
+            bddvar var = bddvaroflev(static_cast<bddvar>(level));
+            bddp lo = id_map[kn.lo_id];
+            bddp hi = id_map[kn.hi_id];
+            id_map[kn.id] = make_node(var, lo, hi);
+            created_count++;
+
+            // Notify dependents
+            std::unordered_map<uint64_t, std::vector<size_t>>::iterator dit = dependents.find(kn.id);
+            if (dit != dependents.end()) {
+                for (size_t j = 0; j < dit->second.size(); j++) {
+                    size_t dep = dit->second[j];
+                    if (--pending[dep] == 0) ready.push_back(dep);
+                }
+            }
+        }
+
+        if (created_count < nodes.size())
+            throw std::runtime_error("knuth import: circular dependency");
+
+        // The first non-terminal node (ID 2) is the root
+        if (!id_map.count(2))
+            throw std::runtime_error("knuth import: root node (ID 2) not found");
+        return id_map[2];
+    });
 }
 
 bddp bdd_import_knuth(FILE* strm, bool is_hex, int offset) {
