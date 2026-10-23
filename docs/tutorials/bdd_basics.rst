@@ -108,18 +108,25 @@ Check whether one BDD implies another:
 Variable Shifting
 -----------------
 
-Rename all variables by a constant offset:
+Move all nodes up or down by a constant number of levels:
 
 .. code-block:: python
 
    f = a & b  # uses x1, x2
 
-   # Shift variables up by 2: x1->x3, x2->x4
+   # Shift up by 2 levels. With the default mapping (variable i at
+   # level i) this renames x1->x3, x2->x4.
    g = f << 2
 
    # Shift back down
    h = g >> 2
    assert h == f
+
+The shift acts on *levels*, not on variable numbers. The two coincide
+under the default mapping, but if variables were created with
+``new_vars(n, reverse=True)`` or ``new_var_of_level()`` the variable numbers
+of the result follow the level order instead. Shifting down past level 1
+raises ``ValueError``.
 
 Import / Export
 ---------------

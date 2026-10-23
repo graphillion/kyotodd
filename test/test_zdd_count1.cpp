@@ -1214,6 +1214,28 @@ TEST_F(BDDTest, ZDD_OperatorLshiftAssign) {
     EXPECT_EQ(z.GetID(), expected);
 }
 
+// The shift acts on levels, not on variable numbers (reversed mapping:
+// var 1 at the top level). See BddShiftIsLevelBased in test_bdd2.cpp.
+TEST_F(BDDTest, ZDD_ShiftIsLevelBased) {
+    std::vector<bddvar> v = DDBase::new_var(3, true);
+    ASSERT_EQ(bddlevofvar(v[0]), 3u);
+    ASSERT_EQ(bddlevofvar(v[2]), 1u);
+    ZDD s1 = ZDD(1).change(v[2]);  // {{v[2]}} at level 1
+    ZDD s2 = ZDD(1).change(v[1]);  // {{v[1]}} at level 2
+    ZDD s3 = ZDD(1).change(v[0]);  // {{v[0]}} at level 3
+    EXPECT_EQ(s1 << 1, s2);
+    EXPECT_EQ(s2 << 1, s3);
+    EXPECT_EQ(s3 >> 1, s2);
+    EXPECT_EQ((s1 + s2) << 1, s2 + s3);
+    EXPECT_THROW(s1 >> 1, std::invalid_argument);
+    try {
+        bddrshiftz(s1.GetID(), 1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument& e) {
+        EXPECT_EQ(std::string(e.what()).find("bddrshiftz:"), 0u) << e.what();
+    }
+}
+
 TEST_F(BDDTest, ZDD_OperatorRshift) {
     bddnewvar();
     bddvar v2 = bddnewvar();

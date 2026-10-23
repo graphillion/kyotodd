@@ -246,6 +246,19 @@ inline bddp node_hi(bddp node_id) {
 }
 
 /**
+ * @brief Public API name for a shift op code, used in exception messages.
+ */
+inline const char* shift_op_name(uint8_t op) {
+    switch (op) {
+    case BDD_OP_LSHIFTB: return "bddlshiftb";
+    case BDD_OP_RSHIFTB: return "bddrshiftb";
+    case BDD_OP_LSHIFTZ: return "bddlshiftz";
+    case BDD_OP_RSHIFTZ: return "bddrshiftz";
+    default: return "bddshift";
+    }
+}
+
+/**
  * @brief Core implementation of left shift for BDD/ZDD.
  *
  * Recursively shifts all variable levels upward by the given amount.
@@ -274,7 +287,8 @@ bddp bdd_lshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     bddvar v = node_var(fn);
     uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
     if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
-        throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+        throw std::invalid_argument(std::string(shift_op_name(op))
+                + ": shifted level exceeds maximum variable count");
     }
     bddvar new_level = static_cast<bddvar>(new_level64);
     while (bdd_varcount < new_level) {
@@ -345,7 +359,8 @@ bddp bdd_lshift_iter(bddp root_f, bddvar shift, uint8_t op, MakeNode make_node) 
             bddvar v = node_var(fn);
             uint64_t new_level64 = static_cast<uint64_t>(var2level[v]) + shift;
             if (new_level64 > static_cast<uint64_t>(UINT32_MAX)) {
-                throw std::invalid_argument("bddlshift: shifted level exceeds maximum variable count");
+                throw std::invalid_argument(std::string(shift_op_name(op))
+                + ": shifted level exceeds maximum variable count");
             }
             bddvar new_level = static_cast<bddvar>(new_level64);
             while (bdd_varcount < new_level) {
@@ -421,7 +436,8 @@ bddp bdd_rshift_rec(bddp f, bddvar shift, uint8_t op, MakeNode make_node) {
     bddvar v = node_var(fn);
     bddvar lev = var2level[v];
     if (lev <= shift) {
-        throw std::invalid_argument("bddrshift: shifted level underflows");
+        throw std::invalid_argument(std::string(shift_op_name(op))
+                + ": shifted level underflows (every node must have level > shift)");
     }
     bddvar target_var = level2var[lev - shift];
 
@@ -486,7 +502,8 @@ bddp bdd_rshift_iter(bddp root_f, bddvar shift, uint8_t op, MakeNode make_node) 
             bddvar v = node_var(fn);
             bddvar lev = var2level[v];
             if (lev <= shift) {
-                throw std::invalid_argument("bddrshift: shifted level underflows");
+                throw std::invalid_argument(std::string(shift_op_name(op))
+                + ": shifted level underflows (every node must have level > shift)");
             }
             bddvar target_var = level2var[lev - shift];
 

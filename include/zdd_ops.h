@@ -520,10 +520,22 @@ bddp bddclosure_iter(bddp f);
 bddp bddpush(bddp f, bddvar v);
 
 /**
- * @brief ZDD left shift: rename variable i to variable i+shift for all variables.
+ * @brief ZDD left shift: move every node from level l to level l+shift.
+ *
+ * The shift acts on levels, not on variable numbers. A node at level l is
+ * rebuilt with the variable that currently sits at level l+shift, and new
+ * variables are created at the top when l+shift exceeds the current number
+ * of levels. With the default mapping (variable i at level i) this is the
+ * same as renaming item i to item i+shift. When variables and levels differ
+ * (e.g. after new_var(n, true) or bddnewvaroflev()), the variable numbers of
+ * the result follow the level order and are not obtained by adding @p shift
+ * to the variable numbers.
+ *
  * @param f A ZDD node ID.
- * @param shift The number of positions to shift.
+ * @param shift The number of levels to shift.
  * @return The resulting ZDD.
+ * @throws std::invalid_argument if a shifted level exceeds the maximum
+ *         variable count.
  */
 bddp bddlshiftz(bddp f, bddvar shift);
 
@@ -531,10 +543,16 @@ bddp bddlshiftz(bddp f, bddvar shift);
 bddp bddlshiftz(bddp f, bddvar shift, BddExecMode mode);
 
 /**
- * @brief ZDD right shift: rename variable i to variable i-shift for all variables.
+ * @brief ZDD right shift: move every node from level l to level l-shift.
+ *
+ * Level-based like bddlshiftz(); see there for how levels and variable
+ * numbers relate. Every node of @p f must have level greater than @p shift.
+ *
  * @param f A ZDD node ID.
- * @param shift The number of positions to shift.
+ * @param shift The number of levels to shift.
  * @return The resulting ZDD.
+ * @throws std::invalid_argument if some node of @p f has level <= @p shift
+ *         (the shifted level would underflow).
  */
 bddp bddrshiftz(bddp f, bddvar shift);
 

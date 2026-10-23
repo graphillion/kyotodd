@@ -67,11 +67,22 @@ public:
     bool operator==(const BDD& other) const { return root == other.root; }
     /** @brief Inequality comparison by node ID. */
     bool operator!=(const BDD& other) const { return root != other.root; }
-    /** @brief Left shift: rename variable i to variable i+shift for all variables. */
+    /**
+     * @brief Left shift: move every node from level l to level l+shift.
+     *
+     * Acts on levels, not variable numbers (equals renaming variable i to
+     * i+shift only under the default variable/level mapping). See bddlshiftb().
+     */
     BDD operator<<(bddvar shift) const;
     /** @brief In-place left shift. */
     BDD& operator<<=(bddvar shift);
-    /** @brief Right shift: rename variable i to variable i-shift for all variables. */
+    /**
+     * @brief Right shift: move every node from level l to level l-shift.
+     *
+     * Acts on levels, not variable numbers; every node must have level
+     * greater than @p shift. See bddrshiftb().
+     * @throws std::invalid_argument if a shifted level would underflow.
+     */
     BDD operator>>(bddvar shift) const;
     /** @brief In-place right shift. */
     BDD& operator>>=(bddvar shift);

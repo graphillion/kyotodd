@@ -102,16 +102,22 @@ ZDD Class
 
    .. py:method:: __lshift__(s)
 
-      Left shift: increase variable numbers by *s*. ``self << s``.
+      Left shift: move every node up by *s* levels. ``self << s``. The
+      shift acts on levels, not on variable numbers; with the default
+      mapping (variable *i* at level *i*) this increases every variable
+      number by *s*.
 
-      :param int s: Number of positions to shift.
+      :param int s: Number of levels to shift.
       :rtype: ZDD
 
    .. py:method:: __rshift__(s)
 
-      Right shift: decrease variable numbers by *s*. ``self >> s``.
+      Right shift: move every node down by *s* levels. ``self >> s``. The
+      shift acts on levels, not on variable numbers; with the default
+      mapping this decreases every variable number by *s*.
 
-      :param int s: Number of positions to shift.
+      :param int s: Number of levels to shift.
+      :raises ValueError: if some node has level <= *s*.
       :rtype: ZDD
 
    .. py:method:: __iadd__(other)

@@ -454,9 +454,12 @@ PYBIND11_MODULE(_core, m) {
         .def("__invert__", [](const BDD& a) { return ~a; },
              "Logical NOT: ~self.")
         .def("__lshift__", [](const BDD& a, bddvar s) { return a << s; },
-             "Left shift: rename variable i to i+shift.")
+             "Left shift: move every node up by `shift` levels (variable i -> "
+             "i+shift under the default variable/level mapping).")
         .def("__rshift__", [](const BDD& a, bddvar s) { return a >> s; },
-             "Right shift: rename variable i to i-shift.")
+             "Right shift: move every node down by `shift` levels (variable i -> "
+             "i-shift under the default variable/level mapping). Raises "
+             "ValueError if a node has level <= shift.")
         // In-place dunders return a NEW BDD instead of mutating self. BDD is
         // hashable by node_id, so mutating self under an existing dict/set key
         // would silently invalidate the entry; returning a new value lets
@@ -1320,12 +1323,15 @@ PYBIND11_MODULE(_core, m) {
                  if (s < 0) throw py::value_error("shift amount must be non-negative");
                  return a << static_cast<bddvar>(s);
              },
-             "Left shift: increase variable numbers by s.")
+             "Left shift: move every node up by s levels (variable i -> i+s "
+             "under the default variable/level mapping).")
         .def("__rshift__", [](const ZDD& a, int s) {
                  if (s < 0) throw py::value_error("shift amount must be non-negative");
                  return a >> static_cast<bddvar>(s);
              },
-             "Right shift: decrease variable numbers by s.")
+             "Right shift: move every node down by s levels (variable i -> i-s "
+             "under the default variable/level mapping). Raises ValueError if "
+             "a node has level <= s.")
         .def("__ilshift__", [](ZDD& a, int s) -> ZDD& {
                  if (s < 0) throw py::value_error("shift amount must be non-negative");
                  a <<= static_cast<bddvar>(s); return a;

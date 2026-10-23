@@ -304,6 +304,51 @@ TEST_F(BDDTest, BddRshiftTooLarge) {
     EXPECT_THROW(bddrshiftb(p2, 2), std::invalid_argument);
 }
 
+// The shift acts on levels, not on variable numbers. With a reversed
+// variable/level mapping (new_var(n, true): var 1 at the top level), the
+// result's variable numbers follow the level order.
+TEST_F(BDDTest, BddShiftIsLevelBased) {
+    std::vector<bddvar> v = DDBase::new_var(3, true);
+    // v[0] is at level 3, v[1] at level 2, v[2] at level 1.
+    ASSERT_EQ(bddlevofvar(v[0]), 3u);
+    ASSERT_EQ(bddlevofvar(v[1]), 2u);
+    ASSERT_EQ(bddlevofvar(v[2]), 1u);
+
+    // level 1 -> level 2 is v[1]; variable-number arithmetic would give v[2]+1.
+    EXPECT_EQ(bddlshiftb(bddprime(v[2]), 1), bddprime(v[1]));
+    // level 3 -> level 2 is v[1].
+    EXPECT_EQ(bddrshiftb(bddprime(v[0]), 1), bddprime(v[1]));
+    // A function over levels 1..2 moved to levels 2..3.
+    bddp f = bddand(bddprime(v[2]), bddnot(bddprime(v[1])));
+    bddp g = bddand(bddprime(v[1]), bddnot(bddprime(v[0])));
+    EXPECT_EQ(bddlshiftb(f, 1), g);
+    EXPECT_EQ(bddrshiftb(g, 1), f);
+    // Shifting the top level up creates a new variable at level 4.
+    bddp h = bddlshiftb(bddprime(v[0]), 1);
+    EXPECT_EQ(bddvarused(), 4u);
+    EXPECT_EQ(h, bddprime(bddvaroflev(4)));
+    // Shifting level 1 down underflows.
+    EXPECT_THROW(bddrshiftb(bddprime(v[2]), 1), std::invalid_argument);
+}
+
+// The exception message names the public API that was called.
+TEST_F(BDDTest, BddShiftExceptionMessage) {
+    bddvar v1 = BDD_NewVar();
+    bddp p1 = bddprime(v1);
+    try {
+        bddrshiftb(p1, 1);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument& e) {
+        EXPECT_EQ(std::string(e.what()).find("bddrshiftb:"), 0u) << e.what();
+    }
+    try {
+        bddrshiftb(p1, 1, BddExecMode::Iterative);
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument& e) {
+        EXPECT_EQ(std::string(e.what()).find("bddrshiftb:"), 0u) << e.what();
+    }
+}
+
 TEST_F(BDDTest, BddLshiftRshiftDeprecated) {
     bddvar v1 = BDD_NewVar();
     bddp p1 = bddprime(v1);

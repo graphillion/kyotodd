@@ -124,16 +124,21 @@ BDD Class
 
    .. py:method:: __lshift__(shift)
 
-      Left shift: rename variable *i* to *i+shift* for all variables.
+      Left shift: move every node up by *shift* levels. The shift acts on
+      levels, not on variable numbers; with the default mapping (variable
+      *i* at level *i*) this renames variable *i* to *i+shift*.
 
-      :param int shift: Number of positions to shift.
+      :param int shift: Number of levels to shift.
       :rtype: BDD
 
    .. py:method:: __rshift__(shift)
 
-      Right shift: rename variable *i* to *i-shift* for all variables.
+      Right shift: move every node down by *shift* levels. The shift acts
+      on levels, not on variable numbers; with the default mapping this
+      renames variable *i* to *i-shift*.
 
-      :param int shift: Number of positions to shift.
+      :param int shift: Number of levels to shift.
+      :raises ValueError: if some node has level <= *shift*.
       :rtype: BDD
 
    .. py:method:: __iand__(other)

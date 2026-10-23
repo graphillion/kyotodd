@@ -124,11 +124,23 @@ public:
     ZDD operator%(const ZDD& other) const;
     /** @brief In-place remainder. */
     ZDD& operator%=(const ZDD& other);
-    /** @brief Left shift (increase variable numbers by @p s). */
+    /**
+     * @brief Left shift: move every node from level l to level l+s.
+     *
+     * Acts on levels, not variable numbers (equals increasing variable
+     * numbers by @p s only under the default variable/level mapping).
+     * See bddlshiftz().
+     */
     ZDD operator<<(bddvar s) const;
     /** @brief In-place left shift. */
     ZDD& operator<<=(bddvar s);
-    /** @brief Right shift (decrease variable numbers by @p s). */
+    /**
+     * @brief Right shift: move every node from level l to level l-s.
+     *
+     * Acts on levels, not variable numbers; every node must have level
+     * greater than @p s. See bddrshiftz().
+     * @throws std::invalid_argument if a shifted level would underflow.
+     */
     ZDD operator>>(bddvar s) const;
     /** @brief In-place right shift. */
     ZDD& operator>>=(bddvar s);
