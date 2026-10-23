@@ -240,6 +240,80 @@ class TestRotPiDDCofact:
         assert b.cofact(3, 5) == RotPiDD(0)
 
 
+class TestRotPiDDInsert:
+    @staticmethod
+    def _insert(w, p, v):
+        """Insert value v at position p: positions >= p and values >= v shift up."""
+        w = list(w) + list(range(len(w) + 1, max(len(w), p - 1, v - 1) + 1))
+        r = []
+        for i, x in enumerate(w):
+            if i + 1 == p:
+                r.append(v)
+            r.append(x + 1 if x >= v else x)
+        if p == len(w) + 1:
+            r.append(v)
+        return r
+
+    def test_insert_single_permutation(self):
+        from kyotodd import Permutation, RotPiDD
+        _setup_rotpidd(5)
+        a = RotPiDD.from_permutation(Permutation([2, 1, 3]))
+        assert a.insert(2, 4).to_permutations() == [Permutation([2, 4, 1, 3])]
+        assert RotPiDD(1).insert(1, 4).to_permutations() == [Permutation([4, 1, 2, 3])]
+        assert RotPiDD(1).insert(4, 1).to_permutations() == [Permutation([2, 3, 4, 1])]
+        b = RotPiDD.from_permutation(Permutation([1, 3, 2]))
+        assert b.insert(1, 4).to_permutations() == [Permutation([4, 1, 3, 2])]
+        # cofact(p, v) undoes insert(p, v)
+        for p in range(1, 5):
+            for v in range(1, 5):
+                assert b.insert(p, v).cofact(p, v) == b
+
+    def test_insert_matches_brute_force(self):
+        import itertools
+        from kyotodd import Permutation, RotPiDD
+        _setup_rotpidd(5)
+        perms = [list(p) for p in itertools.permutations([1, 2, 3, 4])]
+        all_perms = RotPiDD(0)
+        for p in perms:
+            all_perms += kyotodd.rotpidd_from_perm(p)
+        for p in range(1, 6):
+            for v in range(1, 6):
+                ref = RotPiDD(0)
+                for w in perms:
+                    ref += RotPiDD.from_permutation(Permutation(self._insert(w, p, v)))
+                assert all_perms.insert(p, v) == ref
+                assert all_perms.insert(p, v).exact_count == 24
+                assert all_perms.insert(p, v).cofact(p, v) == all_perms
+
+    def test_insert_builds_symmetric_group(self):
+        from kyotodd import RotPiDD
+        _setup_rotpidd(6)
+        all_perms = RotPiDD(1)
+        fact = 1
+        for n in range(1, 6):
+            nxt = RotPiDD(0)
+            for p in range(1, n + 2):
+                nxt += all_perms.insert(p, n + 1)
+            fact *= n + 1
+            assert nxt.exact_count == fact
+            all_perms = nxt
+
+    def test_insert_out_of_range(self):
+        import itertools
+        from kyotodd import RotPiDD
+        _setup_rotpidd(3)
+        with pytest.raises(ValueError):
+            RotPiDD(1).insert(0, 1)
+        with pytest.raises(ValueError):
+            RotPiDD(1).insert(1, 4)
+        # S_3 uses all three elements, so inserting inside needs a fourth one.
+        s3 = RotPiDD(0)
+        for p in itertools.permutations([1, 2, 3]):
+            s3 += kyotodd.rotpidd_from_perm(list(p))
+        with pytest.raises(ValueError):
+            s3.insert(1, 1)
+
+
 class TestRotPiDDExtractOne:
     def test_extract_one(self):
         _setup_rotpidd(3)

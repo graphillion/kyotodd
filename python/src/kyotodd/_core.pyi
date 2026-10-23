@@ -3083,12 +3083,24 @@ class RotPiDD:
     def insert(self, p: int, v: int) -> RotPiDD:
         """Insert value v at position p in each permutation.
 
+        Existing elements shift to make room for the new value: the
+        result sigma has sigma(p) = v, positions at or above p move up
+        by one, and values at or above v increase by one. This is the
+        inverse of cofact(p, v): ``f.insert(p, v).cofact(p, v) == f``.
+        A permutation on n elements becomes one on at most
+        max(n + 1, p, v) elements, so enough RotPiDD variables must
+        exist. Example: ``{[2 1 3]}.insert(2, 4) == {[2 4 1 3]}``.
+
         Args:
-            p: Insertion position.
-            v: Value to insert.
+            p: Insertion position (1-indexed).
+            v: Value to insert (1-indexed).
 
         Returns:
             A RotPiDD with the element inserted.
+
+        Raises:
+            ValueError: If p or v is out of range, or if the result
+                needs more elements than there are RotPiDD variables.
         """
         ...
 

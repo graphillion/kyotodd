@@ -3137,11 +3137,21 @@ PYBIND11_MODULE(_core, m) {
         .def("insert", [](const RotPiDD& r, int p, int v) { return r.insert(p, v); },
              py::arg("p"), py::arg("v"),
              "Insert value v at position p in each permutation.\n\n"
+             "Existing elements shift to make room for the new value: the\n"
+             "result sigma has sigma(p) = v, positions at or above p move up\n"
+             "by one, and values at or above v increase by one. This is the\n"
+             "inverse of cofact(p, v): f.insert(p, v).cofact(p, v) == f.\n"
+             "A permutation on n elements becomes one on at most\n"
+             "max(n + 1, p, v) elements, so enough RotPiDD variables must\n"
+             "exist. Example: {[2 1 3]}.insert(2, 4) == {[2 4 1 3]}.\n\n"
              "Args:\n"
-             "    p: Insertion position.\n"
-             "    v: Value to insert.\n\n"
+             "    p: Insertion position (1-indexed).\n"
+             "    v: Value to insert (1-indexed).\n\n"
              "Returns:\n"
-             "    A RotPiDD with the element inserted.\n")
+             "    A RotPiDD with the element inserted.\n\n"
+             "Raises:\n"
+             "    ValueError: If p or v is out of range, or if the result\n"
+             "        needs more elements than there are RotPiDD variables.\n")
         .def("remove_max", [](const RotPiDD& p, int k) { return p.remove_max(k); },
              py::arg("k"),
              "Remove variables with size >= k from each permutation.\n\n"
