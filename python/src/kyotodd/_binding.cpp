@@ -516,6 +516,20 @@ PYBIND11_MODULE(_core, m) {
              py::arg("vars"), "Universal quantification by variable list.")
         .def("univ", [](const BDD& f, bddvar var) { return f.univ(var); },
              py::arg("var"), "Universal quantification of a single variable.")
+        .def("and_exist", [](const BDD& f, const BDD& g, const BDD& cube) { return f.and_exist(g, cube); },
+             py::arg("g"), py::arg("cube"),
+             "Relational product: exist cube. (self & g) in one pass (cube as returned by support()).")
+        .def("and_exist", [](const BDD& f, const BDD& g, const std::vector<bddvar>& vars) { return f.and_exist(g, vars); },
+             py::arg("g"), py::arg("vars"), "Relational product with the quantified variables given as a list.")
+        .def("and_exist", [](const BDD& f, const BDD& g, bddvar var) { return f.and_exist(g, var); },
+             py::arg("g"), py::arg("var"), "Relational product quantifying out a single variable.")
+        .def("or_univ", [](const BDD& f, const BDD& g, const BDD& cube) { return f.or_univ(g, cube); },
+             py::arg("g"), py::arg("cube"),
+             "Dual of and_exist: forall cube. (self | g) in one pass (cube as returned by support()).")
+        .def("or_univ", [](const BDD& f, const BDD& g, const std::vector<bddvar>& vars) { return f.or_univ(g, vars); },
+             py::arg("g"), py::arg("vars"), "Dual of and_exist with the quantified variables given as a list.")
+        .def("or_univ", [](const BDD& f, const BDD& g, bddvar var) { return f.or_univ(g, var); },
+             py::arg("g"), py::arg("var"), "Dual of and_exist quantifying a single variable.")
 
         // Static methods
         .def_static("ite", &BDD::ite, py::arg("f"), py::arg("g"), py::arg("h"),

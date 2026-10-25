@@ -129,6 +129,51 @@ class TestBDDSatOneFull:
             x2.sat_one_full(1)
 
 
+class TestBDDAndExist:
+    def test_small_example(self):
+        a, b, c = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        f = a & b
+        g = ~b | c
+        # exist b. (a & b) & (b -> c) = a & c
+        assert f.and_exist(g, b) == a & c
+        assert f.and_exist(g, 2) == a & c
+        assert f.and_exist(g, [2]) == a & c
+        # exist a, b. (a & b) & (b -> c) = c
+        assert f.and_exist(g, a | b) == c
+        assert f.and_exist(g, [1, 2]) == c
+
+    def test_matches_exist_of_and(self):
+        a, b, c, d = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(4))
+        f = (a & b) | (c & ~d)
+        g = (a ^ c) | d
+        assert f.and_exist(g, a | c) == (f & g).exist(a | c)
+        assert f.and_exist(g, []) == f & g
+
+    def test_out_of_range(self):
+        a = kyotodd.BDD.var(kyotodd.new_var())
+        with pytest.raises(ValueError):
+            a.and_exist(a, 2)
+
+
+class TestBDDOrUniv:
+    def test_small_example(self):
+        a, b, c = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        f = a | b
+        g = ~b & c
+        # forall b. (a | b) | (~b & c) = a | c
+        assert f.or_univ(g, b) == a | c
+        assert f.or_univ(g, 2) == a | c
+        assert f.or_univ(g, [2]) == a | c
+        # forall a, b. (a | b) | (~b & c) = c
+        assert f.or_univ(g, a | b) == c
+
+    def test_matches_univ_of_or(self):
+        a, b, c, d = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(4))
+        f = (a & b) | (c & ~d)
+        g = (a ^ c) & d
+        assert f.or_univ(g, [2, 4]) == (f | g).univ([2, 4])
+
+
 class TestBDDPrime:
     def test_prime(self):
         v1 = kyotodd.new_var()
