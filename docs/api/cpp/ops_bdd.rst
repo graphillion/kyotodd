@@ -86,6 +86,12 @@ Variable Swapping
 .. doxygenfunction:: bddswap(bddp f, bddvar v1, bddvar v2)
 .. doxygenfunction:: bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode)
 
+Variable Substitution
+---------------------
+
+.. doxygenfunction:: bddpermute(bddp f, const std::vector< bddvar > &from, const std::vector< bddvar > &to)
+.. doxygenfunction:: bddpermute(bddp f, const std::vector< bddvar > &from, const std::vector< bddvar > &to, BddExecMode mode)
+
 Smoothing
 ---------
 

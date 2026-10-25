@@ -147,6 +147,28 @@ under the default mapping, but if variables were created with
 of the result follow the level order instead. Shifting down past level 1
 raises ``ValueError``.
 
+Variable Substitution
+---------------------
+
+``permute`` renames arbitrary variables at once. Variables not listed are
+left alone, and the mapping need not preserve the variable order:
+
+.. code-block:: python
+
+   f = (a & b) | ~c          # uses x1, x2, x3
+
+   g = f.permute([1, 2], [2, 1])        # same as f.swap(1, 2)
+   h = f.permute([1, 2, 3], [2, 3, 1])  # 3-cycle: (b & c) | ~a
+
+   # Rename next-state variables back to current-state variables after
+   # an image computation (the usual step in reachability analysis):
+   img = S.and_exist(T, current_vars).permute(next_vars, current_vars)
+
+The mapping may be non-injective: ``(a & ~b).permute([1, 2], [3, 3])``
+substitutes ``x3`` for both variables and yields ``False``.
+``ZDD.permute`` does the same for families of sets, where elements that
+map to the same variable collapse and equal sets are merged.
+
 Import / Export
 ---------------
 

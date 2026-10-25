@@ -187,6 +187,8 @@ Variable Analysis
 .. doxygenfunction:: bddispoly
 .. doxygenfunction:: bddswapz(bddp f, bddvar v1, bddvar v2)
 .. doxygenfunction:: bddswapz(bddp f, bddvar v1, bddvar v2, BddExecMode mode)
+.. doxygenfunction:: bddpermutez(bddp f, const std::vector< bddvar > &from, const std::vector< bddvar > &to)
+.. doxygenfunction:: bddpermutez(bddp f, const std::vector< bddvar > &from, const std::vector< bddvar > &to, BddExecMode mode)
 .. doxygenfunction:: bddcoalesce(bddp f, bddvar v1, bddvar v2)
 .. doxygenfunction:: bddcoalesce(bddp f, bddvar v1, bddvar v2, BddExecMode mode)
 .. doxygenfunction:: bddimplychk

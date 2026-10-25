@@ -423,6 +423,20 @@ ZDD Class
       :return: A ZDD with *v1* and *v2* swapped.
       :rtype: ZDD
 
+   .. py:method:: permute(from_vars, to_vars)
+
+      Substitute variables in every set: rename ``from_vars[i]`` to
+      ``to_vars[i]`` simultaneously. Variables not listed are unchanged.
+      Non-injective mappings are allowed: duplicate elements collapse and
+      sets that become equal are merged, so the result may have fewer sets.
+
+      :param list[int] from_vars: Variables to replace (no duplicates).
+      :param list[int] to_vars: Replacement variables, same length as *from_vars*.
+      :return: The substituted ZDD.
+      :rtype: ZDD
+      :raises ValueError: If the lists differ in length, a variable is out
+         of range, or *from_vars* repeats a variable.
+
    .. py:method:: imply_chk(v1, v2)
 
       Check if *v1* implies *v2* in the family.

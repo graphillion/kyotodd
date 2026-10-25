@@ -336,6 +336,23 @@ BDD Class
       :return: The BDD with *v1* and *v2* swapped.
       :rtype: BDD
 
+   .. py:method:: permute(from_vars, to_vars)
+
+      Substitute variables: rename ``from_vars[i]`` to ``to_vars[i]``
+      simultaneously. Variables not listed are unchanged, so
+      ``f.permute([1, 2], [2, 1])`` equals ``f.swap(1, 2)`` and
+      ``f.permute([1, 2, 3], [2, 3, 1])`` applies a 3-cycle. The mapping
+      may be non-injective (``f.permute([1, 2], [3, 3])`` is ``f(x3, x3)``)
+      and a target may already occur in *f*. Counterpart of BuDDy's
+      ``bdd_replace`` and CUDD's ``Cudd_bddPermute``.
+
+      :param list[int] from_vars: Variables to replace (no duplicates).
+      :param list[int] to_vars: Replacement variables, same length as *from_vars*.
+      :return: The substituted BDD.
+      :rtype: BDD
+      :raises ValueError: If the lists differ in length, a variable is out
+         of range, or *from_vars* repeats a variable.
+
    .. py:method:: smooth(v)
 
       Smooth (existential quantification) of variable *v*.
