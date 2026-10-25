@@ -333,6 +333,19 @@ TEST_F(BddPermuteTest, SameMappingSharesCacheKey) {
     EXPECT_EQ(BDD_ID(r3), (x(5) & x(1)) | (x(4) & ~x(3)));
 }
 
+TEST_F(BddPermuteTest, MemberFunction) {
+    BDD f = (x(0) & x(1)) | ~x(2);
+    VarVec from, to;
+    from.push_back(vars[0]); to.push_back(vars[3]);
+    from.push_back(vars[1]); to.push_back(vars[4]);
+    from.push_back(vars[2]); to.push_back(vars[5]);
+    EXPECT_EQ(f.permute(from, to), (x(3) & x(4)) | ~x(5));
+    EXPECT_EQ(f.permute(from, to).id(), bddpermute(f.id(), from, to));
+    // Round trip through fresh variables is the identity.
+    EXPECT_EQ(f.permute(from, to).permute(to, from), f);
+    EXPECT_THROW(f.permute(from, VarVec()), std::invalid_argument);
+}
+
 // Variables whose numbers do not follow level order.
 class BddPermuteLevelTest : public ::testing::Test {
 protected:
@@ -522,6 +535,22 @@ TEST_F(ZddPermuteTest, RandomMappingsIterativeFirst) {
         check_zdd(sets, from, to, BddExecMode::Iterative);
         check_zdd(sets, from, to, BddExecMode::Recursive);
     }
+}
+
+TEST_F(ZddPermuteTest, MemberFunction) {
+    std::vector<std::set<bddvar> > sets;
+    sets.push_back(S(0, 1));
+    sets.push_back(S(1, 2));
+    sets.push_back(S(0));
+    ZDD f = family_of(sets);
+    VarVec from, to;
+    from.push_back(vars[0]); to.push_back(vars[3]);
+    from.push_back(vars[1]); to.push_back(vars[4]);
+    from.push_back(vars[2]); to.push_back(vars[5]);
+    EXPECT_EQ(f.permute(from, to), expected_zdd(sets, from, to));
+    EXPECT_EQ(f.permute(from, to).id(), bddpermutez(f.id(), from, to));
+    EXPECT_EQ(f.permute(from, to).permute(to, from), f);
+    EXPECT_THROW(f.permute(from, VarVec()), std::invalid_argument);
 }
 
 class ZddPermuteLevelTest : public ::testing::Test {

@@ -752,6 +752,17 @@ public:
     ZDD swap(bddvar v1, bddvar v2) const;
     /** @deprecated Use swap() instead. */
     ZDD Swap(bddvar v1, bddvar v2) const { return swap(v1, v2); }
+    /**
+     * @brief Substitute variables in every set: rename from[i] to to[i].
+     *
+     * Variables not listed in @p from are unchanged. Non-injective mappings
+     * are allowed: duplicate elements collapse and sets that become equal
+     * are merged. See bddpermutez().
+     * @throws std::invalid_argument on length mismatch, a variable out of
+     *         range, or a duplicate in @p from.
+     */
+    ZDD permute(const std::vector<bddvar>& from,
+                const std::vector<bddvar>& to) const;
     /** @brief Check if v1 implies v2 (all sets with v1 also have v2). */
     int imply_chk(bddvar v1, bddvar v2) const;
     /** @deprecated Use imply_chk() instead. */

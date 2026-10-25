@@ -317,6 +317,21 @@ public:
     /** @deprecated Use swap() instead. */
     BDD Swap(bddvar v1, bddvar v2) const { return swap(v1, v2); }
     /**
+     * @brief Substitute variables: rename from[i] to to[i] simultaneously.
+     *
+     * Variables not listed in @p from are unchanged. The mapping may be a
+     * permutation (e.g. a swap or a cycle), a renaming into fresh variables
+     * (next-state to current-state), or non-injective (two variables mapped
+     * to one). See bddpermute().
+     * @param from Variables to replace (no duplicates).
+     * @param to   Replacement variables, same length as @p from.
+     * @return The substituted BDD.
+     * @throws std::invalid_argument on length mismatch, a variable out of
+     *         range, or a duplicate in @p from.
+     */
+    BDD permute(const std::vector<bddvar>& from,
+                const std::vector<bddvar>& to) const;
+    /**
      * @brief Smooth (existential quantification) of variable v.
      * @param v Variable number to quantify out.
      * @return The BDD with variable v existentially quantified.

@@ -246,6 +246,13 @@ inline BDD BDD::swap(bddvar v1, bddvar v2) const {
     return b;
 }
 
+inline BDD BDD::permute(const std::vector<bddvar>& from,
+                        const std::vector<bddvar>& to) const {
+    BDD b(0);
+    b.root = bddpermute(root, from, to);
+    return b;
+}
+
 inline BDD BDD::smooth(bddvar v) const {
     BDD b(0);
     b.root = bddsmooth(root, v);
@@ -887,6 +894,13 @@ inline int ZDD::is_poly() const {
 inline ZDD ZDD::swap(bddvar v1, bddvar v2) const {
     ZDD z(0);
     z.root = bddswapz(root, v1, v2);
+    return z;
+}
+
+inline ZDD ZDD::permute(const std::vector<bddvar>& from,
+                        const std::vector<bddvar>& to) const {
+    ZDD z(0);
+    z.root = bddpermutez(root, from, to);
     return z;
 }
 
