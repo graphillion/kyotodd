@@ -652,6 +652,21 @@ PYBIND11_MODULE(_core, m) {
              "    v2: Second variable number.\n\n"
              "Returns:\n"
              "    The BDD with v1 and v2 swapped.\n")
+        .def("permute", &BDD::permute, py::arg("from_vars"), py::arg("to_vars"),
+             "Substitute variables: rename from_vars[i] to to_vars[i].\n\n"
+             "The substitution is simultaneous, so permute([1, 2], [2, 1])\n"
+             "swaps the two variables. Variables not listed are unchanged.\n"
+             "The mapping may be non-injective (two variables mapped to\n"
+             "one), and a target may already occur in the BDD; the result\n"
+             "is the function with the variables substituted.\n\n"
+             "Args:\n"
+             "    from_vars: Variables to replace (no duplicates).\n"
+             "    to_vars: Replacement variables, same length as from_vars.\n\n"
+             "Returns:\n"
+             "    The substituted BDD.\n\n"
+             "Raises:\n"
+             "    ValueError: If the lists differ in length, a variable is\n"
+             "        out of range, or from_vars repeats a variable.\n")
         .def("smooth", &BDD::smooth, py::arg("v"),
              "Smooth (existential quantification) of variable v.\n\n"
              "Args:\n"
@@ -1300,6 +1315,19 @@ PYBIND11_MODULE(_core, m) {
              "    v2: Second variable number.\n\n"
              "Returns:\n"
              "    A ZDD with v1 and v2 swapped.\n")
+        .def("permute", &ZDD::permute, py::arg("from_vars"), py::arg("to_vars"),
+             "Substitute variables in every set: rename from_vars[i] to\n"
+             "to_vars[i] simultaneously. Variables not listed are unchanged.\n"
+             "Non-injective mappings are allowed: duplicate elements\n"
+             "collapse and sets that become equal are merged.\n\n"
+             "Args:\n"
+             "    from_vars: Variables to replace (no duplicates).\n"
+             "    to_vars: Replacement variables, same length as from_vars.\n\n"
+             "Returns:\n"
+             "    The substituted ZDD.\n\n"
+             "Raises:\n"
+             "    ValueError: If the lists differ in length, a variable is\n"
+             "        out of range, or from_vars repeats a variable.\n")
         .def("imply_chk", &ZDD::ImplyChk, py::arg("v1"), py::arg("v2"),
              "Check if v1 implies v2 in the family.\n\n"
              "Args:\n"

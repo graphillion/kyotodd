@@ -419,3 +419,53 @@ class TestBDDGraphviz:
         with open(path) as f:
             content = f.read()
         assert "digraph" in content
+
+
+class TestBDDPermute:
+    def test_rename(self):
+        a, b, c, d = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(4))
+        f = (a & b) | ~c
+        assert f.permute([1, 2], [3, 4]) == (c & d) | ~c
+        # 1 -> 4, 2 -> 3 (crosses levels), 3 unchanged
+        assert f.permute([1, 2], [4, 3]) == (d & c) | ~c
+        # Round trip through fresh variables
+        g = f.permute([1, 2, 3], [4, 2, 1])
+        assert g == (d & b) | ~a
+        assert g.permute([4, 2, 1], [1, 2, 3]) == f
+
+    def test_swap_and_cycle(self):
+        a, b, c = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        f = (a & ~b) | c
+        assert f.permute([1, 2], [2, 1]) == f.swap(1, 2)
+        assert f.permute([1, 2, 3], [2, 3, 1]) == (b & ~c) | a
+
+    def test_identity_and_unlisted(self):
+        a, b = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(2))
+        f = a ^ b
+        assert f.permute([], []) == f
+        assert f.permute([1], [1]) == f
+
+    def test_non_injective(self):
+        a, b, c = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        assert (a & ~b).permute([1, 2], [3, 3]) == kyotodd.BDD(0)
+        assert (a | b).permute([1, 2], [3, 3]) == c
+        # Target already in the support: f(x1, x2) with 1 -> 2 is f(x2, x2)
+        assert (a & ~b).permute([1], [2]) == kyotodd.BDD(0)
+
+    def test_next_state_to_current_state(self):
+        x1, x2, y1, y2 = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(4))
+        # T: y1 = ~x1, y2 = x1
+        T = ~(y1 ^ ~x1) & ~(y2 ^ x1)
+        init = ~x1 & ~x2
+        img = init.and_exist(T, [1, 2]).permute([3, 4], [1, 2])
+        assert img == x1 & ~x2
+
+    def test_errors(self):
+        a = kyotodd.BDD.var(kyotodd.new_var())
+        with pytest.raises(ValueError):
+            a.permute([1], [])
+        with pytest.raises(ValueError):
+            a.permute([1], [2])  # variable 2 does not exist
+        kyotodd.new_var()
+        with pytest.raises(ValueError):
+            a.permute([1, 1], [2, 2])

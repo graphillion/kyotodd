@@ -655,3 +655,51 @@ class TestZDDOneSet:
         g = ZDD.single_set([v1, v3]) + ZDD.single_set([v2, v3])
         assert g.one_set() == [v3, v1]
         assert (~g).one_set() == []
+
+
+class TestZDDPermute:
+    def test_rename(self):
+        v1, v2, v3, v4 = (kyotodd.new_var() for _ in range(4))
+        f = ZDD.single_set([v1, v2]) + ZDD.single_set([v3])
+        # 1 -> 4, 2 -> 3: {{1,2},{3}} -> {{4,3},{3}}
+        g = f.permute([v1, v2], [v4, v3])
+        assert g == ZDD.single_set([v3, v4]) + ZDD.single_set([v3])
+        assert f.permute([v1, v2], [v2, v1]) == f.swap(v1, v2)
+        # Round trip through a bijection
+        h = f.permute([v1, v2, v3], [v4, v3, v1])
+        assert h == ZDD.single_set([v4, v3]) + ZDD.single_set([v1])
+        assert h.permute([v4, v3, v1], [v1, v2, v3]) == f
+
+    def test_identity(self):
+        v1, v2 = (kyotodd.new_var() for _ in range(2))
+        f = ZDD.single_set([v1]) + ZDD.single_set([v2]) + ZDD(1)
+        assert f.permute([], []) == f
+        assert f.permute([v1], [v1]) == f
+
+    def test_non_injective(self):
+        v1, v2, v3 = (kyotodd.new_var() for _ in range(3))
+        f = ZDD.single_set([v1, v2]) + ZDD.single_set([v3])
+        # {{1,2},{3}} with 1, 2 -> 3 gives {{3}}: elements collapse, sets merge
+        g = f.permute([v1, v2], [v3, v3])
+        assert g == ZDD.single_set([v3])
+        assert g.count() == 1
+        # Target already present: {{1},{2},{1,2}} with 1 -> 2 is {{2}}
+        h = ZDD.single_set([v1]) + ZDD.single_set([v2]) + ZDD.single_set([v1, v2])
+        assert h.permute([v1], [v2]) == ZDD.single_set([v2])
+
+    def test_empty_set_membership_is_kept(self):
+        v1, v2 = (kyotodd.new_var() for _ in range(2))
+        f = ZDD.single_set([v1]) + ZDD(1)
+        g = f.permute([v1], [v2])
+        assert g == ZDD.single_set([v2]) + ZDD(1)
+
+    def test_errors(self):
+        v1 = kyotodd.new_var()
+        f = ZDD.single_set([v1])
+        with pytest.raises(ValueError):
+            f.permute([v1], [])
+        with pytest.raises(ValueError):
+            f.permute([v1], [v1 + 1])
+        kyotodd.new_var()
+        with pytest.raises(ValueError):
+            f.permute([v1, v1], [v1 + 1, v1 + 1])
