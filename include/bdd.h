@@ -158,6 +158,44 @@ inline BDD BDD::univ(bddvar v) const {
     return b;
 }
 
+inline BDD BDD::and_exist(const BDD& g, const BDD& cube) const {
+    BDD b(0);
+    b.root = bddandexist(root, g.root, cube.root);
+    return b;
+}
+
+inline BDD BDD::and_exist(const BDD& g, const std::vector<bddvar>& vars) const {
+    BDD b(0);
+    b.root = bddandexist(root, g.root, vars);
+    return b;
+}
+
+// The single-variable cube is built inside the vector overload's
+// bdd_gc_guard, so it cannot be collected before it is used.
+inline BDD BDD::and_exist(const BDD& g, bddvar v) const {
+    BDD b(0);
+    b.root = bddandexist(root, g.root, std::vector<bddvar>(1, v));
+    return b;
+}
+
+inline BDD BDD::or_univ(const BDD& g, const BDD& cube) const {
+    BDD b(0);
+    b.root = bddoruniv(root, g.root, cube.root);
+    return b;
+}
+
+inline BDD BDD::or_univ(const BDD& g, const std::vector<bddvar>& vars) const {
+    BDD b(0);
+    b.root = bddoruniv(root, g.root, vars);
+    return b;
+}
+
+inline BDD BDD::or_univ(const BDD& g, bddvar v) const {
+    BDD b(0);
+    b.root = bddoruniv(root, g.root, std::vector<bddvar>(1, v));
+    return b;
+}
+
 inline BDD BDD::cofactor(const BDD& g) const {
     BDD b(0);
     b.root = bddcofactor(root, g.root);

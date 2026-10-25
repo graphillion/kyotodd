@@ -152,6 +152,54 @@ public:
     /** @deprecated Use univ() instead. */
     BDD Univ(bddvar v) const { return univ(v); }
     /**
+     * @brief Relational product: existential quantification of (*this AND g).
+     *
+     * Computes (exists cube) (*this AND g) in a single pass, without building
+     * the intermediate conjunction. Same result as (*this & g).exist(cube).
+     * @param g The other operand.
+     * @param cube A BDD encoding the set of variables to quantify out (as returned by support()).
+     * @return The resulting BDD.
+     */
+    BDD and_exist(const BDD& g, const BDD& cube) const;
+    /**
+     * @brief Relational product with the quantified variables given as a list.
+     * @param g The other operand.
+     * @param vars Variable numbers to quantify out.
+     * @return The resulting BDD.
+     */
+    BDD and_exist(const BDD& g, const std::vector<bddvar>& vars) const;
+    /**
+     * @brief Relational product quantifying out a single variable.
+     * @param g The other operand.
+     * @param v Variable number to quantify out.
+     * @return The resulting BDD.
+     */
+    BDD and_exist(const BDD& g, bddvar v) const;
+    /**
+     * @brief Dual of and_exist(): universal quantification of (*this OR g).
+     *
+     * Computes (forall cube) (*this OR g) in a single pass. Same result as
+     * (*this | g).univ(cube).
+     * @param g The other operand.
+     * @param cube A BDD encoding the set of variables to quantify (as returned by support()).
+     * @return The resulting BDD.
+     */
+    BDD or_univ(const BDD& g, const BDD& cube) const;
+    /**
+     * @brief Dual of and_exist() with the quantified variables given as a list.
+     * @param g The other operand.
+     * @param vars Variable numbers to quantify.
+     * @return The resulting BDD.
+     */
+    BDD or_univ(const BDD& g, const std::vector<bddvar>& vars) const;
+    /**
+     * @brief Dual of and_exist() quantifying a single variable.
+     * @param g The other operand.
+     * @param v Variable number to quantify.
+     * @return The resulting BDD.
+     */
+    BDD or_univ(const BDD& g, bddvar v) const;
+    /**
      * @brief Generalized cofactor by BDD @p g.
      * @param g The constraining BDD (must not be false).
      * @return The generalized cofactor of this BDD with respect to @p g.

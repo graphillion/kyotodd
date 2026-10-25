@@ -969,6 +969,31 @@ bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars,
     });
 }
 
+// forall cube. (f OR g) = NOT exists cube. (NOT f AND NOT g)
+bddp bddoruniv(bddp f, bddp g, bddp cube) {
+    return bddoruniv(f, g, cube, BddExecMode::Auto);
+}
+
+bddp bddoruniv(bddp f, bddp g, bddp cube, BddExecMode mode) {
+    bddp_validate(f, "bddoruniv");
+    bddp_validate(g, "bddoruniv");
+    bddp_validate(cube, "bddoruniv");
+    if (f == bddnull || g == bddnull || cube == bddnull) return bddnull;
+    return bddnot(bddandexist(bddnot(f), bddnot(g), cube, mode));
+}
+
+bddp bddoruniv(bddp f, bddp g, const std::vector<bddvar>& vars) {
+    return bddoruniv(f, g, vars, BddExecMode::Auto);
+}
+
+bddp bddoruniv(bddp f, bddp g, const std::vector<bddvar>& vars,
+               BddExecMode mode) {
+    bddp_validate(f, "bddoruniv");
+    bddp_validate(g, "bddoruniv");
+    if (f == bddnull || g == bddnull) return bddnull;
+    return bddnot(bddandexist(bddnot(f), bddnot(g), vars, mode));
+}
+
 static bddp bdduniv_rec(bddp f, bddp g);
 
 bddp bdduniv(bddp f, bddp g) {

@@ -395,6 +395,45 @@ bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars,
                  BddExecMode mode);
 
 /**
+ * @brief Dual of the relational product: universal quantification of a
+ *        disjunction.
+ *
+ * Computes (forall vars in @p cube) (f OR g) in a single pass, as
+ * NOT bddandexist(NOT f, NOT g, cube). @p cube uses the same encoding as
+ * bddandexist().
+ *
+ * @param f    First operand.
+ * @param g    Second operand.
+ * @param cube A variable-set BDD of the variables to quantify.
+ * @return The resulting BDD.
+ */
+bddp bddoruniv(bddp f, bddp g, bddp cube);
+
+/**
+ * @brief Dual of the relational product with execution mode selection.
+ *
+ * Thin wrapper over bddandexist(); @p mode is forwarded to it.
+ */
+bddp bddoruniv(bddp f, bddp g, bddp cube, BddExecMode mode);
+
+/**
+ * @brief Dual of the relational product with the quantified variables
+ *        given as a list.
+ * @param f    First operand.
+ * @param g    Second operand.
+ * @param vars Variable numbers to quantify.
+ * @return The resulting BDD.
+ */
+bddp bddoruniv(bddp f, bddp g, const std::vector<bddvar>& vars);
+
+/**
+ * @brief Dual of the relational product by a list of variables with
+ *        execution mode selection.
+ */
+bddp bddoruniv(bddp f, bddp g, const std::vector<bddvar>& vars,
+               BddExecMode mode);
+
+/**
  * @brief BDD left shift: move every node from level l to level l+shift.
  *
  * The shift acts on levels, not on variable numbers. A node at level l is

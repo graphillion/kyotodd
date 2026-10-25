@@ -138,6 +138,71 @@ TEST_F(BddAndExistTest, VectorOutOfRangeThrows) {
     EXPECT_THROW(bddandexist(a.id(), a.id(), qv), std::invalid_argument);
 }
 
+// --- bddoruniv (dual) ---
+
+TEST_F(BddAndExistTest, OrUnivNullOperand) {
+    bddp a = bddprime(vars[0]);
+    EXPECT_EQ(bddoruniv(bddnull, a, a), bddnull);
+    EXPECT_EQ(bddoruniv(a, bddnull, a), bddnull);
+    EXPECT_EQ(bddoruniv(a, a, bddnull), bddnull);
+    EXPECT_EQ(bddoruniv(a, bddnull, std::vector<bddvar>()), bddnull);
+}
+
+TEST_F(BddAndExistTest, OrUnivSmallExample) {
+    BDD a = BDD::prime(vars[0]);
+    BDD b = BDD::prime(vars[1]);
+    BDD c = BDD::prime(vars[2]);
+    // forall b. (a | b) | (~b & c) = a | c
+    BDD f = a | b;
+    BDD g = ~b & c;
+    EXPECT_EQ(BDD_ID(bddoruniv(f.id(), g.id(), b.id())), a | c);
+    // forall a, b. (a | b) | (~b & c) = c
+    EXPECT_EQ(BDD_ID(bddoruniv(f.id(), g.id(), (a | b).id())), c);
+}
+
+// --- BDD member functions ---
+
+TEST_F(BddAndExistTest, MemberAndExistOverloads) {
+    BDD a = BDD::prime(vars[0]);
+    BDD b = BDD::prime(vars[1]);
+    BDD c = BDD::prime(vars[2]);
+    BDD d = BDD::prime(vars[3]);
+    BDD f = (a & b) | (c & ~d);
+    BDD g = (a ^ c) | d;
+    BDD expected = (f & g).exist(a | c);
+    EXPECT_EQ(f.and_exist(g, a | c), expected);
+    std::vector<bddvar> qv;
+    qv.push_back(vars[0]);
+    qv.push_back(vars[2]);
+    EXPECT_EQ(f.and_exist(g, qv), expected);
+    EXPECT_EQ(f.and_exist(g, vars[1]), (f & g).exist(vars[1]));
+    EXPECT_EQ(g.and_exist(f, a | c), expected);  // commutative
+}
+
+TEST_F(BddAndExistTest, MemberOrUnivOverloads) {
+    BDD a = BDD::prime(vars[0]);
+    BDD b = BDD::prime(vars[1]);
+    BDD c = BDD::prime(vars[2]);
+    BDD d = BDD::prime(vars[3]);
+    BDD f = (a & b) | (c & ~d);
+    BDD g = (a ^ c) & d;
+    BDD expected = (f | g).univ(b | d);
+    EXPECT_EQ(f.or_univ(g, b | d), expected);
+    std::vector<bddvar> qv;
+    qv.push_back(vars[1]);
+    qv.push_back(vars[3]);
+    EXPECT_EQ(f.or_univ(g, qv), expected);
+    EXPECT_EQ(f.or_univ(g, vars[2]), (f | g).univ(vars[2]));
+    EXPECT_EQ(g.or_univ(f, b | d), expected);  // commutative
+}
+
+TEST_F(BddAndExistTest, MemberSingleVarOutOfRangeThrows) {
+    BDD a = BDD::prime(vars[0]);
+    bddvar bad = static_cast<bddvar>(vars.size() + 1);
+    EXPECT_THROW(a.and_exist(a, bad), std::invalid_argument);
+    EXPECT_THROW(a.or_univ(a, bad), std::invalid_argument);
+}
+
 // Random cross-check against exist(and) for each execution mode. Each mode
 // runs on a fresh node table so that no mode can reuse cache entries of
 // another one.
@@ -155,6 +220,9 @@ TEST(BddAndExistRandomTest, MatchesExistOfAnd) {
             BDD cube = var_set(random_subset(rng, vars));
             BDD got = BDD_ID(bddandexist(f.id(), g.id(), cube.id(), modes[m]));
             ASSERT_EQ(got, reference(f, g, cube))
+                << "mode=" << m << " trial=" << trial;
+            BDD got_u = BDD_ID(bddoruniv(f.id(), g.id(), cube.id(), modes[m]));
+            ASSERT_EQ(got_u, (f | g).univ(cube))
                 << "mode=" << m << " trial=" << trial;
         }
     }
