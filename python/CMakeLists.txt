@@ -23,6 +23,8 @@ set(KYOTODD_SOURCES
     ${KYOTODD_ROOT}/src/bdd_ops.cpp
     ${KYOTODD_ROOT}/src/bdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/bdd_ops_iter_quant.cpp
+    ${KYOTODD_ROOT}/src/dd_permute.cpp
+    ${KYOTODD_ROOT}/src/dd_permute_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_ops.cpp
     ${KYOTODD_ROOT}/src/zdd_ops_iter.cpp
     ${KYOTODD_ROOT}/src/zdd_ops_iter_algebra.cpp

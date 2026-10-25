@@ -143,6 +143,8 @@ static const uint8_t BDD_OP_PRODUCT = 49;
 static const uint8_t BDD_OP_CHOOSE  = 68;
 static const uint8_t BDD_OP_MINSIZE = 69;
 static const uint8_t BDD_OP_AND_EXIST = 70;
+static const uint8_t BDD_OP_PERMUTE = 83;
+static const uint8_t BDD_OP_PERMUTEZ = 84;
 
 // Op codes defined outside this header. Every built-in op code must be
 // unique: two operations sharing a code can read each other's cache entries.
@@ -155,7 +157,7 @@ static const uint8_t BDD_OP_AND_EXIST = 70;
 
 // First op code handed out at run time by mtbdd_alloc_op_code() for
 // MTBDD / MTZDD template operations. Must exceed every static op code.
-static const uint8_t BDD_OP_DYNAMIC_MIN = 83;
+static const uint8_t BDD_OP_DYNAMIC_MIN = 85;
 
 // Lowest op code reserved for user-supplied BDD/ZDD/QDD::cache_get/cache_put
 // entries. Op codes [0, BDD_OP_USER_MIN) are reserved for built-in operations

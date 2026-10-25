@@ -21,6 +21,8 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp
   src/bdd_ops_iter_quant.cpp
+  src/dd_permute.cpp
+  src/dd_permute_iter.cpp
   src/zdd_ops.cpp
   src/zdd_ops_iter.cpp
   src/zdd_ops_iter_algebra.cpp
@@ -256,6 +258,13 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(and_exist_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(and_exist_test)
+
+  add_executable(permute_test test/test_permute.cpp)
+  target_link_libraries(permute_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(permute_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(permute_test)
 
   add_executable(op_codes_test test/test_op_codes.cpp)
   target_link_libraries(op_codes_test kyotodd_lib GTest::gtest_main)

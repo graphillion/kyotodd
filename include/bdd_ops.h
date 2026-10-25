@@ -522,6 +522,57 @@ bddp bddswap(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
 bddp bddswap_iter(bddp f, bddvar v1, bddvar v2, bddvar lev1, bddvar lev2);
 
 /**
+ * @brief Substitute variables in a BDD: rename from[i] to to[i].
+ *
+ * Computes f with every occurrence of variable @c from[i] replaced by
+ * variable @c to[i]; variables not listed in @p from are left unchanged.
+ * The substitution is applied simultaneously, so a permutation such as
+ * from = {1, 2}, to = {2, 1} swaps the two variables (bddswap()) and
+ * from = {1, 2, 3}, to = {2, 3, 1} is a 3-cycle. The mapping need not be
+ * injective: from = {1, 2}, to = {3, 3} yields f(x3, x3), and a target
+ * variable may already occur in @p f (from = {1}, to = {2} on f(x1, x2)
+ * yields f(x2, x2)). The result is always a reduced BDD in the current
+ * variable order; levels are re-ordered internally where the mapping does
+ * not preserve the order (via bddite()).
+ *
+ * This is the counterpart of BuDDy's @c bdd_replace and CUDD's
+ * @c Cudd_bddPermute / @c Cudd_bddSwapVariables. Typical use is renaming
+ * next-state variables to current-state variables in reachability
+ * analysis.
+ *
+ * @param f    A BDD node ID.
+ * @param from Variables to replace (no duplicates).
+ * @param to   Replacement variables, same length as @p from.
+ * @return The substituted BDD, or bddnull if @p f is bddnull.
+ * @throws std::invalid_argument if the two lists differ in length, contain
+ *         a variable outside 1..bdd_varcount, or @p from repeats a variable.
+ */
+bddp bddpermute(bddp f, const std::vector<bddvar>& from,
+                const std::vector<bddvar>& to);
+
+/** @brief BDD variable substitution with execution mode selection. */
+bddp bddpermute(bddp f, const std::vector<bddvar>& from,
+                const std::vector<bddvar>& to, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddpermute.
+ *
+ * Advanced API. The caller is responsible for the normalization that the
+ * public @ref bddpermute wrappers perform:
+ *   - @p f must be non-null.
+ *   - @p perm has size bdd_varcount + 1 and @c perm[v] is the replacement
+ *     of variable v (equal to v when v is unchanged); index 0 is unused.
+ *   - @p min_level is the smallest level among the changed variables
+ *     (sub-DDs entirely below it are returned unchanged).
+ *   - @p perm_id is the cache key that identifies this mapping; it must
+ *     be the same for identical mappings and distinct otherwise.
+ * Must run inside a @c bdd_gc_guard scope. Internally composes via
+ * @ref bddite_iter (and therefore @ref bddand_iter).
+ */
+bddp bddpermute_iter(bddp f, const std::vector<bddvar>& perm,
+                     bddvar min_level, bddp perm_id);
+
+/**
  * @brief Smooth (existential quantification) of a single variable.
  * @param f A BDD node ID.
  * @param v Variable number to quantify out.

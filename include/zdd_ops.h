@@ -1146,6 +1146,43 @@ bddp bddswapz(bddp f, bddvar v1, bddvar v2);
 bddp bddswapz(bddp f, bddvar v1, bddvar v2, BddExecMode mode);
 
 /**
+ * @brief Substitute variables in a ZDD family: rename from[i] to to[i].
+ *
+ * Replaces, in every set of the family @p f, each element @c from[i] by
+ * @c to[i]; elements not listed in @p from are left unchanged. The
+ * substitution is simultaneous, so from = {1, 2}, to = {2, 1} swaps the
+ * two variables (bddswapz()). The mapping need not be injective: when two
+ * elements of a set map to the same variable the set keeps a single copy
+ * of it, and sets that become equal are merged, so the result may contain
+ * fewer sets than @p f. A target variable may already occur in @p f.
+ * The result is a reduced ZDD in the current variable order.
+ *
+ * @param f    A ZDD node ID.
+ * @param from Variables to replace (no duplicates).
+ * @param to   Replacement variables, same length as @p from.
+ * @return The substituted ZDD, or bddnull if @p f is bddnull.
+ * @throws std::invalid_argument if the two lists differ in length, contain
+ *         a variable outside 1..bdd_varcount, or @p from repeats a variable.
+ */
+bddp bddpermutez(bddp f, const std::vector<bddvar>& from,
+                 const std::vector<bddvar>& to);
+
+/** @brief ZDD variable substitution with execution mode selection. */
+bddp bddpermutez(bddp f, const std::vector<bddvar>& from,
+                 const std::vector<bddvar>& to, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddpermutez.
+ *
+ * Advanced API. Preconditions as in @ref bddpermute_iter (normalized
+ * @p perm table, @p min_level, shared @p perm_id, active
+ * @c bdd_gc_guard). Internally composes via @ref bddunion_iter,
+ * @ref bddoffset_iter, @ref bddonset_iter and @ref bddchange_iter.
+ */
+bddp bddpermutez_iter(bddp f, const std::vector<bddvar>& perm,
+                      bddvar min_level, bddp perm_id);
+
+/**
  * @brief Check if v1 implies v2 in a ZDD family.
  * @param f A ZDD node ID.
  * @param v1 First variable number.
