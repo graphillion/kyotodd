@@ -852,6 +852,123 @@ bddp bddexistvar(bddp f, bddvar v, BddExecMode mode) {
     return bddexist(f, bddprime(v), mode);
 }
 
+static bddp bddandexist_rec(bddp f, bddp g, bddp cube);
+
+bddp bddandexist(bddp f, bddp g, bddp cube) {
+    return bddandexist(f, g, cube, BddExecMode::Auto);
+}
+
+bddp bddandexist(bddp f, bddp g, bddp cube, BddExecMode mode) {
+    bddp_validate(f, "bddandexist");
+    bddp_validate(g, "bddandexist");
+    bddp_validate(cube, "bddandexist");
+    if (f == bddnull || g == bddnull || cube == bddnull) return bddnull;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    cube = cube & ~BDD_COMP_FLAG;
+    // Terminal cases
+    if (f == bddfalse || g == bddfalse) return bddfalse;
+    if (f == bddnot(g)) return bddfalse;
+    // Reductions to a single AND or a single quantification
+    if (cube == bddfalse) return bddand(f, g, mode);
+    if (f == bddtrue || f == g) return bddexist(g, cube, mode);
+    if (g == bddtrue) return bddexist(f, cube, mode);
+
+    // Normalize operand order (AND is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    if (select_iter_3op(f, g, cube, mode)) {
+        return bdd_gc_guard([&]() -> bddp { return bddandexist_iter(f, g, cube); });
+    } else {
+        return bdd_gc_guard([&]() -> bddp { return bddandexist_rec(f, g, cube); });
+    }
+}
+
+static bddp bddandexist_rec(bddp f, bddp g, bddp cube) {
+    BDD_RecurGuard guard;
+    // Cube represents a variable set; complement is meaningless — strip it.
+    cube = cube & ~BDD_COMP_FLAG;
+    // Terminal cases
+    if (f == bddfalse || g == bddfalse) return bddfalse;
+    if (f == bddnot(g)) return bddfalse;
+    // Reductions to a single AND or a single quantification
+    if (cube == bddfalse) return bddand_rec(f, g);
+    if (f == bddtrue || f == g) return bddexist_rec(g, cube);
+    if (g == bddtrue) return bddexist_rec(f, cube);
+
+    // Normalize operand order (AND is commutative)
+    if (f > g) { bddp tmp = f; f = g; g = tmp; }
+
+    // Both f and g are non-terminal at this point
+    bddvar f_var = node_var(f);
+    bddvar g_var = node_var(g);
+    bddvar f_level = var2level[f_var];
+    bddvar g_level = var2level[g_var];
+    bddvar top_level = std::max(f_level, g_level);
+    bddvar top_var = (f_level >= g_level) ? f_var : g_var;
+
+    // Variables of the cube above both operands do not occur in f AND g
+    while (cube != bddfalse && var2level[node_var(cube)] > top_level) {
+        cube = node_lo(cube);
+    }
+    if (cube == bddfalse) return bddand_rec(f, g);
+
+    // Cache lookup
+    bddp cached = bddrcache3(BDD_OP_AND_EXIST, f, g, cube);
+    if (cached != bddnull) return cached;
+
+    // Cofactors with respect to the top variable
+    bddp f_lo = f, f_hi = f, g_lo = g, g_hi = g;
+    if (f_level == top_level) {
+        f_lo = node_lo(f);
+        f_hi = node_hi(f);
+        if (f & BDD_COMP_FLAG) { f_lo = bddnot(f_lo); f_hi = bddnot(f_hi); }
+    }
+    if (g_level == top_level) {
+        g_lo = node_lo(g);
+        g_hi = node_hi(g);
+        if (g & BDD_COMP_FLAG) { g_lo = bddnot(g_lo); g_hi = bddnot(g_hi); }
+    }
+
+    bddp result;
+    if (var2level[node_var(cube)] == top_level) {
+        // Top variable is quantified: result = lo OR hi
+        bddp cube_rest = node_lo(cube);
+        bddp lo_r = bddandexist_rec(f_lo, g_lo, cube_rest);
+        if (lo_r == bddtrue) {
+            // lo OR hi is already true; skip the hi branch
+            result = bddtrue;
+        } else {
+            bddp hi_r = bddandexist_rec(f_hi, g_hi, cube_rest);
+            // bddor = ~bddand(~a, ~b), use _rec for same-file call
+            result = bddnot(bddand_rec(bddnot(lo_r), bddnot(hi_r)));
+        }
+    } else {
+        // Top variable is kept
+        bddp lo_r = bddandexist_rec(f_lo, g_lo, cube);
+        bddp hi_r = bddandexist_rec(f_hi, g_hi, cube);
+        result = BDD::getnode_raw(top_var, lo_r, hi_r);
+    }
+
+    bddwcache3(BDD_OP_AND_EXIST, f, g, cube, result);
+    return result;
+}
+
+bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars) {
+    return bddandexist(f, g, vars, BddExecMode::Auto);
+}
+
+bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars,
+                 BddExecMode mode) {
+    bddp_validate(f, "bddandexist");
+    bddp_validate(g, "bddandexist");
+    if (f == bddnull || g == bddnull) return bddnull;
+    return bdd_gc_guard([&]() -> bddp {
+        bddp cube = vars_to_cube(vars);
+        // Nested bdd_gc_guard is safe; see bddexist(f, vars).
+        return bddandexist(f, g, cube, mode);
+    });
+}
+
 static bddp bdduniv_rec(bddp f, bddp g);
 
 bddp bdduniv(bddp f, bddp g) {

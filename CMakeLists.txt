@@ -20,6 +20,7 @@ set(KYOTODD_LIB_SOURCES
   src/bdd_io_graphviz.cpp
   src/bdd_ops.cpp
   src/bdd_ops_iter.cpp
+  src/bdd_ops_iter_quant.cpp
   src/zdd_ops.cpp
   src/zdd_ops_iter.cpp
   src/zdd_ops_iter_algebra.cpp
@@ -248,6 +249,13 @@ if(KYOTODD_BUILD_TESTS)
     target_compile_options(zdd_ops2_test PRIVATE -Wall -Wextra)
   endif()
   gtest_discover_tests(zdd_ops2_test)
+
+  add_executable(and_exist_test test/test_and_exist.cpp)
+  target_link_libraries(and_exist_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(and_exist_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(and_exist_test)
 
   add_executable(exec_mode_test test/test_exec_mode.cpp)
   target_link_libraries(exec_mode_test kyotodd_lib GTest::gtest_main)

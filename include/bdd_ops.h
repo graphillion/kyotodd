@@ -349,6 +349,52 @@ bddp bddunivvar(bddp f, bddvar v);
 bddp bddunivvar(bddp f, bddvar v, BddExecMode mode);
 
 /**
+ * @brief Relational product: existential quantification of a conjunction.
+ *
+ * Computes (exists vars in @p cube) (f AND g) in a single pass, without
+ * building the intermediate f AND g. Equivalent to
+ * bddexist(bddand(f, g), cube), but usually much faster when the
+ * conjunction is large and the quantified variables shrink it.
+ *
+ * @p cube uses the same encoding as bddexist(): a variable-set BDD as
+ * returned by bddsupport() (e.g. prime(a) | prime(b)), not an AND cube.
+ *
+ * @param f    First operand.
+ * @param g    Second operand.
+ * @param cube A variable-set BDD of the variables to quantify out.
+ * @return The resulting BDD.
+ */
+bddp bddandexist(bddp f, bddp g, bddp cube);
+
+/**
+ * @brief Relational product with execution mode selection.
+ */
+bddp bddandexist(bddp f, bddp g, bddp cube, BddExecMode mode);
+
+/**
+ * @brief Iterative (non-recursive) implementation of bddandexist.
+ *
+ * Advanced API. Preconditions as in @ref bddand_iter. Internally composes
+ * via @ref bddand_iter and @ref bddexist_iter.
+ */
+bddp bddandexist_iter(bddp f, bddp g, bddp cube);
+
+/**
+ * @brief Relational product with the quantified variables given as a list.
+ * @param f    First operand.
+ * @param g    Second operand.
+ * @param vars Variable numbers to quantify out.
+ * @return The resulting BDD.
+ */
+bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars);
+
+/**
+ * @brief Relational product by a list of variables with execution mode selection.
+ */
+bddp bddandexist(bddp f, bddp g, const std::vector<bddvar>& vars,
+                 BddExecMode mode);
+
+/**
  * @brief BDD left shift: move every node from level l to level l+shift.
  *
  * The shift acts on levels, not on variable numbers. A node at level l is

@@ -142,6 +142,7 @@ static const uint8_t BDD_OP_RSHIFTZ = 48;
 static const uint8_t BDD_OP_PRODUCT = 49;
 static const uint8_t BDD_OP_CHOOSE  = 68;
 static const uint8_t BDD_OP_MINSIZE = 69;
+static const uint8_t BDD_OP_AND_EXIST = 70;
 
 // Lowest op code reserved for user-supplied BDD/ZDD/QDD::cache_get/cache_put
 // entries. Op codes [0, BDD_OP_USER_MIN) are reserved for built-in operations
