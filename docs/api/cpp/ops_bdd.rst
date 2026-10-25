@@ -60,6 +60,18 @@ Quantification
 .. doxygenfunction:: bddunivvar(bddp f, bddvar v)
 .. doxygenfunction:: bddunivvar(bddp f, bddvar v, BddExecMode mode)
 
+Relational Product
+------------------
+
+.. doxygenfunction:: bddandexist(bddp f, bddp g, bddp cube)
+.. doxygenfunction:: bddandexist(bddp f, bddp g, bddp cube, BddExecMode mode)
+.. doxygenfunction:: bddandexist(bddp f, bddp g, const std::vector< bddvar > &vars)
+.. doxygenfunction:: bddandexist(bddp f, bddp g, const std::vector< bddvar > &vars, BddExecMode mode)
+.. doxygenfunction:: bddoruniv(bddp f, bddp g, bddp cube)
+.. doxygenfunction:: bddoruniv(bddp f, bddp g, bddp cube, BddExecMode mode)
+.. doxygenfunction:: bddoruniv(bddp f, bddp g, const std::vector< bddvar > &vars)
+.. doxygenfunction:: bddoruniv(bddp f, bddp g, const std::vector< bddvar > &vars, BddExecMode mode)
+
 Variable Shifting
 -----------------
 

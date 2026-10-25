@@ -234,6 +234,36 @@ BDD Class
       :return: The resulting BDD.
       :rtype: BDD
 
+   .. py:method:: and_exist(g, cube_or_vars_or_var)
+
+      Relational product: existential quantification of ``self & g``.
+
+      Computes the same result as ``(self & g).exist(cube_or_vars_or_var)``
+      in a single pass, without building the intermediate conjunction
+      ``self & g``. This is the basic image computation step in
+      reachability analysis.
+
+      The variables can be given in the same three forms as :py:meth:`exist`.
+
+      :param BDD g: The other operand.
+      :param cube_or_vars_or_var: Variables to quantify out.
+      :type cube_or_vars_or_var: BDD or list[int] or int
+      :return: The resulting BDD.
+      :rtype: BDD
+
+   .. py:method:: or_univ(g, cube_or_vars_or_var)
+
+      Dual of :py:meth:`and_exist`: universal quantification of ``self | g``.
+
+      Computes the same result as ``(self | g).univ(cube_or_vars_or_var)``
+      in a single pass.
+
+      :param BDD g: The other operand.
+      :param cube_or_vars_or_var: Variables to quantify.
+      :type cube_or_vars_or_var: BDD or list[int] or int
+      :return: The resulting BDD.
+      :rtype: BDD
+
    Support Set
    -----------
 

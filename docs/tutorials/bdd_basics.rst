@@ -70,11 +70,30 @@ Eliminate variables by existential or universal quantification:
    # Existential: f|x1=0 OR f|x1=1
    e1 = f.exist(x1)            # single variable
    e2 = f.exist([x1, x2])      # list of variables
-   e3 = f.exist(a & b)         # cube BDD (conjunction)
+   e3 = f.exist(a | b)         # variable-set BDD (as returned by support())
 
    # Universal: f|x1=0 AND f|x1=1
    u1 = f.univ(x1)
    u2 = f.univ([x1, x2])
+
+.. note::
+
+   A variable-set BDD is the *disjunction* of the variables, i.e. the
+   form returned by ``support()`` (``(a & b).support() == a | b``).
+   Passing a conjunction such as ``a & b`` quantifies only its top variable.
+
+The relational product ``and_exist`` computes ``(f & g).exist(vars)`` in a
+single pass, without building the possibly large intermediate ``f & g``.
+It is the basic step of image computation in reachability analysis:
+
+.. code-block:: python
+
+   # Image of the state set S under the transition relation T:
+   # exist current-state variables. (S & T)
+   img = S.and_exist(T, current_vars)
+
+   # Dual: forall vars. (f | g)
+   d = f.or_univ(g, [x1, x2])
 
 Support Set
 -----------
