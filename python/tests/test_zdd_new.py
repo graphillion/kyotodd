@@ -638,3 +638,20 @@ class TestZDDProfile:
         kyotodd.new_var()
         z = ZDD.from_sets([[], [1], [1, 2]])
         assert z.profile() == [1, 1, 1]
+
+
+class TestZDDOneSet:
+    def test_empty_raises(self):
+        with pytest.raises(ValueError):
+            ZDD(0).one_set()
+
+    def test_single_is_empty_set(self):
+        assert ZDD(1).one_set() == []
+
+    def test_prefers_zero_edge(self):
+        v1, v2, v3 = (kyotodd.new_var() for _ in range(3))
+        f = ZDD.single_set([v1]) + ZDD.single_set([v2])
+        assert f.one_set() == [v1]
+        g = ZDD.single_set([v1, v3]) + ZDD.single_set([v2, v3])
+        assert g.one_set() == [v3, v1]
+        assert (~g).one_set() == []

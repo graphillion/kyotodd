@@ -404,6 +404,36 @@ BDD Class
       :return: A list of variable numbers set to 1 in the sample.
       :rtype: list[int]
 
+   .. py:method:: sat_one()
+
+      Return one satisfying assignment as a list of literals.
+
+      Follows a single path from the root to the 1-terminal, preferring
+      the 0-edge, so it needs neither a memo nor a random seed. Variables
+      not on the path are don't-cares.
+
+      :return: Literals in DIMACS sign convention (``v`` for v = 1,
+         ``-v`` for v = 0) in decreasing level order.
+         ``BDD.cube(f.sat_one())`` implies ``f``. An empty list means
+         constant true.
+      :rtype: list[int]
+      :raises ValueError: If the BDD is constant false.
+
+   .. py:method:: sat_one_full(n)
+
+      Return one satisfying assignment over variables 1..\ *n*.
+
+      Same path as :py:meth:`sat_one`, but don't-care variables among
+      1..\ *n* are set to 0.
+
+      :param int n: Number of variables (domain is 1..\ *n*).
+      :return: *n* literals in DIMACS sign convention in decreasing
+         level order.
+      :rtype: list[int]
+      :raises ValueError: If the BDD is constant false, if *n* exceeds
+         the number of created variables, or if the chosen path contains
+         a variable greater than *n*.
+
    Conversion
    ----------
 

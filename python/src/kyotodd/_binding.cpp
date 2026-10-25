@@ -729,6 +729,29 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of variable numbers set to 1 in the sampled assignment.\n")
+        .def("sat_one", &BDD::sat_one,
+           "Return one satisfying assignment as a list of literals.\n\n"
+           "Follows a single path from the root to the 1-terminal, preferring\n"
+           "the 0-edge. Variables not on the path are don't-cares.\n\n"
+           "Returns:\n"
+           "    A list of literals in DIMACS sign convention (v for v = 1,\n"
+           "    -v for v = 0) in decreasing level order. BDD.cube() of the\n"
+           "    result implies this BDD. An empty list means constant true.\n\n"
+           "Raises:\n"
+           "    ValueError: If the BDD is constant false.\n")
+        .def("sat_one_full", &BDD::sat_one_full, py::arg("n"),
+           "Return one satisfying assignment over variables 1..n.\n\n"
+           "Same path as sat_one(), but don't-care variables among 1..n are\n"
+           "set to 0.\n\n"
+           "Args:\n"
+           "    n: Number of variables (domain is 1..n).\n\n"
+           "Returns:\n"
+           "    A list of n literals in DIMACS sign convention in decreasing\n"
+           "    level order.\n\n"
+           "Raises:\n"
+           "    ValueError: If the BDD is constant false, if n exceeds the\n"
+           "        number of created variables, or if the chosen path\n"
+           "        contains a variable greater than n.\n")
 
         // Static factory methods
         .def_static("prime", [](bddvar v) -> BDD {
@@ -1594,6 +1617,15 @@ PYBIND11_MODULE(_core, m) {
            "    seed: Random seed (default: 0).\n\n"
            "Returns:\n"
            "    A list of variable numbers in the sampled set.\n")
+        .def("one_set", &ZDD::one_set,
+           "Return one set from the family.\n\n"
+           "Follows a single path from the root to the 1-terminal, preferring\n"
+           "the 0-edge.\n\n"
+           "Returns:\n"
+           "    A list of variable numbers in decreasing level order. An empty\n"
+           "    list means the empty set.\n\n"
+           "Raises:\n"
+           "    ValueError: If the family is empty.\n")
         .def("sample_k", [](ZDD& z, int64_t k, uint64_t seed) -> ZDD {
             std::mt19937_64 rng(seed);
             ZddCountMemo memo(z);

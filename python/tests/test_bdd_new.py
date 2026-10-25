@@ -91,6 +91,44 @@ class TestBDDUniformSample:
         assert sorted(result) == sorted([v1, v2])
 
 
+class TestBDDSatOne:
+    def test_false_raises(self):
+        with pytest.raises(ValueError):
+            kyotodd.BDD(0).sat_one()
+
+    def test_true_is_empty(self):
+        assert kyotodd.BDD(1).sat_one() == []
+
+    def test_prefers_zero_edge(self):
+        x1, x2, x3 = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        assert (x1 & ~x3).sat_one() == [-3, 1]
+        assert (x1 | x2 | x3).sat_one() == [-3, -2, 1]
+        assert (~(x1 & x2 & x3)).sat_one() == [-3]
+
+    def test_cube_implies_f(self):
+        x1, x2, x3 = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        f = (x1 ^ x2) & (x2 | ~x3)
+        c = kyotodd.BDD.cube(f.sat_one())
+        assert (c & ~f) == kyotodd.BDD(0)
+
+
+class TestBDDSatOneFull:
+    def test_basic(self):
+        x1, x2, x3 = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(3))
+        assert (x1 & ~x3).sat_one_full(3) == [-3, -2, 1]
+        assert kyotodd.BDD(1).sat_one_full(3) == [-3, -2, -1]
+        assert x1.sat_one_full(1) == [1]
+
+    def test_errors(self):
+        x1, x2 = (kyotodd.BDD.var(kyotodd.new_var()) for _ in range(2))
+        with pytest.raises(ValueError):
+            kyotodd.BDD(0).sat_one_full(2)
+        with pytest.raises(ValueError):
+            x1.sat_one_full(3)
+        with pytest.raises(ValueError):
+            x2.sat_one_full(1)
+
+
 class TestBDDPrime:
     def test_prime(self):
         v1 = kyotodd.new_var()

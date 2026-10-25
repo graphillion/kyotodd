@@ -629,6 +629,18 @@ ZDD Class
       :return: A list of variable numbers in the sampled set.
       :rtype: list[int]
 
+   .. py:method:: one_set()
+
+      Return one set from the family.
+
+      Follows a single path from the root to the 1-terminal, preferring
+      the 0-edge, so it needs neither a memo nor a random seed.
+
+      :return: A list of variable numbers in decreasing level order.
+         An empty list means the empty set.
+      :rtype: list[int]
+      :raises ValueError: If the family is empty.
+
    .. py:method:: sample_k(k, seed=0)
 
       Sample *k* sets uniformly at random from the family.
