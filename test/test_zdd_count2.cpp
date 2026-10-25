@@ -1260,7 +1260,7 @@ TEST_F(BDDTest, BDDExactCount_NotOr) {
 TEST_F(BDDTest, BDDExactCount_ComplementSymmetry) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
     bddp f = bddand(bddprime(v1), bddprime(v2));
     bddp nf = bddnot(f);
     bigint::BigInt cf = bddexactcount(f, (bddvar)3);

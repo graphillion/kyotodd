@@ -427,7 +427,7 @@ TEST_F(UnreducedDDTest, ReduceAsQDD_SimpleNode) {
 }
 
 TEST_F(UnreducedDDTest, ReduceAsQDD_MultiLevel) {
-    bddvar v1 = bddnewvar();
+    bddnewvar();
     bddvar v2 = bddnewvar();
 
     // Build: v2 node skipping v1 level
@@ -518,7 +518,7 @@ TEST_F(UnreducedDDTest, ConstructFromZDD_ComplementExpanded) {
 
 TEST_F(UnreducedDDTest, ConstructFromQDD_RoundTrip) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     BDD x1 = BDDvar(v1);
     QDD q = x1.to_qdd();
 

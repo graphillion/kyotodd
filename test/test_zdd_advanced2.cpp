@@ -276,7 +276,7 @@ TEST_F(BDDTest, SubsetsOf_EmptySet) {
 TEST_F(BDDTest, SubsetsOf_PowerSet) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
     ZDD ps = ZDD::power_set(3);
     ZDD result = ps.subsets_of({v1, v2});
     // Subsets of {v1,v2}: ∅, {v1}, {v2}, {v1,v2}
@@ -287,7 +287,7 @@ TEST_F(BDDTest, SubsetsOf_PowerSet) {
 
 TEST_F(BDDTest, SubsetsOf_ConsistencyWithPermit) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     bddvar v3 = bddnewvar();
     ZDD f = ZDD::power_set(3) - ZDD::Single;
     std::vector<bddvar> s = {v1, v3};
@@ -344,9 +344,9 @@ TEST_F(BDDTest, Project_AllVars) {
 }
 
 TEST_F(BDDTest, Project_Idempotent) {
-    bddvar v1 = bddnewvar();
+    bddnewvar();
     bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
     std::vector<bddvar> vars = {v2};
     EXPECT_EQ(f.project(vars).project(vars), f.project(vars));
@@ -429,7 +429,7 @@ TEST_F(BDDTest, BDD_ToZdd_True) {
 TEST_F(BDDTest, BDD_ToZdd_ConsistencyWithQDD) {
     bddvar v1 = bddnewvar();
     bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
     BDD x1 = BDD::prime(v1);
     BDD x2 = BDD::prime(v2);
     BDD f = x1 & ~x2;
@@ -1212,10 +1212,10 @@ TEST_F(BDDTest, IsDisjoint_PowerSetVsComplement) {
 }
 
 TEST_F(BDDTest, IsDisjoint_LargerExample) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
-    bddvar v4 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     // a = all sets of size <= 2
     ZDD all = ZDD::power_set(4);
     ZDD a = all.size_le(2);

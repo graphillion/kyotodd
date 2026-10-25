@@ -126,9 +126,9 @@ TEST_F(BDDTest, MinMaxWeight_CompoundFamily) {
 }
 
 TEST_F(BDDTest, MinMaxWeight_SetWeightMatchesValue) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, -1, 4, 2};
     ZDD f = ZDD::power_set(3);
     // Verify: the weight of min_weight_set equals min_weight
@@ -146,9 +146,9 @@ TEST_F(BDDTest, MinMaxWeight_SetWeightMatchesValue) {
 }
 
 TEST_F(BDDTest, MinMaxWeight_CrossValidateWithEnumerate) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, 3, -2, 7};
     ZDD f = ZDD::power_set(3);
     // Enumerate all sets and compute min/max manually
@@ -167,7 +167,7 @@ TEST_F(BDDTest, MinMaxWeight_CrossValidateWithEnumerate) {
 
 TEST_F(BDDTest, MinMaxWeight_WeightsTooSmallThrows) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0};  // too small (size=1, need > 2)
     ZDD f = ZDD::singleton(v1);
     EXPECT_THROW(f.min_weight(w), std::invalid_argument);
@@ -500,9 +500,9 @@ TEST_F(BDDTest, CostBoundGe_FamilyWithEmptySet) {
 }
 
 TEST_F(BDDTest, CostBoundGe_CrossValidateWithEnumerate) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, 2, 5, 10};
     ZDD f = ZDD::power_set(3);  // all subsets of {1,2,3}
 
@@ -695,9 +695,9 @@ TEST_F(BDDTest, SizeLe_WithEmptySet) {
 }
 
 TEST_F(BDDTest, SizeLe_CrossValidateWithChoose) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
 
     // size_le(k) should equal union of choose(0) + choose(1) + ... + choose(k)
@@ -749,9 +749,9 @@ TEST_F(BDDTest, SizeGe_MultipleSets) {
 }
 
 TEST_F(BDDTest, SizeGe_CrossValidateWithChoose) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);  // all subsets of {v1, v2, v3}
 
     // size_ge(k) should equal union of choose(k) + choose(k+1) + ... + choose(3)
@@ -765,9 +765,9 @@ TEST_F(BDDTest, SizeGe_CrossValidateWithChoose) {
 }
 
 TEST_F(BDDTest, SizeLeGe_Complement) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
 
     // size_le(k) + size_ge(k+1) == f for all k
@@ -954,9 +954,9 @@ TEST_F(BDDTest, BigInt_ToInt64_Roundtrip) {
 
 TEST_F(BDDTest, ZDD_Rank_PowerSet3_RoundtripWithEnumerate) {
     // power_set(3) has 8 sets. Verify rank matches enumerate order.
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
 
     auto sets = f.enumerate();
@@ -1067,8 +1067,8 @@ TEST_F(BDDTest, ZDD_ExactUnrank_Basic) {
 }
 
 TEST_F(BDDTest, ZDD_ExactUnrank_WithMemo) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     ZddCountMemo memo(f);
     auto s0 = f.exact_unrank(bigint::BigInt(0), memo);
@@ -1096,9 +1096,9 @@ TEST_F(BDDTest, ZDD_Unrank_NullThrows) {
 
 TEST_F(BDDTest, ZDD_RankUnrank_Roundtrip) {
     // rank(unrank(i)) == i and unrank(rank(s)) == s
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
     uint64_t count = bddcard(f.id());
 
@@ -1112,9 +1112,9 @@ TEST_F(BDDTest, ZDD_RankUnrank_Roundtrip) {
 
 TEST_F(BDDTest, ZDD_RankUnrank_RoundtripEnumerate) {
     // unrank should produce the same sets as enumerate (in rank order)
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
     auto enumerated = f.enumerate();
     uint64_t count = bddcard(f.id());
@@ -1135,8 +1135,8 @@ TEST_F(BDDTest, ZDD_RankUnrank_RoundtripEnumerate) {
 
 TEST_F(BDDTest, ZDD_RankUnrank_ExactRoundtrip) {
     // BigInt version roundtrip
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     ZddCountMemo memo(f);
     bigint::BigInt count = f.exact_count(memo);
@@ -1152,7 +1152,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_ExactRoundtrip) {
 TEST_F(BDDTest, ZDD_RankUnrank_ComplementEdge) {
     // Build a family that uses complement edges
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     // ~singleton = all sets except {v1} → complement has complement edge
     ZDD f = ~ZDD::singleton(v1);
     uint64_t count = bddcard(f.id());
@@ -1167,10 +1167,10 @@ TEST_F(BDDTest, ZDD_RankUnrank_ComplementEdge) {
 
 TEST_F(BDDTest, ZDD_RankUnrank_Combination) {
     // C(4,2) = 6 sets
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
-    bddvar v4 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::combination(4, 2);
     uint64_t count = bddcard(f.id());
     EXPECT_EQ(count, 6u);
@@ -1186,7 +1186,7 @@ TEST_F(BDDTest, ZDD_RankUnrank_Combination) {
 TEST_F(BDDTest, ZDD_Rank_FreeFunctions) {
     // Test C-level free functions
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     bddp fp = f.id();
 
@@ -1225,15 +1225,15 @@ TEST_F(BDDTest, ZDD_GetKSets_SingleFamily) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_KZero) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     EXPECT_EQ(f.get_k_sets(0), ZDD::Empty);
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_KGreaterThanCard) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     // power_set(2) has 4 sets, k=10 should return entire family
     EXPECT_EQ(f.get_k_sets(10), f);
@@ -1241,9 +1241,9 @@ TEST_F(BDDTest, ZDD_GetKSets_KGreaterThanCard) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_PowerSet3_Incremental) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);  // 8 sets
     auto all_sets = f.enumerate();
     ASSERT_EQ(all_sets.size(), 8u);
@@ -1267,9 +1267,9 @@ TEST_F(BDDTest, ZDD_GetKSets_PowerSet3_Incremental) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_MatchesUnrank) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
 
     for (int64_t k = 0; k <= 8; ++k) {
@@ -1289,7 +1289,7 @@ TEST_F(BDDTest, ZDD_GetKSets_MatchesUnrank) {
 
 TEST_F(BDDTest, ZDD_GetKSets_ComplementEdge) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
     // ~singleton(v1) toggles ∅ membership: {{v1}} → {∅, {v1}}
     ZDD f = ~ZDD::singleton(v1);
     uint64_t count = f.Card();
@@ -1330,8 +1330,8 @@ TEST_F(BDDTest, ZDD_GetKSets_ComplementComplex) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_BigInt) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
 
     for (int k = 0; k <= 4; ++k) {
@@ -1342,9 +1342,9 @@ TEST_F(BDDTest, ZDD_GetKSets_BigInt) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_WithMemo) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
     ZddCountMemo memo(f);
 
@@ -1363,8 +1363,8 @@ TEST_F(BDDTest, ZDD_GetKSets_NegativeThrows) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_FreeFunctions) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     bddp fp = f.id();
 
@@ -1380,9 +1380,9 @@ TEST_F(BDDTest, ZDD_GetKSets_FreeFunctions) {
 }
 
 TEST_F(BDDTest, ZDD_GetKSets_ExecModeOverloads) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(3);
     bddp fp = f.id();
     const BddExecMode modes[] = {BDD_EXEC_RECURSIVE, BDD_EXEC_ITERATIVE, BDD_EXEC_AUTO};

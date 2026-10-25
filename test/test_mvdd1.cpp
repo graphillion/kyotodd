@@ -210,7 +210,7 @@ TEST_F(MVDDTest, MVBDDSingletonK2) {
 TEST_F(MVDDTest, MVBDDSingletonTwoVars) {
     MVBDD base(3);
     bddvar v1 = base.new_var();
-    bddvar v2 = base.new_var();
+    base.new_var();
 
     MVBDD lit = MVBDD::singleton(base, v1, 2);
 
@@ -337,7 +337,7 @@ TEST_F(MVDDTest, MVBDDCompoundAssign) {
 TEST_F(MVDDTest, MVBDDChildAndTopVar) {
     MVBDD base(3);
     bddvar v1 = base.new_var();
-    bddvar v2 = base.new_var();
+    base.new_var();
     auto table = base.var_table();
 
     MVBDD z = MVBDD::zero(table);
@@ -425,7 +425,7 @@ TEST_F(MVDDTest, MVBDDConstructorRejectsUnregisteredDDVar) {
 
 TEST_F(MVDDTest, MVBDDFromBddRejectsUnregisteredDDVar) {
     MVBDD base(3);
-    bddvar v1 = base.new_var();
+    base.new_var();
     bddvar d_unreg = bddnewvar();
     BDD unreg_bdd = BDD::prime(d_unreg);
     EXPECT_THROW(MVBDD::from_bdd(base, unreg_bdd), std::invalid_argument);
@@ -447,7 +447,7 @@ TEST_F(MVDDTest, MVZDDConstructorRejectsUnregisteredDDVar) {
 
 TEST_F(MVDDTest, MVZDDFromZddRejectsUnregisteredDDVar) {
     MVZDD base(3);
-    bddvar v1 = base.new_var();
+    base.new_var();
     bddvar d_unreg = bddnewvar();
     ZDD unreg_zdd = ZDD::singleton(d_unreg);
     EXPECT_THROW(MVZDD::from_zdd(base, unreg_zdd), std::invalid_argument);
@@ -614,7 +614,7 @@ TEST_F(MVDDTest, MVZDDSingletonK3) {
 TEST_F(MVDDTest, MVZDDSingletonTwoVars) {
     MVZDD base(3);
     bddvar v1 = base.new_var();
-    bddvar v2 = base.new_var();
+    base.new_var();
 
     // Singleton: v1=2, v2=0 → family containing one assignment {(2,0)}
     MVZDD s = MVZDD::singleton(base, v1, 2);
@@ -966,7 +966,7 @@ TEST_F(MVDDTest, SharedVarTable) {
     MVZDD zdd_base(table, ZDD(0));
 
     // Creating a var via MVBDD should be visible from MVZDD
-    bddvar v1 = bdd_base.new_var();
+    bdd_base.new_var();
     EXPECT_EQ(table->mvdd_var_count(), 1u);
     EXPECT_EQ(zdd_base.var_table()->mvdd_var_count(), 1u);
 }

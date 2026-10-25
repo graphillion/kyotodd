@@ -1293,7 +1293,7 @@ TEST_F(BDDTest, ZddGetnodeLevelValidation) {
 
 TEST_F(BDDTest, BddGetnodeClassTypeVersion) {
     bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
 
     // BDD class type version
     BDD lo = BDD::False;
@@ -1468,7 +1468,7 @@ TEST_F(BDDTest, SaveGraphviz_BDD_FileOverload) {
 }
 
 TEST_F(BDDTest, SaveGraphviz_ZDD_ComplementRaw) {
-    bddvar v1 = bddnewvar();
+    bddnewvar();
     bddvar v2 = bddnewvar();
     // power_set has complement edges internally
     ZDD z = ZDD::power_set(v2);
@@ -1529,7 +1529,7 @@ TEST_F(BDDTest, ExactCountWithReorderedVariables) {
 }
 
 TEST_F(BDDTest, UniformSampleWithReorderedVariables) {
-    bddvar v1 = bddnewvar();
+    bddnewvar();
     bddvar v2 = bddnewvar();
     bddnewvaroflev(1);  // var3 at level 1
 

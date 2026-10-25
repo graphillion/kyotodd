@@ -806,9 +806,9 @@ TEST_F(BDDTest, BDD_UniformSample_PopulatesMemo) {
 
 TEST_F(BDDTest, BDD_UniformSample_LevelDescending) {
     // Verify result is in decreasing level order
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     BDD f = BDD::True;
     BddCountMemo memo(f, 3);
 

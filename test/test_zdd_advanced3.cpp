@@ -175,8 +175,8 @@ TEST_F(BDDTest, RandomSubset_EmptyFamily) {
 }
 
 TEST_F(BDDTest, RandomSubset_ProbZero) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     std::mt19937_64 rng(42);
     ZDD result = f.random_subset(0.0, rng);
@@ -184,8 +184,8 @@ TEST_F(BDDTest, RandomSubset_ProbZero) {
 }
 
 TEST_F(BDDTest, RandomSubset_ProbOne) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     ZDD f = ZDD::power_set(2);
     std::mt19937_64 rng(42);
     ZDD result = f.random_subset(1.0, rng);
@@ -641,8 +641,8 @@ TEST_F(BDDTest, MedianSize_OddCount) {
 }
 
 TEST_F(BDDTest, MedianSize_EvenCount) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     // F = {∅, {v1}, {v2}, {v1,v2}}, sizes = {0,1,1,2}
     // sorted: {0,1,1,2}, median = (1+1)/2 = 1.0
     ZDD f = ZDD::power_set(2);
@@ -711,9 +711,9 @@ TEST_F(BDDTest, CostBoundRange_SingleVariable) {
 }
 
 TEST_F(BDDTest, CostBoundRange_CrossValidateWithLeGe) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, 3, -2, 7};
     ZDD f = ZDD::power_set(3);
     for (long long lo = -5; lo <= 10; lo += 3) {
@@ -727,9 +727,9 @@ TEST_F(BDDTest, CostBoundRange_CrossValidateWithLeGe) {
 }
 
 TEST_F(BDDTest, CostBoundRange_WithMemo) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, 3, -2, 7};
     ZDD f = ZDD::power_set(3);
     CostBoundMemo memo;
@@ -743,9 +743,9 @@ TEST_F(BDDTest, CostBoundRange_WithMemo) {
 }
 
 TEST_F(BDDTest, CostBoundRange_EquivalentToEq) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
-    bddvar v3 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
+    bddnewvar();
     std::vector<int> w = {0, 3, -2, 7};
     ZDD f = ZDD::power_set(3);
     // range(b, b) should equal eq(b)
@@ -1307,8 +1307,8 @@ TEST_F(BDDTest, ZDD_Zlev_WithEmptySet) {
 }
 
 TEST_F(BDDTest, ZDD_Zlev_LastParameter) {
-    bddvar v1 = bddnewvar();
-    bddvar v2 = bddnewvar();
+    bddnewvar();
+    bddnewvar();
     bddvar v3 = bddnewvar();
 
     // F = {{v3}} - top at level 3
