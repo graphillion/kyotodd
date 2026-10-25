@@ -136,6 +136,40 @@ std::vector<bddvar> ZDD::uniform_sample_impl(
     return result;
 }
 
+std::vector<bddvar> ZDD::one_set() const {
+    if (root == bddempty || root == bddnull) {
+        throw std::invalid_argument(
+            "ZDD::one_set: cannot pick a set from empty family");
+    }
+
+    std::vector<bddvar> result;
+    bddp f = root;
+
+    // Every non-empty ZDD node reaches the 1-terminal, so a greedy walk
+    // never needs to backtrack.
+    while (f != bddsingle) {
+        // ZDD complement semantics: complement toggles lo only
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+
+        if (comp) {
+            lo = bddnot(lo);
+        }
+
+        if (lo != bddempty) {
+            f = lo;
+        } else {
+            result.push_back(var);
+            f = node_hi(f_raw);
+        }
+    }
+
+    return result;
+}
+
 std::vector<bddvar> BDD::uniform_sample_impl(
         std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
         bddvar n, BddCountMemo& memo) {
@@ -228,6 +262,112 @@ std::vector<bddvar> BDD::uniform_sample_impl(
                 }
             }
         }
+    }
+
+    return result;
+}
+
+std::vector<int> BDD::sat_one() const {
+    if (root == bddfalse || root == bddnull) {
+        throw std::invalid_argument(
+            "BDD::sat_one: function is unsatisfiable");
+    }
+
+    std::vector<int> result;
+    bddp f = root;
+
+    // Every non-constant BDD node is satisfiable, so a greedy walk
+    // never needs to backtrack.
+    while (!(f & BDD_CONST_FLAG)) {
+        // BDD complement semantics: complement toggles both lo and hi
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        if (comp) {
+            lo = bddnot(lo);
+            hi = bddnot(hi);
+        }
+
+        if (lo != bddfalse) {
+            result.push_back(-static_cast<int>(var));
+            f = lo;
+        } else {
+            result.push_back(static_cast<int>(var));
+            f = hi;
+        }
+    }
+
+    return result;
+}
+
+std::vector<int> BDD::sat_one_full(bddvar n) const {
+    if (root == bddfalse || root == bddnull) {
+        throw std::invalid_argument(
+            "BDD::sat_one_full: function is unsatisfiable");
+    }
+    if (n > bddvarused()) {
+        throw std::invalid_argument(
+            "BDD::sat_one_full: n exceeds the number of created variables");
+    }
+
+    std::vector<int> result;
+    result.reserve(n);
+    bddp f = root;
+    // Start from the max level among domain variables {1..n} so that
+    // don't-care variables above the root are emitted as well, even
+    // when variable ordering is non-default.
+    bddvar current_level = 0;
+    for (bddvar v = 1; v <= n; ++v) {
+        bddvar lev = var2level[v];
+        if (lev > current_level) current_level = lev;
+    }
+
+    while (!(f & BDD_CONST_FLAG)) {
+        // BDD complement semantics: complement toggles both lo and hi
+        bool comp = (f & BDD_COMP_FLAG) != 0;
+        bddp f_raw = f & ~BDD_COMP_FLAG;
+
+        bddvar var = node_var(f_raw);
+        if (var > n) {
+            throw std::invalid_argument(
+                "BDD::sat_one_full: BDD depends on variable " +
+                std::to_string(var) + " outside 1..n");
+        }
+        bddvar node_level = var2level[var];
+
+        // Skipped levels are don't-cares: assign 0
+        for (bddvar lev = current_level; lev > node_level; --lev) {
+            bddvar v = bddvaroflev(lev);
+            if (v <= n) result.push_back(-static_cast<int>(v));
+        }
+
+        bddp lo = node_lo(f_raw);
+        bddp hi = node_hi(f_raw);
+
+        if (comp) {
+            lo = bddnot(lo);
+            hi = bddnot(hi);
+        }
+
+        if (lo != bddfalse) {
+            result.push_back(-static_cast<int>(var));
+            f = lo;
+        } else {
+            result.push_back(static_cast<int>(var));
+            f = hi;
+        }
+
+        current_level = node_level - 1;
+    }
+
+    // Terminal reached: remaining levels are don't-cares
+    for (bddvar lev = current_level; lev > 0; --lev) {
+        bddvar v = bddvaroflev(lev);
+        if (v <= n) result.push_back(-static_cast<int>(v));
     }
 
     return result;

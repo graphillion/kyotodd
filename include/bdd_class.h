@@ -340,6 +340,38 @@ public:
         bddvar n, BddCountMemo& memo);
     /// @endcond
     /**
+     * @brief Return one satisfying assignment as a cube of literals.
+     *
+     * Follows a single path from the root to the 1-terminal, preferring
+     * the 0-edge whenever it leads to a satisfiable function. Only the
+     * variables on that path are assigned; every other variable is a
+     * don't-care. Runs in time proportional to the path length.
+     *
+     * Literals use the DIMACS sign convention (v for v = 1, -v for
+     * v = 0) and are returned in decreasing level order, so
+     * BDD::cube(f.sat_one()) implies f. An empty vector means f is
+     * the constant true.
+     *
+     * @return The literals of the chosen path.
+     * @throws std::invalid_argument If f is the constant false or null.
+     */
+    std::vector<int> sat_one() const;
+    /**
+     * @brief Return one satisfying assignment over variables 1..n.
+     *
+     * Same path as sat_one(), but don't-care variables among 1..n are
+     * set to 0, so the result contains exactly one literal for each
+     * variable 1..n, in decreasing level order. BDD::cube of the result
+     * is a minterm that implies f.
+     *
+     * @param n The number of Boolean variables (domain is 1..n).
+     * @return n literals in DIMACS sign convention.
+     * @throws std::invalid_argument If f is the constant false or null,
+     *         if n exceeds the number of created variables, or if the
+     *         chosen path contains a variable greater than n.
+     */
+    std::vector<int> sat_one_full(bddvar n) const;
+    /**
      * @brief If-then-else operation: (f AND g) OR (NOT f AND h).
      * @param f Condition BDD.
      * @param g Then-branch BDD.

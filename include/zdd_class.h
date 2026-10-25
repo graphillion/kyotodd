@@ -243,6 +243,18 @@ public:
         std::function<bigint::BigInt(const bigint::BigInt&)> rand_func,
         ZddCountMemo& memo);
     /// @endcond
+    /**
+     * @brief Return one set from the family.
+     *
+     * Follows a single path from the root to the 1-terminal, preferring
+     * the 0-edge whenever it leads to a non-empty family. Runs in time
+     * proportional to the path length.
+     *
+     * @return The variables of the chosen set in decreasing level order.
+     *         An empty vector means the empty set.
+     * @throws std::invalid_argument If the family is empty or null.
+     */
+    std::vector<bddvar> one_set() const;
 
     /**
      * @brief Uniformly sample k sets from the family and return as a ZDD.
