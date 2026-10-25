@@ -13,15 +13,15 @@ struct SvgParams;
 static const int PiDD_MaxVar = 254;
 
 /** @brief Cache operation code for PiDD Swap. */
-static const uint8_t BDD_OP_PIDD_SWAP   = 49;
+static const uint8_t BDD_OP_PIDD_SWAP   = 71;
 /** @brief Cache operation code for PiDD Cofact. */
-static const uint8_t BDD_OP_PIDD_COFACT = 50;
+static const uint8_t BDD_OP_PIDD_COFACT = 72;
 /** @brief Cache operation code for PiDD multiplication (composition). */
-static const uint8_t BDD_OP_PIDD_MULT   = 51;
+static const uint8_t BDD_OP_PIDD_MULT   = 73;
 /** @brief Cache operation code for PiDD division. */
-static const uint8_t BDD_OP_PIDD_DIV    = 52;
+static const uint8_t BDD_OP_PIDD_DIV    = 74;
 /** @brief Cache operation code for PiDD Odd (odd permutation extraction). */
-static const uint8_t BDD_OP_PIDD_ODD    = 53;
+static const uint8_t BDD_OP_PIDD_ODD    = 75;
 
 /** @brief The current highest element value in PiDD (permutation size - 1). */
 extern int PiDD_TopVar;

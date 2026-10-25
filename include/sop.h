@@ -26,12 +26,12 @@
 namespace kyotodd {
 
 // --- Operation cache codes for SOP ---
-static const uint8_t BDD_OP_SOP_MULT = 60;
-static const uint8_t BDD_OP_SOP_DIV  = 61;
-static const uint8_t BDD_OP_SOP_BDD  = 62;
-static const uint8_t BDD_OP_ISOP1    = 63;
-static const uint8_t BDD_OP_ISOP2    = 64;
-static const uint8_t BDD_OP_SOP_IMPL = 65;
+static const uint8_t BDD_OP_SOP_MULT = 76;
+static const uint8_t BDD_OP_SOP_DIV  = 77;
+static const uint8_t BDD_OP_SOP_BDD  = 78;
+static const uint8_t BDD_OP_ISOP1    = 79;
+static const uint8_t BDD_OP_ISOP2    = 80;
+static const uint8_t BDD_OP_SOP_IMPL = 81;
 
 class SOPV;
 

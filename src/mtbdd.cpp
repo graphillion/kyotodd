@@ -9,7 +9,7 @@ namespace kyotodd {
 
 // --- Dynamic op code allocation ---
 
-uint8_t mtbdd_next_op_code = 70;  // start past all static codes (max existing: 67)
+uint8_t mtbdd_next_op_code = BDD_OP_DYNAMIC_MIN;  // start past all static codes
 
 uint8_t mtbdd_alloc_op_code() {
     if (mtbdd_next_op_code == 255) {

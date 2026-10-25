@@ -965,8 +965,9 @@ void ZDD::print_pla(BddExecMode mode) const {
 }
 
 // Operation code for ZSkip cache (BC_ZBDD_ZSkip = 65)
+// KyotoDD uses 82: 65 is taken by BDD_OP_ROTPIDD_CONTMAX (see bdd_types.h).
 extern const uint8_t BDD_OP_ZSKIP;
-const uint8_t BDD_OP_ZSKIP = 65;
+const uint8_t BDD_OP_ZSKIP = 82;
 
 // ZLevNum: compute the skip-target level for a given level n.
 // Returns n - (skip width), i.e. the level to skip to.

@@ -257,6 +257,13 @@ if(KYOTODD_BUILD_TESTS)
   endif()
   gtest_discover_tests(and_exist_test)
 
+  add_executable(op_codes_test test/test_op_codes.cpp)
+  target_link_libraries(op_codes_test kyotodd_lib GTest::gtest_main)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(op_codes_test PRIVATE -Wall -Wextra)
+  endif()
+  gtest_discover_tests(op_codes_test)
+
   add_executable(exec_mode_test test/test_exec_mode.cpp)
   target_link_libraries(exec_mode_test kyotodd_lib GTest::gtest_main)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
