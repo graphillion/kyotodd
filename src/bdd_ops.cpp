@@ -845,11 +845,19 @@ bddp bddexist(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
 }
 
 bddp bddexistvar(bddp f, bddvar v) {
-    return bddexist(f, bddprime(v));
+    return bddexistvar(f, v, BddExecMode::Auto);
 }
 
 bddp bddexistvar(bddp f, bddvar v, BddExecMode mode) {
-    return bddexist(f, bddprime(v), mode);
+    bddp_validate(f, "bddexistvar");
+    if (f == bddnull) return bddnull;
+    // bddprime(v) returns an unprotected raw node. Create it inside the same
+    // bdd_gc_guard scope as the quantification so that the pre-check GC of the
+    // inner bddexist (no longer the outermost guard) cannot sweep it, and so
+    // that an overflow retry recreates it after GC.
+    return bdd_gc_guard([&]() -> bddp {
+        return bddexist(f, bddprime(v), mode);
+    });
 }
 
 static bddp bddandexist_rec(bddp f, bddp g, bddp cube);
@@ -1109,11 +1117,17 @@ bddp bdduniv(bddp f, const std::vector<bddvar>& vars, BddExecMode mode) {
 }
 
 bddp bddunivvar(bddp f, bddvar v) {
-    return bdduniv(f, bddprime(v));
+    return bddunivvar(f, v, BddExecMode::Auto);
 }
 
 bddp bddunivvar(bddp f, bddvar v, BddExecMode mode) {
-    return bdduniv(f, bddprime(v), mode);
+    bddp_validate(f, "bddunivvar");
+    if (f == bddnull) return bddnull;
+    // Same GC-safety rationale as bddexistvar: keep bddprime(v) and the
+    // quantification inside one bdd_gc_guard scope.
+    return bdd_gc_guard([&]() -> bddp {
+        return bdduniv(f, bddprime(v), mode);
+    });
 }
 
 bddp bddlshiftb(bddp f, bddvar shift) {

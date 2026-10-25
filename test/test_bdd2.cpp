@@ -1504,3 +1504,92 @@ TEST_F(BddExistVectorDeepTest, ClassVectorMatchesCube) {
     EXPECT_EQ(g, f.exist(cube));
     EXPECT_EQ(h, f.univ(cube));
 }
+
+// --- bddexistvar / bddunivvar: GC safety of the internal bddprime temporary ---
+//
+// bddexistvar(f, v) builds bddprime(v) as a raw, unprotected node and then
+// quantifies. If bddprime(v) were created outside the bdd_gc_guard scope of
+// the quantification, the pre-check GC performed by bdd_gc_guard could sweep
+// the prime node before it is used. These tests force that pre-check GC to
+// run on every outermost guard entry (node array at node_max, threshold 0)
+// and check that the result still matches the protected-cube computation.
+
+class BddQuantVarGCTest : public ::testing::Test {
+protected:
+    double orig_threshold_;
+    void SetUp() override {
+        // node_count == node_max so that bdd_should_gc() looks only at the
+        // live ratio; threshold 0.0 makes it true whenever any node is live.
+        BDD_Init(64, 64);
+        orig_threshold_ = bddgc_getthreshold();
+        bddgc_setthreshold(0.0);
+    }
+    void TearDown() override {
+        bddgc_setthreshold(orig_threshold_);
+    }
+};
+
+TEST_F(BddQuantVarGCTest, ExistVarSurvivesPrecheckGC) {
+    // f = x2 & x3 does not contain the node (1, 0, 1), so bddprime(1) is a
+    // fresh node reachable from no GC root.
+    BDD f = BDD::prime(2) & BDD::prime(3);
+    // Leave a dead node behind so the free list is non-empty after GC.
+    { BDD tmp = BDD::prime(4) | BDD::prime(5); (void)tmp; }
+
+    bddp got_auto = bddnull;
+    bddp got_rec = bddnull;
+    bddp got_iter = bddnull;
+    ASSERT_NO_THROW(got_auto = bddexistvar(f.id(), 1));
+    ASSERT_NO_THROW(got_rec = bddexistvar(f.id(), 1, BDD_EXEC_RECURSIVE));
+    ASSERT_NO_THROW(got_iter = bddexistvar(f.id(), 1, BDD_EXEC_ITERATIVE));
+
+    BDD x1 = BDD::prime(1);   // protected cube for the reference result
+    bddp expected = bddexist(f.id(), x1.id());
+    EXPECT_EQ(got_auto, expected);
+    EXPECT_EQ(got_rec, expected);
+    EXPECT_EQ(got_iter, expected);
+    EXPECT_EQ(got_auto, f.id());   // exist x1. (x2 & x3) = x2 & x3
+}
+
+TEST_F(BddQuantVarGCTest, UnivVarSurvivesPrecheckGC) {
+    BDD f = BDD::prime(2) | BDD::prime(3);
+    { BDD tmp = BDD::prime(4) & BDD::prime(5); (void)tmp; }
+
+    bddp got_auto = bddnull;
+    bddp got_rec = bddnull;
+    bddp got_iter = bddnull;
+    ASSERT_NO_THROW(got_auto = bddunivvar(f.id(), 1));
+    ASSERT_NO_THROW(got_rec = bddunivvar(f.id(), 1, BDD_EXEC_RECURSIVE));
+    ASSERT_NO_THROW(got_iter = bddunivvar(f.id(), 1, BDD_EXEC_ITERATIVE));
+
+    BDD x1 = BDD::prime(1);
+    bddp expected = bdduniv(f.id(), x1.id());
+    EXPECT_EQ(got_auto, expected);
+    EXPECT_EQ(got_rec, expected);
+    EXPECT_EQ(got_iter, expected);
+    EXPECT_EQ(got_auto, f.id());   // forall x1. (x2 | x3) = x2 | x3
+}
+
+TEST_F(BddQuantVarGCTest, QuantVarDependsOnPrimeNode) {
+    // Here the quantified variable actually appears in f and the result is a
+    // new node, exercising node allocation after the forced GC.
+    BDD f = BDD::prime(1) & BDD::prime(2);
+    { BDD tmp = BDD::prime(4) | BDD::prime(5); (void)tmp; }
+
+    bddp e = bddnull;
+    bddp u = bddnull;
+    ASSERT_NO_THROW(e = bddexistvar(f.id(), 1));
+    ASSERT_NO_THROW(u = bddunivvar(f.id(), 1));
+    BDD x2 = BDD::prime(2);
+    EXPECT_EQ(e, x2.id());      // exist x1. (x1 & x2) = x2
+    EXPECT_EQ(u, bddfalse);     // forall x1. (x1 & x2) = 0
+}
+
+TEST_F(BddQuantVarGCTest, NullAndTerminalInputs) {
+    EXPECT_EQ(bddexistvar(bddnull, 1), bddnull);
+    EXPECT_EQ(bddunivvar(bddnull, 1), bddnull);
+    EXPECT_EQ(bddexistvar(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddexistvar(bddfalse, 1), bddfalse);
+    EXPECT_EQ(bddunivvar(bddtrue, 1), bddtrue);
+    EXPECT_EQ(bddunivvar(bddfalse, 1), bddfalse);
+}
