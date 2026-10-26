@@ -370,6 +370,37 @@ void bddgc_setthreshold(double threshold);
 double bddgc_getthreshold();
 
 /**
+ * @brief Set the node-table-to-cache size ratio (cf. BuDDy's bdd_setcacheratio).
+ *
+ * The operation cache is kept at roughly node_count / ratio entries
+ * (rounded up to a power of 2) and is resized automatically every time the
+ * node table grows. Existing entries are rehashed into the new table.
+ * Setting the ratio while the library is initialized resizes the cache
+ * immediately. A ratio of 0 disables automatic resizing and freezes the
+ * cache at its current size.
+ *
+ * The default is 1 (one cache entry per node slot). bddinit() and
+ * bddfinal() reset the ratio to the default, so call this after bddinit().
+ *
+ * @param ratio Nodes per cache entry; 0 = fixed-size cache.
+ * @return The previous ratio.
+ * @throws std::invalid_argument If @p ratio is negative.
+ */
+int bddcache_setratio(int ratio);
+
+/**
+ * @brief Get the current node-table-to-cache size ratio.
+ * @return The ratio set by bddcache_setratio() (default: 1; 0 = fixed).
+ */
+int bddcache_getratio();
+
+/**
+ * @brief Return the current number of operation cache entries.
+ * @return Number of cache entries (a power of 2), or 0 before bddinit().
+ */
+uint64_t bddcache_size();
+
+/**
  * @brief Return the number of live (reachable) nodes.
  * @return bdd_node_used minus free list count.
  */

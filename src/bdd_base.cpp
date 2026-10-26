@@ -40,6 +40,11 @@ BddUniqueTable* bdd_unique_tables = nullptr;
 
 BddCacheEntry* bdd_cache = nullptr;
 uint64_t bdd_cache_size = 0;
+// Node-table-to-cache size ratio (BuDDy's bdd_setcacheratio). The cache
+// holds about bdd_node_count / bdd_cache_ratio entries (rounded up to a
+// power of 2) and is resized whenever the node table grows. 0 = fixed.
+static const int BDD_CACHE_RATIO_DEFAULT = 1;
+static int bdd_cache_ratio = BDD_CACHE_RATIO_DEFAULT;
 
 // --- Garbage collection state ---
 // Leaked singleton to avoid static init/destruction order issues
@@ -59,6 +64,8 @@ static double bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
 // Must differ from any valid bddp used as h in 3-operand entries.
 // No valid bddp equals 0 (nodes start at 2, constants have bit 47 set).
 static const uint64_t BDD_CACHE_H_UNUSED = 0;
+// Low 48 bits of BddCacheEntry::fop hold f; bits [55:48] hold the op code.
+static const uint64_t BDD_CACHE_F_MASK = (UINT64_C(1) << 48) - 1;
 
 // --- Hash function (splitmix64 style) ---
 static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
@@ -72,7 +79,10 @@ static inline uint64_t unique_table_hash(bddp lo, bddp hi, uint64_t capacity) {
 }
 
 // --- Cache hash function (splitmix64 style) ---
-static inline uint64_t cache_hash(uint8_t op, bddp f, bddp g) {
+// The *_sized variants take the table size explicitly so that
+// bdd_cache_resize can rehash entries into a table of a different size.
+static inline uint64_t cache_hash_sized(uint8_t op, bddp f, bddp g,
+                                        uint64_t size) {
     uint64_t k = f ^ (g * UINT64_C(0x9E3779B97F4A7C15));
     k ^= static_cast<uint64_t>(op) * UINT64_C(0x517CC1B727220A95);
     k ^= k >> 30;
@@ -80,10 +90,11 @@ static inline uint64_t cache_hash(uint8_t op, bddp f, bddp g) {
     k ^= k >> 27;
     k *= UINT64_C(0x94D049BB133111EB);
     k ^= k >> 31;
-    return k & (bdd_cache_size - 1);
+    return k & (size - 1);
 }
 
-static inline uint64_t cache_hash3(uint8_t op, bddp f, bddp g, bddp h) {
+static inline uint64_t cache_hash3_sized(uint8_t op, bddp f, bddp g, bddp h,
+                                         uint64_t size) {
     uint64_t k = f ^ (g * UINT64_C(0x9E3779B97F4A7C15));
     k ^= h * UINT64_C(0x517CC1B727220A95);
     k ^= static_cast<uint64_t>(op) * UINT64_C(0x9E3779B97F4A7C55);
@@ -92,7 +103,57 @@ static inline uint64_t cache_hash3(uint8_t op, bddp f, bddp g, bddp h) {
     k ^= k >> 27;
     k *= UINT64_C(0x94D049BB133111EB);
     k ^= k >> 31;
-    return k & (bdd_cache_size - 1);
+    return k & (size - 1);
+}
+
+static inline uint64_t cache_hash(uint8_t op, bddp f, bddp g) {
+    return cache_hash_sized(op, f, g, bdd_cache_size);
+}
+
+static inline uint64_t cache_hash3(uint8_t op, bddp f, bddp g, bddp h) {
+    return cache_hash3_sized(op, f, g, h, bdd_cache_size);
+}
+
+// --- Cache sizing ---
+// Size the cache from the current node table capacity and the ratio.
+static uint64_t cache_size_for_nodes(uint64_t node_count) {
+    if (bdd_cache_ratio <= 0) return bdd_cache_size;  // fixed
+    return next_power_of_2(node_count / static_cast<uint64_t>(bdd_cache_ratio));
+}
+
+// Allocate a fresh table of @p new_size entries (power of 2) and move the
+// existing entries into it by rehashing. Entries whose new slot is already
+// taken are dropped (the cache is lossy). Returns false and leaves the
+// cache untouched if the allocation fails or the size does not change, so
+// callers deep inside an operation never see an error from here.
+static bool bdd_cache_resize(uint64_t new_size) {
+    if (new_size == 0 || new_size == bdd_cache_size) return false;
+    if (new_size > SIZE_MAX / sizeof(BddCacheEntry)) return false;
+    BddCacheEntry* fresh = static_cast<BddCacheEntry*>(
+        std::malloc(sizeof(BddCacheEntry) * new_size));
+    if (!fresh) return false;
+    for (uint64_t i = 0; i < new_size; i++) {
+        fresh[i].fop = 0;
+        fresh[i].g = 0;
+        fresh[i].h = 0;
+        fresh[i].result = bddnull;
+    }
+    if (bdd_cache) {
+        for (uint64_t i = 0; i < bdd_cache_size; i++) {
+            const BddCacheEntry& e = bdd_cache[i];
+            if (e.result == bddnull) continue;  // empty slot
+            uint8_t op = static_cast<uint8_t>(e.fop >> 48);
+            bddp f = e.fop & BDD_CACHE_F_MASK;
+            uint64_t idx = (e.h == BDD_CACHE_H_UNUSED)
+                ? cache_hash_sized(op, f, e.g, new_size)
+                : cache_hash3_sized(op, f, e.g, e.h, new_size);
+            if (fresh[idx].result == bddnull) fresh[idx] = e;
+        }
+        std::free(bdd_cache);
+    }
+    bdd_cache = fresh;
+    bdd_cache_size = new_size;
+    return true;
 }
 
 // --- Cache API (2-operand) ---
@@ -233,6 +294,7 @@ void bddfinal() {
     bdd_free_list = 0;
     bdd_free_count = 0;
     bdd_gc_threshold = BDD_GC_THRESHOLD_DEFAULT;
+    bdd_cache_ratio = BDD_CACHE_RATIO_DEFAULT;
     // Do NOT clear gc_roots(). The loop above verified every entry holds
     // a safe value (bddnull, bddfalse/bddtrue, or null-out below for MTBDD
     // index 0/1). Static constants like ZDD::Empty and user-held terminal
@@ -260,8 +322,9 @@ int bddinit(uint64_t node_count, uint64_t node_max) {
         throw std::bad_alloc();
     }
 
-    // Initialize operation cache
-    bdd_cache_size = next_power_of_2(node_count);
+    // Initialize operation cache (bdd_cache_ratio is at its default here
+    // because bddfinal() above reset it; ratio 1 gives one entry per node)
+    bdd_cache_size = next_power_of_2(node_count / static_cast<uint64_t>(bdd_cache_ratio));
     // Guard against size_t overflow in malloc argument
     if (bdd_cache_size > SIZE_MAX / sizeof(BddCacheEntry)) {
         std::free(bdd_nodes);
@@ -464,6 +527,26 @@ void bddgc_setthreshold(double threshold) {
 
 double bddgc_getthreshold() {
     return bdd_gc_threshold;
+}
+
+int bddcache_setratio(int ratio) {
+    if (ratio < 0) {
+        throw std::invalid_argument("bddcache_setratio: ratio must be >= 0");
+    }
+    int old = bdd_cache_ratio;
+    bdd_cache_ratio = ratio;
+    if (bdd_cache && ratio > 0) {
+        bdd_cache_resize(cache_size_for_nodes(bdd_node_count));
+    }
+    return old;
+}
+
+int bddcache_getratio() {
+    return bdd_cache_ratio;
+}
+
+uint64_t bddcache_size() {
+    return bdd_cache_size;
 }
 
 static void bddgc_mark(bddp f, uint64_t* marks) {
@@ -699,6 +782,12 @@ static void node_array_grow() {
     if (!p) throw std::bad_alloc();
     bdd_nodes = p;
     bdd_node_count = new_count;
+    // Let the operation cache follow the node table (BuDDy's
+    // bdd_operator_noderesize). Failure here is harmless: the cache is
+    // lossy, so we simply keep the smaller table.
+    if (bdd_cache_ratio > 0) {
+        bdd_cache_resize(cache_size_for_nodes(bdd_node_count));
+    }
 }
 
 bddp allocate_node() {
