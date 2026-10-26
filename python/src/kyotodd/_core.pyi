@@ -2556,6 +2556,33 @@ def gc_get_threshold() -> float:
     """Get the current GC threshold."""
     ...
 
+def cache_set_ratio(ratio: int) -> int:
+    """Set the node-table-to-cache size ratio (cf. BuDDy's bdd_setcacheratio).
+
+    The operation cache is kept at roughly node_count / ratio entries
+    (rounded up to a power of 2) and grows automatically with the node
+    table. Setting the ratio resizes the cache immediately; 0 freezes the
+    cache at its current size. init() resets the ratio to 1.
+
+    Args:
+        ratio: Nodes per cache entry (default: 1); 0 = fixed-size cache.
+
+    Returns:
+        The previous ratio.
+
+    Raises:
+        ValueError: If ratio is negative.
+    """
+    ...
+
+def cache_get_ratio() -> int:
+    """Get the current node-table-to-cache size ratio (default: 1; 0 = fixed)."""
+    ...
+
+def cache_size() -> int:
+    """Return the current number of operation cache entries (a power of 2)."""
+    ...
+
 def set_import_limit(max_nodes: Optional[int] = None, max_levels: Optional[int] = None,
                      max_outputs: Optional[int] = None) -> None:
     """Set the safety limits applied by every import function.

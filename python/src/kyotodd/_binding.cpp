@@ -263,6 +263,28 @@ PYBIND11_MODULE(_core, m) {
        "Returns:\n"
        "    The current threshold value.\n");
 
+    m.def("cache_set_ratio", &bddcache_setratio, py::arg("ratio"),
+       "Set the node-table-to-cache size ratio (cf. BuDDy's bdd_setcacheratio).\n\n"
+       "The operation cache is kept at roughly node_count / ratio entries\n"
+       "(rounded up to a power of 2) and grows automatically with the node\n"
+       "table. Setting the ratio resizes the cache immediately; 0 freezes\n"
+       "the cache at its current size. init() resets the ratio to 1.\n\n"
+       "Args:\n"
+       "    ratio: Nodes per cache entry (default: 1); 0 = fixed-size cache.\n\n"
+       "Returns:\n"
+       "    The previous ratio.\n\n"
+       "Raises ValueError if ratio is negative.\n");
+
+    m.def("cache_get_ratio", &bddcache_getratio,
+       "Get the current node-table-to-cache size ratio.\n\n"
+       "Returns:\n"
+       "    The ratio set by cache_set_ratio() (default: 1; 0 = fixed).\n");
+
+    m.def("cache_size", &bddcache_size,
+       "Return the current number of operation cache entries.\n\n"
+       "Returns:\n"
+       "    Number of cache entries (a power of 2).\n");
+
     m.def("set_import_limit",
           [](py::object max_nodes, py::object max_levels, py::object max_outputs) {
               ImportLimit lim = bdd_get_import_limit();

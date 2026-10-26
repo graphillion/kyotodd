@@ -68,6 +68,21 @@ def test_gc_threshold():
     assert kyotodd.gc_get_threshold() == pytest.approx(0.9)
 
 
+def test_cache_ratio():
+    assert kyotodd.cache_get_ratio() == 1
+    size = kyotodd.cache_size()
+    assert size > 0 and size & (size - 1) == 0  # power of 2
+    assert kyotodd.cache_set_ratio(2) == 1
+    assert kyotodd.cache_get_ratio() == 2
+    assert kyotodd.cache_size() == max(1, size // 2)
+    assert kyotodd.cache_set_ratio(0) == 2  # freeze
+    assert kyotodd.cache_get_ratio() == 0
+    with pytest.raises(ValueError):
+        kyotodd.cache_set_ratio(-1)
+    assert kyotodd.cache_set_ratio(1) == 0
+    assert kyotodd.cache_size() == size
+
+
 def test_live_nodes():
     count = kyotodd.live_nodes()
     assert count >= 0
