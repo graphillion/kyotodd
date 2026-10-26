@@ -55,6 +55,18 @@ Garbage Collection
 .. doxygenfunction:: bddlive
 .. doxygenfunction:: bddgc_rootcount
 
+Operation Cache
+---------------
+
+The operation cache (computed table) starts with one entry per node slot
+given to ``bddinit()`` and, by default, is resized every time the node
+table grows, so that it keeps one entry per node slot. The ratio can be
+changed in the same way as BuDDy's ``bdd_setcacheratio``.
+
+.. doxygenfunction:: bddcache_setratio
+.. doxygenfunction:: bddcache_getratio
+.. doxygenfunction:: bddcache_size
+
 Validation
 ----------
 

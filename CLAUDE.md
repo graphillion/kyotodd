@@ -56,7 +56,7 @@ The stored lo child is always non-complemented; node creation absorbs a compleme
 - BDD/ZDD/QDD objects auto-register their `root` as a GC root (`bddgc_protect` in constructors, `bddgc_unprotect` in destructors).
 - Node allocation priority: free list → array extend → array grow → GC → `std::overflow_error`.
 - Unique table: per-variable open-addressing hash table (linear probing, doubling at 75% load factor).
-- Operation cache: fixed-size lossy computed table; 2-operand (`bddrcache` / `bddwcache`) and 3-operand (`bddrcache3` / `bddwcache3`) APIs plus per-class typed wrappers (`cache_get` / `cache_put`).
+- Operation cache: lossy computed table sized at `node_count / ratio` entries (power of 2) and resized with rehashing whenever the node table grows (`bddcache_setratio`, default ratio 1, 0 = fixed); 2-operand (`bddrcache` / `bddwcache`) and 3-operand (`bddrcache3` / `bddwcache3`) APIs plus per-class typed wrappers (`cache_get` / `cache_put`).
 
 ## `_rec` / `_iter` separation pattern
 

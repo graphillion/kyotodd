@@ -79,6 +79,7 @@ struct BddUniqueTable {
 extern BddUniqueTable* bdd_unique_tables;  // indexed by var (1-based)
 
 // Operation cache (computed table) -- fixed-size, lossy
+// The size follows the node table via bddcache_setratio() (src/bdd_base.cpp).
 struct BddCacheEntry {
     uint64_t fop;     // bits [55:48] = op, bits [47:0] = f
     uint64_t g;       // bits [47:0] = g

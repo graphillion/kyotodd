@@ -131,6 +131,35 @@ Garbage Collection
 
    :rtype: int
 
+Operation Cache
+---------------
+
+.. py:function:: kyotodd.cache_set_ratio(ratio)
+
+   Set the node-table-to-cache size ratio (cf. BuDDy's ``bdd_setcacheratio``).
+
+   The operation cache is kept at roughly ``node_count / ratio`` entries
+   (rounded up to a power of 2) and grows automatically with the node table.
+   Setting the ratio resizes the cache immediately; ``0`` freezes the cache
+   at its current size. :func:`kyotodd.init` resets the ratio to 1.
+
+   :param int ratio: Nodes per cache entry (default: 1); 0 = fixed-size cache.
+   :return: The previous ratio.
+   :rtype: int
+   :raises ValueError: If ``ratio`` is negative.
+
+.. py:function:: kyotodd.cache_get_ratio()
+
+   Get the current node-table-to-cache size ratio (default: 1; 0 = fixed).
+
+   :rtype: int
+
+.. py:function:: kyotodd.cache_size()
+
+   Return the current number of operation cache entries (a power of 2).
+
+   :rtype: int
+
 Import Limits
 -------------
 
